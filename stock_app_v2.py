@@ -1,7 +1,7 @@
 from pathlib import Path
 from stock_backtest import run_trade_backtest, run_basket_backtest
-from strategy_performance import run_strategy_vs_spy
 from strategy_scores_v3 import long_term_analysis, long_term_entry_score, strategy_label
+from two_strategy import trade_decision, investment_decision
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
@@ -136,13 +136,53 @@ src = src.replace(
             b.metric("Hold Quality", f"{res['hold_score']:.0f}/100")
             c.metric("Opportunity", f"{res['opportunity_score']:.0f}/100")
             d.metric("Classification", res["classification"])''',
-'''            a, b, c, d = st.columns(4)
-            a.metric("Swing Score", f"{res['trade_score']:.0f}/100", res["trade_signal"])
-            b.metric("1-Year Hold", f"{res['one_year_hold_score']:.0f}/100")
-            c.metric("LT Compounder", f"{res['long_term_score']:.1f}/100", res["long_term_label"])
-            d.metric("LT Entry", f"{res['long_term_entry_score']:.0f}/100", res["long_term_entry_label"])
-            st.info(f"Strategy: **{res['strategy']}**")
-            st.caption(f"Overall opportunity: **{res['opportunity_score']:.0f}/100** · Valuation: **{res['valuation_score']:.0f}/20 {res['valuation_label']}** · Business quality: **{res['quality_score']:.0f}/80**")'''
+'''            owned = st.checkbox("I already own this ticker", key=f"owned_{res['symbol']}")
+            average_buy = None
+            if owned:
+                average_buy = st.number_input(
+                    "My average buy price",
+                    min_value=0.0,
+                    value=0.0,
+                    step=0.01,
+                    key=f"avg_buy_{res['symbol']}",
+                )
+
+            td = trade_decision(res, owned=owned, average_buy_price=average_buy)
+            iv = investment_decision(res, owned=owned, average_buy_price=average_buy)
+
+            left, right = st.columns(2)
+            with left:
+                st.subheader("TRADE")
+                st.metric("Action", td["action"])
+                t1, t2, t3 = st.columns(3)
+                t1.metric("Technical setup", f"{res['trade_score']:.0f}/100")
+                t2.metric("12-month fundamentals", f"{res['one_year_hold_score']:.0f}/100")
+                t3.metric("Potential ROI", f"{res['upside_pct']:.1f}%")
+                st.write(f"**Entry:** {fmt_price(res['preferred_low'])}–{fmt_price(res['preferred_high'])}")
+                st.write(f"**Stronger entry:** {fmt_price(res['strong_low'])}–{fmt_price(res['strong_high'])}")
+                st.write(f"**Exit target:** {fmt_price(res['swing_target'])}")
+                st.write(f"**Reassess / exit below:** {fmt_price(res['invalidation'])}")
+                if owned and td["actual_roi_pct"] is not None:
+                    st.write(f"**Your current ROI:** {td['actual_roi_pct']:+.1f}%")
+                if td["action"] == "WAIT" and td["reasons"]:
+                    st.caption("Waiting because: " + "; ".join(td["reasons"]))
+
+            with right:
+                st.subheader("INVESTMENT")
+                st.metric("Action", iv["action"])
+                i1, i2, i3 = st.columns(3)
+                i1.metric("Long-term quality", f"{res['long_term_score']:.1f}/100")
+                i2.metric("Entry quality", f"{res['long_term_entry_score']:.0f}/100")
+                i3.metric("Valuation", f"{res['valuation_score']:.0f}/20")
+                st.write("**Intended hold:** 20–30 years")
+                st.write("**Entry:** buy only when long-term quality and entry both qualify")
+                st.write("**Exit:** no fixed price target — sell only if the long-term thesis materially breaks")
+                if owned and iv["actual_roi_pct"] is not None:
+                    st.write(f"**Your current ROI:** {iv['actual_roi_pct']:+.1f}%")
+                if iv["action"] == "WAIT" and iv["reasons"]:
+                    st.caption("Waiting because: " + "; ".join(iv["reasons"]))
+
+            st.caption(f"Valuation: **{res['valuation_score']:.0f}/20 {res['valuation_label']}** · Business quality: **{res['quality_score']:.0f}/80**")'''
 )
 
 src = src.replace(
@@ -226,15 +266,15 @@ src = src.replace(
 
 src = src.replace(
     'st.caption("Swing-trade entries + fundamental hold quality. No broker connection or brokerage credentials required.")',
-    'st.caption("Three decision lanes: swing trades, 1-year holds, and 25–35 year compounders. No broker connection required.")',
+    'st.caption("Two strategies only: TRADE for technical setups you can hold up to ~12 months, and INVESTMENT for 20–30 year holdings. No broker connection required.")',
 )
 src = src.replace(
     'st.write("**Hold Quality:** growth, margins, debt, cash flow and analyst outlook.")',
-    'st.write("**1-Year Hold:** growth, valuation, margins, debt, cash flow and analyst outlook.")\n    st.write("**Long-Term Compounder:** multi-year growth consistency, profitability, cash generation, balance sheet, dilution and durability.")',
+    'st.write("**TRADE:** technical setup + 10%+ upside + fundamentals good enough for a ~12-month hold.")\n    st.write("**INVESTMENT:** long-term quality + valuation + attractive entry for a 20–30 year hold.")',
 )
 src = src.replace(
     'st.header("Scoring")',
-    'st.header("Three decision lanes")',
+    'st.header("Two strategies")',
 )
 
 
@@ -299,39 +339,56 @@ src = src.replace(
 
 src = src.replace(
     'st.subheader("Best overall opportunities")',
-    '''st.subheader("Three-lane rankings")
-                    swing_ranked = ranked.sort_values(["Trade", "Upside %"], ascending=[False, False])
-                    one_year_ranked = ranked.sort_values(["1Y Hold", "Valuation"], ascending=[False, False])
-                    long_term_ranked = ranked.sort_values(["LT Compounder", "LT Entry"], ascending=[False, False])
+    '''st.subheader("Two-strategy rankings")
+                    trade_ranked = ranked.copy()
+                    trade_ranked["Trade Action"] = trade_ranked.apply(
+                        lambda r: "BUY" if (
+                            r["Trade"] >= 85 and
+                            r["R:R"] >= 2 and
+                            r["Upside %"] >= 10 and
+                            (bool(r["Preferred now"]) or bool(r["Strong now"])) and
+                            r["1Y Hold"] >= 70 and
+                            r["Valuation"] >= 10
+                        ) else "WAIT",
+                        axis=1,
+                    )
+                    trade_ranked = trade_ranked.sort_values(
+                        ["Trade Action", "Trade", "Upside %"],
+                        ascending=[True, False, False],
+                    )
 
-                    lane1, lane2, lane3 = st.tabs(["Swing", "Swing → 1Y Hold", "Long-Term"])
+                    invest_ranked = ranked.copy()
+                    invest_ranked["Investment Action"] = invest_ranked.apply(
+                        lambda r: "BUY" if (
+                            r["LT Compounder"] >= 90 and
+                            r["LT Entry"] >= 70
+                        ) else "WAIT",
+                        axis=1,
+                    )
+                    invest_ranked = invest_ranked.sort_values(
+                        ["Investment Action", "LT Compounder", "LT Entry"],
+                        ascending=[True, False, False],
+                    )
+
+                    lane1, lane2 = st.tabs(["TRADE", "INVESTMENT"])
                     with lane1:
-                        st.caption("Prioritises validated swing quality: Trade Score, active entry zone and R:R.")
+                        st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
                         st.dataframe(
-                            swing_ranked[[
-                                "Ticker", "Signal", "Strategy", "Trade", "Price",
-                                "Preferred entry", "Strong entry", "Target", "Upside %",
-                                "R:R", "1Y Hold", "LT Compounder"
+                            trade_ranked[[
+                                "Ticker", "Trade Action", "Trade", "1Y Hold", "Valuation",
+                                "Price", "Preferred entry", "Strong entry", "Target",
+                                "Upside %", "R:R"
                             ]],
                             hide_index=True,
                             use_container_width=True,
                         )
+
                     with lane2:
-                        st.caption("Prioritises companies we would be comfortable holding for roughly 6–12 months if the swing takes longer.")
+                        st.caption("20–30 year candidates: long-term business quality first, then valuation and entry quality.")
                         st.dataframe(
-                            one_year_ranked[[
-                                "Ticker", "Strategy", "1Y Hold", "Valuation", "Valuation rating",
-                                "Trade", "Signal", "Price", "Target", "Upside %", "R:R"
-                            ]],
-                            hide_index=True,
-                            use_container_width=True,
-                        )
-                    with lane3:
-                        st.caption("Ranks long-term business quality first, then current long-term entry attractiveness. This long-term model is still provisional and has not yet been historically validated.")
-                        st.dataframe(
-                            long_term_ranked[[
-                                "Ticker", "Strategy", "LT Compounder", "LT Entry",
-                                "Valuation", "Valuation rating", "1Y Hold", "Trade", "Price"
+                            invest_ranked[[
+                                "Ticker", "Investment Action", "LT Compounder", "LT Entry",
+                                "Valuation", "Valuation rating", "Price", "1Y Hold"
                             ]],
                             hide_index=True,
                             use_container_width=True,
@@ -384,8 +441,8 @@ exec(compile(src, "stock_app.py", "exec"), globals(), globals())
 
 
 st.divider()
-st.subheader("Dedicated Long-Term Compounder Scan")
-st.caption("Quality-first scan for 25–35 year candidates. Unlike the broad swing scan, stocks do not need a strong short-term Trade Score to be considered. The long-term model is provisional until separately validated.")
+st.subheader("Dedicated Investment Scan")
+st.caption("Quality-first scan for 20–30 year investment candidates. Stocks do not need a strong short-term technical setup to qualify.")
 
 ltc1, ltc2, ltc3 = st.columns(3)
 with ltc1:
@@ -533,221 +590,3 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
 
             st.caption("Long-term labels are research signals, not validated forecasts. A 25–35 year thesis should ultimately be confirmed with business durability, competitive position, capital allocation and sector-specific analysis before any investment decision.")
 
-st.divider()
-st.subheader("Swing Strategy vs S&P 500")
-st.caption("Tests the validated swing entry rule — Trade 85+, R:R 2+, active preferred/strong entry zone — using full-position exits and compares results with SPY over the same historical period.")
-
-perf_default = "AAPL, MSFT, GOOGL, AMZN, META, NVDA, AMD, JPM, BAC, XOM, CVX, CAT, DE, UNH, JNJ, COST, WMT, HD, NEE, PLD, ON, TER, OXY, STRL, FLEX"
-perf_basket = st.text_area(
-    "Performance test basket",
-    value=perf_default,
-    key="perf_test_basket",
-    help="Diversified 25-stock validation basket. The test uses current constituents, so survivorship bias still exists.",
-)
-
-pc1, pc2, pc3 = st.columns(3)
-with pc1:
-    perf_hold = st.selectbox(
-        "Maximum holding period",
-        [20, 40, 60],
-        index=1,
-        format_func=lambda x: f"{x} trading days",
-        key="perf_hold",
-    )
-with pc2:
-    perf_positions = st.selectbox(
-        "Maximum concurrent positions",
-        [3, 5, 10],
-        index=1,
-        key="perf_positions",
-    )
-with pc3:
-    perf_benchmark = st.selectbox(
-        "Benchmark",
-        ["SPY"],
-        index=0,
-        key="perf_benchmark",
-    )
-
-if st.button("Run strategy vs S&P 500", key="run_strategy_vs_spy", type="primary"):
-    symbols = [x.strip().upper() for x in perf_basket.replace("\n", ",").split(",") if x.strip()]
-
-    with st.spinner(f"Replaying the swing strategy across {len(symbols)} stocks and comparing five exit methods with SPY…"):
-        trade_perf, portfolio_perf, perf_trades = run_strategy_vs_spy(
-            symbols,
-            technical_from_df,
-            threshold=85,
-            min_rr=2.0,
-            zone_mode="either",
-            max_hold=perf_hold,
-            cooldown=10,
-            max_positions=perf_positions,
-            benchmark=perf_benchmark,
-        )
-
-    if trade_perf.empty:
-        st.warning("No qualifying historical trades were found for this basket.")
-    else:
-        ptab1, ptab2 = st.tabs(["Portfolio vs S&P 500", "Trade-level evidence"])
-
-        with ptab1:
-            if portfolio_perf.empty:
-                st.warning("Portfolio simulation could not be completed.")
-            else:
-                st.dataframe(portfolio_perf, hide_index=True, use_container_width=True)
-
-                bestp = portfolio_perf.sort_values(
-                    ["CAGR alpha %", "CAGR %"],
-                    ascending=[False, False],
-                ).iloc[0]
-
-                p1, p2, p3, p4 = st.columns(4)
-                p1.metric("Best exit", bestp["Exit method"])
-                p2.metric("Strategy CAGR", f"{bestp['CAGR %']:.1f}%")
-                p3.metric("SPY CAGR", f"{bestp['SPY CAGR %']:.1f}%")
-                p4.metric("CAGR alpha", f"{bestp['CAGR alpha %']:+.1f}%")
-
-                p5, p6, p7 = st.columns(3)
-                p5.metric("Max drawdown", f"{bestp['Max drawdown %']:.1f}%")
-                p6.metric("Portfolio trades", int(bestp["Portfolio trades"]))
-                p7.metric("Average exposure", f"{bestp['Exposure %']:.1f}%")
-
-        with ptab2:
-            st.dataframe(trade_perf, hide_index=True, use_container_width=True)
-
-            bestt = trade_perf.sort_values(
-                ["Avg excess vs SPY %", "Profit factor"],
-                ascending=[False, False],
-            ).iloc[0]
-            t1, t2, t3, t4 = st.columns(4)
-            t1.metric("Best trade-level exit", bestt["Exit method"])
-            t2.metric("Win rate", f"{bestt['Win rate %']:.1f}%")
-            t3.metric("Profit factor", f"{bestt['Profit factor']:.2f}")
-            t4.metric("Beat SPY", f"{bestt['Beat SPY %']:.1f}%")
-
-            with st.expander("Historical strategy trades"):
-                st.dataframe(
-                    perf_trades.sort_values(["Exit method", "Entry date"], ascending=[True, False]),
-                    hide_index=True,
-                    use_container_width=True,
-                )
-
-        st.caption("Backtest limitations: current-stock survivorship bias, public Yahoo data, no taxes/fees/slippage, daily OHLC ordering ambiguity, and a simplified equal-slot portfolio simulation. Results are evidence for model calibration, not a forecast.")
-
-st.divider()
-st.subheader("Historical Trade Score Backtest")
-st.caption("Replays the current Trade Score on the last 5 years of daily data. Signals only count when price was inside the model's preferred or strong entry zone.")
-
-bt1, bt2 = st.columns([2, 1])
-with bt1:
-    bt_symbol = st.text_input("Backtest ticker", value="FLNC", key="stock_bt_symbol")
-with bt2:
-    bt_horizon = st.selectbox("Forward window", [10, 20, 40], index=1, format_func=lambda x: f"{x} trading days", key="stock_bt_horizon")
-
-if st.button("Run historical backtest", key="run_stock_backtest", type="primary"):
-    with st.spinner(f"Replaying {bt_symbol.upper()} over 5 years…"):
-        events, summary = run_trade_backtest(
-            bt_symbol.strip().upper(),
-            technical_from_df,
-            thresholds=(80, 85, 90),
-            horizon=bt_horizon,
-            cooldown=10,
-        )
-
-    if summary.empty:
-        st.warning("No qualifying historical signals were found for that ticker and entry rule.")
-    else:
-        st.dataframe(summary, hide_index=True, use_container_width=True)
-        st.caption("Hit rates require the target to be reached before the model's invalidation level. The 10-day cooldown reduces repeated counting of the same setup.")
-
-        best = summary.sort_values(["Hit +10%", "Invalidation hit"], ascending=[False, True]).iloc[0]
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Best threshold", f"{int(best['Threshold'])}+")
-        c2.metric("10% hit rate", f"{best['Hit +10%']:.1f}%")
-        c3.metric("Median max return", f"{best['Median max return %']:.1f}%")
-        c4.metric("Invalidation hit", f"{best['Invalidation hit']:.1f}%")
-
-        with st.expander("Historical signals"):
-            st.dataframe(events.sort_values("Date", ascending=False), hide_index=True, use_container_width=True)
-
-st.caption("Backtest limitations: daily OHLC cannot reveal the exact intraday order when both a target and invalidation trade in the same session. This panel is for model calibration, not a guarantee of future returns.")
-
-
-st.divider()
-st.subheader("Multi-stock Threshold Validation")
-st.caption("Aggregates the same 5-year Trade Score backtest across a basket of stocks so one ticker cannot decide the alert threshold. Use the diversified preset for a less selection-biased test.")
-
-basket_preset = st.selectbox(
-    "Validation basket preset",
-    ["Diversified 25 (recommended)", "Current opportunity 7"],
-    index=0,
-    key="validation_basket_preset",
-)
-default_basket = (
-    "AAPL, MSFT, GOOGL, AMZN, META, NVDA, AMD, JPM, BAC, XOM, CVX, "
-    "CAT, DE, UNH, JNJ, COST, WMT, HD, NEE, PLD, ON, TER, OXY, STRL, FLEX"
-    if basket_preset == "Diversified 25 (recommended)"
-    else "TER, ON, OXY, STRL, FLEX, ST, XOM"
-)
-basket_text = st.text_input(
-    "Validation basket",
-    value=default_basket,
-    key="validation_basket",
-    help="Comma-separated tickers. The diversified preset reduces selection bias from testing only today's top-ranked stocks.",
-)
-basket_horizon = st.selectbox(
-    "Basket forward window",
-    [10, 20, 40],
-    index=1,
-    format_func=lambda x: f"{x} trading days",
-    key="basket_horizon",
-)
-filter1, filter2 = st.columns(2)
-with filter1:
-    basket_min_rr = st.selectbox("Minimum R:R", [0.0, 1.5, 2.0, 2.5], index=2, key="basket_min_rr")
-with filter2:
-    basket_zone = st.selectbox(
-        "Entry zone",
-        ["either", "preferred", "strong"],
-        index=0,
-        format_func=lambda x: {"either":"Preferred or strong","preferred":"Preferred only","strong":"Strong only"}[x],
-        key="basket_zone",
-    )
-
-if st.button("Run multi-stock validation", key="run_basket_validation"):
-    basket = [x.strip().upper() for x in basket_text.split(",") if x.strip()]
-    with st.spinner(f"Backtesting {len(basket)} stocks across 80+, 85+ and 90+…"):
-        basket_events, basket_summary, per_stock = run_basket_backtest(
-            basket,
-            technical_from_df,
-            thresholds=(80, 85, 90),
-            horizon=basket_horizon,
-            cooldown=10,
-            min_rr=basket_min_rr,
-            zone_mode=basket_zone,
-        )
-
-    if basket_summary.empty:
-        st.warning("No qualifying historical signals were found across this basket.")
-    else:
-        st.dataframe(basket_summary, hide_index=True, use_container_width=True)
-
-        eligible = basket_summary[basket_summary["Signals"] >= 15].copy()
-        if eligible.empty:
-            eligible = basket_summary.copy()
-
-        best = eligible.sort_values(
-            ["Hit +10%", "Invalidation hit", "Signals"],
-            ascending=[False, True, False],
-        ).iloc[0]
-
-        v1, v2, v3, v4 = st.columns(4)
-        v1.metric("Provisional threshold", f"{int(best['Threshold'])}+")
-        v2.metric("Signals", int(best["Signals"]))
-        v3.metric("10% hit rate", f"{best['Hit +10%']:.1f}%")
-        v4.metric("Invalidation hit", f"{best['Invalidation hit']:.1f}%")
-
-        st.caption("For threshold selection, the app prefers at least 15 aggregate signals when possible so a tiny sample does not win just by chance. Use the R:R and entry-zone filters to test whether selectivity improves the edge.")
-
-        with st.expander("Per-stock validation"):
-            st.dataframe(per_stock.sort_values(["Threshold", "Ticker"]), hide_index=True, use_container_width=True)
