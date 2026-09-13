@@ -1,5 +1,6 @@
 from pathlib import Path
 from stock_backtest import run_trade_backtest, run_basket_backtest
+from strategy_performance import run_strategy_vs_spy
 from strategy_scores_v3 import long_term_analysis, long_term_entry_score, strategy_label
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
@@ -531,6 +532,107 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
             )
 
             st.caption("Long-term labels are research signals, not validated forecasts. A 25–35 year thesis should ultimately be confirmed with business durability, competitive position, capital allocation and sector-specific analysis before any investment decision.")
+
+st.divider()
+st.subheader("Swing Strategy vs S&P 500")
+st.caption("Tests the validated swing entry rule — Trade 85+, R:R 2+, active preferred/strong entry zone — using full-position exits and compares results with SPY over the same historical period.")
+
+perf_default = "AAPL, MSFT, GOOGL, AMZN, META, NVDA, AMD, JPM, BAC, XOM, CVX, CAT, DE, UNH, JNJ, COST, WMT, HD, NEE, PLD, ON, TER, OXY, STRL, FLEX"
+perf_basket = st.text_area(
+    "Performance test basket",
+    value=perf_default,
+    key="perf_test_basket",
+    help="Diversified 25-stock validation basket. The test uses current constituents, so survivorship bias still exists.",
+)
+
+pc1, pc2, pc3 = st.columns(3)
+with pc1:
+    perf_hold = st.selectbox(
+        "Maximum holding period",
+        [20, 40, 60],
+        index=1,
+        format_func=lambda x: f"{x} trading days",
+        key="perf_hold",
+    )
+with pc2:
+    perf_positions = st.selectbox(
+        "Maximum concurrent positions",
+        [3, 5, 10],
+        index=1,
+        key="perf_positions",
+    )
+with pc3:
+    perf_benchmark = st.selectbox(
+        "Benchmark",
+        ["SPY"],
+        index=0,
+        key="perf_benchmark",
+    )
+
+if st.button("Run strategy vs S&P 500", key="run_strategy_vs_spy", type="primary"):
+    symbols = [x.strip().upper() for x in perf_basket.replace("\n", ",").split(",") if x.strip()]
+
+    with st.spinner(f"Replaying the swing strategy across {len(symbols)} stocks and comparing five exit methods with SPY…"):
+        trade_perf, portfolio_perf, perf_trades = run_strategy_vs_spy(
+            symbols,
+            technical_from_df,
+            threshold=85,
+            min_rr=2.0,
+            zone_mode="either",
+            max_hold=perf_hold,
+            cooldown=10,
+            max_positions=perf_positions,
+            benchmark=perf_benchmark,
+        )
+
+    if trade_perf.empty:
+        st.warning("No qualifying historical trades were found for this basket.")
+    else:
+        ptab1, ptab2 = st.tabs(["Portfolio vs S&P 500", "Trade-level evidence"])
+
+        with ptab1:
+            if portfolio_perf.empty:
+                st.warning("Portfolio simulation could not be completed.")
+            else:
+                st.dataframe(portfolio_perf, hide_index=True, use_container_width=True)
+
+                bestp = portfolio_perf.sort_values(
+                    ["CAGR alpha %", "CAGR %"],
+                    ascending=[False, False],
+                ).iloc[0]
+
+                p1, p2, p3, p4 = st.columns(4)
+                p1.metric("Best exit", bestp["Exit method"])
+                p2.metric("Strategy CAGR", f"{bestp['CAGR %']:.1f}%")
+                p3.metric("SPY CAGR", f"{bestp['SPY CAGR %']:.1f}%")
+                p4.metric("CAGR alpha", f"{bestp['CAGR alpha %']:+.1f}%")
+
+                p5, p6, p7 = st.columns(3)
+                p5.metric("Max drawdown", f"{bestp['Max drawdown %']:.1f}%")
+                p6.metric("Portfolio trades", int(bestp["Portfolio trades"]))
+                p7.metric("Average exposure", f"{bestp['Exposure %']:.1f}%")
+
+        with ptab2:
+            st.dataframe(trade_perf, hide_index=True, use_container_width=True)
+
+            bestt = trade_perf.sort_values(
+                ["Avg excess vs SPY %", "Profit factor"],
+                ascending=[False, False],
+            ).iloc[0]
+            t1, t2, t3, t4 = st.columns(4)
+            t1.metric("Best trade-level exit", bestt["Exit method"])
+            t2.metric("Win rate", f"{bestt['Win rate %']:.1f}%")
+            t3.metric("Profit factor", f"{bestt['Profit factor']:.2f}")
+            t4.metric("Beat SPY", f"{bestt['Beat SPY %']:.1f}%")
+
+            with st.expander("Historical strategy trades"):
+                st.dataframe(
+                    perf_trades.sort_values(["Exit method", "Entry date"], ascending=[True, False]),
+                    hide_index=True,
+                    use_container_width=True,
+                )
+
+        st.caption("Backtest limitations: current-stock survivorship bias, public Yahoo data, no taxes/fees/slippage, daily OHLC ordering ambiguity, and a simplified equal-slot portfolio simulation. Results are evidence for model calibration, not a forecast.")
 
 st.divider()
 st.subheader("Historical Trade Score Backtest")
