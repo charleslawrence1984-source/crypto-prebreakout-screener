@@ -444,7 +444,7 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
             ]
 
             q1, q2, q3 = st.columns(3)
-            q1.metric("Long-term buys", len(buy_now))
+            q1.metric("Long-term candidates", len(buy_now))
             q2.metric("Elite — wait for entry", len(elite_wait))
             q3.metric("Companies scored", len(lt_df))
 
@@ -459,7 +459,7 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                 use_container_width=True,
             )
 
-            st.caption("Long-term labels are research signals, not validated forecasts. A 25–35 year thesis should ultimately be confirmed with business durability, competitive position and sector-specific analysis before buying.")
+            st.caption("Long-term labels are research signals, not validated forecasts. A 25–35 year thesis should ultimately be confirmed with business durability, competitive position, capital allocation and sector-specific analysis before any investment decision.")
 
 st.divider()
 st.subheader("Historical Trade Score Backtest")
