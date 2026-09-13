@@ -1,5 +1,6 @@
 from pathlib import Path
 from stock_backtest import run_trade_backtest, run_basket_backtest
+from strategy_scores import long_term_analysis, long_term_entry_score, strategy_label
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
@@ -58,17 +59,87 @@ src = src.replace(
 )
 
 src = src.replace(
+'''    fund = valuation_fundamental_analysis(symbol, tech["price"])
+    sc = classify(tech["trade_score"], fund["hold_score"], fund["valuation_score"])
+    return {
+        "symbol": symbol,
+        **tech,
+        **fund,
+        "opportunity_score": sc.opportunity,
+        "classification": sc.classification,
+    }''',
+'''    fund = valuation_fundamental_analysis(symbol, tech["price"])
+    lt = long_term_analysis(symbol, tech["price"], fund)
+    lt_entry = long_term_entry_score(symbol, tech["price"], fund["valuation_score"], tech)
+    trade_signal = signal_label(tech["trade_score"], tech["rr"], tech["in_preferred_zone"], tech["in_strong_zone"])
+    sc = classify(tech["trade_score"], fund["hold_score"], fund["valuation_score"])
+    strategy = strategy_label(
+        trade_signal,
+        fund["hold_score"],
+        fund["valuation_score"],
+        lt["long_term_score"],
+        lt_entry["long_term_entry_score"],
+    )
+    return {
+        "symbol": symbol,
+        **tech,
+        **fund,
+        **lt,
+        **lt_entry,
+        "one_year_hold_score": fund["hold_score"],
+        "trade_signal": trade_signal,
+        "strategy": strategy,
+        "opportunity_score": sc.opportunity,
+        "classification": sc.classification,
+    }'''
+)
+
+src = src.replace(
+'''            fund = valuation_fundamental_analysis(sym, float(row["Price"]))
+            sc = classify(float(row["Trade"]), fund["hold_score"], fund["valuation_score"])
+            out.append({''',
+'''            fund = valuation_fundamental_analysis(sym, float(row["Price"]))
+            tech_full = technical_analysis(sym)
+            lt = long_term_analysis(sym, float(row["Price"]), fund)
+            lt_entry = long_term_entry_score(sym, float(row["Price"]), fund["valuation_score"], tech_full)
+            trade_signal = signal_label(float(row["Trade"]), float(row["R:R"]), bool(row["Preferred now"]), bool(row["Strong now"]))
+            sc = classify(float(row["Trade"]), fund["hold_score"], fund["valuation_score"])
+            strategy = strategy_label(
+                trade_signal,
+                fund["hold_score"],
+                fund["valuation_score"],
+                lt["long_term_score"],
+                lt_entry["long_term_entry_score"],
+            )
+            out.append({'''
+)
+
+src = src.replace(
+'''                "Ticker": sym,
+                "Trade": float(row["Trade"]),
+                "Hold": fund["hold_score"],''',
+'''                "Ticker": sym,
+                "Trade": float(row["Trade"]),
+                "Hold": fund["hold_score"],
+                "1Y Hold": fund["hold_score"],
+                "LT Compounder": lt["long_term_score"],
+                "LT Entry": lt_entry["long_term_entry_score"],
+                "Strategy": strategy,''',
+)
+
+src = src.replace(
 '''            a, b, c, d = st.columns(4)
             a.metric("Trade Setup", f"{res['trade_score']:.0f}/100")
             b.metric("Hold Quality", f"{res['hold_score']:.0f}/100")
             c.metric("Opportunity", f"{res['opportunity_score']:.0f}/100")
             d.metric("Classification", res["classification"])''',
 '''            a, b, c, d = st.columns(4)
-            a.metric("Trade Setup", f"{res['trade_score']:.0f}/100")
-            b.metric("Hold Quality", f"{res['hold_score']:.0f}/100")
-            c.metric("Valuation", f"{res['valuation_score']:.0f}/20", res["valuation_label"])
-            d.metric("Opportunity", f"{res['opportunity_score']:.0f}/100")
-            st.caption(f"Classification: **{res['classification']}** · Business quality: **{res['quality_score']:.0f}/80**")'''
+            a.metric("Swing Score", f"{res['trade_score']:.0f}/100", res["trade_signal"])
+            b.metric("1-Year Hold", f"{res['one_year_hold_score']:.0f}/100")
+            c.metric("LT Compounder", f"{res['long_term_score']:.0f}/100", res["long_term_label"])
+            d.metric("LT Entry", f"{res['long_term_entry_score']:.0f}/100", res["long_term_entry_label"])
+            st.success(f"Strategy: **{res['strategy']}**")
+            st.caption(f"Overall opportunity: **{res['opportunity_score']:.0f}/100** · Valuation: **{res['valuation_score']:.0f}/20 {res['valuation_label']}** · Business quality: **{res['quality_score']:.0f}/80**")'''
 )
 
 src = src.replace(
@@ -95,6 +166,12 @@ src = src.replace(
                     "Price / sales": "—" if np.isnan(safe(res["price_sales"])) else f"{res['price_sales']:.2f}",
                     "FCF yield": "—" if np.isnan(safe(res["fcf_yield"])) else f"{res['fcf_yield']:.2f}%",
                     "EV / EBITDA": "—" if np.isnan(safe(res["ev_ebitda"])) else f"{res['ev_ebitda']:.2f}",
+                    "Long-term score": f"{res['long_term_score']:.1f}/100 — {res['long_term_label']}",
+                    "Long-term entry": f"{res['long_term_entry_score']:.1f}/100 — {res['long_term_entry_label']}",
+                    "Revenue CAGR": "—" if res["revenue_cagr_pct"] is None else f"{res['revenue_cagr_pct']:.1f}%",
+                    "Earnings CAGR": "—" if res["earnings_cagr_pct"] is None else f"{res['earnings_cagr_pct']:.1f}%",
+                    "ROE": "—" if res["roe_pct"] is None else f"{res['roe_pct']:.1f}%",
+                    "Operating margin": "—" if res["operating_margin_pct"] is None else f"{res['operating_margin_pct']:.1f}%",
                 }'''
 )
 
@@ -110,7 +187,10 @@ src = src.replace(
 src = src.replace(
 '''                "Hold": r["hold_score"],
                 "Opportunity": r["opportunity_score"],''',
-'''                "Hold": r["hold_score"],
+'''                "1Y Hold": r["one_year_hold_score"],
+                "LT Compounder": r["long_term_score"],
+                "LT Entry": r["long_term_entry_score"],
+                "Strategy": r["strategy"],
                 "Valuation": r["valuation_score"],
                 "Opportunity": r["opportunity_score"],'''
 )
@@ -126,15 +206,20 @@ src = src.replace(
                             c2.metric("Hold", f"{q['Hold']:.0f}/100")
                             c3.metric("Upside", f"{q['Upside %']:.1f}%")''',
 '''                            c1, c2, c3, c4 = st.columns(4)
-                            c1.metric("Trade", f"{q['Trade']:.0f}/100")
-                            c2.metric("Hold", f"{q['Hold']:.0f}/100")
-                            c3.metric("Valuation", f"{q['Valuation']:.0f}/20")
-                            c4.metric("Upside", f"{q['Upside %']:.1f}%")'''
+                            c1.metric("Swing", f"{q['Trade']:.0f}/100")
+                            c2.metric("1Y Hold", f"{q['1Y Hold']:.0f}/100")
+                            c3.metric("LT Compounder", f"{q['LT Compounder']:.0f}/100")
+                            c4.metric("LT Entry", f"{q['LT Entry']:.0f}/100")
+                            st.write(f"**Strategy:** {q['Strategy']} · **Swing upside:** {q['Upside %']:.1f}%")'''
 )
 
 src = src.replace(
 '''**Hold Quality /100** rewards market size, revenue and EPS growth, profit margin, manageable debt, positive free cash flow, analyst upside/coverage and sensible dividend/payout characteristics. Growth stocks are not automatically penalised for paying no dividend.''',
-'''**Hold Quality /100** is split into **Business Quality /80** plus **Valuation /20**. Business Quality rewards size, revenue and EPS growth, margins, manageable debt, positive free cash flow, analyst outlook and shareholder discipline. Valuation uses P/E, PEG, price-to-sales, free-cash-flow yield and EV/EBITDA when available. Missing valuation data is treated neutrally rather than as automatically cheap.'''
+'''**1-Year Hold /100** uses Business Quality /80 plus Valuation /20 and asks whether we are comfortable owning the company for roughly 6–12 months if a swing takes longer.
+
+**Long-Term Compounder /100** is separate. It scores multi-year revenue/earnings consistency, profitability and capital efficiency, free-cash-flow durability, balance-sheet strength, dilution discipline and business scale/durability.
+
+**Long-Term Entry /100** combines valuation with the current discount from the 52-week high, position versus the 200-day average and whether price is in an attractive technical entry zone.'''
 )
 
 
@@ -165,7 +250,7 @@ src = src.replace(
 
 src = src.replace(
 '''                            "Ticker", "Opportunity", "Trade", "Hold", "Valuation", "Valuation rating", "Type", "Price",''',
-'''                            "Ticker", "Signal", "Opportunity", "Trade", "Hold", "Valuation", "Valuation rating", "Type", "Price",'''
+'''                            "Ticker", "Signal", "Strategy", "Opportunity", "Trade", "1Y Hold", "LT Compounder", "LT Entry", "Valuation", "Valuation rating", "Type", "Price",'''
 )
 
 src = src.replace(
