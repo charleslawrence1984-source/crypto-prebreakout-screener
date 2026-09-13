@@ -320,6 +320,31 @@ src = src.replace(
                     st.subheader("Combined shortlist")'''
 )
 
+
+src = src.replace(
+'''                st.dataframe(pd.DataFrame({"Metric": rows.keys(), "Value": rows.values()}), hide_index=True, use_container_width=True)
+        else:''',
+'''                st.dataframe(pd.DataFrame({"Metric": rows.keys(), "Value": rows.values()}), hide_index=True, use_container_width=True)
+
+            with st.expander("Strict long-term evidence", expanded=True):
+                e1, e2, e3, e4 = st.columns(4)
+                e1.metric("FCF/share CAGR", "—" if res["fcf_per_share_cagr_pct"] is None else f"{res['fcf_per_share_cagr_pct']:.1f}%")
+                e2.metric("ROIC", "—" if res["roic_pct"] is None else f"{res['roic_pct']:.1f}%")
+                e3.metric("Dilution CAGR", "—" if res["dilution_cagr_pct"] is None else f"{res['dilution_cagr_pct']:.2f}%")
+                e4.metric("Net debt / FCF", "—" if res["net_debt_to_fcf"] is None else f"{res['net_debt_to_fcf']:.2f}x")
+
+                g1, g2, g3 = st.columns(3)
+                g1.metric("Evidence", f"{res['evidence_score']}/10")
+                g2.metric("Elite gate", "PASS" if res["elite_gate_pass"] else "NO")
+                g3.metric("LT score", f"{res['long_term_score']:.1f}/100")
+
+                if res["score_cap_reason"]:
+                    st.warning("Score cap: " + res["score_cap_reason"])
+                else:
+                    st.success("No long-term score cap is currently being applied.")
+        else:'''
+)
+
 src = src.replace(
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.''',
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.
