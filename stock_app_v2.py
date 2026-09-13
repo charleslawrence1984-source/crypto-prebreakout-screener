@@ -196,6 +196,17 @@ basket_horizon = st.selectbox(
     format_func=lambda x: f"{x} trading days",
     key="basket_horizon",
 )
+filter1, filter2 = st.columns(2)
+with filter1:
+    basket_min_rr = st.selectbox("Minimum R:R", [0.0, 1.5, 2.0, 2.5], index=2, key="basket_min_rr")
+with filter2:
+    basket_zone = st.selectbox(
+        "Entry zone",
+        ["either", "preferred", "strong"],
+        index=0,
+        format_func=lambda x: {"either":"Preferred or strong","preferred":"Preferred only","strong":"Strong only"}[x],
+        key="basket_zone",
+    )
 
 if st.button("Run multi-stock validation", key="run_basket_validation"):
     basket = [x.strip().upper() for x in basket_text.split(",") if x.strip()]
@@ -206,6 +217,8 @@ if st.button("Run multi-stock validation", key="run_basket_validation"):
             thresholds=(80, 85, 90),
             horizon=basket_horizon,
             cooldown=10,
+            min_rr=basket_min_rr,
+            zone_mode=basket_zone,
         )
 
     if basket_summary.empty:
@@ -228,7 +241,7 @@ if st.button("Run multi-stock validation", key="run_basket_validation"):
         v3.metric("10% hit rate", f"{best['Hit +10%']:.1f}%")
         v4.metric("Invalidation hit", f"{best['Invalidation hit']:.1f}%")
 
-        st.caption("For threshold selection, the app prefers at least 15 aggregate signals when possible so a tiny sample does not win just by chance.")
+        st.caption("For threshold selection, the app prefers at least 15 aggregate signals when possible so a tiny sample does not win just by chance. Use the R:R and entry-zone filters to test whether selectivity improves the edge.")
 
         with st.expander("Per-stock validation"):
             st.dataframe(per_stock.sort_values(["Threshold", "Ticker"]), hide_index=True, use_container_width=True)
