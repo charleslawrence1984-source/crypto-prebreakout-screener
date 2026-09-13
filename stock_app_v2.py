@@ -1,5 +1,5 @@
 from pathlib import Path
-from stock_backtest import run_trade_backtest
+from stock_backtest import run_trade_backtest, run_basket_backtest
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
@@ -177,3 +177,58 @@ if st.button("Run historical backtest", key="run_stock_backtest", type="primary"
             st.dataframe(events.sort_values("Date", ascending=False), hide_index=True, use_container_width=True)
 
 st.caption("Backtest limitations: daily OHLC cannot reveal the exact intraday order when both a target and invalidation trade in the same session. This panel is for model calibration, not a guarantee of future returns.")
+
+
+st.divider()
+st.subheader("Multi-stock Threshold Validation")
+st.caption("Aggregates the same 5-year Trade Score backtest across a basket of stocks so one ticker cannot decide the alert threshold.")
+
+basket_text = st.text_input(
+    "Validation basket",
+    value="TER, ON, OXY, STRL, FLEX, ST, XOM",
+    key="validation_basket",
+    help="Comma-separated tickers. Use a mix of sectors and trade types.",
+)
+basket_horizon = st.selectbox(
+    "Basket forward window",
+    [10, 20, 40],
+    index=1,
+    format_func=lambda x: f"{x} trading days",
+    key="basket_horizon",
+)
+
+if st.button("Run multi-stock validation", key="run_basket_validation"):
+    basket = [x.strip().upper() for x in basket_text.split(",") if x.strip()]
+    with st.spinner(f"Backtesting {len(basket)} stocks across 80+, 85+ and 90+…"):
+        basket_events, basket_summary, per_stock = run_basket_backtest(
+            basket,
+            technical_from_df,
+            thresholds=(80, 85, 90),
+            horizon=basket_horizon,
+            cooldown=10,
+        )
+
+    if basket_summary.empty:
+        st.warning("No qualifying historical signals were found across this basket.")
+    else:
+        st.dataframe(basket_summary, hide_index=True, use_container_width=True)
+
+        eligible = basket_summary[basket_summary["Signals"] >= 15].copy()
+        if eligible.empty:
+            eligible = basket_summary.copy()
+
+        best = eligible.sort_values(
+            ["Hit +10%", "Invalidation hit", "Signals"],
+            ascending=[False, True, False],
+        ).iloc[0]
+
+        v1, v2, v3, v4 = st.columns(4)
+        v1.metric("Provisional threshold", f"{int(best['Threshold'])}+")
+        v2.metric("Signals", int(best["Signals"]))
+        v3.metric("10% hit rate", f"{best['Hit +10%']:.1f}%")
+        v4.metric("Invalidation hit", f"{best['Invalidation hit']:.1f}%")
+
+        st.caption("For threshold selection, the app prefers at least 15 aggregate signals when possible so a tiny sample does not win just by chance.")
+
+        with st.expander("Per-stock validation"):
+            st.dataframe(per_stock.sort_values(["Threshold", "Ticker"]), hide_index=True, use_container_width=True)
