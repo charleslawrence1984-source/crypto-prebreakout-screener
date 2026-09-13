@@ -1,6 +1,6 @@
 from pathlib import Path
 from stock_backtest import run_trade_backtest, run_basket_backtest
-from strategy_scores_v2 import long_term_analysis, long_term_entry_score, strategy_label
+from strategy_scores_v3 import long_term_analysis, long_term_entry_score, strategy_label
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
@@ -338,6 +338,10 @@ src = src.replace(
                 g2.metric("Elite gate", "PASS" if res["elite_gate_pass"] else "NO")
                 g3.metric("LT score", f"{res['long_term_score']:.1f}/100")
 
+                st.caption(f"Sector model: **{res.get('sector_model', 'Generic')}** · Industry: **{res.get('industry') or '—'}**")
+                if res.get("book_value_per_share_cagr_pct") is not None:
+                    st.metric("Book value/share CAGR", f"{res['book_value_per_share_cagr_pct']:.1f}%")
+
                 if res["score_cap_reason"]:
                     st.warning("Score cap: " + res["score_cap_reason"])
                 else:
@@ -457,6 +461,8 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                     "Net debt / FCF": lt["net_debt_to_fcf"],
                     "Evidence /10": lt["evidence_score"],
                     "Elite gate": lt["elite_gate_pass"],
+                    "Sector model": lt.get("sector_model", "Generic"),
+                    "Book value/share CAGR %": lt.get("book_value_per_share_cagr_pct"),
                     "Market cap bn": None if np.isnan(mcap) else round(mcap / 1_000_000_000, 1),
                 })
             except Exception:
@@ -498,7 +504,8 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                     "Valuation", "Valuation rating", "1Y Hold", "Swing", "Signal",
                     "Revenue CAGR %", "Earnings CAGR %", "FCF/share CAGR %",
                     "ROIC %", "ROE %", "Operating margin %", "Dilution CAGR %",
-                    "Net debt / FCF", "Evidence /10", "Elite gate", "Market cap bn", "Price"
+                    "Net debt / FCF", "Evidence /10", "Elite gate", "Sector model",
+                    "Book value/share CAGR %", "Market cap bn", "Price"
                 ]],
                 hide_index=True,
                 use_container_width=True,
