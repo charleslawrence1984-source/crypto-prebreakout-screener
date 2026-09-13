@@ -17,6 +17,46 @@ src = src.replace(
 )
 
 src = src.replace(
+'''def classify(trade: float, hold: float) -> Scores:
+    opp = round(0.55*trade + 0.45*hold, 1)
+    if trade >= 75 and hold >= 65:
+        c = "Swing-to-hold"
+    elif trade >= 75:
+        c = "Swing only"
+    elif hold >= 80 and trade >= 55:
+        c = "Core opportunity"
+    elif trade >= 60 and hold >= 60:
+        c = "Developing"
+    else:
+        c = "Watch / wait"
+    return Scores(trade, hold, opp, c)''',
+'''def classify(trade: float, hold: float, valuation: float = 10) -> Scores:
+    opp = round(0.55*trade + 0.45*hold, 1)
+    if trade >= 75 and hold >= 65 and valuation >= 12:
+        c = "Swing-to-hold"
+    elif trade >= 75 and hold >= 65 and valuation >= 8:
+        c = "Swing-to-hold (valuation caution)"
+    elif trade >= 75:
+        c = "Swing only"
+    elif hold >= 80 and trade >= 55 and valuation >= 12:
+        c = "Core opportunity"
+    elif trade >= 60 and hold >= 60:
+        c = "Developing"
+    else:
+        c = "Watch / wait"
+    return Scores(trade, hold, opp, c)'''
+)
+
+src = src.replace(
+    'sc = classify(tech["trade_score"], fund["hold_score"])',
+    'sc = classify(tech["trade_score"], fund["hold_score"], fund["valuation_score"])',
+)
+src = src.replace(
+    'sc = classify(float(row["Trade"]), fund["hold_score"])',
+    'sc = classify(float(row["Trade"]), fund["hold_score"], fund["valuation_score"])',
+)
+
+src = src.replace(
 '''            a, b, c, d = st.columns(4)
             a.metric("Trade Setup", f"{res['trade_score']:.0f}/100")
             b.metric("Hold Quality", f"{res['hold_score']:.0f}/100")
