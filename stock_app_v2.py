@@ -269,6 +269,50 @@ src = src.replace(
 '''                            "Ticker", "Signal", "Strategy", "Opportunity", "Trade", "1Y Hold", "LT Compounder", "LT Entry", "Valuation", "Valuation rating", "Type", "Price",'''
 )
 
+
+src = src.replace(
+    'st.subheader("Best overall opportunities")',
+    '''st.subheader("Three-lane rankings")
+                    swing_ranked = ranked.sort_values(["Trade", "Upside %"], ascending=[False, False])
+                    one_year_ranked = ranked.sort_values(["1Y Hold", "Valuation"], ascending=[False, False])
+                    long_term_ranked = ranked.sort_values(["LT Compounder", "LT Entry"], ascending=[False, False])
+
+                    lane1, lane2, lane3 = st.tabs(["Swing", "Swing → 1Y Hold", "Long-Term"])
+                    with lane1:
+                        st.caption("Prioritises validated swing quality: Trade Score, active entry zone and R:R.")
+                        st.dataframe(
+                            swing_ranked[[
+                                "Ticker", "Signal", "Strategy", "Trade", "Price",
+                                "Preferred entry", "Strong entry", "Target", "Upside %",
+                                "R:R", "1Y Hold", "LT Compounder"
+                            ]],
+                            hide_index=True,
+                            use_container_width=True,
+                        )
+                    with lane2:
+                        st.caption("Prioritises companies we would be comfortable holding for roughly 6–12 months if the swing takes longer.")
+                        st.dataframe(
+                            one_year_ranked[[
+                                "Ticker", "Strategy", "1Y Hold", "Valuation", "Valuation rating",
+                                "Trade", "Signal", "Price", "Target", "Upside %", "R:R"
+                            ]],
+                            hide_index=True,
+                            use_container_width=True,
+                        )
+                    with lane3:
+                        st.caption("Ranks long-term business quality first, then current long-term entry attractiveness. This long-term model is still provisional and has not yet been historically validated.")
+                        st.dataframe(
+                            long_term_ranked[[
+                                "Ticker", "Strategy", "LT Compounder", "LT Entry",
+                                "Valuation", "Valuation rating", "1Y Hold", "Trade", "Price"
+                            ]],
+                            hide_index=True,
+                            use_container_width=True,
+                        )
+
+                    st.subheader("Combined shortlist")'''
+)
+
 src = src.replace(
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.''',
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.
