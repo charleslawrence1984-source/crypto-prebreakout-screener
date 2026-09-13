@@ -1,5 +1,56 @@
 from __future__ import annotations
 
+def _num(v, default=None):
+    try:
+        x=float(v)
+        return x
+    except Exception:
+        return default
+
+def build_12m_target(res: dict) -> dict:
+    price=_num(res.get("price"))
+    tech=_num(res.get("swing_target"))
+    val=_num(res.get("valuation_score"),10.0)
+    rev=_num(res.get("revenue_growth"))
+    eps=_num(res.get("earnings_growth"))
+    analyst=_num(res.get("analyst_target"))
+    analysts=int(_num(res.get("analyst_count"),0) or 0)
+    if not price or price <= 0:
+        return {"twelve_month_target": None, "twelve_month_roi_pct": None, "target_method":"Unavailable"}
+
+    if eps is not None and rev is not None:
+        growth=0.65*eps+0.35*rev
+    elif eps is not None:
+        growth=eps
+    elif rev is not None:
+        growth=rev
+    else:
+        growth=5.0
+    growth=max(-10.0,min(25.0,growth))
+    overlay=5.0 if val>=16 else 2.0 if val>=12 else 0.0 if val>=8 else -5.0
+    f_up=max(-15.0,min(35.0,growth+overlay))
+    f_target=price*(1+f_up/100)
+    tech=tech if tech and tech>0 else price
+
+    if analyst and analyst>0 and analysts>=5:
+        a_up=max(-20.0,min(60.0,(analyst/price-1)*100))
+        a_target=price*(1+a_up/100)
+        if analysts>=10:
+            target=0.40*tech+0.35*f_target+0.25*a_target
+        else:
+            target=0.45*tech+0.40*f_target+0.15*a_target
+        method="Technical + fundamentals + analyst consensus"
+    else:
+        target=0.55*tech+0.45*f_target
+        method="Technical + fundamentals"
+
+    return {
+        "twelve_month_target": round(target,4),
+        "twelve_month_roi_pct": round((target/price-1)*100,1),
+        "fundamental_target": round(f_target,4),
+        "target_method": method,
+    }
+
 
 def trade_decision(res: dict, owned: bool = False, average_buy_price: float | None = None) -> dict:
     price = float(res.get("price", 0) or 0)
