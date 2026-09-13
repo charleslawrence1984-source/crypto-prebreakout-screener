@@ -457,7 +457,7 @@ class _SimpleTableParser(HTMLParser):
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def wikipedia_symbols(url: str, ticker_names: tuple[str, ...], suffix: str = "", min_count: int = 10) -> List[str]:
+def wikipedia_symbols(url: str, ticker_names: tuple[str, ...], suffix: str = "", min_count: int = 10, replace_dot: bool = True) -> List[str]:
     r = requests.get(url, headers=HEADERS, timeout=30)
     r.raise_for_status()
     parser = _SimpleTableParser()
@@ -484,7 +484,8 @@ def wikipedia_symbols(url: str, ticker_names: tuple[str, ...], suffix: str = "",
             s = str(row[idx]).strip()
             if not s:
                 continue
-            s = s.replace(".", "-")
+            if replace_dot:
+                s = s.replace(".", "-")
             if suffix and not s.endswith(suffix):
                 s += suffix
             out.append(s)
@@ -563,18 +564,22 @@ def get_universe(kind: str) -> List[str]:
     cac40 = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/CAC_40",
         ("Ticker", "Symbol"),
+        replace_dot=False,
     )
     aex = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/AEX_index",
         ("Ticker", "Symbol"),
+        replace_dot=False,
     )
     ibex = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/IBEX_35",
         ("Ticker", "Symbol"),
+        replace_dot=False,
     )
     ftse_mib = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/FTSE_MIB",
         ("Ticker", "Symbol"),
+        replace_dot=False,
     )
     asx200 = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/S%26P/ASX_200",
