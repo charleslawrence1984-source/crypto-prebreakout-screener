@@ -181,13 +181,25 @@ st.caption("Backtest limitations: daily OHLC cannot reveal the exact intraday or
 
 st.divider()
 st.subheader("Multi-stock Threshold Validation")
-st.caption("Aggregates the same 5-year Trade Score backtest across a basket of stocks so one ticker cannot decide the alert threshold.")
+st.caption("Aggregates the same 5-year Trade Score backtest across a basket of stocks so one ticker cannot decide the alert threshold. Use the diversified preset for a less selection-biased test.")
 
+basket_preset = st.selectbox(
+    "Validation basket preset",
+    ["Diversified 25 (recommended)", "Current opportunity 7"],
+    index=0,
+    key="validation_basket_preset",
+)
+default_basket = (
+    "AAPL, MSFT, GOOGL, AMZN, META, NVDA, AMD, JPM, BAC, XOM, CVX, "
+    "CAT, DE, UNH, JNJ, COST, WMT, HD, NEE, PLD, ON, TER, OXY, STRL, FLEX"
+    if basket_preset == "Diversified 25 (recommended)"
+    else "TER, ON, OXY, STRL, FLEX, ST, XOM"
+)
 basket_text = st.text_input(
     "Validation basket",
-    value="TER, ON, OXY, STRL, FLEX, ST, XOM",
+    value=default_basket,
     key="validation_basket",
-    help="Comma-separated tickers. Use a mix of sectors and trade types.",
+    help="Comma-separated tickers. The diversified preset reduces selection bias from testing only today's top-ranked stocks.",
 )
 basket_horizon = st.selectbox(
     "Basket forward window",
