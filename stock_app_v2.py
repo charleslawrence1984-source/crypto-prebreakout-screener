@@ -236,6 +236,25 @@ src = src.replace(
     'st.header("Three decision lanes")',
 )
 
+
+src = src.replace(
+'''                    "Dividend yield": "—" if res["dividend_yield"] is None else f"{res['dividend_yield']:.2f}%",''',
+'''                    "Dividend yield": (
+                        "Variable/special dividend policy"
+                        if str(res.get("industry") or "").lower().startswith("insurance")
+                        else ("—" if res["dividend_yield"] is None else f"{res['dividend_yield']:.2f}%")
+                    ),'''
+)
+
+src = src.replace(
+'''            if res.get("valuation_warning"):
+                st.warning("Valuation caution: " + res["valuation_warning"] + ".")''',
+'''            if res.get("valuation_warning"):
+                st.warning("Valuation caution: " + res["valuation_warning"] + ".")
+            if res.get("sector_model") == "Insurance preliminary":
+                st.info("Insurer note: trailing dividend yield can be distorted by variable/special dividends. Generic FCF, FCF/share and ROIC are shown for reference only; the insurer score is based on insurer-appropriate metrics and remains capped pending combined-ratio, reserve and capital review.")'''
+)
+
 src = src.replace(
 '''**Hold Quality /100** rewards market size, revenue and EPS growth, profit margin, manageable debt, positive free cash flow, analyst upside/coverage and sensible dividend/payout characteristics. Growth stocks are not automatically penalised for paying no dividend.''',
 '''**1-Year Hold /100** uses Business Quality /80 plus Valuation /20 and asks whether we are comfortable owning the company for roughly 6–12 months if a swing takes longer.
