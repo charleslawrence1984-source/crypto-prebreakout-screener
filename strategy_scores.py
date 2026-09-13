@@ -243,15 +243,21 @@ def strategy_label(trade_signal: str, one_year_score: float, valuation_score: fl
     active_trade = trade_signal in ("ACTIONABLE", "ELITE")
 
     if active_trade and long_term_score >= 85 and long_term_entry >= 70:
-        return "SWING + LONG-TERM CANDIDATE"
+        return "SWING + ELITE LONG-TERM CANDIDATE"
+    if active_trade and long_term_score >= 80 and long_term_entry >= 70:
+        return "SWING + LONG-TERM RESEARCH CANDIDATE"
     if active_trade and one_year_score >= 70 and valuation_score >= 12:
         return "SWING-TO-1Y-HOLD"
     if active_trade:
         return "SWING ONLY"
     if long_term_score >= 85 and long_term_entry >= 70:
-        return "LONG-TERM CANDIDATE"
+        return "ELITE LONG-TERM CANDIDATE"
+    if long_term_score >= 80 and long_term_entry >= 70:
+        return "LONG-TERM RESEARCH CANDIDATE"
     if long_term_score >= 85:
         return "ELITE COMPOUNDER — WAIT FOR ENTRY"
+    if long_term_score >= 80:
+        return "QUALITY COMPOUNDER — WAIT FOR ENTRY"
     if one_year_score >= 70 and valuation_score >= 12:
         return "1Y HOLD WATCH"
     return "WAIT"
