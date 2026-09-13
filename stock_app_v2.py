@@ -1,4 +1,5 @@
 from pathlib import Path
+from stock_backtest import run_trade_backtest
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
@@ -137,3 +138,42 @@ src = src.replace(
 )
 
 exec(compile(src, "stock_app.py", "exec"), globals(), globals())
+
+
+st.divider()
+st.subheader("Historical Trade Score Backtest")
+st.caption("Replays the current Trade Score on the last 5 years of daily data. Signals only count when price was inside the model's preferred or strong entry zone.")
+
+bt1, bt2 = st.columns([2, 1])
+with bt1:
+    bt_symbol = st.text_input("Backtest ticker", value="FLNC", key="stock_bt_symbol")
+with bt2:
+    bt_horizon = st.selectbox("Forward window", [10, 20, 40], index=1, format_func=lambda x: f"{x} trading days", key="stock_bt_horizon")
+
+if st.button("Run historical backtest", key="run_stock_backtest", type="primary"):
+    with st.spinner(f"Replaying {bt_symbol.upper()} over 5 years…"):
+        events, summary = run_trade_backtest(
+            bt_symbol.strip().upper(),
+            technical_from_df,
+            thresholds=(80, 85, 90),
+            horizon=bt_horizon,
+            cooldown=10,
+        )
+
+    if summary.empty:
+        st.warning("No qualifying historical signals were found for that ticker and entry rule.")
+    else:
+        st.dataframe(summary, hide_index=True, use_container_width=True)
+        st.caption("Hit rates require the target to be reached before the model's invalidation level. The 10-day cooldown reduces repeated counting of the same setup.")
+
+        best = summary.sort_values(["Hit +10%", "Invalidation hit"], ascending=[False, True]).iloc[0]
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Best threshold", f"{int(best['Threshold'])}+")
+        c2.metric("10% hit rate", f"{best['Hit +10%']:.1f}%")
+        c3.metric("Median max return", f"{best['Median max return %']:.1f}%")
+        c4.metric("Invalidation hit", f"{best['Invalidation hit']:.1f}%")
+
+        with st.expander("Historical signals"):
+            st.dataframe(events.sort_values("Date", ascending=False), hide_index=True, use_container_width=True)
+
+st.caption("Backtest limitations: daily OHLC cannot reveal the exact intraday order when both a target and invalidation trade in the same session. This panel is for model calibration, not a guarantee of future returns.")
