@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import io
 import math
+from html.parser import HTMLParser
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
