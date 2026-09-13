@@ -405,29 +405,85 @@ def normalise_lse_symbol(s: str) -> str:
     return str(s).strip().replace(".", "-") + ".L"
 
 
+class _SimpleTableParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.tables = []
+        self._table = None
+        self._row = None
+        self._cell = None
+        self._in_table = False
+        self._in_row = False
+        self._in_cell = False
+
+    def handle_starttag(self, tag, attrs):
+        tag = tag.lower()
+        if tag == "table":
+            self._in_table = True
+            self._table = []
+        elif tag == "tr" and self._in_table:
+            self._in_row = True
+            self._row = []
+        elif tag in ("td", "th") and self._in_row:
+            self._in_cell = True
+            self._cell = []
+
+    def handle_data(self, data):
+        if self._in_cell and self._cell is not None:
+            self._cell.append(data)
+
+    def handle_endtag(self, tag):
+        tag = tag.lower()
+        if tag in ("td", "th") and self._in_cell:
+            txt = " ".join("".join(self._cell).split())
+            self._row.append(txt)
+            self._cell = None
+            self._in_cell = False
+        elif tag == "tr" and self._in_row:
+            if self._row:
+                self._table.append(self._row)
+            self._row = None
+            self._in_row = False
+        elif tag == "table" and self._in_table:
+            if self._table:
+                self.tables.append(self._table)
+            self._table = None
+            self._in_table = False
+
+
 @st.cache_data(ttl=86400, show_spinner=False)
 def wikipedia_symbols(url: str, ticker_names: tuple[str, ...], suffix: str = "") -> List[str]:
-    tables = pd.read_html(url)
-    for table in tables:
-        cols = [str(c).strip() for c in table.columns]
-        lookup = {str(c).strip().lower(): c for c in table.columns}
-        chosen = None
-        for name in ticker_names:
-            if name.lower() in lookup:
-                chosen = lookup[name.lower()]
-                break
-        if chosen is None:
+    r = requests.get(url, headers=HEADERS, timeout=30)
+    r.raise_for_status()
+    parser = _SimpleTableParser()
+    parser.feed(r.text)
+
+    wanted = [x.lower() for x in ticker_names]
+    for table in parser.tables:
+        if not table:
             continue
-        vals = table[chosen].dropna().astype(str).tolist()
+        header = [str(x).strip() for x in table[0]]
+        lower = [x.lower() for x in header]
+        idx = None
+        for name in wanted:
+            if name in lower:
+                idx = lower.index(name)
+                break
+        if idx is None:
+            continue
+
         out = []
-        for s in vals:
-            s = s.strip()
-            if not s or s.lower() == "nan":
+        for row in table[1:]:
+            if idx >= len(row):
+                continue
+            s = str(row[idx]).strip()
+            if not s:
                 continue
             s = s.replace(".", "-")
             if suffix and not s.endswith(suffix):
                 s += suffix
             out.append(s)
+
         if len(out) >= 50:
             return sorted(set(out))
     return []
