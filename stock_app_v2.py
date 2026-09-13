@@ -137,6 +137,48 @@ src = src.replace(
 '''**Hold Quality /100** is split into **Business Quality /80** plus **Valuation /20**. Business Quality rewards size, revenue and EPS growth, margins, manageable debt, positive free cash flow, analyst outlook and shareholder discipline. Valuation uses P/E, PEG, price-to-sales, free-cash-flow yield and EV/EBITDA when available. Missing valuation data is treated neutrally rather than as automatically cheap.'''
 )
 
+
+src = src.replace(
+'''def chart(result: Dict) -> go.Figure:''',
+'''def signal_label(trade, rr, preferred, strong):
+    if not (preferred or strong) or rr < 2:
+        return "WAIT"
+    if trade >= 90:
+        return "ELITE"
+    if trade >= 85:
+        return "ACTIONABLE"
+    if trade >= 80:
+        return "WATCH"
+    return "WAIT"
+
+
+def chart(result: Dict) -> go.Figure:'''
+)
+
+src = src.replace(
+'''                "Preferred now": bool(row["Preferred now"]),
+                "Strong now": bool(row["Strong now"]),''',
+'''                "Preferred now": bool(row["Preferred now"]),
+                "Strong now": bool(row["Strong now"]),
+                "Signal": signal_label(float(row["Trade"]), float(row["R:R"]), bool(row["Preferred now"]), bool(row["Strong now"])),'''
+)
+
+src = src.replace(
+'''                            "Ticker", "Opportunity", "Trade", "Hold", "Valuation", "Valuation rating", "Type", "Price",''',
+'''                            "Ticker", "Signal", "Opportunity", "Trade", "Hold", "Valuation", "Valuation rating", "Type", "Price",'''
+)
+
+src = src.replace(
+'''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.''',
+'''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.
+
+**Validated trade signal rule**
+- **80–84:** WATCH
+- **85–89:** ACTIONABLE
+- **90+:** ELITE / rare
+- A live trade signal also requires **R:R ≥ 2.0** and price inside the **preferred or strong entry zone**.'''
+)
+
 exec(compile(src, "stock_app.py", "exec"), globals(), globals())
 
 
