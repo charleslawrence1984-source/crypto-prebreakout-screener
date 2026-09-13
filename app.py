@@ -30,7 +30,7 @@ EXCHANGES = {
 
 @dataclass
 class ScreenerConfig:
-    exchange_id: str = "binance"
+    exchange_id: str = "okx"
     quote: str = "USDT"
     universe_size: int = 50
     min_quote_volume: float = 5_000_000
@@ -464,7 +464,7 @@ st.caption("Built to find compression before expansion — and reject coins that
 
 with st.sidebar:
     st.header("Scan settings")
-    exchange_name = st.selectbox("Exchange", list(EXCHANGES.keys()), index=0)
+    exchange_name = st.selectbox("Exchange", list(EXCHANGES.keys()), index=2)
     universe_size = st.select_slider("Top liquid coins to scan", options=[25, 50, 75, 100, 150], value=50)
     min_vol_m = st.number_input("Minimum 24h quote volume ($m)", min_value=1.0, max_value=500.0, value=5.0, step=1.0)
     threshold = st.slider("Flag score", 60, 95, 80, 1)
