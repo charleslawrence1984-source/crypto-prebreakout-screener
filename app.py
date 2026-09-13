@@ -462,6 +462,18 @@ def historical_backtest(coin4: pd.DataFrame, coind: pd.DataFrame, btc4: pd.DataF
 st.title("⚡ Pre-Breakout Crypto Screener")
 st.caption("Built to find compression before expansion — and reject coins that have already run.")
 
+st.markdown("""
+<style>
+/* mobile tuning */
+@media (max-width: 700px) {
+  .block-container { padding-top: 1rem; padding-left: 0.75rem; padding-right: 0.75rem; }
+  h1 { font-size: 1.8rem !important; }
+  div[data-testid="stMetricValue"] { font-size: 1.35rem; }
+  div[data-testid="stDataFrame"] { font-size: 0.85rem; }
+}
+</style>
+""", unsafe_allow_html=True)
+
 with st.sidebar:
     st.header("Scan settings")
     exchange_name = st.selectbox("Exchange", list(EXCHANGES.keys()), index=2)
@@ -552,6 +564,19 @@ def live_scan():
     if shown.empty:
         st.warning(f"Candidates exist, but none score {cfg.score_threshold}+ right now.")
         shown = df.head(10)
+
+    st.subheader("Quick view")
+    for _, q in shown.head(5).iterrows():
+        with st.expander(f"{q['Coin']} — {q['Score']:.1f}/100"):
+            q1, q2 = st.columns(2)
+            q1.metric("Price", fmt_price(q["Price"]))
+            q2.metric("To resistance", f"{q['To resistance %']:.2f}%")
+            q3, q4 = st.columns(2)
+            q3.metric("RSI", f"{q['RSI']:.1f}")
+            q4.metric("R:R", f"{q['R:R']:.2f}:1")
+            st.write(f"**Entry:** {fmt_price(q['Entry low'])} – {fmt_price(q['Entry high'])}")
+            st.write(f"**Breakout:** {fmt_price(q['Breakout'])}")
+            st.write(f"**Invalidation:** {fmt_price(q['Invalidation'])}")
 
     display_cols = [
         "Coin", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
