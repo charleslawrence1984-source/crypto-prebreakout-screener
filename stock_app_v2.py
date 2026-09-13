@@ -138,7 +138,7 @@ src = src.replace(
 '''            a, b, c, d = st.columns(4)
             a.metric("Swing Score", f"{res['trade_score']:.0f}/100", res["trade_signal"])
             b.metric("1-Year Hold", f"{res['one_year_hold_score']:.0f}/100")
-            c.metric("LT Compounder", f"{res['long_term_score']:.0f}/100", res["long_term_label"])
+            c.metric("LT Compounder", f"{res['long_term_score']:.1f}/100", res["long_term_label"])
             d.metric("LT Entry", f"{res['long_term_entry_score']:.0f}/100", res["long_term_entry_label"])
             st.info(f"Strategy: **{res['strategy']}**")
             st.caption(f"Overall opportunity: **{res['opportunity_score']:.0f}/100** · Valuation: **{res['valuation_score']:.0f}/20 {res['valuation_label']}** · Business quality: **{res['quality_score']:.0f}/80**")'''
@@ -217,7 +217,7 @@ src = src.replace(
 '''                            c1, c2, c3, c4 = st.columns(4)
                             c1.metric("Swing", f"{q['Trade']:.0f}/100")
                             c2.metric("1Y Hold", f"{q['1Y Hold']:.0f}/100")
-                            c3.metric("LT Compounder", f"{q['LT Compounder']:.0f}/100")
+                            c3.metric("LT Compounder", f"{q['LT Compounder']:.1f}/100")
                             c4.metric("LT Entry", f"{q['LT Entry']:.0f}/100")
                             st.write(f"**Strategy:** {q['Strategy']} · **Swing upside:** {q['Upside %']:.1f}%")'''
 )
