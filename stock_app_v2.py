@@ -328,6 +328,140 @@ exec(compile(src, "stock_app.py", "exec"), globals(), globals())
 
 
 st.divider()
+st.subheader("Dedicated Long-Term Compounder Scan")
+st.caption("Quality-first scan for 25–35 year candidates. Unlike the broad swing scan, stocks do not need a strong short-term Trade Score to be considered. The long-term model is provisional until separately validated.")
+
+ltc1, ltc2, ltc3 = st.columns(3)
+with ltc1:
+    lt_universe_label = st.selectbox(
+        "Long-term universe",
+        list(PUBLIC_UNIVERSES.keys()),
+        index=0,
+        key="lt_universe_label",
+    )
+with ltc2:
+    lt_max = st.selectbox(
+        "Companies to score",
+        [25, 50, 100, 250],
+        index=1,
+        key="lt_max",
+        help="If fewer than the full universe are selected, the app samples evenly across the universe rather than taking only alphabetically early tickers.",
+    )
+with ltc3:
+    lt_min_cap = st.number_input(
+        "Minimum market cap (bn)",
+        min_value=0.0,
+        max_value=500.0,
+        value=3.0,
+        step=1.0,
+        key="lt_min_cap",
+    )
+
+if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type="primary"):
+    with st.spinner("Loading long-term universe…"):
+        lt_universe = get_universe(PUBLIC_UNIVERSES[lt_universe_label])
+
+    if not lt_universe:
+        st.error("The selected public universe could not be loaded.")
+    else:
+        if lt_max >= len(lt_universe):
+            lt_symbols = lt_universe
+        else:
+            idx = np.linspace(0, len(lt_universe) - 1, lt_max, dtype=int)
+            lt_symbols = [lt_universe[i] for i in idx]
+
+        st.info(f"Scoring {len(lt_symbols)} companies from a universe of {len(lt_universe):,}. This can take a few minutes because multi-year fundamentals are checked for each company.")
+
+        lt_rows = []
+        prog = st.progress(0)
+        for i, sym in enumerate(lt_symbols):
+            try:
+                tech = technical_analysis(sym)
+                if not tech:
+                    prog.progress((i + 1) / len(lt_symbols))
+                    continue
+
+                fund = valuation_fundamental_analysis(sym, tech["price"])
+                mcap = safe(fund.get("market_cap"))
+                if not np.isnan(mcap) and mcap < lt_min_cap * 1_000_000_000:
+                    prog.progress((i + 1) / len(lt_symbols))
+                    continue
+
+                lt = long_term_analysis(sym, tech["price"], fund)
+                entry = long_term_entry_score(sym, tech["price"], fund["valuation_score"], tech)
+                sig = signal_label(
+                    tech["trade_score"],
+                    tech["rr"],
+                    tech["in_preferred_zone"],
+                    tech["in_strong_zone"],
+                )
+                strat = strategy_label(
+                    sig,
+                    fund["hold_score"],
+                    fund["valuation_score"],
+                    lt["long_term_score"],
+                    entry["long_term_entry_score"],
+                )
+
+                lt_rows.append({
+                    "Ticker": sym,
+                    "Company": fund.get("name", sym),
+                    "LT Compounder": lt["long_term_score"],
+                    "LT Entry": entry["long_term_entry_score"],
+                    "Strategy": strat,
+                    "1Y Hold": fund["hold_score"],
+                    "Valuation": fund["valuation_score"],
+                    "Valuation rating": fund["valuation_label"],
+                    "Swing": tech["trade_score"],
+                    "Signal": sig,
+                    "Price": tech["price"],
+                    "Revenue CAGR %": lt["revenue_cagr_pct"],
+                    "Earnings CAGR %": lt["earnings_cagr_pct"],
+                    "ROE %": lt["roe_pct"],
+                    "Operating margin %": lt["operating_margin_pct"],
+                    "Market cap bn": None if np.isnan(mcap) else round(mcap / 1_000_000_000, 1),
+                })
+            except Exception:
+                pass
+            prog.progress((i + 1) / len(lt_symbols))
+        prog.empty()
+
+        if not lt_rows:
+            st.warning("No companies returned enough long-term data under those filters.")
+        else:
+            lt_df = pd.DataFrame(lt_rows).sort_values(
+                ["LT Compounder", "LT Entry"],
+                ascending=[False, False],
+            ).reset_index(drop=True)
+
+            buy_now = lt_df[
+                (lt_df["LT Compounder"] >= 85) &
+                (lt_df["LT Entry"] >= 70)
+            ]
+            elite_wait = lt_df[
+                (lt_df["LT Compounder"] >= 85) &
+                (lt_df["LT Entry"] < 70)
+            ]
+
+            q1, q2, q3 = st.columns(3)
+            q1.metric("Long-term buys", len(buy_now))
+            q2.metric("Elite — wait for entry", len(elite_wait))
+            q3.metric("Companies scored", len(lt_df))
+
+            st.dataframe(
+                lt_df[[
+                    "Ticker", "Company", "LT Compounder", "LT Entry", "Strategy",
+                    "Valuation", "Valuation rating", "1Y Hold", "Swing", "Signal",
+                    "Revenue CAGR %", "Earnings CAGR %", "ROE %",
+                    "Operating margin %", "Market cap bn", "Price"
+                ]],
+                hide_index=True,
+                use_container_width=True,
+            )
+
+            st.caption("Long-term labels are research signals, not validated forecasts. A 25–35 year thesis should ultimately be confirmed with business durability, competitive position and sector-specific analysis before buying.")
+
+st.divider()
 st.subheader("Historical Trade Score Backtest")
 st.caption("Replays the current Trade Score on the last 5 years of daily data. Signals only count when price was inside the model's preferred or strong entry zone.")
 
