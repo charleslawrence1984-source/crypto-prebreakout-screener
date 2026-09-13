@@ -54,13 +54,14 @@ def build_12m_target(res: dict) -> dict:
 
 def trade_decision(res: dict, owned: bool = False, average_buy_price: float | None = None) -> dict:
     price = float(res.get("price", 0) or 0)
-    target = float(res.get("swing_target", 0) or 0)
+    target_info = build_12m_target(res)
+    target = float(target_info.get("twelve_month_target", 0) or 0)
     invalidation = float(res.get("invalidation", 0) or 0)
     trade_score = float(res.get("trade_score", 0) or 0)
     hold_score = float(res.get("one_year_hold_score", res.get("hold_score", 0)) or 0)
     valuation = float(res.get("valuation_score", 0) or 0)
     rr = float(res.get("rr", 0) or 0)
-    upside = float(res.get("upside_pct", 0) or 0)
+    upside = float(target_info.get("twelve_month_roi_pct", 0) or 0)
     in_zone = bool(res.get("in_preferred_zone") or res.get("in_strong_zone"))
 
     technical_ok = trade_score >= 85 and rr >= 2.0 and in_zone and upside >= 10.0
@@ -108,6 +109,7 @@ def trade_decision(res: dict, owned: bool = False, average_buy_price: float | No
         "reasons": reasons,
         "actual_roi_pct": actual_roi,
         "target_roi_from_cost_pct": target_roi_from_cost,
+        **target_info,
     }
 
 
