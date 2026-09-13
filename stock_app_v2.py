@@ -410,6 +410,13 @@ src = src.replace(
                     st.subheader("Combined shortlist")'''
 )
 
+# Remove the legacy combined shortlist and old quick-view block now that the
+# two-strategy tables above are the main broad-market output.
+_legacy_start = src.find('                    st.subheader("Combined shortlist")')
+_legacy_end = src.find('\nwith st.expander("How the scores work"):', _legacy_start)
+if _legacy_start != -1 and _legacy_end != -1:
+    src = src[:_legacy_start] + src[_legacy_end:]
+
 
 src = src.replace(
 '''                st.dataframe(pd.DataFrame({"Metric": rows.keys(), "Value": rows.values()}), hide_index=True, use_container_width=True)
