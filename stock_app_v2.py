@@ -172,8 +172,15 @@ src = src.replace(
                     "Long-term entry": f"{res['long_term_entry_score']:.1f}/100 — {res['long_term_entry_label']}",
                     "Revenue CAGR": "—" if res["revenue_cagr_pct"] is None else f"{res['revenue_cagr_pct']:.1f}%",
                     "Earnings CAGR": "—" if res["earnings_cagr_pct"] is None else f"{res['earnings_cagr_pct']:.1f}%",
+                    "FCF/share CAGR": "—" if res["fcf_per_share_cagr_pct"] is None else f"{res['fcf_per_share_cagr_pct']:.1f}%",
+                    "ROIC": "—" if res["roic_pct"] is None else f"{res['roic_pct']:.1f}%",
                     "ROE": "—" if res["roe_pct"] is None else f"{res['roe_pct']:.1f}%",
                     "Operating margin": "—" if res["operating_margin_pct"] is None else f"{res['operating_margin_pct']:.1f}%",
+                    "Dilution CAGR": "—" if res["dilution_cagr_pct"] is None else f"{res['dilution_cagr_pct']:.2f}%",
+                    "Net debt / FCF": "—" if res["net_debt_to_fcf"] is None else f"{res['net_debt_to_fcf']:.2f}x",
+                    "Evidence": f"{res['evidence_score']}/10",
+                    "Elite gate": "PASS" if res["elite_gate_pass"] else "NO",
+                    "Score cap reason": res["score_cap_reason"] or "None",
                 }'''
 )
 
