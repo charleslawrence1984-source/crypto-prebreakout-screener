@@ -1,6 +1,6 @@
 from pathlib import Path
 from stock_backtest import run_trade_backtest, run_basket_backtest
-from strategy_scores import long_term_analysis, long_term_entry_score, strategy_label
+from strategy_scores_v2 import long_term_analysis, long_term_entry_score, strategy_label
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
@@ -233,7 +233,7 @@ src = src.replace(
 '''**Hold Quality /100** rewards market size, revenue and EPS growth, profit margin, manageable debt, positive free cash flow, analyst upside/coverage and sensible dividend/payout characteristics. Growth stocks are not automatically penalised for paying no dividend.''',
 '''**1-Year Hold /100** uses Business Quality /80 plus Valuation /20 and asks whether we are comfortable owning the company for roughly 6–12 months if a swing takes longer.
 
-**Long-Term Compounder /100** is separate. It scores multi-year revenue/earnings consistency, profitability and capital efficiency, free-cash-flow durability, balance-sheet strength, dilution discipline and business scale/durability.
+**Long-Term Compounder /100** is deliberately strict. It scores multi-year revenue/earnings consistency, FCF and FCF-per-share compounding, ROIC/profitability, balance-sheet resilience and dilution discipline. Scores of **90+** must also pass an elite gate for evidence quality, growth, per-share cash compounding, ROIC, dilution and debt.
 
 **Long-Term Entry /100** combines valuation with the current discount from the 52-week high, position versus the 200-day average and whether price is in an attractive technical entry zone.'''
 )
@@ -417,8 +417,14 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                     "Price": tech["price"],
                     "Revenue CAGR %": lt["revenue_cagr_pct"],
                     "Earnings CAGR %": lt["earnings_cagr_pct"],
+                    "FCF/share CAGR %": lt["fcf_per_share_cagr_pct"],
+                    "ROIC %": lt["roic_pct"],
                     "ROE %": lt["roe_pct"],
                     "Operating margin %": lt["operating_margin_pct"],
+                    "Dilution CAGR %": lt["dilution_cagr_pct"],
+                    "Net debt / FCF": lt["net_debt_to_fcf"],
+                    "Evidence /10": lt["evidence_score"],
+                    "Elite gate": lt["elite_gate_pass"],
                     "Market cap bn": None if np.isnan(mcap) else round(mcap / 1_000_000_000, 1),
                 })
             except Exception:
@@ -435,16 +441,16 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
             ).reset_index(drop=True)
 
             elite_candidates = lt_df[
-                (lt_df["LT Compounder"] >= 85) &
+                (lt_df["LT Compounder"] >= 90) &
                 (lt_df["LT Entry"] >= 70)
             ]
             research_candidates = lt_df[
-                (lt_df["LT Compounder"] >= 80) &
-                (lt_df["LT Compounder"] < 85) &
+                (lt_df["LT Compounder"] >= 82) &
+                (lt_df["LT Compounder"] < 90) &
                 (lt_df["LT Entry"] >= 70)
             ]
             elite_wait = lt_df[
-                (lt_df["LT Compounder"] >= 85) &
+                (lt_df["LT Compounder"] >= 90) &
                 (lt_df["LT Entry"] < 70)
             ]
 
@@ -458,8 +464,9 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                 lt_df[[
                     "Ticker", "Company", "LT Compounder", "LT Entry", "Strategy",
                     "Valuation", "Valuation rating", "1Y Hold", "Swing", "Signal",
-                    "Revenue CAGR %", "Earnings CAGR %", "ROE %",
-                    "Operating margin %", "Market cap bn", "Price"
+                    "Revenue CAGR %", "Earnings CAGR %", "FCF/share CAGR %",
+                    "ROIC %", "ROE %", "Operating margin %", "Dilution CAGR %",
+                    "Net debt / FCF", "Evidence /10", "Elite gate", "Market cap bn", "Price"
                 ]],
                 hide_index=True,
                 use_container_width=True,
