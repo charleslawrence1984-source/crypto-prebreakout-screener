@@ -434,8 +434,13 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                 ascending=[False, False],
             ).reset_index(drop=True)
 
-            buy_now = lt_df[
+            elite_candidates = lt_df[
                 (lt_df["LT Compounder"] >= 85) &
+                (lt_df["LT Entry"] >= 70)
+            ]
+            research_candidates = lt_df[
+                (lt_df["LT Compounder"] >= 80) &
+                (lt_df["LT Compounder"] < 85) &
                 (lt_df["LT Entry"] >= 70)
             ]
             elite_wait = lt_df[
@@ -443,10 +448,11 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                 (lt_df["LT Entry"] < 70)
             ]
 
-            q1, q2, q3 = st.columns(3)
-            q1.metric("Long-term candidates", len(buy_now))
-            q2.metric("Elite — wait for entry", len(elite_wait))
-            q3.metric("Companies scored", len(lt_df))
+            q1, q2, q3, q4 = st.columns(4)
+            q1.metric("Elite candidates", len(elite_candidates))
+            q2.metric("Research candidates", len(research_candidates))
+            q3.metric("Elite — wait for entry", len(elite_wait))
+            q4.metric("Companies scored", len(lt_df))
 
             st.dataframe(
                 lt_df[[
