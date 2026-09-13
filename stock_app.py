@@ -18,10 +18,14 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 PRIORITY_DEFAULT = "FLNC, SPCX"
 
 PUBLIC_UNIVERSES = {
-    "US large + mid (recommended)": "us_core",
-    "FTSE 350": "uk_350",
-    "US + UK broad": "us_uk",
-    "US all listed (slower)": "us_all",
+    "Global Core (recommended)": "global_core",
+    "US Large + Mid": "us_core",
+    "UK FTSE 350": "uk_350",
+    "Canada Broad": "canada_broad",
+    "Europe Broad": "europe_broad",
+    "US + UK Broad": "us_uk",
+    "Global Broad (slower)": "global_broad",
+    "US All Listed (slower)": "us_all",
 }
 
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
@@ -453,7 +457,7 @@ class _SimpleTableParser(HTMLParser):
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def wikipedia_symbols(url: str, ticker_names: tuple[str, ...], suffix: str = "") -> List[str]:
+def wikipedia_symbols(url: str, ticker_names: tuple[str, ...], suffix: str = "", min_count: int = 10) -> List[str]:
     r = requests.get(url, headers=HEADERS, timeout=30)
     r.raise_for_status()
     parser = _SimpleTableParser()
@@ -485,7 +489,7 @@ def wikipedia_symbols(url: str, ticker_names: tuple[str, ...], suffix: str = "")
                 s += suffix
             out.append(s)
 
-        if len(out) >= 50:
+        if len(out) >= min_count:
             return sorted(set(out))
     return []
 
@@ -546,18 +550,66 @@ def get_universe(kind: str) -> List[str]:
         ".L",
     )
 
+    tsx = wikipedia_symbols(
+        "https://en.wikipedia.org/wiki/S%26P/TSX_Composite_Index",
+        ("Ticker", "Symbol"),
+        ".TO",
+    )
+    dax = wikipedia_symbols(
+        "https://en.wikipedia.org/wiki/DAX",
+        ("Ticker", "Ticker symbol", "Symbol"),
+        ".DE",
+    )
+    cac40 = wikipedia_symbols(
+        "https://en.wikipedia.org/wiki/CAC_40",
+        ("Ticker", "Symbol"),
+    )
+    aex = wikipedia_symbols(
+        "https://en.wikipedia.org/wiki/AEX_index",
+        ("Ticker", "Symbol"),
+    )
+    ibex = wikipedia_symbols(
+        "https://en.wikipedia.org/wiki/IBEX_35",
+        ("Ticker", "Symbol"),
+    )
+    ftse_mib = wikipedia_symbols(
+        "https://en.wikipedia.org/wiki/FTSE_MIB",
+        ("Ticker", "Symbol"),
+    )
+    asx200 = wikipedia_symbols(
+        "https://en.wikipedia.org/wiki/S%26P/ASX_200",
+        ("Code", "Ticker", "Symbol"),
+        ".AX",
+    )
+    nikkei225 = wikipedia_symbols(
+        "https://de.wikipedia.org/wiki/Nikkei_225",
+        ("Code", "Ticker", "Symbol"),
+        ".T",
+    )
+
     us_core = sorted(set(sp500 + sp400 + nasdaq100))
     uk350 = sorted(set(ftse100 + ftse250))
+    canada = sorted(set(tsx))
+    europe = sorted(set(dax + cac40 + aex + ibex + ftse_mib))
+    global_core = sorted(set(us_core + uk350 + canada + europe))
 
+    if kind == "global_core":
+        return global_core
     if kind == "us_core":
         return us_core
     if kind == "uk_350":
         return uk350
+    if kind == "canada_broad":
+        return canada
+    if kind == "europe_broad":
+        return europe
     if kind == "us_uk":
         return sorted(set(us_core + uk350))
+    if kind == "global_broad":
+        return sorted(set(us_all_listed() + uk350 + canada + europe + asx200 + nikkei225))
     if kind == "us_all":
         return us_all_listed()
-    return us_core
+    return global_core
 
 
 def extract_ticker_frame(batch: pd.DataFrame, symbol: str) -> Optional[pd.DataFrame]:
