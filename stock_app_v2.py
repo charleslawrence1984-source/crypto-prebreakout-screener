@@ -373,23 +373,36 @@ src = src.replace(
                     lane1, lane2 = st.tabs(["TRADE", "INVESTMENT"])
                     with lane1:
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
+                        trade_display = trade_ranked[[
+                            "Ticker", "Trade Action", "Trade", "1Y Hold", "Valuation",
+                            "Price", "Preferred entry", "Strong entry", "Target",
+                            "Upside %", "R:R"
+                        ]].rename(columns={
+                            "Trade Action": "Action",
+                            "Trade": "Technical Score",
+                            "1Y Hold": "12M Fundamentals",
+                            "Target": "Exit Target",
+                            "Upside %": "Potential ROI %",
+                        })
                         st.dataframe(
-                            trade_ranked[[
-                                "Ticker", "Trade Action", "Trade", "1Y Hold", "Valuation",
-                                "Price", "Preferred entry", "Strong entry", "Target",
-                                "Upside %", "R:R"
-                            ]],
+                            trade_display,
                             hide_index=True,
                             use_container_width=True,
                         )
 
                     with lane2:
                         st.caption("20–30 year candidates: long-term business quality first, then valuation and entry quality.")
+                        investment_display = invest_ranked[[
+                            "Ticker", "Investment Action", "LT Compounder", "LT Entry",
+                            "Valuation", "Valuation rating", "Price", "1Y Hold"
+                        ]].rename(columns={
+                            "Investment Action": "Action",
+                            "LT Compounder": "Long-Term Quality",
+                            "LT Entry": "Entry Quality",
+                            "1Y Hold": "12M Fundamentals",
+                        })
                         st.dataframe(
-                            invest_ranked[[
-                                "Ticker", "Investment Action", "LT Compounder", "LT Entry",
-                                "Valuation", "Valuation rating", "Price", "1Y Hold"
-                            ]],
+                            investment_display,
                             hide_index=True,
                             use_container_width=True,
                         )
