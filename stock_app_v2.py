@@ -124,7 +124,9 @@ src = src.replace(
                 "1Y Hold": fund["hold_score"],
                 "LT Compounder": lt["long_term_score"],
                 "LT Entry": lt_entry["long_term_entry_score"],
-                "Strategy": strategy,''',
+                "Strategy": strategy,
+                "Valuation": fund["valuation_score"],
+                "Valuation rating": fund["valuation_label"],''',
 )
 
 src = src.replace(
@@ -138,7 +140,7 @@ src = src.replace(
             b.metric("1-Year Hold", f"{res['one_year_hold_score']:.0f}/100")
             c.metric("LT Compounder", f"{res['long_term_score']:.0f}/100", res["long_term_label"])
             d.metric("LT Entry", f"{res['long_term_entry_score']:.0f}/100", res["long_term_entry_label"])
-            st.success(f"Strategy: **{res['strategy']}**")
+            st.info(f"Strategy: **{res['strategy']}**")
             st.caption(f"Overall opportunity: **{res['opportunity_score']:.0f}/100** · Valuation: **{res['valuation_score']:.0f}/20 {res['valuation_label']}** · Business quality: **{res['quality_score']:.0f}/80**")'''
 )
 
@@ -211,6 +213,20 @@ src = src.replace(
                             c3.metric("LT Compounder", f"{q['LT Compounder']:.0f}/100")
                             c4.metric("LT Entry", f"{q['LT Entry']:.0f}/100")
                             st.write(f"**Strategy:** {q['Strategy']} · **Swing upside:** {q['Upside %']:.1f}%")'''
+)
+
+
+src = src.replace(
+    'st.caption("Swing-trade entries + fundamental hold quality. No broker connection or brokerage credentials required.")',
+    'st.caption("Three decision lanes: swing trades, 1-year holds, and 25–35 year compounders. No broker connection required.")',
+)
+src = src.replace(
+    'st.write("**Hold Quality:** growth, margins, debt, cash flow and analyst outlook.")',
+    'st.write("**1-Year Hold:** growth, valuation, margins, debt, cash flow and analyst outlook.")\n    st.write("**Long-Term Compounder:** multi-year growth consistency, profitability, cash generation, balance sheet, dilution and durability.")',
+)
+src = src.replace(
+    'st.header("Scoring")',
+    'st.header("Three decision lanes")',
 )
 
 src = src.replace(
