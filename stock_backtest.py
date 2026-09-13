@@ -88,3 +88,59 @@ def run_trade_backtest(symbol, technical_func, thresholds=(80, 85, 90), horizon=
         })
 
     return ev, pd.DataFrame(summary)
+
+
+def run_basket_backtest(symbols, technical_func, thresholds=(80, 85, 90), horizon=20, cooldown=10):
+    all_events = []
+    per_stock = []
+
+    for symbol in symbols:
+        symbol = str(symbol).strip().upper()
+        if not symbol:
+            continue
+        try:
+            events, summary = run_trade_backtest(
+                symbol,
+                technical_func,
+                thresholds=thresholds,
+                horizon=horizon,
+                cooldown=cooldown,
+            )
+        except Exception:
+            continue
+
+        if not events.empty:
+            events = events.copy()
+            events["Ticker"] = symbol
+            all_events.append(events)
+
+        if not summary.empty:
+            s = summary.copy()
+            s["Ticker"] = symbol
+            per_stock.append(s)
+
+    if not all_events:
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    events = pd.concat(all_events, ignore_index=True)
+    stock_summary = pd.concat(per_stock, ignore_index=True) if per_stock else pd.DataFrame()
+
+    aggregate = []
+    for threshold in thresholds:
+        g = events[events["Threshold"] == int(threshold)]
+        if g.empty:
+            continue
+        aggregate.append({
+            "Threshold": int(threshold),
+            "Stocks": int(g["Ticker"].nunique()),
+            "Signals": len(g),
+            "Hit +5%": round(g["Hit +5% before stop"].mean() * 100, 1),
+            "Hit +10%": round(g["Hit +10% before stop"].mean() * 100, 1),
+            "Hit +20%": round(g["Hit +20% before stop"].mean() * 100, 1),
+            "Invalidation hit": round(g["Invalidation hit"].mean() * 100, 1),
+            "Median max return %": round(g["Max return %"].median(), 1),
+            "Median close return %": round(g["Close return %"].median(), 1),
+            "Median adverse %": round(g["Max adverse %"].median(), 1),
+        })
+
+    return events, pd.DataFrame(aggregate), stock_summary
