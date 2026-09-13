@@ -4,7 +4,7 @@ import pandas as pd
 import yfinance as yf
 
 
-def run_trade_backtest(symbol, technical_func, thresholds=(80, 85, 90), horizon=20, cooldown=10):
+def run_trade_backtest(symbol, technical_func, thresholds=(80, 85, 90), horizon=20, cooldown=10, min_rr=0.0, zone_mode="either"):
     df = yf.Ticker(symbol).history(period="5y", interval="1d", auto_adjust=False)
     if df is None or len(df) < 300:
         return pd.DataFrame(), pd.DataFrame()
@@ -22,7 +22,14 @@ def run_trade_backtest(symbol, technical_func, thresholds=(80, 85, 90), horizon=
 
         entry = float(tech["price"])
         invalid = float(tech["invalidation"])
-        entry_ok = bool(tech.get("in_preferred_zone") or tech.get("in_strong_zone"))
+        in_preferred = bool(tech.get("in_preferred_zone"))
+        in_strong = bool(tech.get("in_strong_zone"))
+        if zone_mode == "preferred":
+            entry_ok = in_preferred
+        elif zone_mode == "strong":
+            entry_ok = in_strong
+        else:
+            entry_ok = bool(in_preferred or in_strong)
         future = df.iloc[i + 1 : i + 1 + horizon]
         if future.empty:
             continue
@@ -48,6 +55,8 @@ def run_trade_backtest(symbol, technical_func, thresholds=(80, 85, 90), horizon=
                 continue
             if not entry_ok:
                 continue
+            if float(tech.get("rr", 0)) < float(min_rr):
+                continue
             if i - last_signal[threshold] < cooldown:
                 continue
 
@@ -57,6 +66,8 @@ def run_trade_backtest(symbol, technical_func, thresholds=(80, 85, 90), horizon=
                 "Date": df.index[i],
                 "Score": float(tech["trade_score"]),
                 "Entry": entry,
+                "R:R": float(tech.get("rr", 0)),
+                "Zone": "Strong" if in_strong else "Preferred",
                 "Max return %": max_ret,
                 "Close return %": close_ret,
                 "Max adverse %": min_ret,
@@ -90,7 +101,7 @@ def run_trade_backtest(symbol, technical_func, thresholds=(80, 85, 90), horizon=
     return ev, pd.DataFrame(summary)
 
 
-def run_basket_backtest(symbols, technical_func, thresholds=(80, 85, 90), horizon=20, cooldown=10):
+def run_basket_backtest(symbols, technical_func, thresholds=(80, 85, 90), horizon=20, cooldown=10, min_rr=0.0, zone_mode="either"):
     all_events = []
     per_stock = []
 
@@ -105,6 +116,8 @@ def run_basket_backtest(symbols, technical_func, thresholds=(80, 85, 90), horizo
                 thresholds=thresholds,
                 horizon=horizon,
                 cooldown=cooldown,
+                min_rr=min_rr,
+                zone_mode=zone_mode,
             )
         except Exception:
             continue
