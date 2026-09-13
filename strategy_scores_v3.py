@@ -115,6 +115,8 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     sector = str(fund.get("sector") or info.get("sector") or "")
     industry = str(fund.get("industry") or info.get("industry") or "")
     is_insurer = "insurance" in industry.lower()
+    is_reit = "reit" in industry.lower() or "real estate investment trust" in industry.lower()
+    is_financial = sector.lower() == "financial services" and not is_insurer
 
     revenue = _row(income, ["Total Revenue", "Operating Revenue"])
     net_income = _row(income, ["Net Income", "Net Income Common Stockholders"])
@@ -381,6 +383,20 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         elite_gate = False
         sector_model = "Insurance preliminary"
         sector_review_required = True
+
+    elif is_reit:
+        score_cap = min(score_cap, 89.0)
+        elite_gate = False
+        sector_model = "REIT preliminary"
+        sector_review_required = True
+        cap_reasons.append("REIT specialist review required: FFO/AFFO, leverage, occupancy and dividend coverage")
+
+    elif is_financial:
+        score_cap = min(score_cap, 89.0)
+        elite_gate = False
+        sector_model = "Financials preliminary"
+        sector_review_required = True
+        cap_reasons.append("financial-sector specialist review required: capital strength, credit quality, profitability and sector-specific valuation")
 
     final_score = round(min(raw_score, score_cap), 1)
     label = (
