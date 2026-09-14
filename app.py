@@ -3124,6 +3124,9 @@ def live_scan():
             )
         ), axis=1,
     )
+    swing_candidates["_confidence_rank"] = swing_candidates["Context confidence"].map(
+        {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+    ).fillna(3)
     swing_candidates["_leader_rank"] = swing_candidates["Category leader"].map(
         {"TOP 3": 0, "NOT TOP 3": 1, "UNKNOWN": 2}
     ).fillna(2)
@@ -3174,8 +3177,8 @@ def live_scan():
 
     swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
-        ascending=[True, True, True, True, True, True, True, False],
+        ["Status", "_confidence_rank", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
+        ascending=[True, True, True, True, True, True, True, True, False],
     ).drop(columns=[
         "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank"
     ])
@@ -3334,18 +3337,18 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Context confidence", "Signal agreement %",
-            "Conflict count", "Known event risk", "Non-TA confirmations",
-            "Pattern", "Triangle score", "Triangle touches",
-            "Triangle compression %", "Candle caution", "Last 4h candle",
+            "Coin", "Status", "Context confidence", "Known event risk",
+            "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
+            "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
+            "Pattern", "Triangle score", "Triangle touches", "Triangle compression %",
+            "Candle caution", "Last 4h candle",
             "SMA regime", "SMA50", "SMA200", "Price vs SMA50 %", "Price vs SMA200 %",
             "BB 4h regime", "BB 4h width %", "BB 4h width percentile", "BB 4h position %",
             "BB Daily regime", "4h Channel", "4h Channel pos %", "4h Channel support",
             "4h Channel resistance", "4h Channel R:R", "4h Channel quality",
-            "Daily Channel", "Daily Channel pos %", "Price", "Entry Price",
-            "Exit / Stop", "Price Target", "ROI %", "R:R",
+            "Daily Channel", "Daily Channel pos %",
             "Entry low", "Entry high", "Breakout", "First resistance target", "Stretch target",
-            "Score", "Reason",
+            "Reason",
             "Category leader", "Leader categories",
             "Project freshness", "History days", "Freshness score",
             "Catalyst status", "Next catalyst", "Catalyst date", "Catalyst days",
