@@ -2642,7 +2642,8 @@ def live_scan():
         "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
         "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
         "Category leader", "Leader categories", "Project freshness", "Catalyst status",
-        "Candle caution", "Last 4h candle", "4h Channel", "4h Channel pos %",
+        "Candle caution", "Last 4h candle", "Pattern", "Triangle score",
+        "SMA regime", "SMA50", "SMA200", "4h Channel", "4h Channel pos %",
         "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     }
     needs_candidate_refresh = (
