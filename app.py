@@ -1124,6 +1124,73 @@ def project_freshness(dfd: pd.DataFrame, dfw: Optional[pd.DataFrame] = None) -> 
     }
 
 
+def latest_completed_4h_candle_signal(df4h: pd.DataFrame) -> Dict:
+    """
+    Detect a bearish red shooting star on the latest completed 4h candle.
+    A live/incomplete candle is ignored so a temporary wick cannot create a false warning.
+    """
+    if df4h is None or df4h.empty or len(df4h) < 2:
+        return {
+            "candle_pattern": "UNAVAILABLE",
+            "candle_caution": False,
+            "candle_detail": "Not enough 4h candle history",
+        }
+
+    x = df4h.copy()
+    timestamps = pd.to_datetime(x["timestamp"], errors="coerce", utc=True)
+    now = pd.Timestamp.now(tz="UTC")
+    completed_mask = timestamps + pd.Timedelta(hours=4) <= now
+    completed = x.loc[completed_mask]
+
+    if completed.empty:
+        candle = x.iloc[-2]
+    else:
+        candle = completed.iloc[-1]
+
+    o = float(candle["open"])
+    h = float(candle["high"])
+    l = float(candle["low"])
+    close = float(candle["close"])
+    candle_range = max(h - l, 0.0)
+
+    if candle_range <= 0:
+        return {
+            "candle_pattern": "OTHER",
+            "candle_caution": False,
+            "candle_detail": "Flat completed 4h candle",
+        }
+
+    body = abs(close - o)
+    upper_wick = h - max(o, close)
+    lower_wick = min(o, close) - l
+    red = close < o
+
+    # Shooting-star geometry: small body near the low, long upper rejection wick,
+    # little lower wick. Require the candle to close red for the caution rule.
+    shooting_star = (
+        red
+        and body / candle_range <= 0.35
+        and upper_wick >= max(body * 2.0, candle_range * 0.45)
+        and lower_wick <= candle_range * 0.20
+    )
+
+    if shooting_star:
+        return {
+            "candle_pattern": "RED SHOOTING STAR",
+            "candle_caution": True,
+            "candle_detail": (
+                f"Latest completed 4h candle rejected higher prices: "
+                f"upper wick {upper_wick / candle_range * 100:.0f}% of range; red close."
+            ),
+        }
+
+    return {
+        "candle_pattern": "OTHER",
+        "candle_caution": False,
+        "candle_detail": "No red shooting-star warning on latest completed 4h candle",
+    }
+
+
 def scan_cell_style(value, column: str) -> str:
     """Traffic-light styling for the main scan's decision columns."""
     green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
@@ -1197,6 +1264,7 @@ def score_setup(
         }
     )
     freshness_info = project_freshness(dfd, dfw)
+    candle_signal = latest_completed_4h_candle_signal(df4h)
 
     x = df4h.copy()
     x["rsi"] = rsi(x["close"])
@@ -1628,6 +1696,9 @@ def score_setup(
         "history_days": freshness_info["history_days"],
         "freshness_score": freshness_info["freshness_score"],
         "freshness_basis": freshness_info["freshness_basis"],
+        "candle_pattern": candle_signal["candle_pattern"],
+        "candle_caution": bool(candle_signal["candle_caution"]),
+        "candle_detail": candle_signal["candle_detail"],
         "cycle_position_pct": round(float(cycle_position_pct), 1) if math.isfinite(cycle_position_pct) else np.nan,
         "cycle_accumulation_low": cycle_accumulation_low,
         "cycle_accumulation_high": cycle_accumulation_high,
@@ -1973,6 +2044,9 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Catalyst days": r.get("catalyst_days", np.nan),
                 "Catalyst categories": r.get("catalyst_categories", ""),
                 "Catalyst impact": r.get("catalyst_impact", ""),
+                "Candle caution": "CAUTION" if r.get("candle_caution") else "CLEAR",
+                "Last 4h candle": r.get("candle_pattern", "UNAVAILABLE"),
+                "Candle detail": r.get("candle_detail", ""),
                 "Price": r["price"],
                 "Entry Price": (r["entry_low"] + r["entry_high"]) / 2,
                 "Exit / Stop": r["invalidation"],
@@ -2277,6 +2351,7 @@ def live_scan():
         "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
         "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
         "Category leader", "Leader categories", "Project freshness", "Catalyst status",
+        "Candle caution", "Last 4h candle",
         "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     }
     needs_candidate_refresh = (
@@ -2337,12 +2412,15 @@ def live_scan():
     cex_qualified_setups = tokenomics_qualified_setups[
         tokenomics_qualified_setups["Major CEX gate"] == "PASS"
     ].copy()
+    candle_qualified_setups = cex_qualified_setups[
+        cex_qualified_setups["Candle caution"] != "CAUTION"
+    ].copy()
     macro_now = st.session_state.get("macro_liquidity") or {}
     macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
     swing_setups = (
-        cex_qualified_setups
+        candle_qualified_setups
         if macro_allows_new_risk
-        else cex_qualified_setups.iloc[0:0].copy()
+        else candle_qualified_setups.iloc[0:0].copy()
     )
     accumulation_setups = df[
         df["Accumulation verdict"] == "ACCUMULATION READY"
@@ -2398,11 +2476,22 @@ def live_scan():
                     else ""
                 )
                 + (
+                    (
+                        "Latest completed 4h candle is a red shooting star near the setup zone; "
+                        "buyers were rejected higher up, so wait for confirmation. "
+                    )
+                    if (
+                        row["Symbol"] in set(cex_qualified_setups["Symbol"])
+                        and row.get("Candle caution") == "CAUTION"
+                    )
+                    else ""
+                )
+                + (
                     f"Technical setup qualifies, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')} "
                     f"({macro_now.get('score', np.nan):.1f}/100). "
                     if (
-                        row["Symbol"] in set(cex_qualified_setups["Symbol"])
+                        row["Symbol"] in set(candle_qualified_setups["Symbol"])
                         and not macro_allows_new_risk
                         and pd.notna(macro_now.get("score", np.nan))
                     )
@@ -2542,13 +2631,15 @@ def live_scan():
             "Unknown tokenomics remain WAIT rather than passing by assumption. "
             "WAIT candidates remain visible with their reasons. "
             "The first columns show the trade plan: current price, planned entry, stop/exit, "
-            "price target, projected ROI and reward/risk. "
+            "price target, projected ROI and reward/risk. A red shooting star on the latest "
+            "completed 4h candle forces an otherwise-qualified setup to WAIT for confirmation. "
             "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
             rs_blocked = len(technical_swing_setups) - len(rs_qualified_setups)
             tokenomics_blocked = len(rs_qualified_setups) - len(tokenomics_qualified_setups)
             cex_blocked = len(tokenomics_qualified_setups) - len(cex_qualified_setups)
+            candle_blocked = len(cex_qualified_setups) - len(candle_qualified_setups)
             if rs_blocked > 0:
                 st.info(
                     f"{rs_blocked} technical setup(s) currently qualify technically but remain "
@@ -2565,11 +2656,16 @@ def live_scan():
                     f"{cex_blocked} otherwise-qualified setup(s) remain WAIT because they "
                     "do not have at least 2 verified listings across the major CEX basket."
                 )
-            elif not cex_qualified_setups.empty and not macro_allows_new_risk:
+            elif candle_blocked > 0:
                 st.info(
-                    f"{len(cex_qualified_setups)} technical setup(s) currently meet the "
-                    f"{cfg.score_threshold}+, 30% target, relative-strength, tokenomics and "
-                    "major-CEX rules, but macro liquidity is "
+                    f"{candle_blocked} otherwise-qualified setup(s) remain WAIT because the "
+                    "latest completed 4h candle is a red shooting star."
+                )
+            elif not candle_qualified_setups.empty and not macro_allows_new_risk:
+                st.info(
+                    f"{len(candle_qualified_setups)} technical setup(s) currently meet the "
+                    f"{cfg.score_threshold}+, 30% target, relative-strength, tokenomics, "
+                    "major-CEX and candle rules, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
                 )
             else:
@@ -2578,7 +2674,7 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status",
+            "Coin", "Status", "Candle caution", "Last 4h candle",
             "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
             "Entry low", "Entry high", "Breakout", "First resistance target", "Stretch target",
             "Score", "Reason",
@@ -2596,6 +2692,16 @@ def live_scan():
             "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
         ]
         styled_swing = swing_candidates[swing_cols].style
+        styled_swing = styled_swing.map(
+            lambda value: (
+                "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                if str(value) == "CAUTION"
+                else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                if str(value) == "CLEAR"
+                else ""
+            ),
+            subset=["Candle caution"],
+        )
         for trend_column in ["Coin trend", "Market trend"]:
             styled_swing = styled_swing.map(
                 lambda value, column=trend_column: scan_cell_style(value, column),
@@ -2785,6 +2891,7 @@ if qa:
         macro_now = st.session_state.get("macro_liquidity") or {}
         tokenomics_gate = qa_result.get("tokenomics_gate", "UNKNOWN")
         cex_gate = qa_result.get("major_cex_gate", "UNKNOWN")
+        candle_caution = bool(qa_result.get("candle_caution", False))
         qa_is_btc = qa_symbol.split("/")[0].upper() == "BTC"
         qa_rs_pass = qa_is_btc or qa_result.get("rs_vs_btc_pct", -999) > 0
         if (
@@ -2792,6 +2899,7 @@ if qa:
             and qa_rs_pass
             and tokenomics_gate == "PASS"
             and cex_gate == "PASS"
+            and not candle_caution
             and macro_now.get("allows_new_swing_risk", True)
         ):
             st.success(
@@ -2819,10 +2927,16 @@ if qa:
                 f"{qa_result.get('major_cex_count', 0)} verified major CEX listing(s) "
                 "found; at least 2 are required for BUY."
             )
+        elif qa_result.get("eligible") and candle_caution:
+            st.warning(
+                "TECHNICAL QUALIFIER — CANDLE CAUTION: the latest completed 4h candle "
+                "is a red shooting star. Wait for confirmation rather than entering into "
+                "fresh rejection near resistance."
+            )
         elif qa_result.get("eligible"):
             st.warning(
                 "TECHNICAL QUALIFIER — MACRO WAIT: the setup passes the pre-breakout "
-                f"rules, tokenomics and major-CEX gates, but macro liquidity is "
+                f"rules, tokenomics, major-CEX and candle gates, but macro liquidity is "
                 f"{macro_now.get('regime', 'DATA LIMITED')} "
                 f"({macro_now.get('score', np.nan):.1f}/100)."
             )
@@ -2843,6 +2957,17 @@ if qa:
         q2.metric("Price", fmt_price(qa_result["price"]))
         q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
         q4.metric("RSI", f"{qa_result['rsi']:.1f}")
+
+        cd1, cd2 = st.columns(2)
+        cd1.metric(
+            "Latest completed 4h candle",
+            qa_result.get("candle_pattern", "UNAVAILABLE"),
+        )
+        cd2.metric(
+            "Candle caution",
+            "CAUTION" if qa_result.get("candle_caution") else "CLEAR",
+        )
+        st.caption(qa_result.get("candle_detail", ""))
 
         rs1, rs2 = st.columns(2)
         rs1.metric("RS vs BTC — 48h", f"{qa_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
@@ -3121,8 +3246,14 @@ if not scan_df.empty:
     if row.get("Coin trend detail") or row.get("Market trend detail"):
         st.caption(
             f"Coin: {row.get('Coin trend detail', '')} · "
-            f"Market: {row.get('Market trend detail', '')}"
+            f"Market: {row.get('Market trend_detail', '')}"
         )
+
+    candle1, candle2 = st.columns(2)
+    candle1.metric("Last completed 4h candle", row.get("Last 4h candle", "UNAVAILABLE"))
+    candle2.metric("Candle caution", row.get("Candle caution", "CLEAR"))
+    if row.get("Candle detail"):
+        st.caption(str(row.get("Candle detail")))
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Pre-breakout entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}", row["Entry basis"])
@@ -3248,6 +3379,10 @@ For an **altcoin** to become a BUY, its 48-hour return must be stronger than BTC
 #### Tokenomics gate — supply quality
 
 For altcoin BUY decisions, the scanner now requires **at least 25% of total supply (or max supply when total supply is unavailable) to be circulating**. Below 25% is treated as low float and remains WAIT; missing supply data is UNKNOWN and also remains WAIT rather than being assumed safe. The scanner also flags **FDV / market-cap ratios of 4x or more** as high-FDV/low-float risk. Detailed VC allocations and future insider unlock schedules require a specialist verified dataset and are shown as needing separate verification rather than guessed.
+
+#### Latest 4h candle — rejection caution
+
+The scanner checks the **latest completed 4h candle**, ignoring an unfinished live candle. A **red shooting star** requires a red close, a relatively small body near the low of the candle and a long upper wick showing rejection of higher prices. Because the screener is deliberately looking for entries close to resistance, an otherwise-qualified setup with this candle pattern is held at **WAIT** until the next candles confirm that the rejection has been absorbed. The raw technical score is left unchanged; this is a separate execution-risk gate.
 
 #### BUY score — pre-breakout swing-trade quality
 
