@@ -199,6 +199,65 @@ def social_flags(pair: Dict, meta: Dict):
     }
 
 
+def narrative_quality(pair: Dict, meta: Dict, socials: Dict) -> Dict:
+    base = pair.get("baseToken") or {}
+    name = str(base.get("name") or "").strip()
+    symbol = str(base.get("symbol") or "").strip()
+    description = str(meta.get("profile_description") or "").strip()
+
+    score = 0.0
+    signals = []
+
+    if 2 <= len(symbol) <= 8:
+        score += 3
+        signals.append("short ticker")
+    if 3 <= len(name) <= 22:
+        score += 3
+        signals.append("simple name")
+    if name and not any(ch.isdigit() for ch in name):
+        score += 1
+
+    if 20 <= len(description) <= 400:
+        score += 4
+        signals.append("clear story/profile")
+    elif description:
+        score += 2
+
+    sources = len(meta.get("sources", []))
+    if sources >= 3:
+        score += 3
+        signals.append("spreading across discovery surfaces")
+    elif sources >= 2:
+        score += 2
+
+    if meta.get("community_takeover"):
+        score += 3
+        signals.append("community-owned narrative")
+
+    social_count = socials.get("Social count", 0)
+    if social_count >= 3:
+        score += 3
+        signals.append("multi-channel identity")
+    elif social_count >= 2:
+        score += 1
+
+    score = round(min(20.0, score), 1)
+    if score >= 16:
+        label = "ICONIC POTENTIAL"
+    elif score >= 12:
+        label = "STRONG NARRATIVE"
+    elif score >= 8:
+        label = "DEVELOPING"
+    else:
+        label = "WEAK / UNCLEAR"
+
+    return {
+        "Narrative Score": score,
+        "Narrative Strength": label,
+        "Narrative Signals": "; ".join(signals),
+    }
+
+
 def pair_age_hours(pair_created_at) -> float:
     ts = safe(pair_created_at)
     if np.isnan(ts):
