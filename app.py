@@ -107,7 +107,13 @@ def clamp_score(v: float, lo: float = 0, hi: float = 1) -> float:
     return float(max(lo, min(hi, v)))
 
 
-def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg: ScreenerConfig) -> Dict:
+def score_setup(
+    df4h: pd.DataFrame,
+    dfd: pd.DataFrame,
+    btc4h: pd.DataFrame,
+    cfg: ScreenerConfig,
+    dfw: Optional[pd.DataFrame] = None,
+) -> Dict:
     if len(df4h) < max(cfg.resistance_lookback + 25, 70) or len(dfd) < 35 or len(btc4h) < 30:
         return {"eligible": False, "reason": "Not enough history"}
 
@@ -282,13 +288,68 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
     # 8) Entry quality: near resistance but not touching it, with nearby invalidation (10 pts)
     ideal_mid = (cfg.near_resistance_min_pct + min(cfg.near_resistance_max_pct, 3.5)) / 2
     distance_component = clamp_score(1 - abs(distance_pct - ideal_mid) / max(ideal_mid, 1.0))
-    swing_low = float(x["low"].iloc[-12:].min())
-    invalidation = swing_low * 0.995
+    # Use the nearest meaningful support across the 4h structure and daily trend
+    # for entry timing, rather than anchoring solely to the current price.
+    swing_low = float(x["low"].iloc[-24:].min())
+    support_candidates = [
+        float(x["ema20"].iloc[-1]),
+        float(x["ema50"].iloc[-1]),
+        daily_ema,
+        float(d["low"].iloc[-20:].quantile(0.35)),
+    ]
+    valid_supports = [level for level in support_candidates if 0 < level <= price]
+    entry_anchor = max(valid_supports) if valid_supports else price
+    entry_atr = float(x["atr"].iloc[-5:].mean())
+    invalidation = min(swing_low, entry_anchor - 1.25 * entry_atr) * 0.995
     risk_pct = max((price - invalidation) / price * 100, 0.01)
-    # Estimate first objective using range height; cap to avoid fantasy targets.
-    base_low = float(hist["low"].min())
-    pattern_height_pct = max((resistance - base_low) / resistance * 100, 0)
-    projected_target = resistance * (1 + min(pattern_height_pct, 25) / 100)
+
+    # Short-term measured move remains useful, but the main target now comes from
+    # major weekly resistance over approximately one four-year crypto cycle.
+    pattern_base_low = float(hist["low"].min())
+    pattern_height_pct = max((resistance - pattern_base_low) / resistance * 100, 0)
+    measured_target = resistance * (1 + min(pattern_height_pct, 35) / 100)
+
+    weekly_primary = np.nan
+    weekly_stretch = np.nan
+    cycle_position_pct = np.nan
+    target_basis = "4h measured move"
+
+    if dfw is not None and len(dfw) >= 26:
+        w = dfw.copy().tail(209)
+        completed_w = w.iloc[:-1] if len(w) > 1 else w
+        weekly_highs = completed_w["high"]
+        weekly_lows = completed_w["low"]
+        cycle_high = float(weekly_highs.max())
+        cycle_low = float(weekly_lows.min())
+        if cycle_high > cycle_low:
+            cycle_position_pct = (price - cycle_low) / (cycle_high - cycle_low) * 100
+
+        local_peaks = weekly_highs[
+            weekly_highs == weekly_highs.rolling(5, center=True, min_periods=3).max()
+        ]
+        overhead = sorted(
+            {
+                float(level)
+                for level in local_peaks.dropna()
+                if float(level) >= max(price * 1.08, resistance * 1.03)
+            }
+        )
+        if overhead:
+            weekly_primary = overhead[0] * 0.985
+            for level in overhead[1:]:
+                candidate = level * 0.985
+                if candidate >= weekly_primary * 1.08:
+                    weekly_stretch = candidate
+                    break
+            target_basis = "Nearest major weekly resistance"
+
+    projected_target = float(weekly_primary) if math.isfinite(weekly_primary) else measured_target
+    projected_target = max(projected_target, resistance * 1.03)
+    stretch_target = (
+        float(weekly_stretch)
+        if math.isfinite(weekly_stretch)
+        else max(projected_target * 1.15, measured_target)
+    )
     target_upside_pct = (projected_target - price) / price * 100
     reward_pct = max(target_upside_pct, 0)
     rr = reward_pct / risk_pct if risk_pct else 0
@@ -306,8 +367,9 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
         and lows_slope > -0.0015
     )
 
-    raw_entry_low = max(invalidation * 1.01, price * 0.985)
-    raw_entry_high = min(resistance * 0.998, price * 1.01)
+    entry_half_width = max(entry_atr * 0.40, price * 0.004)
+    raw_entry_low = max(invalidation * 1.01, entry_anchor - entry_half_width)
+    raw_entry_high = min(resistance * 0.998, entry_anchor + entry_half_width)
     entry_low = min(raw_entry_low, raw_entry_high * 0.999)
     entry_high = max(raw_entry_high, entry_low * 1.001)
 
@@ -330,7 +392,10 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
         "target_1": resistance * 1.05,
         "target_2": resistance * 1.10,
         "projected_target": projected_target,
+        "stretch_target": stretch_target,
         "target_upside_pct": round(target_upside_pct, 2),
+        "target_basis": target_basis,
+        "cycle_position_pct": round(float(cycle_position_pct), 1) if math.isfinite(cycle_position_pct) else np.nan,
         "bottom_score": bottom_score,
         "bottom_status": bottom_status,
         "accumulation_low": accumulation_low,
@@ -459,17 +524,19 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
                 f"{exchange.name}. Try its ticker, for example SOL."
             )
 
-        coin4, coind, btc4 = await asyncio.gather(
+        coin4, coind, coinw, btc4 = await asyncio.gather(
             exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180),
-            exchange.fetch_ohlcv(symbol, timeframe="1d", limit=90),
+            exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365),
+            exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220),
             exchange.fetch_ohlcv(f"BTC/{cfg.quote}", timeframe="4h", limit=180),
         )
         df4 = ohlcv_to_df(coin4)
         dfd = ohlcv_to_df(coind)
+        dfw = ohlcv_to_df(coinw)
         btcdf = ohlcv_to_df(btc4)
-        result = score_setup(df4, dfd, btcdf, cfg)
+        result = score_setup(df4, dfd, btcdf, cfg, dfw=dfw)
         result["symbol"] = symbol
-        return symbol, result, {"4h": df4, "1d": dfd}
+        return symbol, result, {"4h": df4, "1d": dfd, "1w": dfw}
     finally:
         await exchange.close()
 
@@ -494,12 +561,20 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 try:
                     rows4, rowsd = await asyncio.gather(
                         exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180),
-                        exchange.fetch_ohlcv(symbol, timeframe="1d", limit=90),
+                        exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365),
                     )
                     df4 = ohlcv_to_df(rows4)
                     dfd = ohlcv_to_df(rowsd)
+                    dfw = pd.DataFrame()
                     result = score_setup(df4, dfd, btc4h, cfg)
-                    raw[symbol] = {"4h": df4, "1d": dfd}
+                    if result.get("eligible"):
+                        try:
+                            rowsw = await exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220)
+                            dfw = ohlcv_to_df(rowsw)
+                            result = score_setup(df4, dfd, btc4h, cfg, dfw=dfw)
+                        except Exception as weekly_error:
+                            errors.append(f"{symbol} weekly context: {type(weekly_error).__name__}: {weekly_error}")
+                    raw[symbol] = {"4h": df4, "1d": dfd, "1w": dfw}
                     result["symbol"] = symbol
                     result["quote_volume_24h"] = qv
                     return result
@@ -533,7 +608,10 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Target +5%": r["target_1"],
                 "Target +10%": r["target_2"],
                 "Sell target": r["projected_target"],
+                "Stretch target": r["stretch_target"],
                 "Target upside %": r["target_upside_pct"],
+                "Target basis": r["target_basis"],
+                "4Y cycle position %": r["cycle_position_pct"],
                 "Accumulation signal": r["bottom_status"],
                 "Accumulation score": r["bottom_score"],
                 "Accumulation low": r["accumulation_low"],
@@ -560,11 +638,16 @@ def fmt_price(v: float) -> str:
     return f"{v:.8f}"
 
 
-def make_chart(df: pd.DataFrame, row: pd.Series) -> go.Figure:
-    d = df.tail(70)
+def make_chart(
+    df: pd.DataFrame,
+    row: pd.Series,
+    timeframe_label: str = "4h",
+    max_bars: int = 180,
+) -> go.Figure:
+    d = df.tail(max_bars)
     fig = go.Figure()
     fig.add_trace(go.Candlestick(
-        x=d["timestamp"], open=d["open"], high=d["high"], low=d["low"], close=d["close"], name="4h"
+        x=d["timestamp"], open=d["open"], high=d["high"], low=d["low"], close=d["close"], name=timeframe_label
     ))
     fig.add_hline(y=float(row["Breakout"]), line_dash="dash", annotation_text="Breakout / resistance")
     fig.add_hline(y=float(row["Invalidation"]), line_dash="dot", annotation_text="Invalidation")
@@ -592,7 +675,7 @@ async def fetch_backtest_data(exchange_id: str, symbol: str, quote: str) -> Tupl
     try:
         await exchange.load_markets()
         coin4 = ohlcv_to_df(await exchange.fetch_ohlcv(symbol, timeframe="4h", limit=500))
-        coind = ohlcv_to_df(await exchange.fetch_ohlcv(symbol, timeframe="1d", limit=180))
+        coind = ohlcv_to_df(await exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365))
         btc4 = ohlcv_to_df(await exchange.fetch_ohlcv(f"BTC/{quote}", timeframe="4h", limit=500))
         return coin4, coind, btc4
     finally:
@@ -761,12 +844,16 @@ def live_scan():
             st.write(f"**Potential accumulation zone:** {fmt_price(q['Accumulation low'])} – {fmt_price(q['Accumulation high'])}")
             st.write(f"**Bottoming signal:** {q['Accumulation signal']} ({q['Accumulation score']:.1f}/100)")
             st.write(f"**Sell target:** {fmt_price(q['Sell target'])} ({q['Target upside %']:.1f}% from current price)")
+            st.write(f"**Target basis:** {q['Target basis']}")
+            if pd.notna(q["4Y cycle position %"]):
+                st.write(f"**Four-year cycle range position:** {q['4Y cycle position %']:.1f}%")
 
     display_cols = [
         "Coin", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
         "Vol ratio", "RS vs BTC %", "R:R", "Accumulation signal", "Accumulation score",
         "Accumulation low", "Accumulation high", "In accumulation zone",
-        "Entry low", "Entry high", "Breakout", "Sell target", "Target upside %", "Invalidation"
+        "Entry low", "Entry high", "Breakout", "Sell target", "Stretch target",
+        "Target upside %", "Target basis", "4Y cycle position %", "Invalidation"
     ]
     st.dataframe(
         shown[display_cols],
@@ -786,7 +873,9 @@ def live_scan():
             "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
             "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
             "Sell target": st.column_config.NumberColumn(format="%.8g"),
+            "Stretch target": st.column_config.NumberColumn(format="%.8g"),
             "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
+            "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
         },
     )
 
