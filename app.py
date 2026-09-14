@@ -1226,6 +1226,62 @@ def latest_completed_4h_candle_signal(df4h: pd.DataFrame) -> Dict:
     }
 
 
+def bollinger_context(df: pd.DataFrame, close_col: str = "close", window: int = 20) -> Dict:
+    if df is None or len(df) < max(window + 5, 30):
+        return {
+            "bb_mid": np.nan, "bb_upper": np.nan, "bb_lower": np.nan,
+            "bb_width_pct": np.nan, "bb_position_pct": np.nan,
+            "bb_width_percentile": np.nan, "bb_regime": "UNAVAILABLE",
+        }
+    d = df.copy()
+    close = pd.to_numeric(d[close_col], errors="coerce")
+    mid = close.rolling(window).mean()
+    sd = close.rolling(window).std()
+    upper = mid + 2 * sd
+    lower = mid - 2 * sd
+    width_pct_series = (upper - lower) / mid.replace(0, np.nan) * 100
+
+    price = _safe_float(close.iloc[-1], np.nan)
+    mid_now = _safe_float(mid.iloc[-1], np.nan)
+    upper_now = _safe_float(upper.iloc[-1], np.nan)
+    lower_now = _safe_float(lower.iloc[-1], np.nan)
+    width_now = _safe_float(width_pct_series.iloc[-1], np.nan)
+
+    if not all(math.isfinite(v) for v in [price, mid_now, upper_now, lower_now, width_now]):
+        return {
+            "bb_mid": mid_now, "bb_upper": upper_now, "bb_lower": lower_now,
+            "bb_width_pct": width_now, "bb_position_pct": np.nan,
+            "bb_width_percentile": np.nan, "bb_regime": "UNAVAILABLE",
+        }
+
+    band_range = upper_now - lower_now
+    position = (price - lower_now) / band_range * 100 if band_range > 0 else np.nan
+    hist_width = width_pct_series.dropna().tail(120)
+    percentile = (
+        float((hist_width <= width_now).mean() * 100)
+        if len(hist_width) >= 20 else np.nan
+    )
+
+    recent = width_pct_series.dropna().tail(6)
+    expanding = len(recent) >= 4 and recent.iloc[-1] > recent.iloc[0] * 1.12
+    if math.isfinite(percentile) and percentile <= 20:
+        regime = "SQUEEZE"
+    elif expanding:
+        regime = "EXPANDING"
+    else:
+        regime = "NORMAL"
+
+    return {
+        "bb_mid": mid_now,
+        "bb_upper": upper_now,
+        "bb_lower": lower_now,
+        "bb_width_pct": round(width_now, 2),
+        "bb_position_pct": round(float(position), 1) if math.isfinite(position) else np.nan,
+        "bb_width_percentile": round(float(percentile), 1) if math.isfinite(percentile) else np.nan,
+        "bb_regime": regime,
+    }
+
+
 def ascending_triangle_pattern(df4h: pd.DataFrame, window: int = 60) -> Dict:
     if df4h is None or len(df4h) < 36:
         return {
@@ -1442,6 +1498,8 @@ def score_setup(
     freshness_info = project_freshness(dfd, dfw)
     candle_signal = latest_completed_4h_candle_signal(df4h)
     triangle = ascending_triangle_pattern(df4h, 60)
+    bb_4h = bollinger_context(df4h)
+    bb_daily = bollinger_context(dfd)
     channel_4h = trend_channel(df4h, 80)
     channel_daily = trend_channel(dfd, 90)
 
@@ -1929,6 +1987,16 @@ def score_setup(
         "sma50": daily_sma50,
         "sma200": daily_sma200,
         "sma_regime": sma_regime,
+        "bb_4h_regime": bb_4h.get("bb_regime", "UNAVAILABLE"),
+        "bb_4h_mid": bb_4h.get("bb_mid", np.nan),
+        "bb_4h_upper": bb_4h.get("bb_upper", np.nan),
+        "bb_4h_lower": bb_4h.get("bb_lower", np.nan),
+        "bb_4h_width_pct": bb_4h.get("bb_width_pct", np.nan),
+        "bb_4h_position_pct": bb_4h.get("bb_position_pct", np.nan),
+        "bb_4h_width_percentile": bb_4h.get("bb_width_percentile", np.nan),
+        "bb_daily_regime": bb_daily.get("bb_regime", "UNAVAILABLE"),
+        "bb_daily_width_pct": bb_daily.get("bb_width_pct", np.nan),
+        "bb_daily_position_pct": bb_daily.get("bb_position_pct", np.nan),
         "price_vs_sma50_pct": (
             round((daily_price / daily_sma50 - 1) * 100, 2)
             if math.isfinite(daily_sma50) and daily_sma50 > 0 else np.nan
