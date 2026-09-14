@@ -1690,6 +1690,13 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
         cex_presence, cex_errors = await major_cex_presence()
         result.update(exchange_listing_info(symbol, cex_presence))
         result["major_cex_errors"] = cex_errors
+        cmcal_events, cmcal_status = await asyncio.to_thread(
+            coinmarketcal_upcoming_events,
+            _streamlit_secret("COINMARKETCAL_API_KEY"),
+        )
+        result.update(
+            catalyst_info(symbol, catalyst_event_index(cmcal_events), cmcal_status)
+        )
         return symbol, result, {"4h": df4, "1d": dfd, "1w": dfw}
     finally:
         await exchange.close()
@@ -1698,12 +1705,18 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
 async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]], List[str]]:
     deadline = asyncio.get_running_loop().time() + 300
     universe, _, _ = await asyncio.wait_for(fetch_market_universe(cfg), timeout=45)
-    tokenomics_snapshot, category_leaders, cex_result = await asyncio.gather(
+    tokenomics_snapshot, category_leaders, cex_result, cmcal_result = await asyncio.gather(
         asyncio.to_thread(coingecko_tokenomics_snapshot),
         asyncio.to_thread(coingecko_category_leaders),
         major_cex_presence(),
+        asyncio.to_thread(
+            coinmarketcal_upcoming_events,
+            _streamlit_secret("COINMARKETCAL_API_KEY"),
+        ),
     )
     cex_presence, cex_errors = cex_result
+    cmcal_events, cmcal_status = cmcal_result
+    cmcal_index = catalyst_event_index(cmcal_events)
     cls = getattr(ccxt, cfg.exchange_id)
     exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
     errors: List[str] = list(cex_errors)
@@ -1765,6 +1778,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                         tokenomics_from_market(symbol, tokenomics_snapshot, category_leaders)
                     )
                     result.update(exchange_listing_info(symbol, cex_presence))
+                    result.update(catalyst_info(symbol, cmcal_index, cmcal_status))
                     return result
                 except Exception as e:
                     errors.append(f"{symbol}: {type(e).__name__}: {e}")
@@ -1851,6 +1865,13 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Major CEX listings": r.get("major_cex_list", ""),
                 "Category leader": r.get("category_leader", "UNKNOWN"),
                 "Leader categories": r.get("leader_categories", ""),
+                "Catalyst status": r.get("catalyst_status", "NOT CONNECTED"),
+                "Catalyst count": r.get("catalyst_count", 0),
+                "Next catalyst": r.get("next_catalyst", ""),
+                "Catalyst date": r.get("catalyst_date", ""),
+                "Catalyst days": r.get("catalyst_days", np.nan),
+                "Catalyst categories": r.get("catalyst_categories", ""),
+                "Catalyst impact": r.get("catalyst_impact", ""),
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
@@ -2139,7 +2160,7 @@ def live_scan():
     required_scan_columns = {
         "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
         "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
-        "Category leader", "Leader categories",
+        "Category leader", "Leader categories", "Catalyst status",
         "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     }
     needs_candidate_refresh = (
@@ -2285,9 +2306,19 @@ def live_scan():
     swing_candidates["_leader_rank"] = swing_candidates["Category leader"].map(
         {"TOP 3": 0, "NOT TOP 3": 1, "UNKNOWN": 2}
     ).fillna(2)
+    swing_candidates["_catalyst_rank"] = swing_candidates["Catalyst status"].map(
+        {
+            "HIGH CATALYST": 0,
+            "CATALYST WATCH": 1,
+            "UPCOMING": 2,
+            "NONE FOUND": 3,
+            "NOT CONNECTED": 4,
+        }
+    ).fillna(5)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "_leader_rank", "Score"], ascending=[True, True, False]
-    ).drop(columns=["_leader_rank"])
+        ["Status", "_leader_rank", "_catalyst_rank", "Score"],
+        ascending=[True, True, True, False],
+    ).drop(columns=["_leader_rank", "_catalyst_rank"])
     accumulation_candidates = df.copy()
     accumulation_candidates["Status"] = np.where(
         accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
@@ -2426,7 +2457,9 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Category leader", "Leader categories", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
+            "Coin", "Status", "Category leader", "Leader categories",
+            "Catalyst status", "Next catalyst", "Catalyst date", "Catalyst days",
+            "Catalyst categories", "Catalyst impact", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
             "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
