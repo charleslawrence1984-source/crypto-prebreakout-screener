@@ -388,7 +388,7 @@ src = src.replace(
                     with lane1:
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
                         trade_display = trade_ranked[[
-                            "Ticker", "Trade Action", "Trade", "1Y Hold", "Valuation",
+                            "Ticker", "Trade Action", "Trade", "1Y Hold", "Valuation", "Valuation rating",
                             "Price", "Preferred entry", "Strong entry", "Target", "Invalidation",
                             "Upside %", "R:R"
                         ]].rename(columns={
@@ -420,10 +420,18 @@ src = src.replace(
                             _investment_exit_target_row,
                             axis=1,
                         )
+                        invest_ranked["Investment ROI %"] = invest_ranked.apply(
+                            lambda r: (
+                                (safe(r.get("Positive Exit Target")) / safe(r.get("Price")) - 1) * 100
+                                if safe(r.get("Price"), 0) > 0 and not np.isnan(safe(r.get("Positive Exit Target")))
+                                else np.nan
+                            ),
+                            axis=1,
+                        )
                         investment_display = invest_ranked[[
                             "Ticker", "Investment Action", "LT Compounder", "LT Entry",
                             "Valuation", "Valuation rating", "Price", "Preferred entry",
-                            "Strong entry", "Positive Exit Target", "Invalidation", "1Y Hold"
+                            "Strong entry", "Positive Exit Target", "Investment ROI %", "Invalidation", "1Y Hold"
                         ]].rename(columns={
                             "Investment Action": "Action",
                             "LT Compounder": "Long-Term Quality",
@@ -590,6 +598,18 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                         else tech["swing_target"]
                     ),
                     "Negative Exit / Reassess": tech["invalidation"],
+                    "Investment ROI %": (
+                        (
+                            (
+                                fund["analyst_target"]
+                                if not np.isnan(safe(fund.get("analyst_target")))
+                                and safe(fund.get("analyst_target")) > safe(tech.get("price"), 0)
+                                else tech["swing_target"]
+                            ) / tech["price"] - 1
+                        ) * 100
+                        if safe(tech.get("price"), 0) > 0
+                        else np.nan
+                    ),
                     "Revenue CAGR %": lt["revenue_cagr_pct"],
                     "Earnings CAGR %": lt["earnings_cagr_pct"],
                     "FCF/share CAGR %": lt["fcf_per_share_cagr_pct"],
@@ -645,7 +665,7 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                     "ROIC %", "ROE %", "Operating margin %", "Dilution CAGR %",
                     "Net debt / FCF", "Evidence /10", "Elite gate", "Sector model",
                     "Book value/share CAGR %", "Market cap bn", "Price", "Entry Price",
-                    "Deeper Entry", "Positive Exit Target", "Negative Exit / Reassess"
+                    "Deeper Entry", "Positive Exit Target", "Investment ROI %", "Negative Exit / Reassess"
                 ]],
                 hide_index=True,
                 use_container_width=True,
