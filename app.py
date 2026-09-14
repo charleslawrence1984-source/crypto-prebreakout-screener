@@ -3019,6 +3019,7 @@ def live_scan():
             "To resistance %", "Tests", "RSI", "ATR ratio", "Vol ratio",
             "RS vs BTC %", "RS vs BTC 96h %",
             "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
+            "Triangle resistance", "Triangle support", "Triangle target", "Triangle detail",
             "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
         ]
         styled_swing = swing_candidates[swing_cols].style
