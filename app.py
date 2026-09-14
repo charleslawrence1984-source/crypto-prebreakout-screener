@@ -35,7 +35,7 @@ MAJOR_CEX = {
     "Kraken": "kraken",
     "OKX": "okx",
     "Bybit": "bybit",
-    "Gate": "gateio",
+    "Gate": "gate",
     "Bitget": "bitget",
     "MEXC": "mexc",
 }
@@ -527,9 +527,32 @@ async def major_cex_presence() -> Tuple[Dict[str, set], List[str]]:
     errors: List[str] = []
 
     async def load_one(name: str, exchange_id: str):
-        cls = getattr(ccxt, exchange_id)
-        exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+        exchange = None
         try:
+            # CCXT renamed Gate.io's exchange id from "gateio" to "gate" in
+            # newer releases. Resolve the configured id defensively so an
+            # unavailable/renamed venue is skipped instead of breaking the
+            # whole scan or Quick Analyse.
+            candidate_ids = [exchange_id]
+            if exchange_id == "gate":
+                candidate_ids.append("gateio")
+            elif exchange_id == "gateio":
+                candidate_ids.append("gate")
+
+            cls = None
+            resolved_id = exchange_id
+            for candidate_id in candidate_ids:
+                cls = getattr(ccxt, candidate_id, None)
+                if cls is not None:
+                    resolved_id = candidate_id
+                    break
+            if cls is None:
+                return name, set(), (
+                    f"{name}: exchange adapter not available in installed ccxt "
+                    f"(tried {', '.join(candidate_ids)})"
+                )
+
+            exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
             markets = await asyncio.wait_for(exchange.load_markets(), timeout=25)
             bases = {
                 str(market.get("base") or "").upper()
@@ -540,10 +563,11 @@ async def major_cex_presence() -> Tuple[Dict[str, set], List[str]]:
         except Exception as exc:
             return name, set(), f"{name}: {type(exc).__name__}: {exc}"
         finally:
-            try:
-                await exchange.close()
-            except Exception:
-                pass
+            if exchange is not None:
+                try:
+                    await exchange.close()
+                except Exception:
+                    pass
 
     results = await asyncio.gather(
         *(load_one(name, exchange_id) for name, exchange_id in MAJOR_CEX.items())
