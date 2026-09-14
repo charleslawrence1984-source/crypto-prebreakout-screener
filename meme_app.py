@@ -320,6 +320,18 @@ def fetch_pool_ohlcv(chain_id: str, pool_address: str, token_address: str, chart
 
     df["EMA20"] = df["close"].ewm(span=20, adjust=False).mean()
     df["EMA50"] = df["close"].ewm(span=50, adjust=False).mean()
+
+    delta = df["close"].diff()
+    gain = delta.clip(lower=0).ewm(alpha=1/14, adjust=False).mean()
+    loss = (-delta.clip(upper=0)).ewm(alpha=1/14, adjust=False).mean()
+    rs = gain / loss.replace(0, np.nan)
+    df["RSI"] = (100 - 100 / (1 + rs)).fillna(50)
+
+    df["BBM"] = df["close"].rolling(20).mean()
+    bb_sd = df["close"].rolling(20).std()
+    df["BBU"] = df["BBM"] + 2 * bb_sd
+    df["BBL"] = df["BBM"] - 2 * bb_sd
+    df["BBW_PCT"] = (df["BBU"] - df["BBL"]) / df["BBM"].replace(0, np.nan) * 100
     return df
 
 
@@ -332,6 +344,26 @@ def meme_price_chart(df: pd.DataFrame, ticker: str, timeframe_label: str) -> go.
         low=df["low"],
         close=df["close"],
         name=ticker,
+    ))
+    fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["BBU"],
+        mode="lines",
+        name="BB upper",
+        line=dict(dash="dot"),
+    ))
+    fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["BBM"],
+        mode="lines",
+        name="BB mid",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["BBL"],
+        mode="lines",
+        name="BB lower",
+        line=dict(dash="dot"),
     ))
     fig.add_trace(go.Scatter(
         x=df["timestamp"],
@@ -761,13 +793,50 @@ if quick_query.strip():
                     if chart_df.empty:
                         st.info("No OHLCV candle history is available for this pair yet.")
                     else:
+                        latest = chart_df.iloc[-1]
+                        bbw = chart_df["BBW_PCT"].dropna()
+                        bbw_now = safe(latest.get("BBW_PCT"))
+                        bbw_pctile = (
+                            float((bbw.tail(120) <= bbw_now).mean() * 100)
+                            if len(bbw.tail(120)) >= 20 and math.isfinite(bbw_now)
+                            else np.nan
+                        )
+                        recent_bbw = bbw.tail(6)
+                        expanding = (
+                            len(recent_bbw) >= 4
+                            and recent_bbw.iloc[-1] > recent_bbw.iloc[0] * 1.12
+                        )
+                        bb_regime = (
+                            "SQUEEZE" if math.isfinite(bbw_pctile) and bbw_pctile <= 20
+                            else "EXPANDING" if expanding
+                            else "NORMAL"
+                        )
+                        band_range = safe(latest.get("BBU")) - safe(latest.get("BBL"))
+                        bb_position = (
+                            (safe(latest.get("close")) - safe(latest.get("BBL"))) / band_range * 100
+                            if math.isfinite(band_range) and band_range > 0
+                            else np.nan
+                        )
+
+                        ta1, ta2, ta3, ta4 = st.columns(4)
+                        ta1.metric("RSI", f"{safe(latest.get('RSI'), 50):.1f}")
+                        ta2.metric("Bollinger", bb_regime)
+                        ta3.metric(
+                            "BB width percentile",
+                            f"{bbw_pctile:.1f}%" if math.isfinite(bbw_pctile) else "Unavailable",
+                        )
+                        ta4.metric(
+                            "Price in bands",
+                            f"{bb_position:.1f}%" if math.isfinite(bb_position) else "Unavailable",
+                        )
+
                         st.plotly_chart(
                             meme_price_chart(chart_df, result["Ticker"], chart_tf),
                             use_container_width=True,
                         )
                         st.caption(
-                            "Native on-chain candlestick chart with EMA20 and EMA50. "
-                            "Candles are loaded for the exact DEX pool selected above."
+                            "Native on-chain candlestick chart with EMA20/EMA50 and Bollinger Bands. "
+                            "RSI and Bollinger readings are context only and do not alter the meme score."
                         )
                 except Exception as exc:
                     st.warning(f"Chart data is temporarily unavailable for this pair: {exc}")
@@ -876,6 +945,8 @@ Detailed VC allocations and insider unlock schedules are not guessed; they requi
 **Community warning:** visible socials alone do not prove a real community. Follower counts can be bought or botted, so the model deliberately rewards actual transaction participation and multi-channel presence rather than treating raw followers as truth.
 
 **Narrative warning:** the cultural score is heuristic. It can identify simple, recognisable, shareable meme structures, but it cannot know in advance which joke, mascot or cultural reference will genuinely go viral.
+
+**Technical context:** Quick Analyse now shows RSI and 20-period/2-standard-deviation Bollinger Bands for the selected on-chain timeframe. They are deliberately **not part of the meme ranking score** because meme coins can remain overbought or highly volatile for long periods; community, narrative, liquidity and real activity remain more important.
 
 This is **v0.1**, not the final meme-coin model. Narrative quality, holder distribution, LP lock/burn, contract/security checks, influencer quality, community growth/engagement and migration/relaunch rules are intentionally left as the next modular layers rather than being guessed.
 """
