@@ -1039,6 +1039,97 @@ if quick_query.strip():
 
             pair_address = result.get("Pair Address") or ""
             token_address = result.get("Token Address") or ""
+            trade_plan = {
+                "Plan Status": "UNAVAILABLE",
+                "Entry Low": np.nan,
+                "Entry High": np.nan,
+                "Entry Price": np.nan,
+                "Negative Exit": np.nan,
+                "Positive Exit": np.nan,
+                "Potential ROI %": np.nan,
+                "R:R": np.nan,
+                "Plan Basis": "No candle history",
+            }
+            plan_timeframe = "4h"
+            if pair_address and result.get("Chain"):
+                try:
+                    plan_df = fetch_pool_ohlcv(
+                        result["Chain"],
+                        pair_address,
+                        token_address,
+                        "4h",
+                    )
+                    if plan_df.empty or len(plan_df) < 24:
+                        plan_timeframe = "1h"
+                        plan_df = fetch_pool_ohlcv(
+                            result["Chain"],
+                            pair_address,
+                            token_address,
+                            "1h",
+                        )
+                    trade_plan = meme_trade_plan(plan_df)
+                except Exception:
+                    trade_plan = {
+                        "Plan Status": "UNAVAILABLE",
+                        "Entry Low": np.nan,
+                        "Entry High": np.nan,
+                        "Entry Price": np.nan,
+                        "Negative Exit": np.nan,
+                        "Positive Exit": np.nan,
+                        "Potential ROI %": np.nan,
+                        "R:R": np.nan,
+                        "Plan Basis": "Trade-plan candle data unavailable",
+                    }
+
+            result.update(trade_plan)
+
+            st.subheader("Trade Plan")
+            tp1, tp2, tp3, tp4, tp5, tp6 = st.columns(6)
+            tp1.metric("Current Price", fmt_meme_price(result.get("Price USD")))
+            tp2.metric("Entry Price", fmt_meme_price(trade_plan.get("Entry Price")))
+            tp3.metric("Negative Exit / Stop", fmt_meme_price(trade_plan.get("Negative Exit")))
+            tp4.metric("Positive Exit Target", fmt_meme_price(trade_plan.get("Positive Exit")))
+            tp5.metric(
+                "Potential ROI",
+                f"{safe(trade_plan.get('Potential ROI %')):.1f}%"
+                if math.isfinite(safe(trade_plan.get("Potential ROI %")))
+                else "Unavailable",
+            )
+            tp6.metric(
+                "R:R",
+                f"{safe(trade_plan.get('R:R')):.2f}:1"
+                if math.isfinite(safe(trade_plan.get("R:R")))
+                else "Unavailable",
+            )
+            st.caption(
+                f"Plan status: **{trade_plan.get('Plan Status', 'UNAVAILABLE')}** · "
+                f"Entry zone: {fmt_meme_price(trade_plan.get('Entry Low'))} – "
+                f"{fmt_meme_price(trade_plan.get('Entry High'))} · "
+                f"Basis timeframe: {plan_timeframe} · "
+                f"{trade_plan.get('Plan Basis', '')}"
+            )
+            risk_to_stop = safe(trade_plan.get("Risk to Stop %"))
+            atr_pct = safe(trade_plan.get("ATR %"))
+            if math.isfinite(risk_to_stop) or math.isfinite(atr_pct):
+                st.caption(
+                    "Volatility context: "
+                    + (
+                        f"risk to stop {risk_to_stop:.1f}%"
+                        if math.isfinite(risk_to_stop)
+                        else ""
+                    )
+                    + (
+                        f" · ATR {atr_pct:.1f}%"
+                        if math.isfinite(atr_pct)
+                        else ""
+                    )
+                )
+            if trade_plan.get("Plan Status") == "HIGH VOLATILITY — WAIT":
+                st.warning(
+                    "The structural stop is very wide for this meme coin. "
+                    "Treat the setup as WAIT rather than forcing a high-risk entry."
+                )
+
             if pair_address and result.get("Chain"):
                 st.subheader("Price Chart")
                 chart_tf = st.selectbox(
@@ -1103,7 +1194,12 @@ if quick_query.strip():
                             + chart_tf
                         )
                         st.plotly_chart(
-                            meme_price_chart(chart_df, result["Ticker"], chart_tf),
+                            meme_price_chart(
+                                chart_df,
+                                result["Ticker"],
+                                chart_tf,
+                                trade_plan=trade_plan,
+                            ),
                             use_container_width=True,
                             key=chart_key,
                         )
@@ -1116,6 +1212,8 @@ if quick_query.strip():
 
             detail_cols = [
                 "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
+                "Price USD", "Entry Low", "Entry High", "Entry Price", "Negative Exit",
+                "Positive Exit", "Potential ROI %", "R:R", "Plan Status", "Plan Basis",
                 "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
                 "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
                 "Pair Age h", "Narrative Strength", "Narrative Score", "Narrative Signals",
