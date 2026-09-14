@@ -704,6 +704,150 @@ def classify_trend(df4h: pd.DataFrame, dfd: pd.DataFrame) -> Dict:
     }
 
 
+def period_return_pct(df: pd.DataFrame, days: int) -> float:
+    if df is None or df.empty or "close" not in df.columns:
+        return np.nan
+    s = pd.to_numeric(df["close"], errors="coerce").dropna()
+    if len(s) < 2:
+        return np.nan
+    lookback = min(days, len(s) - 1)
+    old = float(s.iloc[-1 - lookback])
+    new = float(s.iloc[-1])
+    if old <= 0:
+        return np.nan
+    return (new / old - 1) * 100
+
+
+def category_rotation_table(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Build a category-rotation view from scanned coins that are currently in
+    CoinGecko's top 3 for at least one category. Relative returns are measured
+    versus BTC over ~30/90/180 days.
+    """
+    required = {
+        "Category leader", "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "Leader categories", "RS vs BTC 30d %",
+        "RS vs BTC 90d %", "RS vs BTC 180d %", "Coin",
+    }
+    if df is None or df.empty or not required.issubset(set(df.columns)):
+        return pd.DataFrame()
+
+    leaders = df[
+        (df["Category leader"] == "TOP 3")
+        & df["Leader categories"].fillna("").ne("")
+    ].copy()
+    if leaders.empty:
+        return pd.DataFrame()
+
+    leaders["Category"] = leaders["Leader categories"].str.split(", ")
+    exploded = leaders.explode("Category")
+    exploded = exploded[exploded["Category"].fillna("").ne("")].copy()
+    if exploded.empty:
+        return pd.DataFrame()
+
+    records = []
+    for category, grp in exploded.groupby("Category"):
+        rs30 = pd.to_numeric(grp["RS vs BTC 30d %"], errors="coerce").dropna()
+        rs90 = pd.to_numeric(grp["RS vs BTC 90d %"], errors="coerce").dropna()
+        rs180 = pd.to_numeric(grp["RS vs BTC 180d %"], errors="coerce").dropna()
+        if rs30.empty and rs90.empty and rs180.empty:
+            continue
+
+        med30 = float(rs30.median()) if not rs30.empty else np.nan
+        med90 = float(rs90.median()) if not rs90.empty else np.nan
+        med180 = float(rs180.median()) if not rs180.empty else np.nan
+        monthly30 = med30 if math.isfinite(med30) else np.nan
+        monthly90 = med90 / 3 if math.isfinite(med90) else np.nan
+        monthly180 = med180 / 6 if math.isfinite(med180) else np.nan
+        breadth30 = float((rs30 > 0).mean() * 100) if not rs30.empty else np.nan
+
+        # Momentum score emphasizes recent rotation while retaining 3m/6m context.
+        score = 0.0
+        weight = 0.0
+        if math.isfinite(monthly30):
+            score += 45 * clamp_score((monthly30 + 5) / 20)
+            weight += 45
+        if math.isfinite(monthly90):
+            score += 30 * clamp_score((monthly90 + 3) / 15)
+            weight += 30
+        if math.isfinite(monthly180):
+            score += 15 * clamp_score((monthly180 + 2) / 12)
+            weight += 15
+        if math.isfinite(breadth30):
+            score += 10 * (breadth30 / 100)
+            weight += 10
+        momentum_score = round(score / weight * 100, 1) if weight > 0 else np.nan
+
+        if (
+            math.isfinite(monthly30)
+            and monthly30 > 2
+            and (
+                not math.isfinite(monthly90)
+                or monthly30 > max(2, monthly90 * 1.25)
+            )
+            and (
+                not math.isfinite(monthly180)
+                or monthly30 > max(2, monthly180 * 1.25)
+            )
+        ):
+            status = "ROTATING IN"
+        elif (
+            math.isfinite(med30) and med30 > 0
+            and math.isfinite(med90) and med90 > 0
+            and math.isfinite(med180) and med180 > 0
+        ):
+            status = "LEADING"
+        elif (
+            math.isfinite(med30) and med30 < 0
+            and (
+                (math.isfinite(med90) and med90 > 0)
+                or (math.isfinite(med180) and med180 > 0)
+            )
+        ):
+            status = "FADING"
+        elif (
+            math.isfinite(med30) and med30 <= 0
+            and (not math.isfinite(med90) or med90 <= 0)
+            and (not math.isfinite(med180) or med180 <= 0)
+        ):
+            status = "WEAK"
+        else:
+            status = "MIXED"
+
+        leaders_observed = sorted(set(grp["Coin"].astype(str)))
+        coverage = len(leaders_observed)
+        confidence = "HIGH" if coverage >= 3 else "MEDIUM" if coverage == 2 else "LOW"
+
+        records.append({
+            "Category": category,
+            "Rotation status": status,
+            "Category momentum": momentum_score,
+            "RS vs BTC 30d %": round(med30, 2) if math.isfinite(med30) else np.nan,
+            "RS vs BTC 90d %": round(med90, 2) if math.isfinite(med90) else np.nan,
+            "RS vs BTC 180d %": round(med180, 2) if math.isfinite(med180) else np.nan,
+            "30d leader breadth %": round(breadth30, 1) if math.isfinite(breadth30) else np.nan,
+            "Leaders observed": coverage,
+            "Confidence": confidence,
+            "Observed leaders": ", ".join(leaders_observed),
+        })
+
+    if not records:
+        return pd.DataFrame()
+
+    out = pd.DataFrame(records)
+    status_rank = {
+        "ROTATING IN": 0,
+        "LEADING": 1,
+        "MIXED": 2,
+        "FADING": 3,
+        "WEAK": 4,
+    }
+    out["_status_rank"] = out["Rotation status"].map(status_rank).fillna(9)
+    return out.sort_values(
+        ["_status_rank", "Category momentum"],
+        ascending=[True, False],
+    ).drop(columns=["_status_rank"])
+
+
 def scan_cell_style(value, column: str) -> str:
     """Traffic-light styling for the main scan's decision columns."""
     green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
@@ -744,7 +888,10 @@ def scan_cell_style(value, column: str) -> str:
         return green if number <= 0.95 else amber if number <= 1.10 else red
     if column == "Vol ratio":
         return green if number <= 0.90 else amber if number <= 1.15 else red
-    if column in ("RS vs BTC %", "RS vs BTC 96h %"):
+    if column in (
+        "RS vs BTC %", "RS vs BTC 96h %",
+        "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
+    ):
         return green if number > 0 else amber if number >= -2 else red
     if column == "R:R":
         return green if number >= 2 else amber if number >= 1 else red
@@ -891,6 +1038,28 @@ def score_setup(
     else:
         daily_component = 0.25
     daily_score = 5 * daily_component
+
+    coin_ret_30 = period_return_pct(dfd, 30)
+    coin_ret_90 = period_return_pct(dfd, 90)
+    coin_ret_180 = period_return_pct(dfd, 180)
+    btc_ret_30 = period_return_pct(btcd, 30) if btcd is not None else np.nan
+    btc_ret_90 = period_return_pct(btcd, 90) if btcd is not None else np.nan
+    btc_ret_180 = period_return_pct(btcd, 180) if btcd is not None else np.nan
+    rs_btc_30 = (
+        coin_ret_30 - btc_ret_30
+        if math.isfinite(coin_ret_30) and math.isfinite(btc_ret_30)
+        else np.nan
+    )
+    rs_btc_90 = (
+        coin_ret_90 - btc_ret_90
+        if math.isfinite(coin_ret_90) and math.isfinite(btc_ret_90)
+        else np.nan
+    )
+    rs_btc_180 = (
+        coin_ret_180 - btc_ret_180
+        if math.isfinite(coin_ret_180) and math.isfinite(btc_ret_180)
+        else np.nan
+    )
 
     # Separate potential-base signal for disciplined accumulation entries.
     # This does not reward averaging into an unconfirmed downtrend.
@@ -1148,6 +1317,12 @@ def score_setup(
         "volume_ratio": round(vol_ratio, 2),
         "rs_vs_btc_pct": round(rs12 * 100, 2),
         "rs_vs_btc_96h_pct": round(rs24 * 100, 2),
+        "return_30d_pct": round(float(coin_ret_30), 2) if math.isfinite(coin_ret_30) else np.nan,
+        "return_90d_pct": round(float(coin_ret_90), 2) if math.isfinite(coin_ret_90) else np.nan,
+        "return_180d_pct": round(float(coin_ret_180), 2) if math.isfinite(coin_ret_180) else np.nan,
+        "rs_vs_btc_30d_pct": round(float(rs_btc_30), 2) if math.isfinite(rs_btc_30) else np.nan,
+        "rs_vs_btc_90d_pct": round(float(rs_btc_90), 2) if math.isfinite(rs_btc_90) else np.nan,
+        "rs_vs_btc_180d_pct": round(float(rs_btc_180), 2) if math.isfinite(rs_btc_180) else np.nan,
         "risk_reward": round(rr, 2),
         "planned_entry": planned_entry,
         "downside_to_invalidation_pct": round(downside_to_invalidation_pct, 2),
@@ -1500,6 +1675,12 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Vol ratio": r["volume_ratio"],
                 "RS vs BTC %": r["rs_vs_btc_pct"],
                 "RS vs BTC 96h %": r.get("rs_vs_btc_96h_pct", np.nan),
+                "Return 30d %": r.get("return_30d_pct", np.nan),
+                "Return 90d %": r.get("return_90d_pct", np.nan),
+                "Return 180d %": r.get("return_180d_pct", np.nan),
+                "RS vs BTC 30d %": r.get("rs_vs_btc_30d_pct", np.nan),
+                "RS vs BTC 90d %": r.get("rs_vs_btc_90d_pct", np.nan),
+                "RS vs BTC 180d %": r.get("rs_vs_btc_180d_pct", np.nan),
                 "R:R": r["risk_reward"],
                 "Entry low": r["entry_low"],
                 "Entry high": r["entry_high"],
@@ -1976,6 +2157,42 @@ def live_scan():
     c4.metric("Best swing score", best_swing_score)
     c5.metric("Market trend (BTC)", current_market_trend)
 
+    st.subheader("Category rotation")
+    st.caption(
+        "Looks for category leadership and acceleration using CoinGecko top-3 category "
+        "leaders in the scanned universe. Relative performance is measured versus BTC "
+        "over approximately 30, 90 and 180 days. ROTATING IN aims to highlight a "
+        "category whose recent leadership is accelerating before it becomes an obvious "
+        "six-month winner."
+    )
+    category_df = category_rotation_table(df)
+    if category_df.empty:
+        st.info("Not enough category-leader performance data is available in this scan yet.")
+    else:
+        rotating = category_df[category_df["Rotation status"] == "ROTATING IN"]
+        leading = category_df[category_df["Rotation status"] == "LEADING"]
+        cr1, cr2, cr3 = st.columns(3)
+        cr1.metric("Rotating in", len(rotating))
+        cr2.metric("Leading categories", len(leading))
+        cr3.metric(
+            "Top category",
+            str(category_df.iloc[0]["Category"]) if not category_df.empty else "Unavailable",
+        )
+        st.dataframe(
+            category_df,
+            hide_index=True,
+            use_container_width=True,
+            column_config={
+                "Category momentum": st.column_config.ProgressColumn(
+                    "Category momentum", min_value=0, max_value=100, format="%.1f"
+                ),
+                "RS vs BTC 30d %": st.column_config.NumberColumn(format="%.2f%%"),
+                "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
+                "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
+                "30d leader breadth %": st.column_config.NumberColumn(format="%.1f%%"),
+            },
+        )
+
     swing_tab, accumulation_tab = st.tabs(["Swing trades", "Accumulation"])
 
     with swing_tab:
@@ -2025,7 +2242,8 @@ def live_scan():
                 )
         swing_cols = [
             "Coin", "Status", "Category leader", "Leader categories", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
-            "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %", "R:R",
+            "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
+            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
             "Invalidation", "First resistance target", "Sell target",
             "Stretch target", "Target upside %", "Target basis",
@@ -2047,7 +2265,8 @@ def live_scan():
             subset=["Tokenomics gate"],
         )
         for column in [
-            "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %", "R:R",
+            "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
+            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
         ]:
             styled_swing = styled_swing.map(
                 lambda value, column=column: scan_cell_style(value, column),
@@ -2069,6 +2288,9 @@ def live_scan():
                 "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
                 "RS vs BTC %": st.column_config.NumberColumn("RS vs BTC 48h %", format="%.2f%%"),
                 "RS vs BTC 96h %": st.column_config.NumberColumn(format="%.2f%%"),
+                "RS vs BTC 30d %": st.column_config.NumberColumn(format="%.2f%%"),
+                "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
+                "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
                 "R:R": st.column_config.NumberColumn(format="%.2f"),
                 "Price": st.column_config.NumberColumn(format="%.8g"),
                 "Entry low": st.column_config.NumberColumn(format="%.8g"),
@@ -2264,6 +2486,11 @@ if qa:
         rs1, rs2 = st.columns(2)
         rs1.metric("RS vs BTC — 48h", f"{qa_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
         rs2.metric("RS vs BTC — 96h", f"{qa_result.get('rs_vs_btc_96h_pct', np.nan):+.2f}%")
+
+        lrs1, lrs2, lrs3 = st.columns(3)
+        lrs1.metric("RS vs BTC — 30d", f"{qa_result.get('rs_vs_btc_30d_pct', np.nan):+.2f}%")
+        lrs2.metric("RS vs BTC — 90d", f"{qa_result.get('rs_vs_btc_90d_pct', np.nan):+.2f}%")
+        lrs3.metric("RS vs BTC — 180d", f"{qa_result.get('rs_vs_btc_180d_pct', np.nan):+.2f}%")
 
         tr1, tr2, tr3, tr4 = st.columns(4)
         tr1.metric("Coin trend", qa_result.get("coin_trend", "UNAVAILABLE"))
@@ -2545,6 +2772,12 @@ The score measures **technical setup quality, not probability of success or expe
 #### Trend regime — directional context
 
 Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+
+#### Category rotation — find the narrative before selecting the coin
+
+The scanner now builds a **Category Rotation** table from CoinGecko's current top-3 category leaders that are present in the scanned universe. It compares those leaders with BTC over roughly **30, 90 and 180 days**. **ROTATING IN** means recent category relative strength is accelerating versus its 3-month and 6-month pace; **LEADING** means the category is outperforming BTC across all three horizons; **FADING** means longer-term leadership remains but the latest 30-day relative strength has turned negative. Coverage/confidence shows how many of that category's leaders were actually observed in the current scan.
+
+This is intentionally used to answer **which category is attracting capital first**, before choosing the strongest coin inside that category.
 
 #### Category leadership — prefer leaders over copycats
 
