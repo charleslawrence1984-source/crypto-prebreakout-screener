@@ -2204,6 +2204,26 @@ def make_chart(
     fig.add_trace(go.Candlestick(
         x=d["timestamp"], open=d["open"], high=d["high"], low=d["low"], close=d["close"], name=timeframe_label
     ))
+    if timeframe_label in ("4h", "1d"):
+        channel_window = 80 if timeframe_label == "4h" else 90
+        ch = trend_channel(d, channel_window)
+        if ch.get("lower_series") and ch.get("upper_series"):
+            start = int(ch.get("start", 0))
+            channel_dates = d["timestamp"].iloc[start:]
+            fig.add_trace(go.Scatter(
+                x=channel_dates,
+                y=ch["lower_series"],
+                mode="lines",
+                name="Channel support",
+                line=dict(dash="dot"),
+            ))
+            fig.add_trace(go.Scatter(
+                x=channel_dates,
+                y=ch["upper_series"],
+                mode="lines",
+                name="Channel resistance",
+                line=dict(dash="dot"),
+            ))
     fig.add_hline(y=float(row["Breakout"]), line_dash="dash", annotation_text="Breakout / resistance")
     fig.add_hline(y=float(row["Invalidation"]), line_dash="dot", annotation_text="Invalidation")
     fig.add_hrect(
