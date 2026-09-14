@@ -1350,6 +1350,8 @@ def ascending_triangle_pattern(df4h: pd.DataFrame, window: int = 60) -> Dict:
         "triangle_score": score,
         "triangle_resistance": resistance,
         "triangle_support_now": support_now,
+        "triangle_support_start": support_start,
+        "triangle_window_bars": len(d),
         "triangle_touches": touches,
         "triangle_flatness_pct": round(flatness_pct, 2),
         "triangle_compression_pct": round(compression_pct, 1),
@@ -2413,6 +2415,42 @@ def make_chart(
     fig.add_trace(go.Candlestick(
         x=d["timestamp"], open=d["open"], high=d["high"], low=d["low"], close=d["close"], name=timeframe_label
     ))
+
+    if timeframe_label == "1d":
+        full = df.copy()
+        full["SMA50_chart"] = full["close"].rolling(50).mean()
+        full["SMA200_chart"] = full["close"].rolling(200).mean()
+        chart_ma = full.tail(max_bars)
+        fig.add_trace(go.Scatter(
+            x=chart_ma["timestamp"], y=chart_ma["SMA50_chart"],
+            mode="lines", name="SMA50",
+        ))
+        fig.add_trace(go.Scatter(
+            x=chart_ma["timestamp"], y=chart_ma["SMA200_chart"],
+            mode="lines", name="SMA200",
+        ))
+
+    if timeframe_label == "4h":
+        tri = ascending_triangle_pattern(d, 60)
+        if tri.get("triangle_label") != "NO TRIANGLE":
+            tri_bars = int(tri.get("triangle_window_bars", 0))
+            if tri_bars > 1:
+                tri_dates = d["timestamp"].iloc[-tri_bars:]
+                support_line = np.linspace(
+                    float(tri.get("triangle_support_start")),
+                    float(tri.get("triangle_support_now")),
+                    tri_bars,
+                )
+                fig.add_trace(go.Scatter(
+                    x=tri_dates, y=support_line, mode="lines",
+                    name="Triangle rising support", line=dict(dash="dash"),
+                ))
+                fig.add_hline(
+                    y=float(tri.get("triangle_resistance")),
+                    line_dash="dash",
+                    annotation_text="Triangle resistance",
+                )
+
     if timeframe_label in ("4h", "1d"):
         channel_window = 80 if timeframe_label == "4h" else 90
         ch = trend_channel(d, channel_window)
