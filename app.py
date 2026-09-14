@@ -1226,6 +1226,143 @@ def latest_completed_4h_candle_signal(df4h: pd.DataFrame) -> Dict:
     }
 
 
+def ascending_triangle_pattern(df4h: pd.DataFrame, window: int = 60) -> Dict:
+    if df4h is None or len(df4h) < 36:
+        return {
+            "triangle_label": "NO TRIANGLE",
+            "triangle_score": 0.0,
+            "triangle_resistance": np.nan,
+            "triangle_support_now": np.nan,
+            "triangle_touches": 0,
+            "triangle_flatness_pct": np.nan,
+            "triangle_compression_pct": np.nan,
+            "triangle_measured_target": np.nan,
+            "triangle_detail": "Insufficient 4h history",
+        }
+
+    d = df4h.tail(min(window, len(df4h))).copy()
+    for col in ("high", "low", "close", "volume"):
+        d[col] = pd.to_numeric(d[col], errors="coerce")
+    d = d.dropna(subset=["high", "low", "close", "volume"])
+    if len(d) < 36:
+        return {
+            "triangle_label": "NO TRIANGLE",
+            "triangle_score": 0.0,
+            "triangle_resistance": np.nan,
+            "triangle_support_now": np.nan,
+            "triangle_touches": 0,
+            "triangle_flatness_pct": np.nan,
+            "triangle_compression_pct": np.nan,
+            "triangle_measured_target": np.nan,
+            "triangle_detail": "Insufficient clean 4h history",
+        }
+
+    x = np.arange(len(d), dtype=float)
+    highs = d["high"].to_numpy(dtype=float)
+    lows = d["low"].to_numpy(dtype=float)
+    closes = d["close"].to_numpy(dtype=float)
+    price = float(closes[-1])
+
+    resistance = float(np.quantile(highs, 0.93))
+    top_mask = highs >= resistance * 0.985
+    top_x = x[top_mask]
+    top_y = highs[top_mask]
+    touches = int(top_mask.sum())
+
+    if touches >= 2:
+        top_slope, top_intercept = np.polyfit(top_x, top_y, 1)
+        top_start = top_intercept
+        top_end = top_intercept + top_slope * (len(d) - 1)
+        flatness_pct = abs(top_end - top_start) / max(resistance, 1e-12) * 100
+    else:
+        top_slope = 0.0
+        flatness_pct = 99.0
+
+    # Rising support is based on lower quantile points so one wick does not define the triangle.
+    low_cutoff = float(np.quantile(lows, 0.35))
+    low_mask = lows <= low_cutoff
+    low_x = x[low_mask]
+    low_y = lows[low_mask]
+    if len(low_x) >= 4:
+        support_slope, support_intercept = np.polyfit(low_x, low_y, 1)
+    else:
+        support_slope, support_intercept = np.polyfit(x, lows, 1)
+
+    support_start = float(support_intercept)
+    support_now = float(support_intercept + support_slope * (len(d) - 1))
+    start_gap = max(resistance - support_start, price * 0.001)
+    end_gap = max(resistance - support_now, price * 0.001)
+    compression_pct = (1 - end_gap / start_gap) * 100
+
+    support_rise_pct = (
+        (support_now / support_start - 1) * 100
+        if support_start > 0 else -99.0
+    )
+    distance_to_resistance_pct = (resistance - price) / price * 100
+
+    vol_recent = float(d["volume"].iloc[-10:].mean())
+    vol_early = float(d["volume"].iloc[: max(10, len(d)//3)].mean())
+    volume_ratio = vol_recent / vol_early if vol_early > 0 else 1.0
+
+    flat_component = clamp_score((2.5 - flatness_pct) / 2.5)
+    touch_component = clamp_score((touches - 1) / 3)
+    rising_low_component = clamp_score((support_rise_pct + 1.0) / 8.0)
+    compression_component = clamp_score(compression_pct / 45.0)
+    volume_component = clamp_score((1.20 - volume_ratio) / 0.55)
+    location_component = (
+        1.0 if 0.20 <= distance_to_resistance_pct <= 4.0
+        else 0.65 if 0 <= distance_to_resistance_pct <= 6.0
+        else 0.20
+    )
+
+    score = round(
+        25 * flat_component
+        + 20 * touch_component
+        + 20 * rising_low_component
+        + 15 * compression_component
+        + 10 * volume_component
+        + 10 * location_component,
+        1,
+    )
+
+    structural_ok = (
+        touches >= 2
+        and flatness_pct <= 3.0
+        and support_slope > 0
+        and compression_pct > 5
+        and price <= resistance * 1.01
+    )
+    if structural_ok and score >= 75:
+        label = "ASCENDING TRIANGLE — STRONG"
+    elif structural_ok and score >= 60:
+        label = "ASCENDING TRIANGLE — DEVELOPING"
+    elif score >= 45 and touches >= 2 and support_slope > 0:
+        label = "POSSIBLE ASCENDING TRIANGLE"
+    else:
+        label = "NO TRIANGLE"
+
+    base_low = float(np.quantile(lows[: max(12, len(lows)//3)], 0.20))
+    height = max(resistance - base_low, 0.0)
+    measured_target = resistance + height if structural_ok and height > 0 else np.nan
+
+    return {
+        "triangle_label": label,
+        "triangle_score": score,
+        "triangle_resistance": resistance,
+        "triangle_support_now": support_now,
+        "triangle_touches": touches,
+        "triangle_flatness_pct": round(flatness_pct, 2),
+        "triangle_compression_pct": round(compression_pct, 1),
+        "triangle_volume_ratio": round(volume_ratio, 2),
+        "triangle_measured_target": measured_target,
+        "triangle_detail": (
+            f"{touches} resistance touches · resistance flatness {flatness_pct:.2f}% · "
+            f"rising support {support_rise_pct:.1f}% · compression {compression_pct:.1f}% · "
+            f"recent/early volume {volume_ratio:.2f}x"
+        ),
+    }
+
+
 def scan_cell_style(value, column: str) -> str:
     """Traffic-light styling for the main scan's decision columns."""
     green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
