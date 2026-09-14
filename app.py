@@ -2529,6 +2529,24 @@ def make_chart(
                 )
 
     if timeframe_label in ("4h", "1d"):
+        bb_close = pd.to_numeric(d["close"], errors="coerce")
+        bb_mid = bb_close.rolling(20).mean()
+        bb_sd = bb_close.rolling(20).std()
+        bb_upper = bb_mid + 2 * bb_sd
+        bb_lower = bb_mid - 2 * bb_sd
+        fig.add_trace(go.Scatter(
+            x=d["timestamp"], y=bb_upper, mode="lines",
+            name="BB upper", line=dict(dash="dot"),
+        ))
+        fig.add_trace(go.Scatter(
+            x=d["timestamp"], y=bb_mid, mode="lines",
+            name="BB mid",
+        ))
+        fig.add_trace(go.Scatter(
+            x=d["timestamp"], y=bb_lower, mode="lines",
+            name="BB lower", line=dict(dash="dot"),
+        ))
+
         channel_window = 80 if timeframe_label == "4h" else 90
         ch = trend_channel(d, channel_window)
         if ch.get("lower_series") and ch.get("upper_series"):
@@ -3453,6 +3471,28 @@ if qa:
             if pd.notna(qa_result.get("price_vs_sma200_pct", np.nan)) else None,
         )
 
+        bb1, bb2, bb3, bb4 = st.columns(4)
+        bb1.metric("4h Bollinger", qa_result.get("bb_4h_regime", "UNAVAILABLE"))
+        bb2.metric(
+            "Band width",
+            f"{qa_result.get('bb_4h_width_pct', np.nan):.2f}%"
+            if pd.notna(qa_result.get("bb_4h_width_pct", np.nan)) else "Unavailable",
+        )
+        bb3.metric(
+            "Width percentile",
+            f"{qa_result.get('bb_4h_width_percentile', np.nan):.1f}%"
+            if pd.notna(qa_result.get("bb_4h_width_percentile", np.nan)) else "Unavailable",
+        )
+        bb4.metric(
+            "Price in bands",
+            f"{qa_result.get('bb_4h_position_pct', np.nan):.1f}%"
+            if pd.notna(qa_result.get("bb_4h_position_pct", np.nan)) else "Unavailable",
+        )
+        st.caption(
+            "Low Bollinger-width percentile = volatility compression/squeeze; "
+            "0% is the lower band and 100% is the upper band."
+        )
+
         ch1, ch2, ch3, ch4 = st.columns(4)
         ch1.metric("4h channel", qa_result.get("channel_4h_direction", "UNAVAILABLE"))
         ch2.metric("4h channel position", str(qa_result.get("channel_4h_position", "Unavailable")))
@@ -3878,6 +3918,10 @@ For an **altcoin** to become a BUY, its 48-hour return must be stronger than BTC
 #### Tokenomics gate — supply quality
 
 For altcoin BUY decisions, the scanner now requires **at least 25% of total supply (or max supply when total supply is unavailable) to be circulating**. Below 25% is treated as low float and remains WAIT; missing supply data is UNKNOWN and also remains WAIT rather than being assumed safe. The scanner also flags **FDV / market-cap ratios of 4x or more** as high-FDV/low-float risk. Detailed VC allocations and future insider unlock schedules require a specialist verified dataset and are shown as needing separate verification rather than guessed.
+
+#### Bollinger Bands — compression before expansion
+
+The crypto swing model now calculates **20-period Bollinger Bands with 2 standard deviations** on both 4h and daily data. The main pre-breakout signal is the **4h band-width percentile**: very low relative width is labelled **SQUEEZE**, normal compression is **NORMAL**, and a clear increase in band width is **EXPANDING**. Price position is shown from 0% at the lower band to 100% at the upper band. SQUEEZE is a ranking preference, not a hard BUY rule, because Bollinger compression overlaps with the ATR/range-compression logic already in the technical score.
 
 #### Trend channels — swing structure and location
 
