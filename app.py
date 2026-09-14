@@ -615,7 +615,7 @@ def scan_cell_style(value, column: str) -> str:
         return green if number <= 0.95 else amber if number <= 1.10 else red
     if column == "Vol ratio":
         return green if number <= 0.90 else amber if number <= 1.15 else red
-    if column == "RS vs BTC %":
+    if column in ("RS vs BTC %", "RS vs BTC 96h %"):
         return green if number > 0 else amber if number >= -2 else red
     if column == "R:R":
         return green if number >= 2 else amber if number >= 1 else red
@@ -1018,6 +1018,7 @@ def score_setup(
         "atr_ratio": round(atr_ratio, 2),
         "volume_ratio": round(vol_ratio, 2),
         "rs_vs_btc_pct": round(rs12 * 100, 2),
+        "rs_vs_btc_96h_pct": round(rs24 * 100, 2),
         "risk_reward": round(rr, 2),
         "planned_entry": planned_entry,
         "downside_to_invalidation_pct": round(downside_to_invalidation_pct, 2),
@@ -1348,6 +1349,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "ATR ratio": r["atr_ratio"],
                 "Vol ratio": r["volume_ratio"],
                 "RS vs BTC %": r["rs_vs_btc_pct"],
+                "RS vs BTC 96h %": r.get("rs_vs_btc_96h_pct", np.nan),
                 "R:R": r["risk_reward"],
                 "Entry low": r["entry_low"],
                 "Entry high": r["entry_high"],
@@ -1667,8 +1669,12 @@ def live_scan():
         (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
         & (df["Score"] >= cfg.score_threshold)
     ].copy().sort_values("Score", ascending=False)
-    tokenomics_qualified_setups = technical_swing_setups[
-        technical_swing_setups["Tokenomics gate"] == "PASS"
+    rs_qualified_setups = technical_swing_setups[
+        (technical_swing_setups["Coin"] == "BTC")
+        | (technical_swing_setups["RS vs BTC %"] > 0)
+    ].copy()
+    tokenomics_qualified_setups = rs_qualified_setups[
+        rs_qualified_setups["Tokenomics gate"] == "PASS"
     ].copy()
     macro_now = st.session_state.get("macro_liquidity") or {}
     macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
@@ -1694,6 +1700,16 @@ def live_scan():
             if row["Status"] == "BUY"
             else (
                 (
+                    "Technical setup qualifies, but the altcoin is not beating BTC over the "
+                    "48-hour relative-strength window. "
+                    if (
+                        row["Symbol"] in set(technical_swing_setups["Symbol"])
+                        and row["Coin"] != "BTC"
+                        and row["RS vs BTC %"] <= 0
+                    )
+                    else ""
+                )
+                + (
                     (
                         "Technical setup qualifies, but tokenomics need review: "
                         + (
@@ -1703,10 +1719,11 @@ def live_scan():
                         )
                     )
                     if (
-                        row["Symbol"] in set(technical_swing_setups["Symbol"])
+                        row["Symbol"] in set(rs_qualified_setups["Symbol"])
                         and row.get("Tokenomics gate") != "PASS"
                     )
                     else ""
+                )
                 )
                 + (
                     f"Technical setup qualifies, but macro liquidity is "
@@ -1794,15 +1811,22 @@ def live_scan():
         st.caption(
             f"All {len(df)} analysed coins are shown. BUY requires a trade score of "
             f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
-            "A technical qualifier is only promoted to BUY when circulating supply is at least "
-            "25% of total/max supply and the macro-liquidity regime is not deteriorating/contracting. "
+            "A technical qualifier is only promoted to BUY when an altcoin is beating BTC over "
+            "the 48h relative-strength window, circulating supply is at least 25% of total/max "
+            "supply, and the macro-liquidity regime is not deteriorating/contracting. "
             "Unknown tokenomics remain WAIT rather than passing by assumption. "
             "WAIT candidates remain visible with their reasons. "
             "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
-            tokenomics_blocked = len(technical_swing_setups) - len(tokenomics_qualified_setups)
-            if tokenomics_blocked > 0:
+            rs_blocked = len(technical_swing_setups) - len(rs_qualified_setups)
+            tokenomics_blocked = len(rs_qualified_setups) - len(tokenomics_qualified_setups)
+            if rs_blocked > 0:
+                st.info(
+                    f"{rs_blocked} technical setup(s) currently qualify technically but remain "
+                    "WAIT because the altcoin is not beating BTC over the 48h RS window."
+                )
+            elif tokenomics_blocked > 0:
                 st.info(
                     f"{tokenomics_blocked} technical setup(s) currently qualify technically "
                     "but remain WAIT because the 25% circulating-supply tokenomics gate "
@@ -1821,7 +1845,7 @@ def live_scan():
                 )
         swing_cols = [
             "Coin", "Status", "Coin trend", "Market trend", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
-            "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
+            "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
             "Invalidation", "First resistance target", "Sell target",
             "Stretch target", "Target upside %", "Target basis",
@@ -1843,7 +1867,7 @@ def live_scan():
             subset=["Tokenomics gate"],
         )
         for column in [
-            "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
+            "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %", "R:R",
         ]:
             styled_swing = styled_swing.map(
                 lambda value, column=column: scan_cell_style(value, column),
@@ -1863,7 +1887,8 @@ def live_scan():
                     "Trade score", min_value=0, max_value=100, format="%.1f"
                 ),
                 "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
-                "RS vs BTC %": st.column_config.NumberColumn(format="%.2f%%"),
+                "RS vs BTC %": st.column_config.NumberColumn("RS vs BTC 48h %", format="%.2f%%"),
+                "RS vs BTC 96h %": st.column_config.NumberColumn(format="%.2f%%"),
                 "R:R": st.column_config.NumberColumn(format="%.2f"),
                 "Price": st.column_config.NumberColumn(format="%.8g"),
                 "Entry low": st.column_config.NumberColumn(format="%.8g"),
@@ -1996,14 +2021,22 @@ if qa:
     else:
         macro_now = st.session_state.get("macro_liquidity") or {}
         tokenomics_gate = qa_result.get("tokenomics_gate", "UNKNOWN")
+        qa_is_btc = qa_symbol.split("/")[0].upper() == "BTC"
+        qa_rs_pass = qa_is_btc or qa_result.get("rs_vs_btc_pct", -999) > 0
         if (
             qa_result.get("eligible")
+            and qa_rs_pass
             and tokenomics_gate == "PASS"
             and macro_now.get("allows_new_swing_risk", True)
         ):
             st.success(
                 "TRADE QUALIFIES: technical pre-breakout rules pass, circulating supply "
                 "meets the 25% tokenomics rule, and macro liquidity allows new swing risk."
+            )
+        elif qa_result.get("eligible") and not qa_rs_pass:
+            st.warning(
+                "TECHNICAL QUALIFIER — RELATIVE-STRENGTH WAIT: the altcoin is not "
+                "currently beating BTC over the 48-hour window."
             )
         elif qa_result.get("eligible") and tokenomics_gate != "PASS":
             st.warning(
@@ -2038,6 +2071,10 @@ if qa:
         q2.metric("Price", fmt_price(qa_result["price"]))
         q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
         q4.metric("RSI", f"{qa_result['rsi']:.1f}")
+
+        rs1, rs2 = st.columns(2)
+        rs1.metric("RS vs BTC — 48h", f"{qa_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
+        rs2.metric("RS vs BTC — 96h", f"{qa_result.get('rs_vs_btc_96h_pct', np.nan):+.2f}%")
 
         tr1, tr2, tr3, tr4 = st.columns(4)
         tr1.metric("Coin trend", qa_result.get("coin_trend", "UNAVAILABLE"))
@@ -2303,6 +2340,10 @@ The score measures **technical setup quality, not probability of success or expe
 #### Trend regime — directional context
 
 Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+
+#### Relative strength gate — altcoin must beat Bitcoin
+
+For an **altcoin** to become a BUY, its 48-hour return must be stronger than BTC's over the same period (**RS vs BTC > 0%**). BTC itself is exempt. The 96-hour reading remains confirmation: positive on both windows is stronger; positive 48h with weaker 96h can indicate early rotation. A technically good altcoin that is not beating BTC remains WAIT.
 
 #### Tokenomics gate — supply quality
 
