@@ -291,14 +291,20 @@ def score_setup(
     # Use the nearest meaningful support across the 4h structure and daily trend
     # for entry timing, rather than anchoring solely to the current price.
     swing_low = float(x["low"].iloc[-24:].min())
-    support_candidates = [
-        float(x["ema20"].iloc[-1]),
-        float(x["ema50"].iloc[-1]),
-        daily_ema,
-        float(d["low"].iloc[-20:].quantile(0.35)),
-    ]
-    valid_supports = [level for level in support_candidates if 0 < level <= price]
-    entry_anchor = max(valid_supports) if valid_supports else price
+    support_candidates = {
+        "4h EMA20": float(x["ema20"].iloc[-1]),
+        "4h EMA50": float(x["ema50"].iloc[-1]),
+        "Daily EMA20": daily_ema,
+        "20-day support cluster": float(d["low"].iloc[-20:].quantile(0.35)),
+    }
+    valid_supports = {
+        label: level for label, level in support_candidates.items()
+        if 0 < level <= price
+    }
+    if valid_supports:
+        entry_basis, entry_anchor = max(valid_supports.items(), key=lambda item: item[1])
+    else:
+        entry_basis, entry_anchor = "Current price fallback", price
     entry_atr = float(x["atr"].iloc[-5:].mean())
     invalidation = min(swing_low, entry_anchor - 1.25 * entry_atr) * 0.995
     risk_pct = max((price - invalidation) / price * 100, 0.01)
@@ -312,6 +318,10 @@ def score_setup(
     weekly_primary = np.nan
     weekly_stretch = np.nan
     cycle_position_pct = np.nan
+    cycle_accumulation_low = np.nan
+    cycle_accumulation_high = np.nan
+    in_cycle_accumulation_zone = False
+    cycle_accumulation_basis = "Weekly history unavailable"
     target_basis = "4h measured move"
 
     if dfw is not None and len(dfw) >= 26:
@@ -323,6 +333,30 @@ def score_setup(
         cycle_low = float(weekly_lows.min())
         if cycle_high > cycle_low:
             cycle_position_pct = (price - cycle_low) / (cycle_high - cycle_low) * 100
+
+        local_lows = weekly_lows[
+            weekly_lows == weekly_lows.rolling(5, center=True, min_periods=3).min()
+        ]
+        weekly_supports = sorted(
+            float(level)
+            for level in local_lows.dropna()
+            if 0 < float(level) <= price
+        )
+        if weekly_supports:
+            weekly_support = weekly_supports[-1]
+            weekly_atr = float(atr(completed_w).iloc[-5:].mean())
+            cycle_accumulation_low = max(
+                weekly_support - 0.25 * weekly_atr,
+                weekly_support * 0.92,
+            )
+            cycle_accumulation_high = min(
+                weekly_support + 0.25 * weekly_atr,
+                weekly_support * 1.08,
+            )
+            in_cycle_accumulation_zone = (
+                cycle_accumulation_low <= price <= cycle_accumulation_high
+            )
+            cycle_accumulation_basis = "Nearest confirmed weekly swing-low support"
 
         local_peaks = weekly_highs[
             weekly_highs == weekly_highs.rolling(5, center=True, min_periods=3).max()
@@ -395,7 +429,12 @@ def score_setup(
         "stretch_target": stretch_target,
         "target_upside_pct": round(target_upside_pct, 2),
         "target_basis": target_basis,
+        "entry_basis": entry_basis,
         "cycle_position_pct": round(float(cycle_position_pct), 1) if math.isfinite(cycle_position_pct) else np.nan,
+        "cycle_accumulation_low": cycle_accumulation_low,
+        "cycle_accumulation_high": cycle_accumulation_high,
+        "in_cycle_accumulation_zone": bool(in_cycle_accumulation_zone),
+        "cycle_accumulation_basis": cycle_accumulation_basis,
         "bottom_score": bottom_score,
         "bottom_status": bottom_status,
         "accumulation_low": accumulation_low,
@@ -603,6 +642,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "R:R": r["risk_reward"],
                 "Entry low": r["entry_low"],
                 "Entry high": r["entry_high"],
+                "Entry basis": r["entry_basis"],
                 "Breakout": r["resistance"],
                 "Invalidation": r["invalidation"],
                 "Target +5%": r["target_1"],
@@ -617,6 +657,10 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Accumulation low": r["accumulation_low"],
                 "Accumulation high": r["accumulation_high"],
                 "In accumulation zone": r["in_accumulation_zone"],
+                "Cycle accumulation low": r["cycle_accumulation_low"],
+                "Cycle accumulation high": r["cycle_accumulation_high"],
+                "In cycle accumulation zone": r["in_cycle_accumulation_zone"],
+                "Cycle accumulation basis": r["cycle_accumulation_basis"],
                 "24h quote vol": r["quote_volume_24h"],
                 "_components": r["components"],
             }
@@ -645,6 +689,13 @@ def make_chart(
     max_bars: int = 180,
 ) -> go.Figure:
     d = df.tail(max_bars)
+    chart_low = float(d["low"].min())
+    chart_high = float(d["high"].max())
+
+    def level_is_visible(low: float, high: float) -> bool:
+        padding = max(chart_high - chart_low, chart_high * 0.05)
+        return high >= chart_low - padding * 0.35 and low <= chart_high + padding * 0.35
+
     fig = go.Figure()
     fig.add_trace(go.Candlestick(
         x=d["timestamp"], open=d["open"], high=d["high"], low=d["low"], close=d["close"], name=timeframe_label
@@ -653,17 +704,36 @@ def make_chart(
     fig.add_hline(y=float(row["Invalidation"]), line_dash="dot", annotation_text="Invalidation")
     fig.add_hrect(
         y0=float(row["Entry low"]), y1=float(row["Entry high"]),
-        opacity=0.12, line_width=0, fillcolor="#2ecc71", annotation_text="Entry zone",
+        opacity=0.12, line_width=0, fillcolor="#2ecc71", annotation_text="Pre-breakout entry zone",
     )
     if "Accumulation low" in row and "Accumulation high" in row:
-        fig.add_hrect(
-            y0=float(row["Accumulation low"]), y1=float(row["Accumulation high"]),
-            opacity=0.10, line_width=0, fillcolor="#3498db", annotation_text="Potential accumulation zone",
-        )
+        daily_zone_low = float(row["Accumulation low"])
+        daily_zone_high = float(row["Accumulation high"])
+        if level_is_visible(daily_zone_low, daily_zone_high):
+            fig.add_hrect(
+                y0=daily_zone_low, y1=daily_zone_high,
+                opacity=0.10, line_width=0, fillcolor="#3498db",
+                annotation_text="Daily base accumulation zone",
+            )
+    if (
+        timeframe_label == "1w"
+        and "Cycle accumulation low" in row
+        and "Cycle accumulation high" in row
+        and pd.notna(row["Cycle accumulation low"])
+        and pd.notna(row["Cycle accumulation high"])
+    ):
+        cycle_zone_low = float(row["Cycle accumulation low"])
+        cycle_zone_high = float(row["Cycle accumulation high"])
+        if level_is_visible(cycle_zone_low, cycle_zone_high):
+            fig.add_hrect(
+                y0=cycle_zone_low, y1=cycle_zone_high,
+                opacity=0.12, line_width=0, fillcolor="#8e44ad",
+                annotation_text="Weekly cycle accumulation zone",
+            )
     if "Sell target" in row:
         fig.add_hline(
             y=float(row["Sell target"]), line_dash="dashdot",
-            line_color="#f39c12", annotation_text="Sell target",
+            line_color="#f39c12", annotation_text="First take-profit target",
         )
     fig.update_layout(height=480, margin=dict(l=10, r=10, t=35, b=10), xaxis_rangeslider_visible=False)
     return fig
@@ -838,12 +908,12 @@ def live_scan():
             q3, q4 = st.columns(2)
             q3.metric("RSI", f"{q['RSI']:.1f}")
             q4.metric("R:R", f"{q['R:R']:.2f}:1")
-            st.write(f"**Entry:** {fmt_price(q['Entry low'])} – {fmt_price(q['Entry high'])}")
+            st.write(f"**Pre-breakout entry:** {fmt_price(q['Entry low'])} – {fmt_price(q['Entry high'])} ({q['Entry basis']})")
             st.write(f"**Breakout:** {fmt_price(q['Breakout'])}")
             st.write(f"**Invalidation:** {fmt_price(q['Invalidation'])}")
-            st.write(f"**Potential accumulation zone:** {fmt_price(q['Accumulation low'])} – {fmt_price(q['Accumulation high'])}")
+            st.write(f"**Daily base accumulation zone:** {fmt_price(q['Accumulation low'])} – {fmt_price(q['Accumulation high'])}")
             st.write(f"**Bottoming signal:** {q['Accumulation signal']} ({q['Accumulation score']:.1f}/100)")
-            st.write(f"**Sell target:** {fmt_price(q['Sell target'])} ({q['Target upside %']:.1f}% from current price)")
+            st.write(f"**First take-profit target:** {fmt_price(q['Sell target'])} ({q['Target upside %']:.1f}% from current price)")
             st.write(f"**Target basis:** {q['Target basis']}")
             if pd.notna(q["4Y cycle position %"]):
                 st.write(f"**Four-year cycle range position:** {q['4Y cycle position %']:.1f}%")
@@ -852,7 +922,8 @@ def live_scan():
         "Coin", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
         "Vol ratio", "RS vs BTC %", "R:R", "Accumulation signal", "Accumulation score",
         "Accumulation low", "Accumulation high", "In accumulation zone",
-        "Entry low", "Entry high", "Breakout", "Sell target", "Stretch target",
+        "Cycle accumulation low", "Cycle accumulation high", "In cycle accumulation zone",
+        "Entry low", "Entry high", "Entry basis", "Breakout", "Sell target", "Stretch target",
         "Target upside %", "Target basis", "4Y cycle position %", "Invalidation"
     ]
     st.dataframe(
@@ -872,7 +943,9 @@ def live_scan():
             "Accumulation score": st.column_config.ProgressColumn("Accumulation score", min_value=0, max_value=100, format="%.1f"),
             "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
             "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
-            "Sell target": st.column_config.NumberColumn(format="%.8g"),
+            "Cycle accumulation low": st.column_config.NumberColumn(format="%.8g"),
+            "Cycle accumulation high": st.column_config.NumberColumn(format="%.8g"),
+            "Sell target": st.column_config.NumberColumn("First take-profit target", format="%.8g"),
             "Stretch target": st.column_config.NumberColumn(format="%.8g"),
             "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
             "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
@@ -945,6 +1018,8 @@ if qa:
             "Accumulation low": qa_result["accumulation_low"],
             "Accumulation high": qa_result["accumulation_high"],
             "Sell target": qa_result["projected_target"],
+            "Cycle accumulation low": qa_result["cycle_accumulation_low"],
+            "Cycle accumulation high": qa_result["cycle_accumulation_high"],
         })
         qa_timeframes = {
             "4-hour — entry timing (30 days)": ("4h", "4h", 180),
@@ -970,7 +1045,7 @@ if qa:
             )
 
         l1, l2, l3, l4 = st.columns(4)
-        l1.metric("Entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}")
+        l1.metric("Pre-breakout entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}", qa_result["entry_basis"])
         l2.metric("Breakout level", fmt_price(qa_result["resistance"]))
         l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
         l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
@@ -978,17 +1053,29 @@ if qa:
         a1, a2, a3, a4 = st.columns(4)
         a1.metric("Bottoming signal", qa_result["bottom_status"], f"{qa_result['bottom_score']:.1f}/100")
         a2.metric(
-            "Potential accumulation zone",
+            "Daily base accumulation zone",
             f"{fmt_price(qa_result['accumulation_low'])} – {fmt_price(qa_result['accumulation_high'])}",
         )
-        a3.metric("Inside accumulation zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
+        a3.metric("Inside daily base zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
         a4.metric(
-            "Primary sell target",
+            "First take-profit target",
             fmt_price(qa_result["projected_target"]),
             f"{qa_result['target_upside_pct']:.1f}% from current price",
         )
         cycle_position = qa_result.get("cycle_position_pct", np.nan)
         cycle_text = f"{cycle_position:.1f}%" if pd.notna(cycle_position) else "Unavailable"
+        cycle_low = qa_result.get("cycle_accumulation_low", np.nan)
+        cycle_high = qa_result.get("cycle_accumulation_high", np.nan)
+        cycle_zone_text = (
+            f"{fmt_price(cycle_low)} – {fmt_price(cycle_high)}"
+            if pd.notna(cycle_low) and pd.notna(cycle_high)
+            else "Unavailable"
+        )
+        st.caption(
+            f"Weekly cycle accumulation zone: {cycle_zone_text} · "
+            f"Inside zone: {'Yes' if qa_result.get('in_cycle_accumulation_zone') else 'No'} · "
+            f"{qa_result.get('cycle_accumulation_basis', '')}"
+        )
         st.caption(
             f"Target basis: {qa_result['target_basis']} · "
             f"Stretch target: {fmt_price(qa_result['stretch_target'])} · "
@@ -1047,7 +1134,7 @@ if not scan_df.empty:
         )
 
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}")
+    m1.metric("Pre-breakout entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}", row["Entry basis"])
     m2.metric("Breakout level", fmt_price(row["Breakout"]))
     m3.metric("Invalidation", fmt_price(row["Invalidation"]))
     m4.metric("Risk / reward", f"{row['R:R']:.2f}:1")
@@ -1055,12 +1142,22 @@ if not scan_df.empty:
     a1, a2, a3, a4 = st.columns(4)
     a1.metric("Bottoming signal", row["Accumulation signal"], f"{row['Accumulation score']:.1f}/100")
     a2.metric(
-        "Potential accumulation zone",
+        "Daily base accumulation zone",
         f"{fmt_price(row['Accumulation low'])} – {fmt_price(row['Accumulation high'])}",
     )
-    a3.metric("Inside accumulation zone", "Yes" if row["In accumulation zone"] else "No")
-    a4.metric("Primary sell target", fmt_price(row["Sell target"]), f"{row['Target upside %']:.1f}% from current price")
+    a3.metric("Inside daily base zone", "Yes" if row["In accumulation zone"] else "No")
+    a4.metric("First take-profit target", fmt_price(row["Sell target"]), f"{row['Target upside %']:.1f}% from current price")
     cycle_text = f"{row['4Y cycle position %']:.1f}%" if pd.notna(row["4Y cycle position %"]) else "Unavailable"
+    cycle_zone_text = (
+        f"{fmt_price(row['Cycle accumulation low'])} – {fmt_price(row['Cycle accumulation high'])}"
+        if pd.notna(row["Cycle accumulation low"]) and pd.notna(row["Cycle accumulation high"])
+        else "Unavailable"
+    )
+    st.caption(
+        f"Weekly cycle accumulation zone: {cycle_zone_text} · "
+        f"Inside zone: {'Yes' if row['In cycle accumulation zone'] else 'No'} · "
+        f"{row['Cycle accumulation basis']}"
+    )
     st.caption(
         f"Target basis: {row['Target basis']} · "
         f"Stretch target: {fmt_price(row['Stretch target'])} · "
