@@ -1033,17 +1033,23 @@ def live_scan():
         st.warning("No coins currently meet either the pre-breakout trade rules or the accumulation-watch rules. Don't force a position.")
         return
 
-    flagged = df[
-        (
-            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
-            & (df["Score"] >= cfg.score_threshold)
-        )
-        | (df["Accumulation verdict"] == "ACCUMULATION READY")
-    ].copy()
-    current_flags = set(flagged["Symbol"].tolist())
+    swing_setups = df[
+        (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+        & (df["Score"] >= cfg.score_threshold)
+    ].copy().sort_values("Score", ascending=False)
+    accumulation_setups = df[
+        df["Accumulation verdict"] == "ACCUMULATION READY"
+    ].copy().sort_values("Accumulation score", ascending=False)
+
+    current_flags = set(swing_setups["Symbol"].tolist()) | set(
+        accumulation_setups["Symbol"].tolist()
+    )
     new_flags = current_flags - st.session_state.previous_flags
     if new_flags:
-        st.toast("New high-score setup: " + ", ".join(sorted(s.split('/')[0] for s in new_flags)))
+        st.toast(
+            "New actionable setup: "
+            + ", ".join(sorted(symbol.split("/")[0] for symbol in new_flags))
+        )
         if sound_alerts:
             sr = 16000
             t = np.linspace(0, 0.28, int(sr * 0.28), endpoint=False)
@@ -1051,99 +1057,116 @@ def live_scan():
             st.audio(tone, sample_rate=sr, autoplay=True)
     st.session_state.previous_flags = current_flags
 
+    best_swing_score = (
+        f"{swing_setups['Score'].max():.1f}/100"
+        if not swing_setups.empty
+        else "None"
+    )
     c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Candidates", len(df))
-    c2.metric(f"Flags ≥ {cfg.score_threshold}", len(flagged))
-    c3.metric("Best score", f"{df['Score'].max():.1f}/100")
-    c4.metric("Best setup", df.iloc[0]["Coin"])
+    c1.metric("Candidates analysed", len(df))
+    c2.metric(f"Swing BUYs ≥ {cfg.score_threshold}", len(swing_setups))
+    c3.metric("Accumulation setups", len(accumulation_setups))
+    c4.metric("Best swing score", best_swing_score)
 
-    shown = df[
-        (
-            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
-            & (df["Score"] >= cfg.score_threshold)
+    swing_tab, accumulation_tab = st.tabs(["Swing trades", "Accumulation"])
+
+    with swing_tab:
+        st.subheader("BUY — swing-trade setups")
+        st.caption(
+            f"Only technically qualified pre-breakout trades scoring "
+            f"{cfg.score_threshold}+ appear here. Green = preferred, amber = "
+            "borderline and red = weak or extended."
         )
-        | (df["Accumulation verdict"] == "ACCUMULATION READY")
-    ].copy()
-    if shown.empty:
-        st.warning(f"Candidates exist, but none are a {cfg.score_threshold}+ trade flag or accumulation-ready setup right now.")
-        shown = df.head(10)
+        if swing_setups.empty:
+            st.info(
+                f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
+                "BUY rules and 30% gross-target requirement."
+            )
+        else:
+            swing_cols = [
+                "Coin", "Score", "Price", "To resistance %", "Tests", "RSI",
+                "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
+                "Entry low", "Entry high", "Entry basis", "Breakout",
+                "Invalidation", "First resistance target", "Sell target",
+                "Stretch target", "Target upside %", "Target basis",
+            ]
+            styled_swing = swing_setups[swing_cols].style
+            for column in [
+                "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
+            ]:
+                styled_swing = styled_swing.map(
+                    lambda value, column=column: scan_cell_style(value, column),
+                    subset=[column],
+                )
+            st.dataframe(
+                styled_swing,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Score": st.column_config.ProgressColumn(
+                        "Trade score", min_value=0, max_value=100, format="%.1f"
+                    ),
+                    "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "RS vs BTC %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "R:R": st.column_config.NumberColumn(format="%.2f"),
+                    "Price": st.column_config.NumberColumn(format="%.8g"),
+                    "Entry low": st.column_config.NumberColumn(format="%.8g"),
+                    "Entry high": st.column_config.NumberColumn(format="%.8g"),
+                    "Breakout": st.column_config.NumberColumn(format="%.8g"),
+                    "Invalidation": st.column_config.NumberColumn(format="%.8g"),
+                    "First resistance target": st.column_config.NumberColumn(
+                        "First resistance / partial profit", format="%.8g"
+                    ),
+                    "Sell target": st.column_config.NumberColumn(
+                        "30% trade target", format="%.8g"
+                    ),
+                    "Stretch target": st.column_config.NumberColumn(format="%.8g"),
+                    "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
+                },
+            )
 
-    st.subheader("Quick view")
-    for _, q in shown.head(5).iterrows():
-        with st.expander(f"{q['Coin']} — {q['Score']:.1f}/100"):
-            q1, q2 = st.columns(2)
-            q1.metric("Price", fmt_price(q["Price"]))
-            q2.metric("To resistance", f"{q['To resistance %']:.2f}%")
-            q3, q4 = st.columns(2)
-            q3.metric("RSI", f"{q['RSI']:.1f}")
-            q4.metric("R:R", f"{q['R:R']:.2f}:1")
-            st.write(f"**Pre-breakout entry:** {fmt_price(q['Entry low'])} – {fmt_price(q['Entry high'])} ({q['Entry basis']})")
-            st.write(f"**Breakout:** {fmt_price(q['Breakout'])}")
-            st.write(f"**Invalidation:** {fmt_price(q['Invalidation'])}")
-            st.write(f"**Daily base accumulation zone:** {fmt_price(q['Accumulation low'])} – {fmt_price(q['Accumulation high'])}")
-            st.write(f"**Bottoming signal:** {q['Accumulation signal']} ({q['Accumulation score']:.1f}/100)")
-            st.write(f"**First resistance / partial-profit level:** {fmt_price(q['First resistance target'])}")
-            target_text = fmt_optional_price(q["Sell target"])
-            upside_text = f"{q['Target upside %']:.1f}%" if pd.notna(q["Target upside %"]) else "Below requirement"
-            st.write(f"**30% trade target:** {target_text} ({upside_text} from planned entry)")
-            st.write(f"**Target basis:** {q['Target basis']}")
-            st.write(f"**Long-term verdict:** {q['Accumulation verdict']}")
-            if pd.notna(q["4Y cycle position %"]):
-                st.write(f"**Four-year cycle range position:** {q['4Y cycle position %']:.1f}%")
-
-    display_cols = [
-        "Coin", "Opportunity", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
-        "Vol ratio", "RS vs BTC %", "R:R", "Accumulation signal", "Accumulation score",
-        "Accumulation low", "Accumulation high", "In accumulation zone",
-        "Cycle accumulation low", "Cycle accumulation high", "In cycle accumulation zone",
-        "Entry low", "Entry high", "Entry basis", "Breakout",
-        "First resistance target", "Sell target", "Stretch target",
-        "Target upside %", "Target basis", "4Y cycle position %",
-        "Accumulation verdict", "Previous cycle-high reference", "Invalidation"
-    ]
-    st.caption(
-        "Opportunity score: BUY uses pre-breakout trade quality; ACCUMULATE uses "
-        "bottoming quality. It is not a probability of success. "
-        "Cell colours: green = preferred, amber = borderline, red = weak or extended."
-    )
-    styled_scan = shown[display_cols].style
-    highlighted_columns = [
-        "Tests", "RSI", "ATR ratio", "Vol ratio",
-        "RS vs BTC %", "R:R", "Accumulation signal",
-    ]
-    for column in highlighted_columns:
-        styled_scan = styled_scan.map(
-            lambda value, column=column: scan_cell_style(value, column),
-            subset=[column],
+    with accumulation_tab:
+        st.subheader("ACCUMULATE — confirmed bottoming setups")
+        st.caption(
+            "Only coins with an accumulation score of at least 70 and price inside "
+            "a confirmed daily or weekly accumulation zone appear here."
         )
-
-    st.dataframe(
-        styled_scan,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "Score": st.column_config.ProgressColumn("Opportunity score", min_value=0, max_value=100, format="%.1f"),
-            "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
-            "RS vs BTC %": st.column_config.NumberColumn(format="%.2f%%"),
-            "R:R": st.column_config.NumberColumn(format="%.2f"),
-            "Price": st.column_config.NumberColumn(format="%.8g"),
-            "Entry low": st.column_config.NumberColumn(format="%.8g"),
-            "Entry high": st.column_config.NumberColumn(format="%.8g"),
-            "Breakout": st.column_config.NumberColumn(format="%.8g"),
-            "Invalidation": st.column_config.NumberColumn(format="%.8g"),
-            "Accumulation score": st.column_config.ProgressColumn("Accumulation score", min_value=0, max_value=100, format="%.1f"),
-            "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
-            "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
-            "Cycle accumulation low": st.column_config.NumberColumn(format="%.8g"),
-            "Cycle accumulation high": st.column_config.NumberColumn(format="%.8g"),
-            "First resistance target": st.column_config.NumberColumn("First resistance / partial profit", format="%.8g"),
-            "Sell target": st.column_config.NumberColumn("30% trade target", format="%.8g"),
-            "Previous cycle-high reference": st.column_config.NumberColumn(format="%.8g"),
-            "Stretch target": st.column_config.NumberColumn(format="%.8g"),
-            "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
-            "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
-        },
-    )
+        if accumulation_setups.empty:
+            st.info("No coin currently meets the confirmed accumulation rules.")
+        else:
+            accumulation_cols = [
+                "Coin", "Accumulation score", "Price", "Accumulation signal",
+                "Accumulation low", "Accumulation high", "In accumulation zone",
+                "Cycle accumulation low", "Cycle accumulation high",
+                "In cycle accumulation zone", "4Y cycle position %",
+                "Previous cycle-high reference", "Accumulation verdict",
+            ]
+            styled_accumulation = accumulation_setups[accumulation_cols].style.map(
+                lambda value: scan_cell_style(value, "Accumulation signal"),
+                subset=["Accumulation signal"],
+            )
+            st.dataframe(
+                styled_accumulation,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Accumulation score": st.column_config.ProgressColumn(
+                        "Accumulation score",
+                        min_value=0,
+                        max_value=100,
+                        format="%.1f",
+                    ),
+                    "Price": st.column_config.NumberColumn(format="%.8g"),
+                    "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
+                    "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
+                    "Cycle accumulation low": st.column_config.NumberColumn(format="%.8g"),
+                    "Cycle accumulation high": st.column_config.NumberColumn(format="%.8g"),
+                    "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "Previous cycle-high reference": st.column_config.NumberColumn(
+                        format="%.8g"
+                    ),
+                },
+            )
 
 live_scan()
 
