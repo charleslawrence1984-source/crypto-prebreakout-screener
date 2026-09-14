@@ -407,6 +407,36 @@ def exchange_listing_info(symbol: str, presence: Dict[str, set]) -> Dict:
 
 
 @st.cache_data(ttl=900, show_spinner=False)
+def coingecko_category_leaders() -> Dict[str, List[str]]:
+    """
+    Map CoinGecko coin IDs to category names where the coin is currently
+    one of CoinGecko's published top 3 coins for that category.
+    """
+    try:
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/coins/categories",
+            headers={"User-Agent": "pre-breakout-screener/1.0"},
+            timeout=20,
+        )
+        r.raise_for_status()
+        rows = r.json() or []
+    except Exception:
+        return {}
+
+    leaders: Dict[str, List[str]] = {}
+    for row in rows if isinstance(rows, list) else []:
+        category_name = str(row.get("name") or "").strip()
+        for coin_id in row.get("top_3_coins_id") or []:
+            cid = str(coin_id or "").strip()
+            if not cid:
+                continue
+            leaders.setdefault(cid, [])
+            if category_name and category_name not in leaders[cid]:
+                leaders[cid].append(category_name)
+    return leaders
+
+
+@st.cache_data(ttl=900, show_spinner=False)
 def coingecko_tokenomics_snapshot() -> Dict[str, Dict]:
     """
     Bulk CoinGecko tokenomics snapshot keyed by ticker symbol.
@@ -448,7 +478,11 @@ def coingecko_tokenomics_snapshot() -> Dict[str, Dict]:
     return by_symbol
 
 
-def tokenomics_from_market(symbol: str, snapshot: Dict[str, Dict]) -> Dict:
+def tokenomics_from_market(
+    symbol: str,
+    snapshot: Dict[str, Dict],
+    category_leaders: Optional[Dict[str, List[str]]] = None,
+) -> Dict:
     base = str(symbol).split("/")[0].upper()
     item = snapshot.get(base) or {}
 
@@ -490,6 +524,16 @@ def tokenomics_from_market(symbol: str, snapshot: Dict[str, Dict]) -> Dict:
     if not item:
         risks.append("Tokenomics data unverified")
 
+    coin_id = item.get("id") or ""
+    leader_categories = (
+        (category_leaders or {}).get(coin_id, [])
+        if coin_id else []
+    )
+    if category_leaders:
+        category_leader = "TOP 3" if leader_categories else "NOT TOP 3"
+    else:
+        category_leader = "UNKNOWN"
+
     return {
         "tokenomics_gate": gate,
         "circulating_supply": circulating,
@@ -501,7 +545,9 @@ def tokenomics_from_market(symbol: str, snapshot: Dict[str, Dict]) -> Dict:
         "fdv": fdv,
         "fdv_mcap": round(float(fdv_mcap), 2) if math.isfinite(fdv_mcap) else np.nan,
         "tokenomics_risks": "; ".join(risks),
-        "coingecko_id": item.get("id") or "",
+        "coingecko_id": coin_id,
+        "category_leader": category_leader,
+        "leader_categories": ", ".join(leader_categories),
         "vc_unlock_review": "UNVERIFIED — specialist unlock/allocation data required",
     }
 
@@ -1276,7 +1322,11 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
         btcd_df = ohlcv_to_df(btcd)
         result = score_setup(df4, dfd, btcdf, cfg, dfw=dfw, btcd=btcd_df)
         result["symbol"] = symbol
-        tokenomics = tokenomics_from_market(symbol, coingecko_tokenomics_snapshot())
+        tokenomics = tokenomics_from_market(
+            symbol,
+            coingecko_tokenomics_snapshot(),
+            coingecko_category_leaders(),
+        )
         result.update(tokenomics)
         cex_presence, cex_errors = await major_cex_presence()
         result.update(exchange_listing_info(symbol, cex_presence))
@@ -1289,8 +1339,9 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
 async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]], List[str]]:
     deadline = asyncio.get_running_loop().time() + 300
     universe, _, _ = await asyncio.wait_for(fetch_market_universe(cfg), timeout=45)
-    tokenomics_snapshot, cex_result = await asyncio.gather(
+    tokenomics_snapshot, category_leaders, cex_result = await asyncio.gather(
         asyncio.to_thread(coingecko_tokenomics_snapshot),
+        asyncio.to_thread(coingecko_category_leaders),
         major_cex_presence(),
     )
     cex_presence, cex_errors = cex_result
@@ -1351,7 +1402,9 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                         errors.append(f"{symbol}: {result.get('reason', 'Could not score market data')}")
                     result["symbol"] = symbol
                     result["quote_volume_24h"] = qv
-                    result.update(tokenomics_from_market(symbol, tokenomics_snapshot))
+                    result.update(
+                        tokenomics_from_market(symbol, tokenomics_snapshot, category_leaders)
+                    )
                     result.update(exchange_listing_info(symbol, cex_presence))
                     return result
                 except Exception as e:
@@ -1437,6 +1490,8 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Major CEX count": r.get("major_cex_count", 0),
                 "Major CEX quality": r.get("major_cex_quality", "DATA LIMITED"),
                 "Major CEX listings": r.get("major_cex_list", ""),
+                "Category leader": r.get("category_leader", "UNKNOWN"),
+                "Leader categories": r.get("leader_categories", ""),
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
@@ -1719,6 +1774,7 @@ def live_scan():
     required_scan_columns = {
         "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
         "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
+        "Category leader",
     }
     needs_candidate_refresh = (
         not st.session_state.scan_df.empty
@@ -1860,9 +1916,12 @@ def live_scan():
             )
         ), axis=1,
     )
+    swing_candidates["_leader_rank"] = swing_candidates["Category leader"].map(
+        {"TOP 3": 0, "NOT TOP 3": 1, "UNKNOWN": 2}
+    ).fillna(2)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "Score"], ascending=[True, False]
-    )
+        ["Status", "_leader_rank", "Score"], ascending=[True, True, False]
+    ).drop(columns=["_leader_rank"])
     accumulation_candidates = df.copy()
     accumulation_candidates["Status"] = np.where(
         accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
@@ -1965,7 +2024,7 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
+            "Coin", "Status", "Category leader", "Leader categories", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
             "Invalidation", "First resistance target", "Sell target",
@@ -2038,7 +2097,7 @@ def live_scan():
         if accumulation_setups.empty:
             st.info("No coin currently meets the confirmed accumulation rules.")
         accumulation_cols = [
-            "Coin", "Status", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
+            "Coin", "Status", "Category leader", "Leader categories", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
             "Accumulation low", "Accumulation high", "In accumulation zone",
             "Cycle accumulation low", "Cycle accumulation high",
             "In cycle accumulation zone", "4Y cycle position %",
@@ -2237,6 +2296,13 @@ if qa:
         st.caption(
             "Verified major CEX listings: "
             + (qa_result.get("major_cex_list") or "None / unavailable")
+        )
+
+        lead1, lead2 = st.columns(2)
+        lead1.metric("Category leadership", qa_result.get("category_leader", "UNKNOWN"))
+        lead2.metric(
+            "Leader categories",
+            qa_result.get("leader_categories") or "None identified",
         )
 
         qa_row = pd.Series({
@@ -2479,6 +2545,10 @@ The score measures **technical setup quality, not probability of success or expe
 #### Trend regime — directional context
 
 Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+
+#### Category leadership — prefer leaders over copycats
+
+CoinGecko publishes the current **top 3 coins in each crypto category**. The scanner now marks a coin **TOP 3** when its CoinGecko ID appears in that published leader set and shows the categories where it leads. Category leadership is a **strong ranking preference rather than a hard BUY gate** because categories overlap and leadership can rotate; TOP 3 candidates are ranked ahead of otherwise similar non-leaders.
 
 #### Major-exchange breadth — legitimacy / liquidity quality
 
