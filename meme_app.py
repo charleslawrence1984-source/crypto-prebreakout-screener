@@ -679,6 +679,9 @@ cfg = {
 st.subheader("Quick Analyse")
 st.caption("Search by coin name, ticker or contract address, then analyse the exact pair you want.")
 
+if "meme_quick_analysis" not in st.session_state:
+    st.session_state.meme_quick_analysis = None
+
 quick_query = st.text_input(
     "Coin name, ticker or contract address",
     placeholder="e.g. PEPE, BONK, DOGE or paste a contract address",
@@ -731,6 +734,18 @@ if quick_query.strip():
                 meta = {}
 
             result = score_candidate(selected_pair, meta, cfg)
+            st.session_state.meme_quick_analysis = {
+                "pair_address": result.get("Pair Address") or "",
+                "result": result,
+            }
+
+        saved_analysis = st.session_state.get("meme_quick_analysis")
+        selected_pair_address = str(selected_pair.get("pairAddress") or "")
+        if (
+            saved_analysis
+            and saved_analysis.get("pair_address") == selected_pair_address
+        ):
+            result = saved_analysis["result"]
 
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Decision", result["Decision"])
