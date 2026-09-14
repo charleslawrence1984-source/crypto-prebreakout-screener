@@ -3305,6 +3305,34 @@ if qa:
         )
         st.caption(qa_result.get("candle_detail", ""))
 
+        pt1, pt2, pt3, pt4 = st.columns(4)
+        pt1.metric("Pattern", qa_result.get("triangle_label", "NO TRIANGLE"))
+        pt2.metric("Triangle quality", f"{qa_result.get('triangle_score', 0):.1f}/100")
+        pt3.metric("Resistance touches", int(qa_result.get("triangle_touches", 0)))
+        pt4.metric(
+            "Triangle compression",
+            f"{qa_result.get('triangle_compression_pct', np.nan):.1f}%"
+            if pd.notna(qa_result.get("triangle_compression_pct", np.nan))
+            else "Unavailable",
+        )
+        if qa_result.get("triangle_detail"):
+            st.caption(qa_result.get("triangle_detail"))
+
+        ma1, ma2, ma3 = st.columns(3)
+        ma1.metric("Daily SMA regime", qa_result.get("sma_regime", "UNAVAILABLE"))
+        ma2.metric(
+            "SMA50",
+            fmt_optional_price(qa_result.get("sma50", np.nan), "Unavailable"),
+            f"{qa_result.get('price_vs_sma50_pct', np.nan):+.2f}%"
+            if pd.notna(qa_result.get("price_vs_sma50_pct", np.nan)) else None,
+        )
+        ma3.metric(
+            "SMA200",
+            fmt_optional_price(qa_result.get("sma200", np.nan), "Unavailable"),
+            f"{qa_result.get('price_vs_sma200_pct', np.nan):+.2f}%"
+            if pd.notna(qa_result.get("price_vs_sma200_pct", np.nan)) else None,
+        )
+
         ch1, ch2, ch3, ch4 = st.columns(4)
         ch1.metric("4h channel", qa_result.get("channel_4h_direction", "UNAVAILABLE"))
         ch2.metric("4h channel position", str(qa_result.get("channel_4h_position", "Unavailable")))
