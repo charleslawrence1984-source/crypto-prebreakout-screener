@@ -117,6 +117,20 @@ def _series_change_days(series: pd.Series, days: int) -> float:
     return (new / old - 1) * 100
 
 
+def _series_delta_days(series: pd.Series, days: int) -> float:
+    if series is None or series.empty:
+        return np.nan
+    s = series.dropna().sort_index()
+    if len(s) < 2:
+        return np.nan
+    latest_time = s.index[-1]
+    target = latest_time - pd.Timedelta(days=days)
+    prior = s.loc[:target]
+    if prior.empty:
+        return np.nan
+    return float(s.iloc[-1]) - float(prior.iloc[-1])
+
+
 def _score_growth(change: float, bands: List[Tuple[float, float]], fallback: float = 0.0) -> float:
     if not math.isfinite(change):
         return np.nan
@@ -131,12 +145,12 @@ def macro_liquidity_regime() -> Dict:
     factors = []
     errors = []
 
-    def add_factor(name, value, change, points, max_points, signal, source):
+    def add_factor(name, value, change_text, points, max_points, signal, source):
         if math.isfinite(points):
             factors.append({
                 "Factor": name,
                 "Latest": value,
-                "Change %": change,
+                "Trend change": change_text,
                 "Points": round(points, 1),
                 "Max": max_points,
                 "Signal": signal,
@@ -149,33 +163,47 @@ def macro_liquidity_regime() -> Dict:
         ch = _series_change_days(s, 100)
         pts = _score_growth(ch, [(1.5, 20), (0.5, 16), (0.0, 12), (-0.5, 8)], 3)
         add_factor(
-            "US M2", float(s.iloc[-1]), ch, pts, 20,
+            "US M2", float(s.iloc[-1]), f"{ch:+.2f}% / ~3m", pts, 20,
             "Expanding" if ch > 0 else "Contracting",
             "FRED M2SL",
         )
     except Exception as exc:
         errors.append("US M2: " + str(exc))
 
-    # Central-bank balance sheet direction.
+    # Fed net-liquidity proxy = Fed assets - Treasury General Account - ON RRP.
+    # WALCL and WTREGEN are millions of USD; RRPONTSYD is billions, so convert RRP.
     try:
-        s = _fred_series("WALCL")
-        ch = _series_change_days(s, 91)
+        fed_assets = _fred_series("WALCL")
+        tga = _fred_series("WTREGEN")
+        rrp = _fred_series("RRPONTSYD") * 1000.0
+        net_frame = pd.concat(
+            [
+                fed_assets.rename("fed"),
+                tga.rename("tga"),
+                rrp.rename("rrp"),
+            ],
+            axis=1,
+        ).sort_index().ffill().dropna()
+        net_liquidity = net_frame["fed"] - net_frame["tga"] - net_frame["rrp"]
+        ch = _series_change_days(net_liquidity, 91)
         pts = _score_growth(ch, [(2.0, 15), (0.5, 12), (0.0, 9), (-2.0, 5)], 2)
         add_factor(
-            "Fed balance sheet", float(s.iloc[-1]), ch, pts, 15,
+            "Fed net liquidity",
+            float(net_liquidity.iloc[-1]),
+            f"{ch:+.2f}% / 13w",
+            pts,
+            15,
             "Expanding" if ch > 0 else "Contracting",
-            "FRED WALCL",
+            "FRED WALCL - WTREGEN - RRPONTSYD",
         )
     except Exception as exc:
-        errors.append("Fed balance sheet: " + str(exc))
+        errors.append("Fed net liquidity: " + str(exc))
 
     # Financial conditions: negative NFCI is loose; falling NFCI is easing.
     try:
         s = _fred_series("NFCI")
         latest = float(s.iloc[-1])
-        ch = _series_change_days(s, 28)
-        prior = latest / (1 + ch / 100) if math.isfinite(ch) and (1 + ch / 100) != 0 else np.nan
-        delta = latest - prior if math.isfinite(prior) else np.nan
+        delta = _series_delta_days(s, 28)
         if latest <= -0.5 and (not math.isfinite(delta) or delta <= 0):
             pts = 20
         elif latest <= -0.25:
@@ -187,7 +215,9 @@ def macro_liquidity_regime() -> Dict:
         else:
             pts = 2
         add_factor(
-            "Financial conditions (NFCI)", latest, ch, pts, 20,
+            "Financial conditions (NFCI)", latest,
+            f"{delta:+.3f} index pts / 4w" if math.isfinite(delta) else "Unavailable",
+            pts, 20,
             "Loose / easing" if latest < 0 and (not math.isfinite(delta) or delta <= 0)
             else "Tightening / restrictive",
             "FRED NFCI",
@@ -199,9 +229,7 @@ def macro_liquidity_regime() -> Dict:
     try:
         s = _fred_series("DFII10")
         latest = float(s.iloc[-1])
-        ch = _series_change_days(s, 30)
-        prior = latest / (1 + ch / 100) if math.isfinite(ch) and (1 + ch / 100) != 0 else np.nan
-        delta = latest - prior if math.isfinite(prior) else np.nan
+        delta = _series_delta_days(s, 30)
         if math.isfinite(delta) and delta <= -0.25:
             pts = 15
         elif math.isfinite(delta) and delta < -0.05:
@@ -213,7 +241,9 @@ def macro_liquidity_regime() -> Dict:
         else:
             pts = 1
         add_factor(
-            "10Y real yield", latest, ch, pts, 15,
+            "10Y real yield", latest,
+            f"{delta * 100:+.0f} bps / 30d" if math.isfinite(delta) else "Unavailable",
+            pts, 15,
             "Falling / supportive" if math.isfinite(delta) and delta < 0 else "Rising / headwind",
             "FRED DFII10",
         )
@@ -236,7 +266,7 @@ def macro_liquidity_regime() -> Dict:
         else:
             pts = 1
         add_factor(
-            "Broad US dollar", latest, ch, pts, 15,
+            "Broad US dollar", latest, f"{ch:+.2f}% / 30d", pts, 15,
             "Weakening / supportive" if ch < 0 else "Strengthening / headwind",
             "FRED DTWEXBGS",
         )
@@ -250,7 +280,7 @@ def macro_liquidity_regime() -> Dict:
         ch = _series_change_days(s, 30)
         pts = _score_growth(ch, [(5.0, 15), (2.0, 13), (0.5, 10), (0.0, 8), (-2.0, 4)], 1)
         add_factor(
-            "Stablecoin supply", latest, ch, pts, 15,
+            "Stablecoin supply", latest, f"{ch:+.2f}% / 30d", pts, 15,
             "Expanding" if ch > 0 else "Contracting",
             "DefiLlama stablecoins",
         )
@@ -1311,7 +1341,7 @@ with st.expander("Macro liquidity factors"):
         st.caption("Unavailable inputs: " + " | ".join(macro["errors"]))
     st.caption(
         "Primary cycle framework: macro liquidity, not a fixed four-year crypto cycle. "
-        "The regime combines broad money, the Fed balance sheet, financial conditions, "
+        "The regime combines broad money, Fed net liquidity, financial conditions, "
         "real yields, the broad US dollar and stablecoin supply. Four-year price-range "
         "statistics remain reference-only."
     )
@@ -1490,10 +1520,17 @@ def live_scan():
             "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
-            st.info(
-                f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
-                "BUY rules and 30% gross-target requirement."
-            )
+            if not technical_swing_setups.empty and not macro_allows_new_risk:
+                st.info(
+                    f"{len(technical_swing_setups)} technical setup(s) currently meet the "
+                    f"{cfg.score_threshold}+ and 30% target rules, but macro liquidity is "
+                    f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
+                )
+            else:
+                st.info(
+                    f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
+                    "BUY rules and 30% gross-target requirement."
+                )
         swing_cols = [
             "Coin", "Status", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
@@ -1918,7 +1955,7 @@ ACCUMULATE also requires the score to reach 70 and price to be inside the confir
 
 #### Macro-liquidity regime — primary cycle framework
 
-The scanner no longer assumes crypto must follow a fixed four-year cycle. New swing BUY signals are overlaid with a macro-liquidity regime built from **US M2 (20 pts), Fed balance sheet direction (15), Chicago Fed financial conditions (20), 10Y real-yield direction (15), the broad US dollar (15), and stablecoin supply growth (15)**. Scores below 42 are treated as a macro headwind and technically qualified swings remain WAIT until liquidity improves.
+The scanner no longer assumes crypto must follow a fixed four-year cycle. New swing BUY signals are overlaid with a macro-liquidity regime built from **US M2 (20 pts), Fed net liquidity (15), Chicago Fed financial conditions (20), 10Y real-yield direction (15), the broad US dollar (15), and stablecoin supply growth (15)**. Scores below 42 are treated as a macro headwind and technically qualified swings remain WAIT until liquidity improves.
         """
     )
 
