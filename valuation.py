@@ -16,6 +16,48 @@ def _pct(v):
     return None if np.isnan(x) else x * 100
 
 
+def _exchange_country(symbol: str, info: dict) -> str:
+    s = str(symbol).upper()
+    suffix_map = {
+        ".L": "UK",
+        ".TO": "Canada",
+        ".V": "Canada",
+        ".MC": "Spain",
+        ".DE": "Germany",
+        ".PA": "France",
+        ".AS": "Netherlands",
+        ".MI": "Italy",
+        ".AX": "Australia",
+        ".T": "Japan",
+    }
+    for suffix, country in suffix_map.items():
+        if s.endswith(suffix):
+            return country
+
+    exchange = str(info.get("exchange") or info.get("fullExchangeName") or "").upper()
+    if any(x in exchange for x in ["NASDAQ", "NYSE", "AMEX", "ARCA", "NMS", "NGM", "NCM", "NYQ"]):
+        return "US"
+    if any(x in exchange for x in ["LSE", "LONDON"]):
+        return "UK"
+    if any(x in exchange for x in ["TSX", "TORONTO", "TSXV", "VENTURE"]):
+        return "Canada"
+    if any(x in exchange for x in ["BME", "MADRID"]):
+        return "Spain"
+    if "XETRA" in exchange or "FRANKFURT" in exchange:
+        return "Germany"
+    if "PARIS" in exchange:
+        return "France"
+    if "AMSTERDAM" in exchange:
+        return "Netherlands"
+    if "MILAN" in exchange:
+        return "Italy"
+    if "ASX" in exchange:
+        return "Australia"
+    if "TOKYO" in exchange:
+        return "Japan"
+    return "Other / Unknown"
+
+
 def fundamental_analysis(symbol: str, price: float):
     t = yf.Ticker(symbol)
     try:
@@ -174,4 +216,6 @@ def fundamental_analysis(symbol: str, price: float):
         "fcf_yield": fcf_yield,
         "sector": info.get("sector"),
         "industry": info.get("industry"),
+        "exchange": info.get("fullExchangeName") or info.get("exchange"),
+        "exchange_country": _exchange_country(symbol, info),
     }
