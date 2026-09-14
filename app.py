@@ -334,6 +334,190 @@ def macro_liquidity_regime() -> Dict:
     }
 
 
+def _streamlit_secret(name: str) -> str:
+    try:
+        return str(st.secrets.get(name, "") or "").strip()
+    except Exception:
+        return ""
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def coinmarketcal_upcoming_events(api_key: str) -> Tuple[List[Dict], str]:
+    if not api_key:
+        return [], "NOT CONNECTED"
+    try:
+        r = requests.get(
+            "https://api.coinmarketcal.com/v2/events",
+            params={"sortBy": "date_asc", "limit": 100},
+            headers={
+                "x-api-key": api_key,
+                "Accept": "application/json",
+                "User-Agent": "pre-breakout-screener/1.0",
+            },
+            timeout=20,
+        )
+        r.raise_for_status()
+        payload = r.json() or {}
+        data = payload.get("data") or []
+        return (data if isinstance(data, list) else []), "CONNECTED"
+    except Exception as exc:
+        return [], f"ERROR: {type(exc).__name__}"
+
+
+def catalyst_event_index(events: List[Dict]) -> Dict[str, List[Dict]]:
+    out: Dict[str, List[Dict]] = {}
+    for event in events or []:
+        for coin in event.get("coins") or []:
+            symbol = str(coin.get("symbol") or "").upper().strip()
+            if symbol:
+                out.setdefault(symbol, []).append(event)
+    return out
+
+
+def catalyst_info(symbol: str, event_index: Dict[str, List[Dict]], source_status: str) -> Dict:
+    base = str(symbol).split("/")[0].upper()
+    if source_status != "CONNECTED":
+        return {
+            "catalyst_status": source_status,
+            "catalyst_count": 0,
+            "next_catalyst": "",
+            "catalyst_date": "",
+            "catalyst_days": np.nan,
+            "catalyst_categories": "",
+            "catalyst_impact": "",
+        }
+
+    events = event_index.get(base, [])
+    if not events:
+        return {
+            "catalyst_status": "NONE FOUND",
+            "catalyst_count": 0,
+            "next_catalyst": "",
+            "catalyst_date": "",
+            "catalyst_days": np.nan,
+            "catalyst_categories": "",
+            "catalyst_impact": "",
+        }
+
+    def event_sort_key(event):
+        try:
+            return pd.Timestamp(event.get("date") or "")
+        except Exception:
+            return pd.Timestamp.max.tz_localize("UTC")
+
+    events = sorted(events, key=event_sort_key)
+    event = events[0]
+    title = str(event.get("title") or "")
+    displayed_date = str(event.get("displayedDate") or event.get("date") or "")
+    categories = event.get("categories") or []
+    impact = event.get("impact")
+
+    days = np.nan
+    try:
+        event_ts = pd.Timestamp(event.get("date"))
+        now_ts = pd.Timestamp.now(tz="UTC")
+        if event_ts.tzinfo is None:
+            event_ts = event_ts.tz_localize("UTC")
+        days = max(0.0, (event_ts - now_ts).total_seconds() / 86400)
+    except Exception:
+        pass
+
+    lower = title.lower()
+    risk_words = ("unlock", "vesting", "emission", "token release")
+    strong_words = (
+        "mainnet", "launch", "upgrade", "release", "integration",
+        "listing", "partnership", "staking", "testnet", "roadmap",
+        "governance", "proposal", "migration", "airdrop",
+    )
+
+    if any(word in lower for word in risk_words):
+        status = "RISK EVENT"
+    elif math.isfinite(days) and days <= 21 and any(word in lower for word in strong_words):
+        status = "HIGH CATALYST"
+    elif math.isfinite(days) and days <= 30:
+        status = "CATALYST WATCH"
+    else:
+        status = "UPCOMING"
+
+    return {
+        "catalyst_status": status,
+        "catalyst_count": len(events),
+        "next_catalyst": title,
+        "catalyst_date": displayed_date,
+        "catalyst_days": round(float(days), 1) if math.isfinite(days) else np.nan,
+        "catalyst_categories": ", ".join(str(x) for x in categories),
+        "catalyst_impact": str(impact) if impact is not None else "",
+    }
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def coingecko_project_links(coin_id: str) -> Dict:
+    if not coin_id:
+        return {}
+    try:
+        r = requests.get(
+            f"https://api.coingecko.com/api/v3/coins/{coin_id}",
+            params={
+                "localization": "false",
+                "tickers": "false",
+                "market_data": "false",
+                "community_data": "false",
+                "developer_data": "false",
+                "sparkline": "false",
+            },
+            headers={"User-Agent": "pre-breakout-screener/1.0"},
+            timeout=15,
+        )
+        r.raise_for_status()
+        payload = r.json() or {}
+        links = payload.get("links") or {}
+        repos = links.get("repos_url") or {}
+        homepages = [x for x in (links.get("homepage") or []) if x]
+        githubs = [x for x in (repos.get("github") or []) if x]
+        return {
+            "twitter": str(links.get("twitter_screen_name") or "").strip(),
+            "homepage": homepages[0] if homepages else "",
+            "github": githubs[0] if githubs else "",
+            "subreddit": str(links.get("subreddit_url") or "").strip(),
+            "official_forum": next((x for x in (links.get("official_forum_url") or []) if x), ""),
+        }
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def x_official_catalyst_posts(handle: str, bearer_token: str) -> Tuple[List[Dict], str]:
+    handle = str(handle or "").lstrip("@").strip()
+    if not handle:
+        return [], "NO OFFICIAL X HANDLE"
+    if not bearer_token:
+        return [], "X API NOT CONNECTED"
+
+    query = (
+        f"from:{handle} "
+        "(announce OR announcement OR launch OR mainnet OR testnet OR upgrade OR "
+        "integration OR partnership OR roadmap OR release OR listing OR \"coming soon\") "
+        "-is:retweet"
+    )
+    try:
+        r = requests.get(
+            "https://api.x.com/2/tweets/search/recent",
+            params={
+                "query": query,
+                "max_results": 10,
+                "tweet.fields": "created_at,public_metrics",
+            },
+            headers={"Authorization": f"Bearer {bearer_token}"},
+            timeout=20,
+        )
+        r.raise_for_status()
+        payload = r.json() or {}
+        posts = payload.get("data") or []
+        return (posts if isinstance(posts, list) else []), "CONNECTED"
+    except Exception as exc:
+        return [], f"ERROR: {type(exc).__name__}"
+
+
 async def major_cex_presence() -> Tuple[Dict[str, set], List[str]]:
     """
     Load active spot-market base symbols for the major CEX basket once per scan.
