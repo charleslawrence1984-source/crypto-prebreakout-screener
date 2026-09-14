@@ -980,6 +980,22 @@ with st.sidebar:
         help="Meme-coin rule: at least 10% circulating. Estimated from market cap / FDV when both are available.",
     )
     threshold = st.slider("Shortlist score", 50, 90, int(DEFAULTS["shortlist_score"]))
+    st.divider()
+    st.header("Trade plan assumptions")
+    planned_position_size = st.number_input(
+        "Planned position size ($)",
+        min_value=25.0,
+        value=250.0,
+        step=25.0,
+        help="Used to estimate liquidity-driven slippage and potential dollar profit/loss.",
+    )
+    round_trip_fees_pct = st.number_input(
+        "Estimated round-trip fees + gas (%)",
+        min_value=0.0,
+        value=1.0,
+        step=0.25,
+        help="Your estimated buy + sell trading costs, excluding the model's liquidity-based slippage estimate.",
+    )
 
 cfg = {
     "min_liquidity": float(min_liq),
