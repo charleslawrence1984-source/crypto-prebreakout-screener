@@ -146,7 +146,12 @@ src = src.replace(
                 "Channel resistance": tech_full.get("channel_resistance", np.nan),
                 "Channel R:R": tech_full.get("channel_rr", np.nan),
                 "Channel quality": tech_full.get("channel_quality", "LOW"),
-                "Channel state": tech_full.get("channel_state", "NONE"),''',
+                "Channel state": tech_full.get("channel_state", "NONE"),
+                "RSI": tech_full.get("rsi", np.nan),
+                "BB regime": tech_full.get("bb_regime", "UNAVAILABLE"),
+                "BB width %": tech_full.get("bb_width_pct", np.nan),
+                "BB width percentile": tech_full.get("bb_width_percentile", np.nan),
+                "BB position %": tech_full.get("bb_position_pct", np.nan),''',
 )
 
 src = src.replace(
@@ -183,6 +188,19 @@ src = src.replace(
                 t1.metric("Technical setup", f"{res['trade_score']:.0f}/100")
                 t2.metric("12-month fundamentals", f"{res['one_year_hold_score']:.0f}/100")
                 t3.metric("Potential ROI", f"{res['upside_pct']:.1f}%")
+                ta1, ta2, ta3, ta4 = st.columns(4)
+                ta1.metric("RSI", f"{res.get('rsi', np.nan):.1f}")
+                ta2.metric("Bollinger", res.get("bb_regime", "UNAVAILABLE"))
+                ta3.metric(
+                    "BB width percentile",
+                    f"{res.get('bb_width_percentile', np.nan):.1f}%"
+                    if pd.notna(res.get("bb_width_percentile", np.nan)) else "Unavailable",
+                )
+                ta4.metric(
+                    "Price in bands",
+                    f"{res.get('bb_position_pct', np.nan):.1f}%"
+                    if pd.notna(res.get("bb_position_pct", np.nan)) else "Unavailable",
+                )
                 st.write(f"**Entry:** {fmt_price(res['preferred_low'])}–{fmt_price(res['preferred_high'])}")
                 st.write(f"**Stronger entry:** {fmt_price(res['strong_low'])}–{fmt_price(res['strong_high'])}")
                 st.write(f"**Exit target:** {fmt_price(res['swing_target'])}")
@@ -463,7 +481,8 @@ src = src.replace(
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
                         trade_display = trade_ranked[[
                             "Ticker", "Exchange Country", "Sector", "Industry", "Trade Action",
-                            "Candle caution", "Last candle", "Channel", "Channel pos %",
+                            "Candle caution", "Last candle", "RSI", "BB regime", "BB width %",
+                            "BB width percentile", "BB position %", "Channel", "Channel pos %",
                             "Channel support", "Channel resistance", "Channel R:R", "Channel quality",
                             "Trade", "1Y Hold", "Valuation", "Valuation rating",
                             "Price", "Preferred entry", "Strong entry", "Target", "Invalidation",
@@ -507,8 +526,8 @@ src = src.replace(
                         )
                         investment_display = invest_ranked[[
                             "Ticker", "Exchange Country", "Sector", "Industry", "Investment Action",
-                            "Candle caution", "Last candle", "Channel", "Channel pos %", "Channel quality",
-                            "LT Compounder", "LT Entry",
+                            "Candle caution", "Last candle", "RSI", "BB regime", "BB width percentile",
+                            "Channel", "Channel pos %", "Channel quality", "LT Compounder", "LT Entry",
                             "Valuation", "Valuation rating", "Price", "Preferred entry",
                             "Strong entry", "Positive Exit Target", "Investment ROI %", "Invalidation", "1Y Hold"
                         ]].rename(columns={
@@ -569,6 +588,12 @@ src = src.replace(
 src = src.replace(
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.''',
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.
+
+**RSI and Bollinger Bands**
+- RSI is already part of the stock technical model and remains visible as momentum/entry context.
+- Bollinger Bands use a **20-day centre with 2 standard deviations**.
+- Very low band-width percentile is labelled **SQUEEZE**, while a clear increase in width is **EXPANDING**.
+- For TRADE setups, a squeeze is useful pre-breakout context; for INVESTMENT it is timing context only.
 
 **Daily trend channel**
 - The TRADE model now uses a reproducible **90-day regression channel** for swing structure.
