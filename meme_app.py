@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 st.set_page_config(page_title="Meme Coin Screener", page_icon="🐸", layout="wide")
@@ -358,6 +359,7 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
         "Gate Reasons": "; ".join(gates) if gates else "",
         "Risk Flags": "; ".join(risk_flags) if risk_flags else "",
         "DexScreener": pair.get("url") or "",
+        "Pair Address": pair.get("pairAddress") or "",
         "Token Address": base.get("address") or meta.get("tokenAddress") or "",
     }
 
@@ -466,6 +468,16 @@ if quick_query.strip():
                 f"**{result['Name']} ({result['Ticker']})** · "
                 f"Chain: **{result['Chain']}** · DEX: **{result['DEX']}** · Pair: **{result['Pair']}**"
             )
+
+            pair_address = result.get("Pair Address") or ""
+            if pair_address and result.get("Chain"):
+                chart_url = (
+                    f"https://dexscreener.com/{result['Chain']}/{pair_address}"
+                    "?embed=1&info=0&theme=dark&trades=0"
+                )
+                st.subheader("Price Chart")
+                components.iframe(chart_url, height=560, scrolling=False)
+                st.caption("Interactive DexScreener chart for the exact trading pair selected above.")
 
             detail_cols = [
                 "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
