@@ -4202,6 +4202,20 @@ For an **altcoin** to become a BUY, its 48-hour return must be stronger than BTC
 
 For altcoin BUY decisions, the scanner now requires **at least 25% of total supply (or max supply when total supply is unavailable) to be circulating**. Below 25% is treated as low float and remains WAIT; missing supply data is UNKNOWN and also remains WAIT rather than being assumed safe. The scanner also flags **FDV / market-cap ratios of 4x or more** as high-FDV/low-float risk. Detailed VC allocations and future insider unlock schedules require a specialist verified dataset and are shown as needing separate verification rather than guessed.
 
+#### Technical-analysis limitations — confidence, not certainty
+
+The screener deliberately separates **technical setup score** from **context confidence**. TA is backward-looking and can fail when news, token events, sentiment shocks or market-regime changes overwhelm the chart. The overlay therefore checks for conflicting signals across BTC relative strength, coin/market trend, SMA50/200 structure, channel direction, RSI, Bollinger state, candle rejection, ascending-triangle structure and macro liquidity.
+
+- **HIGH context confidence:** strong agreement with few/no material conflicts.
+- **MEDIUM:** usable setup, but one or more signals or event conditions deserve caution.
+- **LOW:** too many conflicts or a known high-risk event; an otherwise technical BUY remains WAIT.
+- **Known event risk:** explicit unlock/vesting-style risk events are treated as HIGH risk; near-dated catalysts are treated as event-volatility caution.
+- **News coverage:** the full scan can only see structured known events. Unexpected breaking news cannot be predicted.
+- **Sentiment coverage:** the full scan currently uses proxies rather than pretending it has complete market-wide social sentiment.
+- **Invalidation remains mandatory:** no confidence label removes the need to exit when the trade thesis fails.
+
+The confidence overlay is **not a win probability** and does not rewrite the raw technical score. Its purpose is to stop a good-looking chart from being treated as sufficient evidence on its own.
+
 #### Bollinger Bands — compression before expansion
 
 The crypto swing model now calculates **20-period Bollinger Bands with 2 standard deviations** on both 4h and daily data. The main pre-breakout signal is the **4h band-width percentile**: very low relative width is labelled **SQUEEZE**, normal compression is **NORMAL**, and a clear increase in band width is **EXPANDING**. Price position is shown from 0% at the lower band to 100% at the upper band. SQUEEZE is a ranking preference, not a hard BUY rule, because Bollinger compression overlaps with the ATR/range-compression logic already in the technical score.
