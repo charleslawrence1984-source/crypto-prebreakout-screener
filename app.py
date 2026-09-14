@@ -2985,6 +2985,9 @@ def live_scan():
         st.warning("No coins could be scored from the available market data. Check market-data warnings and try another scan.")
         return
 
+    macro_now = st.session_state.get("macro_liquidity") or {}
+    df = apply_ta_context_overlay(df, macro_now)
+
     technical_swing_setups = df[
         (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
         & (df["Score"] >= cfg.score_threshold)
@@ -3002,12 +3005,15 @@ def live_scan():
     candle_qualified_setups = cex_qualified_setups[
         cex_qualified_setups["Candle caution"] != "CAUTION"
     ].copy()
-    macro_now = st.session_state.get("macro_liquidity") or {}
+    context_qualified_setups = candle_qualified_setups[
+        (candle_qualified_setups["Context confidence"] != "LOW")
+        & (candle_qualified_setups["Known event risk"] != "HIGH")
+    ].copy()
     macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
     swing_setups = (
-        candle_qualified_setups
+        context_qualified_setups
         if macro_allows_new_risk
-        else candle_qualified_setups.iloc[0:0].copy()
+        else context_qualified_setups.iloc[0:0].copy()
     )
     accumulation_setups = df[
         df["Accumulation verdict"] == "ACCUMULATION READY"
@@ -3074,11 +3080,34 @@ def live_scan():
                     else ""
                 )
                 + (
+                    (
+                        f"TA limitation overlay is {row.get('Context confidence', 'MEDIUM')}: "
+                        + (
+                            f"known event risk is {row.get('Known event risk', 'UNKNOWN')}. "
+                            if row.get("Known event risk") == "HIGH"
+                            else ""
+                        )
+                        + (
+                            f"Conflicts: {row.get('Conflicts', '')}. "
+                            if row.get("Context confidence") == "LOW" and row.get("Conflicts")
+                            else ""
+                        )
+                    )
+                    if (
+                        row["Symbol"] in set(candle_qualified_setups["Symbol"])
+                        and (
+                            row.get("Context confidence") == "LOW"
+                            or row.get("Known event risk") == "HIGH"
+                        )
+                    )
+                    else ""
+                )
+                + (
                     f"Technical setup qualifies, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')} "
                     f"({macro_now.get('score', np.nan):.1f}/100). "
                     if (
-                        row["Symbol"] in set(candle_qualified_setups["Symbol"])
+                        row["Symbol"] in set(context_qualified_setups["Symbol"])
                         and not macro_allows_new_risk
                         and pd.notna(macro_now.get("score", np.nan))
                     )
@@ -3256,6 +3285,8 @@ def live_scan():
             "The first columns show the trade plan: current price, planned entry, stop/exit, "
             "price target, projected ROI and reward/risk. A red shooting star on the latest "
             "completed 4h candle forces an otherwise-qualified setup to WAIT for confirmation. "
+            "The TA limitation overlay also keeps LOW-confidence / high-event-risk setups at WAIT "
+            "when too many signals conflict or a known risk event could invalidate the chart. "
             "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
