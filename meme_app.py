@@ -589,6 +589,9 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
         "Community Strength": community_strength,
         "Community Score": round(community_score, 1),
         "Social Breadth": socials["Social count"],
+        "Narrative Strength": narrative["Narrative Strength"],
+        "Narrative Score": narrative["Narrative Score"],
+        "Narrative Signals": narrative["Narrative Signals"],
         "Community Takeover": bool(meta.get("community_takeover")),
         "Boost": active_boost if active_boost > 0 else meta.get("boost_total", 0),
         "Discovery": ", ".join(sorted(meta.get("sources", []))),
@@ -715,6 +718,12 @@ if quick_query.strip():
             cm3.metric("24h transactions", f"{result['24h Buys'] + result['24h Sells']:,}")
             cm4.metric("Social breadth", f"{result['Social Breadth']}/4")
 
+            nr1, nr2 = st.columns(2)
+            nr1.metric("Narrative strength", result["Narrative Strength"])
+            nr2.metric("Narrative score", f"{result['Narrative Score']:.1f}/20")
+            if result.get("Narrative Signals"):
+                st.caption("Narrative signals: " + result["Narrative Signals"])
+
             tk1, tk2, tk3, tk4 = st.columns(4)
             tk1.metric("Tokenomics gate", result["Tokenomics Gate"])
             circ_proxy = result.get("Circulating % (proxy)", np.nan)
@@ -767,8 +776,8 @@ if quick_query.strip():
                 "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
                 "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
                 "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
-                "Pair Age h", "Community Strength", "Community Score", "Social Breadth",
-                "Community Takeover", "Boost", "Gate Reasons", "Risk Flags",
+                "Pair Age h", "Narrative Strength", "Narrative Score", "Narrative Signals",
+                "Community Strength", "Community Score", "Social Breadth", "Community Takeover", "Boost", "Gate Reasons", "Risk Flags",
             ]
             st.dataframe(
                 pd.DataFrame([{k: result.get(k) for k in detail_cols}]),
@@ -829,8 +838,9 @@ if st.button("Run meme coin scan", type="primary", use_container_width=True):
         c4.metric("Tokens checked", len(df))
 
         main_cols = [
-            "Ticker", "Name", "Chain", "Decision", "Score", "Community Strength",
-            "Community Score", "Social Breadth", "Gate", "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
+            "Ticker", "Name", "Chain", "Decision", "Score",
+            "Narrative Strength", "Narrative Score",
+            "Community Strength", "Community Score", "Social Breadth", "Gate", "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
             "24h Volume", "Vol/Liq", "Buy %", "1h %", "6h %", "24h %",
             "Pair Age h", "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
         ]
@@ -839,7 +849,8 @@ if st.button("Run meme coin scan", type="primary", use_container_width=True):
 
         st.subheader("Community / discovery detail")
         community_cols = [
-            "Ticker", "Chain", "Community Strength", "Community Score", "Social Breadth",
+            "Ticker", "Chain", "Narrative Strength", "Narrative Score", "Narrative Signals",
+            "Community Strength", "Community Score", "Social Breadth",
             "X", "Telegram", "Discord", "Website", "Community Takeover", "Discovery", "Boost", "DEX", "Pair", "Token Address", "DexScreener",
         ]
         st.dataframe(df[community_cols], hide_index=True, use_container_width=True)
@@ -849,19 +860,22 @@ with st.expander("How v0.1 scores candidates"):
         """
 **100-point preliminary model**
 
-- **15 — Liquidity quality:** absolute liquidity plus liquidity relative to market cap.
-- **15 — Real activity:** 24h volume relative to liquidity plus transaction count.
-- **10 — Buy pressure:** constructive demand is rewarded; extremely one-sided flow is not.
-- **30 — Community strength:** social breadth, populated identity/profile, community takeover status and actual transaction participation. This is intentionally the largest single factor because meme-coin demand is highly attention/community driven.
-- **10 — Discovery/catalyst:** boosts, top-boost presence and appearing across multiple discovery feeds. Paid boosts are deliberately capped.
-- **15 — Momentum without chasing:** constructive 1h/6h/24h movement scores better than a vertical pump.
-- **5 — Pair maturity:** enough history to reduce immediate-launch noise.
+- **30 — Community strength:** social breadth plus actual transaction participation. This remains the largest single factor.
+- **20 — Narrative / cultural-icon potential:** simple branding, a clear story, community ownership and evidence the idea is spreading across multiple discovery surfaces.
+- **12 — Liquidity quality:** absolute liquidity plus liquidity relative to market cap.
+- **10 — Real activity:** 24h volume relative to liquidity plus transaction count.
+- **8 — Buy pressure:** constructive demand is rewarded; extremely one-sided flow is not.
+- **8 — Discovery/catalyst:** boosts and appearing across multiple discovery feeds. Paid boosts remain capped.
+- **8 — Momentum without chasing:** constructive 1h/6h/24h movement scores better than a vertical pump.
+- **4 — Pair maturity:** enough history to reduce immediate-launch noise.
 
 **Hard gates** currently cover liquidity, volume, market-cap range, minimum pair age, anti-chase limits and the meme tokenomics rule: **at least 10% circulating float**. Because very new DEX tokens often lack a verified supply feed, v0.1 estimates circulating float as **market cap ÷ FDV** when both values are available. If it cannot verify the ratio, tokenomics is UNKNOWN and the coin does not pass the hard gate. A **FDV/market-cap ratio of 10x or more** is flagged as high-FDV/low-float risk.
 
 Detailed VC allocations and insider unlock schedules are not guessed; they require a specialist verified tokenomics/unlock source and are marked for separate review.
 
 **Community warning:** visible socials alone do not prove a real community. Follower counts can be bought or botted, so the model deliberately rewards actual transaction participation and multi-channel presence rather than treating raw followers as truth.
+
+**Narrative warning:** the cultural score is heuristic. It can identify simple, recognisable, shareable meme structures, but it cannot know in advance which joke, mascot or cultural reference will genuinely go viral.
 
 This is **v0.1**, not the final meme-coin model. Narrative quality, holder distribution, LP lock/burn, contract/security checks, influencer quality, community growth/engagement and migration/relaunch rules are intentionally left as the next modular layers rather than being guessed.
 """
