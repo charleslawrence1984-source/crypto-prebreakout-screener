@@ -1468,8 +1468,26 @@ def scan_cell_style(value, column: str) -> str:
         "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     ):
         return green if number > 0 else amber if number >= -2 else red
-    if column == "R:R":
-        return green if number >= 2 else amber if number >= 1 else red
+    if column in ("R:R", "4h Channel R:R"):
+        return green if number >= 2 else amber if number >= 1.5 else red
+    if column == "Score":
+        return green if number >= 85 else amber if number >= 80 else red
+    if column == "Signal agreement %":
+        return green if number >= 80 else amber if number >= 65 else red
+    if column == "Conflict count":
+        return green if number == 0 else amber if number <= 2 else red
+    if column == "Non-TA confirmations":
+        return green if number >= 3 else amber if number >= 1 else red
+    if column == "Triangle score":
+        return green if number >= 75 else amber if number >= 55 else red
+    if column == "ROI %":
+        return green if number >= 30 else amber if number >= 15 else red
+    if column == "Macro score":
+        return green if number >= 58 else amber if number >= 42 else red
+    if column == "4h Channel pos %":
+        return green if 10 <= number <= 65 else amber if 0 <= number <= 85 else red
+    if column == "BB 4h width percentile":
+        return green if number <= 20 else amber if number <= 50 else red
     return ""
 
 
