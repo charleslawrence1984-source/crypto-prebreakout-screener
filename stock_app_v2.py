@@ -560,8 +560,23 @@ src = src.replace(
                             "Invalidation": "Negative Exit",
                             "Upside %": "Potential ROI %",
                         })
+                        trade_style_cols = [
+                            "Action", "Candle caution", "RSI", "BB regime",
+                            "Channel", "Channel R:R", "Channel quality",
+                            "Technical Score", "12M Fundamentals", "Valuation",
+                            "Potential ROI %", "R:R",
+                        ]
+                        trade_styled = trade_display.style
+                        for _col in trade_style_cols:
+                            if _col in trade_display.columns:
+                                trade_styled = trade_styled.map(
+                                    lambda value, col=_col: _traffic_style(value, col, "trade"),
+                                    subset=[_col],
+                                )
+
+                        st.caption("Colour key: 🟢 good / target met · 🟠 acceptable or borderline · 🔴 weak / target not met")
                         st.dataframe(
-                            trade_display,
+                            trade_styled,
                             hide_index=True,
                             use_container_width=True,
                         )
