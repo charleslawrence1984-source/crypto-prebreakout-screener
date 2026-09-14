@@ -731,10 +731,12 @@ def make_chart(
                 annotation_text="Weekly cycle accumulation zone",
             )
     if "Sell target" in row:
-        fig.add_hline(
-            y=float(row["Sell target"]), line_dash="dashdot",
-            line_color="#f39c12", annotation_text="First take-profit target",
-        )
+        take_profit = float(row["Sell target"])
+        if timeframe_label != "4h" or level_is_visible(take_profit, take_profit):
+            fig.add_hline(
+                y=take_profit, line_dash="dashdot",
+                line_color="#f39c12", annotation_text="First take-profit target",
+            )
     fig.update_layout(height=480, margin=dict(l=10, r=10, t=35, b=10), xaxis_rangeslider_visible=False)
     return fig
 
