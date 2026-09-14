@@ -1124,6 +1124,38 @@ def project_freshness(dfd: pd.DataFrame, dfw: Optional[pd.DataFrame] = None) -> 
     }
 
 
+def trend_channel(df: pd.DataFrame, window: int = 80, high_col: str = "high", low_col: str = "low", close_col: str = "close") -> Dict:
+    if df is None or len(df) < 30:
+        return {"direction":"UNAVAILABLE","position":np.nan,"support":np.nan,"resistance":np.nan,"width_pct":np.nan,"rr":np.nan,"touches":0,"quality":"LOW","state":"NONE","slope_pct":np.nan}
+    d = df.tail(min(window, len(df))).copy()
+    for col in (high_col, low_col, close_col):
+        d[col] = pd.to_numeric(d[col], errors="coerce")
+    d = d.dropna(subset=[high_col, low_col, close_col])
+    if len(d) < 30:
+        return {"direction":"UNAVAILABLE","position":np.nan,"support":np.nan,"resistance":np.nan,"width_pct":np.nan,"rr":np.nan,"touches":0,"quality":"LOW","state":"NONE","slope_pct":np.nan}
+    x = np.arange(len(d), dtype=float)
+    y = d[close_col].to_numpy(dtype=float)
+    slope, intercept = np.polyfit(x, y, 1)
+    centre = intercept + slope * x
+    upper = centre + float(np.quantile(d[high_col].to_numpy(dtype=float) - centre, 0.90))
+    lower = centre + float(np.quantile(d[low_col].to_numpy(dtype=float) - centre, 0.10))
+    support, resistance, price = float(lower[-1]), float(upper[-1]), float(y[-1])
+    width = resistance - support
+    if width <= 0 or price <= 0:
+        return {"direction":"UNAVAILABLE","position":np.nan,"support":support,"resistance":resistance,"width_pct":np.nan,"rr":np.nan,"touches":0,"quality":"LOW","state":"NONE","slope_pct":np.nan}
+    slope_pct = slope * max(len(d)-1,1) / max(float(centre[0]),1e-12) * 100
+    direction = "RISING" if slope_pct >= 3 else "FALLING" if slope_pct <= -3 else "SIDEWAYS"
+    position = (price - support) / width * 100
+    tol = max(width * 0.08, price * 0.005)
+    touches = int((np.abs(d[low_col].to_numpy(dtype=float)-lower) <= tol).sum() + (np.abs(d[high_col].to_numpy(dtype=float)-upper) <= tol).sum())
+    ss_res = float(np.sum((y-centre)**2)); ss_tot = float(np.sum((y-np.mean(y))**2))
+    r2 = max(0.0, 1-ss_res/ss_tot) if ss_tot > 0 else 0.0
+    quality = "HIGH" if touches >= 6 and r2 >= 0.45 else "MEDIUM" if touches >= 4 and r2 >= 0.20 else "LOW"
+    state = "ABOVE CHANNEL" if price > resistance + tol else "BELOW CHANNEL" if price < support - tol else "INSIDE"
+    downside = max(price-support, price*0.001); upside = max(resistance-price,0.0)
+    return {"direction":direction,"position":round(position,1),"support":support,"resistance":resistance,"width_pct":round(width/price*100,2),"rr":round(upside/downside,2),"touches":touches,"quality":quality,"state":state,"slope_pct":round(slope_pct,2),"lower_series":lower.tolist(),"upper_series":upper.tolist(),"start":len(df)-len(d)}
+
+
 def latest_completed_4h_candle_signal(df4h: pd.DataFrame) -> Dict:
     """
     Detect a bearish red shooting star on the latest completed 4h candle.
