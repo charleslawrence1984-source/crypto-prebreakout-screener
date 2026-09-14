@@ -515,9 +515,15 @@ run_every = f"{refresh_minutes}m"
 
 @st.fragment(run_every=run_every)
 def live_scan():
-    should_scan = manual_scan or st.session_state.scan_df.empty
-    # Fragment auto-reruns should scan every time; on initial full run it also scans.
-    should_scan = True
+    # A dropdown interaction reruns the full app. Only fetch fresh market data when
+    # the refresh interval has elapsed, so inspecting another coin cannot reset it.
+    now = datetime.now(timezone.utc)
+    last_scan = st.session_state.last_scan
+    scan_due = (
+        last_scan is None
+        or (now - last_scan).total_seconds() >= refresh_minutes * 60
+    )
+    should_scan = manual_scan or st.session_state.scan_df.empty or scan_due
     if should_scan:
         status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
         try:
@@ -606,11 +612,21 @@ st.subheader("Inspect a setup")
 scan_df = st.session_state.scan_df
 if not scan_df.empty:
     symbols = scan_df["Symbol"].tolist()
-    selected = st.selectbox("Candidate", symbols, format_func=lambda s: f"{s.split('/')[0]} — {float(scan_df.loc[scan_df['Symbol']==s, 'Score'].iloc[0]):.1f}/100")
+    # Keep the user's inspected coin selected across normal Streamlit reruns and
+    # scheduled rescans. Fall back to the new top result only if it leaves the scan.
+    if st.session_state.get("inspect_symbol") not in symbols:
+        st.session_state.inspect_symbol = symbols[0]
+    selected = st.selectbox(
+        "Candidate",
+        symbols,
+        key="inspect_symbol",
+        format_func=lambda s: f"{s.split('/')[0]} — {float(scan_df.loc[scan_df['Symbol']==s, 'Score'].iloc[0]):.1f}/100",
+    )
     row = scan_df.loc[scan_df["Symbol"] == selected].iloc[0]
     raw = st.session_state.raw_data.get(selected, {})
     if "4h" in raw:
-        st.plotly_chart(make_chart(raw["4h"], row), use_container_width=True)
+        chart_key = "inspect_chart_" + selected.replace("/", "_").replace(":", "_")
+        st.plotly_chart(make_chart(raw["4h"], row), use_container_width=True, key=chart_key)
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}")
