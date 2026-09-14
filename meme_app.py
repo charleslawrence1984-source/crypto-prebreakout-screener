@@ -520,7 +520,13 @@ def meme_trade_plan(df: pd.DataFrame) -> Dict:
 
     # If current price is already materially above the proposed entry, call it a wait.
     chase_pct = (price / entry_high - 1) * 100 if entry_high > 0 else 0
-    status = "WAIT FOR ENTRY" if chase_pct > 5 else "ENTRY AREA"
+    risk_pct = risk / entry_price * 100 if entry_price > 0 else np.nan
+    if math.isfinite(risk_pct) and risk_pct > 20:
+        status = "HIGH VOLATILITY — WAIT"
+    elif chase_pct > 5:
+        status = "WAIT FOR ENTRY"
+    else:
+        status = "ENTRY AREA"
 
     return {
         "Plan Status": status,
@@ -532,6 +538,7 @@ def meme_trade_plan(df: pd.DataFrame) -> Dict:
         "Potential ROI %": round(roi, 1),
         "R:R": round(rr, 2),
         "ATR %": round(atr14 / price * 100, 1),
+        "Risk to Stop %": round(risk_pct, 1) if math.isfinite(risk_pct) else np.nan,
         "Plan Basis": basis,
     }
 
@@ -583,6 +590,31 @@ def meme_price_chart(
         mode="lines",
         name="EMA50",
     ))
+    if trade_plan and trade_plan.get("Plan Status") != "UNAVAILABLE":
+        entry_low = safe(trade_plan.get("Entry Low"))
+        entry_high = safe(trade_plan.get("Entry High"))
+        negative_exit = safe(trade_plan.get("Negative Exit"))
+        positive_exit = safe(trade_plan.get("Positive Exit"))
+        if math.isfinite(entry_low) and math.isfinite(entry_high):
+            fig.add_hrect(
+                y0=entry_low,
+                y1=entry_high,
+                opacity=0.12,
+                line_width=0,
+                annotation_text="Entry zone",
+            )
+        if math.isfinite(negative_exit):
+            fig.add_hline(
+                y=negative_exit,
+                line_dash="dash",
+                annotation_text="Negative exit / stop",
+            )
+        if math.isfinite(positive_exit):
+            fig.add_hline(
+                y=positive_exit,
+                line_dash="dash",
+                annotation_text="Positive exit target",
+            )
     fig.update_layout(
         height=560,
         xaxis_rangeslider_visible=False,
