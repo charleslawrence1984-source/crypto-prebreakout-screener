@@ -108,6 +108,43 @@ def clamp_score(v: float, lo: float = 0, hi: float = 1) -> float:
     return float(max(lo, min(hi, v)))
 
 
+def scan_cell_style(value, column: str) -> str:
+    """Traffic-light styling for the main scan's decision columns."""
+    green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+    amber = "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+    red = "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+
+    if column == "Accumulation signal":
+        label = str(value)
+        if label == "Strong potential base":
+            return green
+        if label == "Base developing":
+            return amber
+        return red
+
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return ""
+
+    if not math.isfinite(number):
+        return ""
+
+    if column == "Tests":
+        return green if number >= 2 else amber if number >= 1 else red
+    if column == "RSI":
+        return green if 52 <= number <= 64 else amber if 48 <= number <= 69 else red
+    if column == "ATR ratio":
+        return green if number <= 0.95 else amber if number <= 1.10 else red
+    if column == "Vol ratio":
+        return green if number <= 0.90 else amber if number <= 1.15 else red
+    if column == "RS vs BTC %":
+        return green if number > 0 else amber if number >= -2 else red
+    if column == "R:R":
+        return green if number >= 2 else amber if number >= 1 else red
+    return ""
+
+
 def score_setup(
     df4h: pd.DataFrame,
     dfd: pd.DataFrame,
@@ -1066,10 +1103,22 @@ def live_scan():
     ]
     st.caption(
         "Opportunity score: BUY uses pre-breakout trade quality; ACCUMULATE uses "
-        "bottoming quality. It is not a probability of success."
+        "bottoming quality. It is not a probability of success. "
+        "Cell colours: green = preferred, amber = borderline, red = weak or extended."
     )
+    styled_scan = shown[display_cols].style
+    highlighted_columns = [
+        "Tests", "RSI", "ATR ratio", "Vol ratio",
+        "RS vs BTC %", "R:R", "Accumulation signal",
+    ]
+    for column in highlighted_columns:
+        styled_scan = styled_scan.map(
+            lambda value, column=column: scan_cell_style(value, column),
+            subset=[column],
+        )
+
     st.dataframe(
-        shown[display_cols],
+        styled_scan,
         use_container_width=True,
         hide_index=True,
         column_config={
