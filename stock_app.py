@@ -207,8 +207,10 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
 
     mid = close.rolling(20).mean()
     sd = close.rolling(20).std()
+    df["BBM"] = mid
     df["BBU"] = mid + 2*sd
     df["BBL"] = mid - 2*sd
+    df["BBW_PCT"] = (df["BBU"] - df["BBL"]) / df["BBM"].replace(0, np.nan) * 100
 
     price = safe(close.iloc[-1])
     sma20 = safe(df["SMA20"].iloc[-1])
@@ -216,6 +218,31 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     sma200 = safe(df["SMA200"].iloc[-1])
     rsi_now = safe(df["RSI"].iloc[-1])
     atr_now = safe(df["ATR"].iloc[-1])
+    bbu_now = safe(df["BBU"].iloc[-1])
+    bbl_now = safe(df["BBL"].iloc[-1])
+    bbm_now = safe(df["BBM"].iloc[-1])
+    bbw_now = safe(df["BBW_PCT"].iloc[-1])
+    bb_range = bbu_now - bbl_now if not np.isnan(bbu_now) and not np.isnan(bbl_now) else np.nan
+    bb_position = (
+        (price - bbl_now) / bb_range * 100
+        if math.isfinite(bb_range) and bb_range > 0 else np.nan
+    )
+    bbw_hist = df["BBW_PCT"].dropna().tail(120)
+    bbw_percentile = (
+        float((bbw_hist <= bbw_now).mean() * 100)
+        if len(bbw_hist) >= 20 and not np.isnan(bbw_now) else np.nan
+    )
+    bbw_recent = df["BBW_PCT"].dropna().tail(6)
+    bb_expanding = (
+        len(bbw_recent) >= 4
+        and bbw_recent.iloc[-1] > bbw_recent.iloc[0] * 1.12
+    )
+    if math.isfinite(bbw_percentile) and bbw_percentile <= 20:
+        bb_regime = "SQUEEZE"
+    elif bb_expanding:
+        bb_regime = "EXPANDING"
+    else:
+        bb_regime = "NORMAL"
     vol20 = safe(df["Volume"].iloc[-20:].mean(), 0)
     vol_now = safe(df["Volume"].iloc[-1], 0)
 
@@ -288,8 +315,8 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     elif 35 <= rsi_now <= 65:
         score += 5
 
-    bbu = safe(df["BBU"].iloc[-1])
-    bbl = safe(df["BBL"].iloc[-1])
+    bbu = bbu_now
+    bbl = bbl_now
     if not np.isnan(bbu) and not np.isnan(bbl) and bbl <= price <= bbu:
         score += 5
 
@@ -342,6 +369,14 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
         "rsi": round(rsi_now, 1),
         "sma20": sma20,
         "sma50": sma50,
+        "sma200": sma200,
+        "bb_mid": bbm_now,
+        "bb_upper": bbu_now,
+        "bb_lower": bbl_now,
+        "bb_width_pct": round(bbw_now, 2) if math.isfinite(bbw_now) else np.nan,
+        "bb_width_percentile": round(bbw_percentile, 1) if math.isfinite(bbw_percentile) else np.nan,
+        "bb_position_pct": round(float(bb_position), 1) if math.isfinite(bb_position) else np.nan,
+        "bb_regime": bb_regime,
         "support1": support1,
         "support2": support2,
         "preferred_low": preferred_low,
@@ -824,6 +859,10 @@ def technical_market_scan(symbols_tuple: tuple[str, ...], max_symbols: int, min_
                     "Channel R:R": tech.get("channel_rr", np.nan),
                     "Channel quality": tech.get("channel_quality", "LOW"),
                     "Channel state": tech.get("channel_state", "NONE"),
+                    "BB regime": tech.get("bb_regime", "UNAVAILABLE"),
+                    "BB width %": tech.get("bb_width_pct", np.nan),
+                    "BB width percentile": tech.get("bb_width_percentile", np.nan),
+                    "BB position %": tech.get("bb_position_pct", np.nan),
                 })
             except Exception:
                 continue
@@ -895,6 +934,19 @@ def chart(result: Dict) -> go.Figure:
             x=channel_dates, y=channel["upper_series"], mode="lines",
             name="Channel resistance", line=dict(dash="dot"),
         ))
+    bb_mid = d["Close"].rolling(20).mean()
+    bb_sd = d["Close"].rolling(20).std()
+    fig.add_trace(go.Scatter(
+        x=d.index, y=bb_mid + 2 * bb_sd, mode="lines", name="BB upper",
+        line=dict(dash="dot"),
+    ))
+    fig.add_trace(go.Scatter(
+        x=d.index, y=bb_mid, mode="lines", name="BB mid",
+    ))
+    fig.add_trace(go.Scatter(
+        x=d.index, y=bb_mid - 2 * bb_sd, mode="lines", name="BB lower",
+        line=dict(dash="dot"),
+    ))
     fig.add_trace(go.Scatter(x=d.index, y=d["SMA20"], mode="lines", name="SMA20"))
     fig.add_trace(go.Scatter(x=d.index, y=d["SMA50"], mode="lines", name="SMA50"))
     fig.add_hrect(
