@@ -139,7 +139,14 @@ src = src.replace(
                 "Exchange Country": fund.get("exchange_country") or "Other / Unknown",
                 "Candle caution": "CAUTION" if tech_full.get("candle_caution") else "CLEAR",
                 "Last candle": tech_full.get("candle_pattern", "UNAVAILABLE"),
-                "Candle detail": tech_full.get("candle_detail", ""),''',
+                "Candle detail": tech_full.get("candle_detail", ""),
+                "Channel": tech_full.get("channel_direction", "UNAVAILABLE"),
+                "Channel pos %": tech_full.get("channel_position_pct", np.nan),
+                "Channel support": tech_full.get("channel_support", np.nan),
+                "Channel resistance": tech_full.get("channel_resistance", np.nan),
+                "Channel R:R": tech_full.get("channel_rr", np.nan),
+                "Channel quality": tech_full.get("channel_quality", "LOW"),
+                "Channel state": tech_full.get("channel_state", "NONE"),''',
 )
 
 src = src.replace(
@@ -183,6 +190,12 @@ src = src.replace(
                 st.write(
                     f"**Latest completed daily candle:** {res.get('candle_pattern', 'UNAVAILABLE')} "
                     f"({'CAUTION' if res.get('candle_caution') else 'CLEAR'})"
+                )
+                st.write(
+                    f"**Daily channel:** {res.get('channel_direction', 'UNAVAILABLE')} · "
+                    f"Position: {res.get('channel_position_pct', np.nan):.1f}% · "
+                    f"Quality: {res.get('channel_quality', 'LOW')} · "
+                    f"Channel R:R: {res.get('channel_rr', np.nan):.2f}:1"
                 )
                 if res.get("candle_caution"):
                     st.warning(
@@ -405,9 +418,31 @@ src = src.replace(
                         ) else "WAIT",
                         axis=1,
                     )
+                    def _stock_channel_rank(r):
+                        direction = str(r.get("Channel", "UNAVAILABLE"))
+                        quality = str(r.get("Channel quality", "LOW"))
+                        pos = safe(r.get("Channel pos %"))
+                        state = str(r.get("Channel state", "NONE"))
+                        if direction == "RISING" and quality in ("HIGH", "MEDIUM") and not np.isnan(pos) and 10 <= pos <= 65:
+                            return 0
+                        if state == "ABOVE CHANNEL":
+                            return 1
+                        if direction == "SIDEWAYS" and quality in ("HIGH", "MEDIUM") and not np.isnan(pos) and pos <= 55:
+                            return 1
+                        if direction == "RISING" and not np.isnan(pos) and pos <= 85:
+                            return 2
+                        if direction == "SIDEWAYS":
+                            return 3
+                        if direction == "RISING":
+                            return 4
+                        if direction == "FALLING":
+                            return 5
+                        return 6
+
+                    trade_ranked["Channel rank"] = trade_ranked.apply(_stock_channel_rank, axis=1)
                     trade_ranked = trade_ranked.sort_values(
-                        ["Trade Action", "Trade", "Upside %"],
-                        ascending=[True, False, False],
+                        ["Trade Action", "Channel rank", "Trade", "Upside %"],
+                        ascending=[True, True, False, False],
                     )
 
                     invest_ranked = ranked.copy()
@@ -428,7 +463,9 @@ src = src.replace(
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
                         trade_display = trade_ranked[[
                             "Ticker", "Exchange Country", "Sector", "Industry", "Trade Action",
-                            "Candle caution", "Last candle", "Trade", "1Y Hold", "Valuation", "Valuation rating",
+                            "Candle caution", "Last candle", "Channel", "Channel pos %",
+                            "Channel support", "Channel resistance", "Channel R:R", "Channel quality",
+                            "Trade", "1Y Hold", "Valuation", "Valuation rating",
                             "Price", "Preferred entry", "Strong entry", "Target", "Invalidation",
                             "Upside %", "R:R"
                         ]].rename(columns={
@@ -470,7 +507,8 @@ src = src.replace(
                         )
                         investment_display = invest_ranked[[
                             "Ticker", "Exchange Country", "Sector", "Industry", "Investment Action",
-                            "Candle caution", "Last candle", "LT Compounder", "LT Entry",
+                            "Candle caution", "Last candle", "Channel", "Channel pos %", "Channel quality",
+                            "LT Compounder", "LT Entry",
                             "Valuation", "Valuation rating", "Price", "Preferred entry",
                             "Strong entry", "Positive Exit Target", "Investment ROI %", "Invalidation", "1Y Hold"
                         ]].rename(columns={
@@ -531,6 +569,13 @@ src = src.replace(
 src = src.replace(
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.''',
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.
+
+**Daily trend channel**
+- The TRADE model now uses a reproducible **90-day regression channel** for swing structure.
+- It reports rising/sideways/falling direction, support, resistance, price position, validation quality and channel R:R.
+- Reliable channel support can contribute to the preferred entry zone, while reliable channel resistance can cap an unrealistic target.
+- Better channel locations are ranked ahead of otherwise similar setups, but a breakout above the channel is not automatically rejected.
+- In the INVESTMENT lane, channel data is entry-timing context only.
 
 **Daily candle execution caution**
 - A **red shooting star on the latest completed daily candle** is treated as seller-rejection risk.
