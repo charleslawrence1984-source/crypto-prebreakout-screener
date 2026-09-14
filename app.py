@@ -671,7 +671,12 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                     dfd = ohlcv_to_df(rowsd)
                     dfw = pd.DataFrame()
                     result = score_setup(df4, dfd, btc4h, cfg)
-                    if result.get("shape_eligible"):
+                    needs_weekly_context = (
+                        result.get("shape_eligible")
+                        or result.get("bottom_score", 0) >= 50
+                        or result.get("in_accumulation_zone", False)
+                    )
+                    if needs_weekly_context:
                         try:
                             rowsw = await exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220)
                             dfw = ohlcv_to_df(rowsw)
@@ -687,15 +692,49 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                     return None
 
         results = await asyncio.gather(*(one(symbol, qv) for symbol, qv in universe))
-        rows = [r for r in results if r and r.get("eligible")]
+        rows = [
+            r for r in results
+            if r and (
+                r.get("eligible")
+                or r.get("accumulation_verdict") in {
+                    "ACCUMULATION READY",
+                    "WATCH FOR BASE CONFIRMATION",
+                }
+            )
+        ]
         if not rows:
             return pd.DataFrame(), raw, errors
 
-        rows.sort(key=lambda r: r.get("score", 0), reverse=True)
+        def opportunity_rank(result: Dict) -> Tuple[int, float]:
+            accumulation_ready = result.get("accumulation_verdict") == "ACCUMULATION READY"
+            if result.get("eligible") and accumulation_ready:
+                category = 4
+            elif result.get("eligible"):
+                category = 3
+            elif accumulation_ready:
+                category = 2
+            else:
+                category = 1
+            relevant_score = max(
+                result.get("score", 0) if result.get("eligible") else 0,
+                result.get("bottom_score", 0),
+            )
+            return category, relevant_score
+
+        rows.sort(key=opportunity_rank, reverse=True)
         display = pd.DataFrame([
             {
                 "Coin": r["symbol"].split("/")[0],
                 "Symbol": r["symbol"],
+                "Opportunity": (
+                    "TRADE + ACCUMULATION"
+                    if r["eligible"] and r["accumulation_verdict"] == "ACCUMULATION READY"
+                    else "PRE-BREAKOUT TRADE"
+                    if r["eligible"]
+                    else "LONG-TERM ACCUMULATION"
+                    if r["accumulation_verdict"] == "ACCUMULATION READY"
+                    else "ACCUMULATION WATCH"
+                ),
                 "Score": r["score"],
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
@@ -716,7 +755,11 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "First resistance basis": r["first_take_profit_basis"],
                 "Sell target": r["projected_target"],
                 "Stretch target": r["stretch_target"],
-                "Trade verdict": "QUALIFIES — 30%+ GROSS TARGET",
+                "Trade verdict": (
+                    "QUALIFIES — 30%+ GROSS TARGET"
+                    if r["eligible"]
+                    else "PASS — NO QUALIFYING 30% TARGET"
+                ),
                 "Target upside %": r["target_upside_pct"],
                 "Target basis": r["target_basis"],
                 "4Y cycle position %": r["cycle_position_pct"],
@@ -936,7 +979,7 @@ def live_scan():
             st.session_state.scan_df = df
             st.session_state.raw_data = raw
             st.session_state.last_scan = datetime.now(timezone.utc)
-            status.update(label=f"Scan complete — {len(df)} pre-breakout candidates found", state="complete")
+            status.update(label=f"Scan complete — {len(df)} trade or accumulation candidates found", state="complete")
             if errors:
                 with st.expander(f"{len(errors)} market-data warnings"):
                     st.code("\n".join(errors[:25]))
@@ -950,10 +993,16 @@ def live_scan():
         st.caption("Last scan: " + st.session_state.last_scan.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"))
 
     if df.empty:
-        st.warning("No coins currently meet the pre-breakout shape filter. That is a valid result — don't force a trade.")
+        st.warning("No coins currently meet either the pre-breakout trade rules or the accumulation-watch rules. Don't force a position.")
         return
 
-    flagged = df[df["Score"] >= cfg.score_threshold].copy()
+    flagged = df[
+        (
+            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+            & (df["Score"] >= cfg.score_threshold)
+        )
+        | (df["Accumulation verdict"] == "ACCUMULATION READY")
+    ].copy()
     current_flags = set(flagged["Symbol"].tolist())
     new_flags = current_flags - st.session_state.previous_flags
     if new_flags:
@@ -971,9 +1020,15 @@ def live_scan():
     c3.metric("Best score", f"{df['Score'].max():.1f}/100")
     c4.metric("Best setup", df.iloc[0]["Coin"])
 
-    shown = df[df["Score"] >= cfg.score_threshold].copy()
+    shown = df[
+        (
+            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+            & (df["Score"] >= cfg.score_threshold)
+        )
+        | (df["Accumulation verdict"] == "ACCUMULATION READY")
+    ].copy()
     if shown.empty:
-        st.warning(f"Candidates exist, but none score {cfg.score_threshold}+ right now.")
+        st.warning(f"Candidates exist, but none are a {cfg.score_threshold}+ trade flag or accumulation-ready setup right now.")
         shown = df.head(10)
 
     st.subheader("Quick view")
@@ -991,14 +1046,16 @@ def live_scan():
             st.write(f"**Daily base accumulation zone:** {fmt_price(q['Accumulation low'])} – {fmt_price(q['Accumulation high'])}")
             st.write(f"**Bottoming signal:** {q['Accumulation signal']} ({q['Accumulation score']:.1f}/100)")
             st.write(f"**First resistance / partial-profit level:** {fmt_price(q['First resistance target'])}")
-            st.write(f"**30% trade target:** {fmt_price(q['Sell target'])} ({q['Target upside %']:.1f}% from planned entry)")
+            target_text = fmt_optional_price(q["Sell target"])
+            upside_text = f"{q['Target upside %']:.1f}%" if pd.notna(q["Target upside %"]) else "Below requirement"
+            st.write(f"**30% trade target:** {target_text} ({upside_text} from planned entry)")
             st.write(f"**Target basis:** {q['Target basis']}")
             st.write(f"**Long-term verdict:** {q['Accumulation verdict']}")
             if pd.notna(q["4Y cycle position %"]):
                 st.write(f"**Four-year cycle range position:** {q['4Y cycle position %']:.1f}%")
 
     display_cols = [
-        "Coin", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
+        "Coin", "Opportunity", "Trade verdict", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
         "Vol ratio", "RS vs BTC %", "R:R", "Accumulation signal", "Accumulation score",
         "Accumulation low", "Accumulation high", "In accumulation zone",
         "Cycle accumulation low", "Cycle accumulation high", "In cycle accumulation zone",
@@ -1249,9 +1306,15 @@ if not scan_df.empty:
 
     t1, t2, t3, t4 = st.columns(4)
     t1.metric("First resistance / partial profit", fmt_price(row["First resistance target"]), row["First resistance basis"])
-    t2.metric("30% trade target", fmt_price(row["Sell target"]))
-    t3.metric("Gross upside from planned entry", f"{row['Target upside %']:.1f}%")
-    t4.metric("Reward / risk", f"{row['R:R']:.2f}:1")
+    t2.metric("30% trade target", fmt_optional_price(row["Sell target"]))
+    t3.metric(
+        "Gross upside from planned entry",
+        f"{row['Target upside %']:.1f}%" if pd.notna(row["Target upside %"]) else "Below requirement",
+    )
+    t4.metric(
+        "Reward / risk",
+        f"{row['R:R']:.2f}:1" if row["Trade verdict"].startswith("QUALIFIES") else "Not qualified",
+    )
 
     a1, a2, a3, a4 = st.columns(4)
     a1.metric("Bottoming signal", row["Accumulation signal"], f"{row['Accumulation score']:.1f}/100")
