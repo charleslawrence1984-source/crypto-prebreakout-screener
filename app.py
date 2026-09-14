@@ -712,8 +712,11 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Invalidation": r["invalidation"],
                 "Target +5%": r["target_1"],
                 "Target +10%": r["target_2"],
+                "First resistance target": r["first_take_profit"],
+                "First resistance basis": r["first_take_profit_basis"],
                 "Sell target": r["projected_target"],
                 "Stretch target": r["stretch_target"],
+                "Trade verdict": "QUALIFIES — 30%+ GROSS TARGET",
                 "Target upside %": r["target_upside_pct"],
                 "Target basis": r["target_basis"],
                 "4Y cycle position %": r["cycle_position_pct"],
@@ -726,6 +729,8 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Cycle accumulation high": r["cycle_accumulation_high"],
                 "In cycle accumulation zone": r["in_cycle_accumulation_zone"],
                 "Cycle accumulation basis": r["cycle_accumulation_basis"],
+                "Accumulation verdict": r["accumulation_verdict"],
+                "Previous cycle-high reference": r["previous_cycle_high_reference"],
                 "24h quote vol": r["quote_volume_24h"],
                 "_components": r["components"],
             }
@@ -745,6 +750,11 @@ def fmt_price(v: float) -> str:
     if v >= 0.01:
         return f"{v:.5f}"
     return f"{v:.8f}"
+
+
+def fmt_optional_price(v: float, fallback: str = "No qualifying target") -> str:
+    value = _safe_float(v, np.nan)
+    return fmt_price(value) if math.isfinite(value) else fallback
 
 
 def make_chart(
@@ -795,7 +805,7 @@ def make_chart(
                 opacity=0.12, line_width=0, fillcolor="#8e44ad",
                 annotation_text="Weekly cycle accumulation zone",
             )
-    if "Sell target" in row:
+    if "Sell target" in row and pd.notna(row["Sell target"]):
         take_profit = float(row["Sell target"])
         if timeframe_label != "4h" or level_is_visible(take_profit, take_profit):
             fig.add_hline(
@@ -980,8 +990,10 @@ def live_scan():
             st.write(f"**Invalidation:** {fmt_price(q['Invalidation'])}")
             st.write(f"**Daily base accumulation zone:** {fmt_price(q['Accumulation low'])} – {fmt_price(q['Accumulation high'])}")
             st.write(f"**Bottoming signal:** {q['Accumulation signal']} ({q['Accumulation score']:.1f}/100)")
-            st.write(f"**First take-profit target:** {fmt_price(q['Sell target'])} ({q['Target upside %']:.1f}% from current price)")
+            st.write(f"**First resistance / partial-profit level:** {fmt_price(q['First resistance target'])}")
+            st.write(f"**30% trade target:** {fmt_price(q['Sell target'])} ({q['Target upside %']:.1f}% from planned entry)")
             st.write(f"**Target basis:** {q['Target basis']}")
+            st.write(f"**Long-term verdict:** {q['Accumulation verdict']}")
             if pd.notna(q["4Y cycle position %"]):
                 st.write(f"**Four-year cycle range position:** {q['4Y cycle position %']:.1f}%")
 
@@ -990,8 +1002,10 @@ def live_scan():
         "Vol ratio", "RS vs BTC %", "R:R", "Accumulation signal", "Accumulation score",
         "Accumulation low", "Accumulation high", "In accumulation zone",
         "Cycle accumulation low", "Cycle accumulation high", "In cycle accumulation zone",
-        "Entry low", "Entry high", "Entry basis", "Breakout", "Sell target", "Stretch target",
-        "Target upside %", "Target basis", "4Y cycle position %", "Invalidation"
+        "Entry low", "Entry high", "Entry basis", "Breakout",
+        "First resistance target", "Sell target", "Stretch target", "Trade verdict",
+        "Target upside %", "Target basis", "4Y cycle position %",
+        "Accumulation verdict", "Previous cycle-high reference", "Invalidation"
     ]
     st.dataframe(
         shown[display_cols],
@@ -1012,7 +1026,9 @@ def live_scan():
             "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
             "Cycle accumulation low": st.column_config.NumberColumn(format="%.8g"),
             "Cycle accumulation high": st.column_config.NumberColumn(format="%.8g"),
-            "Sell target": st.column_config.NumberColumn("First take-profit target", format="%.8g"),
+            "First resistance target": st.column_config.NumberColumn("First resistance / partial profit", format="%.8g"),
+            "Sell target": st.column_config.NumberColumn("30% trade target", format="%.8g"),
+            "Previous cycle-high reference": st.column_config.NumberColumn(format="%.8g"),
             "Stretch target": st.column_config.NumberColumn(format="%.8g"),
             "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
             "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
@@ -1067,9 +1083,18 @@ if qa:
         st.warning(qa_result.get("reason", "Not enough market data to score this coin."))
     else:
         if qa_result.get("eligible"):
-            st.success("This coin currently matches the pre-breakout shape filter.")
+            st.success("TRADE QUALIFIES: pre-breakout shape plus a credible target offering at least 30% gross upside.")
+        elif qa_result.get("shape_eligible"):
+            st.warning("TRADE PASS: the pre-breakout shape is present, but no credible 30% gross-profit target was found.")
         else:
-            st.warning("Not currently a qualifying setup: " + qa_result.get("reason", "Shape filter not met"))
+            st.warning("TRADE PASS: " + qa_result.get("reason", "Shape filter not met"))
+        accumulation_verdict = qa_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
+        if accumulation_verdict == "ACCUMULATION READY":
+            st.success("LONG-TERM: " + accumulation_verdict)
+        elif accumulation_verdict.startswith("WATCH"):
+            st.info("LONG-TERM: " + accumulation_verdict)
+        else:
+            st.caption("LONG-TERM: " + accumulation_verdict)
 
         q1, q2, q3, q4 = st.columns(4)
         q1.metric("Score", f"{qa_result['score']:.1f}/100")
@@ -1117,6 +1142,23 @@ if qa:
         l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
         l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
 
+        t1, t2, t3, t4 = st.columns(4)
+        t1.metric(
+            "First resistance / partial profit",
+            fmt_price(qa_result["first_take_profit"]),
+            qa_result["first_take_profit_basis"],
+        )
+        t2.metric("30% trade target", fmt_optional_price(qa_result["projected_target"]))
+        gross_upside = qa_result.get("target_upside_pct", np.nan)
+        t3.metric(
+            "Gross upside from planned entry",
+            f"{gross_upside:.1f}%" if pd.notna(gross_upside) else "Below requirement",
+        )
+        t4.metric(
+            "Reward / risk",
+            f"{qa_result['risk_reward']:.2f}:1" if qa_result.get("trade_target_eligible") else "Not qualified",
+        )
+
         a1, a2, a3, a4 = st.columns(4)
         a1.metric("Bottoming signal", qa_result["bottom_status"], f"{qa_result['bottom_score']:.1f}/100")
         a2.metric(
@@ -1125,9 +1167,8 @@ if qa:
         )
         a3.metric("Inside daily base zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
         a4.metric(
-            "First take-profit target",
-            fmt_price(qa_result["projected_target"]),
-            f"{qa_result['target_upside_pct']:.1f}% from current price",
+            "Long-term accumulation verdict",
+            qa_result["accumulation_verdict"],
         )
         cycle_position = qa_result.get("cycle_position_pct", np.nan)
         cycle_text = f"{cycle_position:.1f}%" if pd.notna(cycle_position) else "Unavailable"
@@ -1144,8 +1185,8 @@ if qa:
             f"{qa_result.get('cycle_accumulation_basis', '')}"
         )
         st.caption(
-            f"Target basis: {qa_result['target_basis']} · "
-            f"Stretch target: {fmt_price(qa_result['stretch_target'])} · "
+            f"30% target basis: {qa_result['target_basis']} · "
+            f"Next qualifying target: {fmt_optional_price(qa_result['stretch_target'], 'Unavailable')} · "
             f"Position within available four-year range: {cycle_text}"
         )
 
@@ -1206,6 +1247,12 @@ if not scan_df.empty:
     m3.metric("Invalidation", fmt_price(row["Invalidation"]))
     m4.metric("Risk / reward", f"{row['R:R']:.2f}:1")
 
+    t1, t2, t3, t4 = st.columns(4)
+    t1.metric("First resistance / partial profit", fmt_price(row["First resistance target"]), row["First resistance basis"])
+    t2.metric("30% trade target", fmt_price(row["Sell target"]))
+    t3.metric("Gross upside from planned entry", f"{row['Target upside %']:.1f}%")
+    t4.metric("Reward / risk", f"{row['R:R']:.2f}:1")
+
     a1, a2, a3, a4 = st.columns(4)
     a1.metric("Bottoming signal", row["Accumulation signal"], f"{row['Accumulation score']:.1f}/100")
     a2.metric(
@@ -1213,7 +1260,7 @@ if not scan_df.empty:
         f"{fmt_price(row['Accumulation low'])} – {fmt_price(row['Accumulation high'])}",
     )
     a3.metric("Inside daily base zone", "Yes" if row["In accumulation zone"] else "No")
-    a4.metric("First take-profit target", fmt_price(row["Sell target"]), f"{row['Target upside %']:.1f}% from current price")
+    a4.metric("Long-term accumulation verdict", row["Accumulation verdict"])
     cycle_text = f"{row['4Y cycle position %']:.1f}%" if pd.notna(row["4Y cycle position %"]) else "Unavailable"
     cycle_zone_text = (
         f"{fmt_price(row['Cycle accumulation low'])} – {fmt_price(row['Cycle accumulation high'])}"
@@ -1226,8 +1273,8 @@ if not scan_df.empty:
         f"{row['Cycle accumulation basis']}"
     )
     st.caption(
-        f"Target basis: {row['Target basis']} · "
-        f"Stretch target: {fmt_price(row['Stretch target'])} · "
+        f"30% target basis: {row['Target basis']} · "
+        f"Next qualifying target: {fmt_optional_price(row['Stretch target'], 'Unavailable')} · "
         f"Position within available four-year range: {cycle_text}"
     )
 
@@ -1280,7 +1327,9 @@ with st.expander("How the 100-point score works"):
 - **5 pts — Daily context:** daily trend constructive without being extremely stretched.
 - **10 pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk.
 
-The screener also applies a **hard shape filter**: it must still be below resistance, close enough to matter, have at least two resistance tests, and not be materially overbought. Coins already above resistance are rejected rather than rewarded.
+The screener applies a **hard trade filter**: the coin must still be below resistance, close enough to matter, have at least two resistance tests, not be materially overbought, and have a technically credible target offering at least **30% gross upside from the planned entry**. The nearest weekly resistance is shown separately as a possible partial-profit level.
+
+The **long-term accumulation verdict is separate**. It uses daily bottoming evidence and the weekly cycle accumulation zone, so a coin can fail the breakout-trade test while remaining a longer-term accumulation watch.
         """
     )
 
