@@ -29,6 +29,17 @@ EXCHANGES = {
     "OKX": "okx",
 }
 
+MAJOR_CEX = {
+    "Binance": "binance",
+    "Coinbase": "coinbase",
+    "Kraken": "kraken",
+    "OKX": "okx",
+    "Bybit": "bybit",
+    "Gate": "gateio",
+    "Bitget": "bitget",
+    "MEXC": "mexc",
+}
+
 
 @dataclass
 class ScreenerConfig:
@@ -320,6 +331,78 @@ def macro_liquidity_regime() -> Dict:
         "allows_new_swing_risk": score >= 42,
         "factors": factors,
         "errors": errors,
+    }
+
+
+async def major_cex_presence() -> Tuple[Dict[str, set], List[str]]:
+    """
+    Load active spot-market base symbols for the major CEX basket once per scan.
+    Failures are tolerated so one unavailable venue cannot break the screener.
+    """
+    presence: Dict[str, set] = {}
+    errors: List[str] = []
+
+    async def load_one(name: str, exchange_id: str):
+        cls = getattr(ccxt, exchange_id)
+        exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+        try:
+            markets = await asyncio.wait_for(exchange.load_markets(), timeout=25)
+            bases = {
+                str(market.get("base") or "").upper()
+                for market in markets.values()
+                if market.get("spot") and market.get("active") is not False
+            }
+            return name, bases, ""
+        except Exception as exc:
+            return name, set(), f"{name}: {type(exc).__name__}: {exc}"
+        finally:
+            try:
+                await exchange.close()
+            except Exception:
+                pass
+
+    results = await asyncio.gather(
+        *(load_one(name, exchange_id) for name, exchange_id in MAJOR_CEX.items())
+    )
+    for name, bases, error in results:
+        if bases:
+            presence[name] = bases
+        if error:
+            errors.append(error)
+    return presence, errors
+
+
+def exchange_listing_info(symbol: str, presence: Dict[str, set]) -> Dict:
+    base = str(symbol).split("/")[0].upper()
+    listed_on = sorted(
+        name for name, bases in presence.items()
+        if base in bases
+    )
+    count = len(listed_on)
+    venues_checked = len(presence)
+
+    if venues_checked < 4:
+        gate = "UNKNOWN"
+        quality = "DATA LIMITED"
+    elif count >= 4:
+        gate = "PASS"
+        quality = "STRONG"
+    elif count == 3:
+        gate = "PASS"
+        quality = "GOOD"
+    elif count == 2:
+        gate = "PASS"
+        quality = "ACCEPTABLE"
+    else:
+        gate = "FAIL"
+        quality = "WEAK"
+
+    return {
+        "major_cex_count": count,
+        "major_cex_list": ", ".join(listed_on),
+        "major_cex_quality": quality,
+        "major_cex_gate": gate,
+        "major_cex_checked": venues_checked,
     }
 
 
@@ -1195,6 +1278,9 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
         result["symbol"] = symbol
         tokenomics = tokenomics_from_market(symbol, coingecko_tokenomics_snapshot())
         result.update(tokenomics)
+        cex_presence, cex_errors = await major_cex_presence()
+        result.update(exchange_listing_info(symbol, cex_presence))
+        result["major_cex_errors"] = cex_errors
         return symbol, result, {"4h": df4, "1d": dfd, "1w": dfw}
     finally:
         await exchange.close()
@@ -1203,10 +1289,14 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
 async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]], List[str]]:
     deadline = asyncio.get_running_loop().time() + 300
     universe, _, _ = await asyncio.wait_for(fetch_market_universe(cfg), timeout=45)
-    tokenomics_snapshot = await asyncio.to_thread(coingecko_tokenomics_snapshot)
+    tokenomics_snapshot, cex_result = await asyncio.gather(
+        asyncio.to_thread(coingecko_tokenomics_snapshot),
+        major_cex_presence(),
+    )
+    cex_presence, cex_errors = cex_result
     cls = getattr(ccxt, cfg.exchange_id)
     exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
-    errors: List[str] = []
+    errors: List[str] = list(cex_errors)
     raw: Dict[str, Dict[str, pd.DataFrame]] = {}
     sem = asyncio.Semaphore(cfg.concurrency)
 
@@ -1262,6 +1352,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                     result["symbol"] = symbol
                     result["quote_volume_24h"] = qv
                     result.update(tokenomics_from_market(symbol, tokenomics_snapshot))
+                    result.update(exchange_listing_info(symbol, cex_presence))
                     return result
                 except Exception as e:
                     errors.append(f"{symbol}: {type(e).__name__}: {e}")
@@ -1342,6 +1433,10 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "FDV / MCap": r.get("fdv_mcap", np.nan),
                 "Tokenomics risks": r.get("tokenomics_risks", ""),
                 "VC / unlock review": r.get("vc_unlock_review", "UNVERIFIED"),
+                "Major CEX gate": r.get("major_cex_gate", "UNKNOWN"),
+                "Major CEX count": r.get("major_cex_count", 0),
+                "Major CEX quality": r.get("major_cex_quality", "DATA LIMITED"),
+                "Major CEX listings": r.get("major_cex_list", ""),
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
@@ -1623,7 +1718,7 @@ def live_scan():
     )
     required_scan_columns = {
         "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
-        "Circulating %", "RS vs BTC 96h %",
+        "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
     }
     needs_candidate_refresh = (
         not st.session_state.scan_df.empty
@@ -1680,12 +1775,15 @@ def live_scan():
     tokenomics_qualified_setups = rs_qualified_setups[
         rs_qualified_setups["Tokenomics gate"] == "PASS"
     ].copy()
+    cex_qualified_setups = tokenomics_qualified_setups[
+        tokenomics_qualified_setups["Major CEX gate"] == "PASS"
+    ].copy()
     macro_now = st.session_state.get("macro_liquidity") or {}
     macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
     swing_setups = (
-        tokenomics_qualified_setups
+        cex_qualified_setups
         if macro_allows_new_risk
-        else tokenomics_qualified_setups.iloc[0:0].copy()
+        else cex_qualified_setups.iloc[0:0].copy()
     )
     accumulation_setups = df[
         df["Accumulation verdict"] == "ACCUMULATION READY"
@@ -1729,11 +1827,23 @@ def live_scan():
                     else ""
                 )
                 + (
+                    (
+                        f"Major-exchange breadth is {row.get('Major CEX quality', 'DATA LIMITED')} "
+                        f"({int(row.get('Major CEX count', 0))} major CEX listing(s)); "
+                        "at least 2 verified major CEX listings are required for BUY. "
+                    )
+                    if (
+                        row["Symbol"] in set(tokenomics_qualified_setups["Symbol"])
+                        and row.get("Major CEX gate") != "PASS"
+                    )
+                    else ""
+                )
+                + (
                     f"Technical setup qualifies, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')} "
                     f"({macro_now.get('score', np.nan):.1f}/100). "
                     if (
-                        row["Symbol"] in set(tokenomics_qualified_setups["Symbol"])
+                        row["Symbol"] in set(cex_qualified_setups["Symbol"])
                         and not macro_allows_new_risk
                         and pd.notna(macro_now.get("score", np.nan))
                     )
@@ -1816,7 +1926,8 @@ def live_scan():
             f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
             "A technical qualifier is only promoted to BUY when an altcoin is beating BTC over "
             "the 48h relative-strength window, circulating supply is at least 25% of total/max "
-            "supply, and the macro-liquidity regime is not deteriorating/contracting. "
+            "supply, the coin is verified on at least 2 major CEXs, and the macro-liquidity "
+            "regime is not deteriorating/contracting. "
             "Unknown tokenomics remain WAIT rather than passing by assumption. "
             "WAIT candidates remain visible with their reasons. "
             "Green = preferred, amber = borderline, red = weak or extended."
@@ -1824,6 +1935,7 @@ def live_scan():
         if swing_setups.empty:
             rs_blocked = len(technical_swing_setups) - len(rs_qualified_setups)
             tokenomics_blocked = len(rs_qualified_setups) - len(tokenomics_qualified_setups)
+            cex_blocked = len(tokenomics_qualified_setups) - len(cex_qualified_setups)
             if rs_blocked > 0:
                 st.info(
                     f"{rs_blocked} technical setup(s) currently qualify technically but remain "
@@ -1835,10 +1947,16 @@ def live_scan():
                     "but remain WAIT because the 25% circulating-supply tokenomics gate "
                     "fails or cannot be verified."
                 )
-            elif not tokenomics_qualified_setups.empty and not macro_allows_new_risk:
+            elif cex_blocked > 0:
                 st.info(
-                    f"{len(tokenomics_qualified_setups)} technical setup(s) currently meet the "
-                    f"{cfg.score_threshold}+, 30% target and tokenomics rules, but macro liquidity is "
+                    f"{cex_blocked} otherwise-qualified setup(s) remain WAIT because they "
+                    "do not have at least 2 verified listings across the major CEX basket."
+                )
+            elif not cex_qualified_setups.empty and not macro_allows_new_risk:
+                st.info(
+                    f"{len(cex_qualified_setups)} technical setup(s) currently meet the "
+                    f"{cfg.score_threshold}+, 30% target, relative-strength, tokenomics and "
+                    "major-CEX rules, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
                 )
             else:
@@ -1847,7 +1965,7 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Coin trend", "Market trend", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
+            "Coin", "Status", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
             "Invalidation", "First resistance target", "Sell target",
@@ -1920,7 +2038,7 @@ def live_scan():
         if accumulation_setups.empty:
             st.info("No coin currently meets the confirmed accumulation rules.")
         accumulation_cols = [
-            "Coin", "Status", "Coin trend", "Market trend", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
+            "Coin", "Status", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
             "Accumulation low", "Accumulation high", "In accumulation zone",
             "Cycle accumulation low", "Cycle accumulation high",
             "In cycle accumulation zone", "4Y cycle position %",
@@ -2024,17 +2142,20 @@ if qa:
     else:
         macro_now = st.session_state.get("macro_liquidity") or {}
         tokenomics_gate = qa_result.get("tokenomics_gate", "UNKNOWN")
+        cex_gate = qa_result.get("major_cex_gate", "UNKNOWN")
         qa_is_btc = qa_symbol.split("/")[0].upper() == "BTC"
         qa_rs_pass = qa_is_btc or qa_result.get("rs_vs_btc_pct", -999) > 0
         if (
             qa_result.get("eligible")
             and qa_rs_pass
             and tokenomics_gate == "PASS"
+            and cex_gate == "PASS"
             and macro_now.get("allows_new_swing_risk", True)
         ):
             st.success(
-                "TRADE QUALIFIES: technical pre-breakout rules pass, circulating supply "
-                "meets the 25% tokenomics rule, and macro liquidity allows new swing risk."
+                "TRADE QUALIFIES: technical pre-breakout rules pass, the altcoin is beating "
+                "BTC, circulating supply meets the 25% rule, major-exchange breadth passes, "
+                "and macro liquidity allows new swing risk."
             )
         elif qa_result.get("eligible") and not qa_rs_pass:
             st.warning(
@@ -2050,10 +2171,16 @@ if qa:
                     else "circulating versus total/max supply could not be verified."
                 )
             )
+        elif qa_result.get("eligible") and cex_gate != "PASS":
+            st.warning(
+                "TECHNICAL QUALIFIER — EXCHANGE-LISTING WAIT: "
+                f"{qa_result.get('major_cex_count', 0)} verified major CEX listing(s) "
+                "found; at least 2 are required for BUY."
+            )
         elif qa_result.get("eligible"):
             st.warning(
                 "TECHNICAL QUALIFIER — MACRO WAIT: the setup passes the pre-breakout "
-                f"rules and tokenomics gate, but macro liquidity is "
+                f"rules, tokenomics and major-CEX gates, but macro liquidity is "
                 f"{macro_now.get('regime', 'DATA LIMITED')} "
                 f"({macro_now.get('score', np.nan):.1f}/100)."
             )
@@ -2102,6 +2229,15 @@ if qa:
         tok4.metric("VC / unlock review", "Needs verification")
         if qa_result.get("tokenomics_risks"):
             st.caption("Tokenomics risks: " + qa_result["tokenomics_risks"])
+
+        ex1, ex2, ex3 = st.columns(3)
+        ex1.metric("Major CEX quality", qa_result.get("major_cex_quality", "DATA LIMITED"))
+        ex2.metric("Major CEX count", int(qa_result.get("major_cex_count", 0)))
+        ex3.metric("Major CEX gate", qa_result.get("major_cex_gate", "UNKNOWN"))
+        st.caption(
+            "Verified major CEX listings: "
+            + (qa_result.get("major_cex_list") or "None / unavailable")
+        )
 
         qa_row = pd.Series({
             "Breakout": qa_result["resistance"],
@@ -2343,6 +2479,10 @@ The score measures **technical setup quality, not probability of success or expe
 #### Trend regime — directional context
 
 Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+
+#### Major-exchange breadth — legitimacy / liquidity quality
+
+The scanner checks active spot listings across **Binance, Coinbase, Kraken, OKX, Bybit, Gate, Bitget and MEXC**. A main-screener BUY requires at least **2 verified major CEX listings**. **4+ = STRONG**, 3 = GOOD, 2 = ACCEPTABLE, 1 = WEAK. This is treated as a legitimacy/liquidity-quality gate rather than proof that the project has intrinsically strong fundamentals.
 
 #### Relative strength gate — altcoin must beat Bitcoin
 
