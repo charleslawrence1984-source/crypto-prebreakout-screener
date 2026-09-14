@@ -393,7 +393,155 @@ def fetch_pool_ohlcv(chain_id: str, pool_address: str, token_address: str, chart
     return df
 
 
-def meme_price_chart(df: pd.DataFrame, ticker: str, timeframe_label: str) -> go.Figure:
+def meme_trade_plan(df: pd.DataFrame) -> Dict:
+    """
+    Build a volatility-aware trade plan from on-chain OHLCV.
+    This is deliberately separate from the meme score: community/narrative find the
+    candidate; candle structure defines the entry, invalidation and target.
+    """
+    if df is None or df.empty or len(df) < 24:
+        return {
+            "Plan Status": "UNAVAILABLE",
+            "Entry Low": np.nan,
+            "Entry High": np.nan,
+            "Entry Price": np.nan,
+            "Negative Exit": np.nan,
+            "Positive Exit": np.nan,
+            "Potential ROI %": np.nan,
+            "R:R": np.nan,
+            "Plan Basis": "Not enough candle history",
+        }
+
+    d = df.copy().tail(min(120, len(df)))
+    for col in ["open", "high", "low", "close"]:
+        d[col] = pd.to_numeric(d[col], errors="coerce")
+    d = d.dropna(subset=["open", "high", "low", "close"])
+    if len(d) < 24:
+        return {
+            "Plan Status": "UNAVAILABLE",
+            "Entry Low": np.nan,
+            "Entry High": np.nan,
+            "Entry Price": np.nan,
+            "Negative Exit": np.nan,
+            "Positive Exit": np.nan,
+            "Potential ROI %": np.nan,
+            "R:R": np.nan,
+            "Plan Basis": "Not enough clean candle history",
+        }
+
+    prev_close = d["close"].shift(1)
+    tr = pd.concat(
+        [
+            d["high"] - d["low"],
+            (d["high"] - prev_close).abs(),
+            (d["low"] - prev_close).abs(),
+        ],
+        axis=1,
+    ).max(axis=1)
+    atr14 = safe(tr.rolling(14).mean().iloc[-1])
+    price = safe(d["close"].iloc[-1])
+    ema20_now = safe(d["close"].ewm(span=20, adjust=False).mean().iloc[-1])
+    recent = d.tail(min(48, len(d)))
+
+    if not math.isfinite(price) or price <= 0 or not math.isfinite(atr14) or atr14 <= 0:
+        return {
+            "Plan Status": "UNAVAILABLE",
+            "Entry Low": np.nan,
+            "Entry High": np.nan,
+            "Entry Price": np.nan,
+            "Negative Exit": np.nan,
+            "Positive Exit": np.nan,
+            "Potential ROI %": np.nan,
+            "R:R": np.nan,
+            "Plan Basis": "Invalid price/volatility data",
+        }
+
+    support_cluster = safe(recent["low"].quantile(0.30))
+    swing_support = safe(recent["low"].tail(min(20, len(recent))).min())
+
+    support_candidates = [
+        value for value in [ema20_now, support_cluster]
+        if math.isfinite(value) and 0 < value <= price * 1.03
+    ]
+    entry_anchor = max(support_candidates) if support_candidates else price
+
+    # Do not encourage chasing. If support is far below price, wait for a pullback.
+    if entry_anchor < price * 0.85:
+        entry_anchor = price * 0.90
+
+    entry_low = max(entry_anchor - 0.30 * atr14, 0)
+    entry_high = min(entry_anchor + 0.30 * atr14, price * 1.01)
+    if entry_high <= entry_low:
+        entry_high = entry_anchor
+    entry_price = (entry_low + entry_high) / 2
+
+    structural_stop = (
+        swing_support - 0.35 * atr14
+        if math.isfinite(swing_support)
+        else entry_price - 1.50 * atr14
+    )
+    volatility_stop = entry_price - 1.50 * atr14
+    negative_exit = min(structural_stop, volatility_stop)
+    negative_exit = max(negative_exit, entry_price * 0.65)
+
+    risk = entry_price - negative_exit
+    if risk <= 0:
+        return {
+            "Plan Status": "UNAVAILABLE",
+            "Entry Low": entry_low,
+            "Entry High": entry_high,
+            "Entry Price": entry_price,
+            "Negative Exit": np.nan,
+            "Positive Exit": np.nan,
+            "Potential ROI %": np.nan,
+            "R:R": np.nan,
+            "Plan Basis": "Could not define valid downside risk",
+        }
+
+    # Resistance is discovered from completed recent candles, avoiding the latest bar.
+    resistance_window = d.iloc[-min(60, len(d)):-1]
+    resistance_candidates = []
+    if not resistance_window.empty:
+        for quantile in (0.80, 0.90, 0.97):
+            level = safe(resistance_window["high"].quantile(quantile))
+            if math.isfinite(level) and level > entry_price * 1.02:
+                resistance_candidates.append(level)
+
+    two_r_target = entry_price + 2.0 * risk
+    if resistance_candidates:
+        positive_exit = max(min(resistance_candidates), two_r_target)
+        basis = "Nearby resistance with minimum 2:1 reward/risk"
+    else:
+        positive_exit = two_r_target
+        basis = "2:1 volatility target; no clear nearby resistance"
+
+    roi = (positive_exit / entry_price - 1) * 100
+    rr = (positive_exit - entry_price) / risk
+
+    # If current price is already materially above the proposed entry, call it a wait.
+    chase_pct = (price / entry_high - 1) * 100 if entry_high > 0 else 0
+    status = "WAIT FOR ENTRY" if chase_pct > 5 else "ENTRY AREA"
+
+    return {
+        "Plan Status": status,
+        "Entry Low": entry_low,
+        "Entry High": entry_high,
+        "Entry Price": entry_price,
+        "Negative Exit": negative_exit,
+        "Positive Exit": positive_exit,
+        "Potential ROI %": round(roi, 1),
+        "R:R": round(rr, 2),
+        "ATR %": round(atr14 / price * 100, 1),
+        "Plan Basis": basis,
+    }
+
+
+def meme_price_chart(
+    df: pd.DataFrame,
+    ticker: str,
+    timeframe_label: str,
+    trade_plan: Optional[Dict] = None,
+) -> go.Figure:
     fig = go.Figure()
     fig.add_trace(go.Candlestick(
         x=df["timestamp"],
