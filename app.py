@@ -1447,6 +1447,54 @@ def scan_cell_style(value, column: str) -> str:
             return red
         return ""
 
+    label = str(value).upper()
+    if column == "Status":
+        return green if label == "BUY" else amber if label == "WAIT" else red
+    if column == "Pattern":
+        if label == "ASCENDING TRIANGLE — STRONG":
+            return green
+        if label in ("ASCENDING TRIANGLE — DEVELOPING", "POSSIBLE ASCENDING TRIANGLE"):
+            return amber
+        return red
+    if column == "SMA regime":
+        if label in ("BULLISH STACK", "GOLDEN CROSS — PULLBACK", "ABOVE 200D"):
+            return green
+        if label in ("EARLY RECOVERY", "ABOVE 50D", "UNAVAILABLE"):
+            return amber
+        return red
+    if column in ("BB 4h regime", "BB DAILY REGIME", "BB Daily regime"):
+        return green if label == "SQUEEZE" else amber if label == "NORMAL" else red if label == "EXPANDING" else ""
+    if column in ("4h Channel", "Daily Channel"):
+        return green if label == "RISING" else amber if label == "SIDEWAYS" else red if label == "FALLING" else ""
+    if column == "4h Channel quality":
+        return green if label == "HIGH" else amber if label == "MEDIUM" else red if label == "LOW" else ""
+    if column == "Category leader":
+        return green if label == "TOP 3" else amber if label == "UNKNOWN" else red
+    if column == "Major CEX quality":
+        if label in ("STRONG", "GOOD"):
+            return green
+        if label in ("ACCEPTABLE", "DATA LIMITED"):
+            return amber
+        return red
+    if column == "Macro regime":
+        if label in ("EXPANSION", "IMPROVING"):
+            return green
+        if label in ("MIXED/NEUTRAL", "DATA LIMITED"):
+            return amber
+        return red
+    if column == "Catalyst status":
+        if label in ("HIGH CATALYST", "CATALYST WATCH"):
+            return green
+        if label in ("UPCOMING", "NONE FOUND", "NOT CONNECTED"):
+            return amber
+        if label == "RISK EVENT":
+            return red
+        return ""
+    if column == "Tokenomics gate":
+        return green if label == "PASS" else red if label == "FAIL" else amber
+    if column == "Candle caution":
+        return red if label == "CAUTION" else green if label == "CLEAR" else amber
+
     try:
         number = float(value)
     except (TypeError, ValueError):
