@@ -187,6 +187,7 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
         return None
 
     candle_signal = latest_completed_daily_candle_signal(df)
+    channel = stock_trend_channel(df, 90)
 
     close = df["Close"]
     df["SMA20"] = close.rolling(20).mean()
@@ -229,6 +230,13 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     resistance50 = safe(recent50["High"].max())
 
     supports = [x for x in [sma20, sma50, support20, support50] if not np.isnan(x) and 0 < x < price]
+    channel_support = safe(channel.get("support"))
+    if (
+        channel.get("quality") in ("HIGH", "MEDIUM")
+        and not np.isnan(channel_support)
+        and 0 < channel_support < price
+    ):
+        supports.append(channel_support)
     supports = sorted(set(round(x, 8) for x in supports), reverse=True)
     support1 = supports[0] if supports else max(0.01, price - atr_now)
     support2 = supports[1] if len(supports) > 1 else max(0.01, price - 2*atr_now)
@@ -240,6 +248,13 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     invalidation = max(0.01, support2 - atr_now)
 
     resistance = max(resistance20, resistance50)
+    channel_resistance = safe(channel.get("resistance"))
+    if (
+        channel.get("quality") in ("HIGH", "MEDIUM")
+        and not np.isnan(channel_resistance)
+        and channel_resistance > price * 1.01
+    ):
+        resistance = min(resistance, channel_resistance)
     risk = max(price - invalidation, 0.01)
     two_r = price + 2*risk
     swing_target = min(resistance, two_r) if resistance > price * 1.03 else two_r
@@ -340,6 +355,16 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
         "candle_pattern": candle_signal["candle_pattern"],
         "candle_caution": bool(candle_signal["candle_caution"]),
         "candle_detail": candle_signal["candle_detail"],
+        "channel_direction": channel.get("direction", "UNAVAILABLE"),
+        "channel_position_pct": channel.get("position", np.nan),
+        "channel_support": channel.get("support", np.nan),
+        "channel_resistance": channel.get("resistance", np.nan),
+        "channel_width_pct": channel.get("width_pct", np.nan),
+        "channel_rr": channel.get("rr", np.nan),
+        "channel_touches": channel.get("touches", 0),
+        "channel_quality": channel.get("quality", "LOW"),
+        "channel_state": channel.get("state", "NONE"),
+        "channel_slope_pct": channel.get("slope_pct", np.nan),
     }
 
 
@@ -788,6 +813,13 @@ def technical_market_scan(symbols_tuple: tuple[str, ...], max_symbols: int, min_
                     "Candle caution": "CAUTION" if tech.get("candle_caution") else "CLEAR",
                     "Last candle": tech.get("candle_pattern", "UNAVAILABLE"),
                     "Candle detail": tech.get("candle_detail", ""),
+                    "Channel": tech.get("channel_direction", "UNAVAILABLE"),
+                    "Channel pos %": tech.get("channel_position_pct", np.nan),
+                    "Channel support": tech.get("channel_support", np.nan),
+                    "Channel resistance": tech.get("channel_resistance", np.nan),
+                    "Channel R:R": tech.get("channel_rr", np.nan),
+                    "Channel quality": tech.get("channel_quality", "LOW"),
+                    "Channel state": tech.get("channel_state", "NONE"),
                 })
             except Exception:
                 continue
