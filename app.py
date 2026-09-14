@@ -378,6 +378,103 @@ def clamp_score(v: float, lo: float = 0, hi: float = 1) -> float:
     return float(max(lo, min(hi, v)))
 
 
+def classify_trend(df4h: pd.DataFrame, dfd: pd.DataFrame) -> Dict:
+    """
+    Classify trend as UPTREND / SIDEWAYS / DOWNTREND.
+
+    Daily structure sets the primary direction. The 4h structure is used as
+    confirmation so a short-term bounce or pullback does not redefine the
+    broader trend on its own.
+    """
+    if dfd is None or len(dfd) < 60 or df4h is None or len(df4h) < 50:
+        return {
+            "trend": "UNAVAILABLE",
+            "daily": "UNAVAILABLE",
+            "four_hour": "UNAVAILABLE",
+            "detail": "Not enough history",
+        }
+
+    d = dfd.copy()
+    h = df4h.copy()
+
+    d["ema20"] = ema(d["close"], 20)
+    d["ema50"] = ema(d["close"], 50)
+    d["ema200"] = ema(d["close"], 200)
+    h["ema20"] = ema(h["close"], 20)
+    h["ema50"] = ema(h["close"], 50)
+
+    d_price = float(d["close"].iloc[-1])
+    d20 = float(d["ema20"].iloc[-1])
+    d50 = float(d["ema50"].iloc[-1])
+    d200 = float(d["ema200"].iloc[-1]) if len(d) >= 200 else np.nan
+    d50_slope = lin_slope(d["ema50"].iloc[-12:])
+    daily_spread_pct = abs(d20 - d50) / d_price * 100 if d_price else np.nan
+
+    h_price = float(h["close"].iloc[-1])
+    h20 = float(h["ema20"].iloc[-1])
+    h50 = float(h["ema50"].iloc[-1])
+    h50_slope = lin_slope(h["ema50"].iloc[-12:])
+    fourh_spread_pct = abs(h20 - h50) / h_price * 100 if h_price else np.nan
+
+    daily_up = d_price > d20 > d50 and d50_slope > 0
+    daily_down = d_price < d20 < d50 and d50_slope < 0
+    daily_flat = (
+        (math.isfinite(daily_spread_pct) and daily_spread_pct <= 2.0)
+        or abs(d50_slope) < 0.0006
+    )
+
+    fourh_up = h_price > h20 > h50 and h50_slope > 0
+    fourh_down = h_price < h20 < h50 and h50_slope < 0
+    fourh_flat = (
+        (math.isfinite(fourh_spread_pct) and fourh_spread_pct <= 1.5)
+        or abs(h50_slope) < 0.0008
+    )
+
+    daily_label = (
+        "UPTREND" if daily_up
+        else "DOWNTREND" if daily_down
+        else "SIDEWAYS"
+    )
+    fourh_label = (
+        "UPTREND" if fourh_up
+        else "DOWNTREND" if fourh_down
+        else "SIDEWAYS"
+    )
+
+    if daily_up and not fourh_down:
+        trend = "UPTREND"
+    elif daily_down and not fourh_up:
+        trend = "DOWNTREND"
+    elif daily_up and fourh_down:
+        trend = "SIDEWAYS"
+    elif daily_down and fourh_up:
+        trend = "SIDEWAYS"
+    elif daily_flat or fourh_flat:
+        trend = "SIDEWAYS"
+    else:
+        trend = "SIDEWAYS"
+
+    ema200_context = ""
+    if math.isfinite(d200):
+        ema200_context = (
+            "above 200D EMA" if d_price >= d200 else "below 200D EMA"
+        )
+
+    detail = (
+        f"Daily {daily_label}; 4h {fourh_label}; "
+        f"daily EMA50 slope {d50_slope:+.4f}"
+    )
+    if ema200_context:
+        detail += f"; {ema200_context}"
+
+    return {
+        "trend": trend,
+        "daily": daily_label,
+        "four_hour": fourh_label,
+        "detail": detail,
+    }
+
+
 def scan_cell_style(value, column: str) -> str:
     """Traffic-light styling for the main scan's decision columns."""
     green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
@@ -391,6 +488,16 @@ def scan_cell_style(value, column: str) -> str:
         if label == "Base developing":
             return amber
         return red
+
+    if column in ("Coin trend", "Market trend"):
+        label = str(value).upper()
+        if label == "UPTREND":
+            return green
+        if label == "SIDEWAYS":
+            return amber
+        if label == "DOWNTREND":
+            return red
+        return ""
 
     try:
         number = float(value)
@@ -421,9 +528,22 @@ def score_setup(
     btc4h: pd.DataFrame,
     cfg: ScreenerConfig,
     dfw: Optional[pd.DataFrame] = None,
+    btcd: Optional[pd.DataFrame] = None,
 ) -> Dict:
     if len(df4h) < max(cfg.resistance_lookback + 25, 70) or len(dfd) < 35 or len(btc4h) < 30:
         return {"eligible": False, "reason": "Not enough history"}
+
+    coin_trend_info = classify_trend(df4h, dfd)
+    market_trend_info = (
+        classify_trend(btc4h, btcd)
+        if btcd is not None and not btcd.empty
+        else {
+            "trend": "UNAVAILABLE",
+            "daily": "UNAVAILABLE",
+            "four_hour": "UNAVAILABLE",
+            "detail": "BTC daily history unavailable",
+        }
+    )
 
     x = df4h.copy()
     x["rsi"] = rsi(x["close"])
@@ -814,6 +934,14 @@ def score_setup(
         "target_basis": target_basis,
         "minimum_gross_profit_pct": cfg.min_gross_profit_pct,
         "entry_basis": entry_basis,
+        "coin_trend": coin_trend_info["trend"],
+        "coin_trend_daily": coin_trend_info["daily"],
+        "coin_trend_4h": coin_trend_info["four_hour"],
+        "coin_trend_detail": coin_trend_info["detail"],
+        "market_trend": market_trend_info["trend"],
+        "market_trend_daily": market_trend_info["daily"],
+        "market_trend_4h": market_trend_info["four_hour"],
+        "market_trend_detail": market_trend_info["detail"],
         "cycle_position_pct": round(float(cycle_position_pct), 1) if math.isfinite(cycle_position_pct) else np.nan,
         "cycle_accumulation_low": cycle_accumulation_low,
         "cycle_accumulation_high": cycle_accumulation_high,
@@ -950,17 +1078,19 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
                 f"{exchange.name}. Try its ticker, for example SOL."
             )
 
-        coin4, coind, coinw, btc4 = await asyncio.gather(
+        coin4, coind, coinw, btc4, btcd = await asyncio.gather(
             exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180),
             exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365),
             exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220),
             exchange.fetch_ohlcv(f"BTC/{cfg.quote}", timeframe="4h", limit=180),
+            exchange.fetch_ohlcv(f"BTC/{cfg.quote}", timeframe="1d", limit=365),
         )
         df4 = ohlcv_to_df(coin4)
         dfd = ohlcv_to_df(coind)
         dfw = ohlcv_to_df(coinw)
         btcdf = ohlcv_to_df(btc4)
-        result = score_setup(df4, dfd, btcdf, cfg, dfw=dfw)
+        btcd_df = ohlcv_to_df(btcd)
+        result = score_setup(df4, dfd, btcdf, cfg, dfw=dfw, btcd=btcd_df)
         result["symbol"] = symbol
         return symbol, result, {"4h": df4, "1d": dfd, "1w": dfw}
     finally:
@@ -981,9 +1111,18 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
         btc_symbol = f"BTC/{cfg.quote}"
         if btc_symbol not in exchange.markets:
             raise RuntimeError(f"{btc_symbol} is not available on {cfg.exchange_id}")
-        btc4h = ohlcv_to_df(await asyncio.wait_for(
-            exchange.fetch_ohlcv(btc_symbol, timeframe="4h", limit=180), timeout=20
-        ))
+        btc4_rows, btcd_rows = await asyncio.gather(
+            asyncio.wait_for(
+                exchange.fetch_ohlcv(btc_symbol, timeframe="4h", limit=180),
+                timeout=20,
+            ),
+            asyncio.wait_for(
+                exchange.fetch_ohlcv(btc_symbol, timeframe="1d", limit=365),
+                timeout=20,
+            ),
+        )
+        btc4h = ohlcv_to_df(btc4_rows)
+        btcd = ohlcv_to_df(btcd_rows)
 
         async def one(symbol: str, qv: float):
             async with sem:
@@ -998,7 +1137,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                     df4 = ohlcv_to_df(rows4)
                     dfd = ohlcv_to_df(rowsd)
                     dfw = pd.DataFrame()
-                    result = score_setup(df4, dfd, btc4h, cfg)
+                    result = score_setup(df4, dfd, btc4h, cfg, btcd=btcd)
                     needs_weekly_context = (
                         result.get("shape_eligible")
                         or result.get("bottom_score", 0) >= 50
@@ -1010,7 +1149,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                                 exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220), timeout=20
                             )
                             dfw = ohlcv_to_df(rowsw)
-                            result = score_setup(df4, dfd, btc4h, cfg, dfw=dfw)
+                            result = score_setup(df4, dfd, btc4h, cfg, dfw=dfw, btcd=btcd)
                         except Exception as weekly_error:
                             errors.append(f"{symbol} weekly context: {type(weekly_error).__name__}: {weekly_error}")
                     raw[symbol] = {"4h": df4, "1d": dfd, "1w": dfw}
@@ -1086,6 +1225,10 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 ),
                 "Score": r["score"],
                 "Trade reason": r["reason"],
+                "Coin trend": r.get("coin_trend", "UNAVAILABLE"),
+                "Market trend": r.get("market_trend", "UNAVAILABLE"),
+                "Coin trend detail": r.get("coin_trend_detail", ""),
+                "Market trend detail": r.get("market_trend_detail", ""),
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
@@ -1502,11 +1645,17 @@ def live_scan():
         if not swing_setups.empty
         else "None"
     )
-    c1, c2, c3, c4 = st.columns(4)
+    current_market_trend = (
+        str(df["Market trend"].dropna().iloc[0])
+        if "Market trend" in df.columns and not df["Market trend"].dropna().empty
+        else "UNAVAILABLE"
+    )
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Candidates analysed", len(df))
     c2.metric(f"Swing BUYs ≥ {cfg.score_threshold}", len(swing_setups))
     c3.metric("Accumulation setups", len(accumulation_setups))
     c4.metric("Best swing score", best_swing_score)
+    c5.metric("Market trend (BTC)", current_market_trend)
 
     swing_tab, accumulation_tab = st.tabs(["Swing trades", "Accumulation"])
 
@@ -1532,13 +1681,18 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
+            "Coin", "Status", "Coin trend", "Market trend", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
             "Invalidation", "First resistance target", "Sell target",
             "Stretch target", "Target upside %", "Target basis",
         ]
         styled_swing = swing_candidates[swing_cols].style
+        for trend_column in ["Coin trend", "Market trend"]:
+            styled_swing = styled_swing.map(
+                lambda value, column=trend_column: scan_cell_style(value, column),
+                subset=[trend_column],
+            )
         for column in [
             "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
         ]:
@@ -1587,7 +1741,7 @@ def live_scan():
         if accumulation_setups.empty:
             st.info("No coin currently meets the confirmed accumulation rules.")
         accumulation_cols = [
-            "Coin", "Status", "Accumulation score", "Reason", "Price", "Accumulation signal",
+            "Coin", "Status", "Coin trend", "Market trend", "Accumulation score", "Reason", "Price", "Accumulation signal",
             "Accumulation low", "Accumulation high", "In accumulation zone",
             "Cycle accumulation low", "Cycle accumulation high",
             "In cycle accumulation zone", "4Y cycle position %",
@@ -1604,6 +1758,11 @@ def live_scan():
             lambda value: scan_cell_style(value, "Accumulation signal"),
             subset=["Accumulation signal"],
         )
+        for trend_column in ["Coin trend", "Market trend"]:
+            styled_accumulation = styled_accumulation.map(
+                lambda value, column=trend_column: scan_cell_style(value, column),
+                subset=[trend_column],
+            )
         st.dataframe(
             styled_accumulation,
             use_container_width=True,
@@ -1701,6 +1860,16 @@ if qa:
         q2.metric("Price", fmt_price(qa_result["price"]))
         q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
         q4.metric("RSI", f"{qa_result['rsi']:.1f}")
+
+        tr1, tr2, tr3, tr4 = st.columns(4)
+        tr1.metric("Coin trend", qa_result.get("coin_trend", "UNAVAILABLE"))
+        tr2.metric("Market trend (BTC)", qa_result.get("market_trend", "UNAVAILABLE"))
+        tr3.metric("Coin daily / 4h", f"{qa_result.get('coin_trend_daily', '—')} / {qa_result.get('coin_trend_4h', '—')}")
+        tr4.metric("BTC daily / 4h", f"{qa_result.get('market_trend_daily', '—')} / {qa_result.get('market_trend_4h', '—')}")
+        st.caption(
+            f"Coin trend: {qa_result.get('coin_trend_detail', '')} · "
+            f"Market trend: {qa_result.get('market_trend_detail', '')}"
+        )
 
         qa_row = pd.Series({
             "Breakout": qa_result["resistance"],
@@ -1841,6 +2010,15 @@ if not scan_df.empty:
             key=chart_key,
         )
 
+    trend1, trend2 = st.columns(2)
+    trend1.metric("Coin trend", row.get("Coin trend", "UNAVAILABLE"))
+    trend2.metric("Market trend (BTC)", row.get("Market trend", "UNAVAILABLE"))
+    if row.get("Coin trend detail") or row.get("Market trend detail"):
+        st.caption(
+            f"Coin: {row.get('Coin trend detail', '')} · "
+            f"Market: {row.get('Market trend detail', '')}"
+        )
+
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Pre-breakout entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}", row["Entry basis"])
     m2.metric("Breakout level", fmt_price(row["Breakout"]))
@@ -1929,6 +2107,10 @@ with st.expander("How the opportunity scores work"):
     st.markdown(
         """
 The score measures **technical setup quality, not probability of success or expected return**. The Swing trades tab shows trade quality; the Accumulation tab shows bottoming quality. WAIT rows remain visible for review and are not actionable signals.
+
+#### Trend regime — directional context
+
+Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
 
 #### BUY score — pre-breakout swing-trade quality
 
