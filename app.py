@@ -696,10 +696,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
             r for r in results
             if r and (
                 r.get("eligible")
-                or r.get("accumulation_verdict") in {
-                    "ACCUMULATION READY",
-                    "WATCH FOR BASE CONFIRMATION",
-                }
+                or r.get("accumulation_verdict") == "ACCUMULATION READY"
             )
         ]
         if not rows:
@@ -726,15 +723,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
             {
                 "Coin": r["symbol"].split("/")[0],
                 "Symbol": r["symbol"],
-                "Opportunity": (
-                    "TRADE + ACCUMULATION"
-                    if r["eligible"] and r["accumulation_verdict"] == "ACCUMULATION READY"
-                    else "PRE-BREAKOUT TRADE"
-                    if r["eligible"]
-                    else "LONG-TERM ACCUMULATION"
-                    if r["accumulation_verdict"] == "ACCUMULATION READY"
-                    else "ACCUMULATION WATCH"
-                ),
+                "Opportunity": "BUY" if r["eligible"] else "ACCUMULATE",
                 "Score": r["score"],
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
