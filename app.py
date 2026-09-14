@@ -41,6 +41,7 @@ class ScreenerConfig:
     score_threshold: int = 75
     too_late_pct: float = 2.0
     max_rsi: float = 69.0
+    min_gross_profit_pct: float = 30.0
     concurrency: int = 5
 
 
@@ -317,6 +318,8 @@ def score_setup(
 
     weekly_primary = np.nan
     weekly_stretch = np.nan
+    weekly_target_levels: List[float] = []
+    cycle_high = np.nan
     cycle_position_pct = np.nan
     cycle_accumulation_low = np.nan
     cycle_accumulation_high = np.nan
@@ -369,36 +372,23 @@ def score_setup(
             }
         )
         if overhead:
-            weekly_primary = overhead[0] * 0.985
-            for level in overhead[1:]:
-                candidate = level * 0.985
+            weekly_target_levels = [float(level) * 0.985 for level in overhead]
+            weekly_primary = weekly_target_levels[0]
+            for candidate in weekly_target_levels[1:]:
                 if candidate >= weekly_primary * 1.08:
                     weekly_stretch = candidate
                     break
             target_basis = "Nearest major weekly resistance"
 
-    projected_target = float(weekly_primary) if math.isfinite(weekly_primary) else measured_target
-    projected_target = max(projected_target, resistance * 1.03)
-    stretch_target = (
-        float(weekly_stretch)
-        if math.isfinite(weekly_stretch)
-        else max(projected_target * 1.15, measured_target)
+    first_take_profit = (
+        float(weekly_primary)
+        if math.isfinite(weekly_primary)
+        else max(measured_target, resistance * 1.03)
     )
-    target_upside_pct = (projected_target - price) / price * 100
-    reward_pct = max(target_upside_pct, 0)
-    rr = reward_pct / risk_pct if risk_pct else 0
-    rr_component = clamp_score((rr - 1.0) / 2.5)
-    entry_score = 5 * distance_component + 5 * rr_component
-
-    total = structure_score + compression_score + volume_score + rs_score + momentum_score + obv_score + daily_score + entry_score
-    total = round(float(max(0, min(100, total))), 1)
-
-    # Require the fundamental pre-breakout shape, not just a high aggregate score.
-    eligible = (
-        cfg.near_resistance_min_pct <= distance_pct <= cfg.near_resistance_max_pct
-        and resistance_tests >= 2
-        and rsi_now <= cfg.max_rsi + 3
-        and lows_slope > -0.0015
+    first_take_profit_basis = (
+        "Nearest major weekly resistance"
+        if math.isfinite(weekly_primary)
+        else "4h measured move"
     )
 
     entry_half_width = max(entry_atr * 0.40, price * 0.004)
@@ -406,10 +396,78 @@ def score_setup(
     raw_entry_high = min(resistance * 0.998, entry_anchor + entry_half_width)
     entry_low = min(raw_entry_low, raw_entry_high * 0.999)
     entry_high = max(raw_entry_high, entry_low * 1.001)
+    planned_entry = (entry_low + entry_high) / 2
+
+    credible_targets = list(weekly_target_levels)
+    if measured_target > price:
+        credible_targets.append(float(measured_target))
+    credible_targets = sorted(set(credible_targets))
+
+    minimum_trade_target = planned_entry * (1 + cfg.min_gross_profit_pct / 100)
+    qualifying_targets = [
+        level for level in credible_targets
+        if level >= minimum_trade_target
+    ]
+    projected_target = qualifying_targets[0] if qualifying_targets else np.nan
+    stretch_target = qualifying_targets[1] if len(qualifying_targets) > 1 else np.nan
+
+    if math.isfinite(projected_target):
+        target_basis = (
+            "Major weekly resistance meeting the 30% rule"
+            if any(abs(projected_target - level) < max(level * 1e-8, 1e-12) for level in weekly_target_levels)
+            else "4h measured move meeting the 30% rule"
+        )
+        target_upside_pct = (projected_target - planned_entry) / planned_entry * 100
+    else:
+        target_basis = "No credible target meets the 30% gross-profit rule"
+        target_upside_pct = np.nan
+
+    downside_to_invalidation_pct = max(
+        (planned_entry - invalidation) / planned_entry * 100,
+        0.01,
+    )
+    reward_pct = max(float(target_upside_pct), 0) if math.isfinite(target_upside_pct) else 0.0
+    rr = reward_pct / downside_to_invalidation_pct
+    rr_component = clamp_score((rr - 1.0) / 2.5)
+    entry_score = 5 * distance_component + 5 * rr_component
+
+    total = structure_score + compression_score + volume_score + rs_score + momentum_score + obv_score + daily_score + entry_score
+    total = round(float(max(0, min(100, total))), 1)
+
+    shape_eligible = (
+        cfg.near_resistance_min_pct <= distance_pct <= cfg.near_resistance_max_pct
+        and resistance_tests >= 2
+        and rsi_now <= cfg.max_rsi + 3
+        and lows_slope > -0.0015
+    )
+    trade_target_eligible = math.isfinite(projected_target)
+    eligible = shape_eligible and trade_target_eligible
+
+    if eligible:
+        result_reason = "Pre-breakout candidate with at least 30% gross target upside"
+    elif not shape_eligible:
+        result_reason = shape_rejection or "Shape filter not met"
+    else:
+        result_reason = "Pre-breakout shape found, but no credible 30% gross-profit target"
+
+    if bottom_score >= 70 and (in_accumulation_zone or in_cycle_accumulation_zone):
+        accumulation_verdict = "ACCUMULATION READY"
+    elif bottom_score >= 50 or in_cycle_accumulation_zone:
+        accumulation_verdict = "WATCH FOR BASE CONFIRMATION"
+    else:
+        accumulation_verdict = "NOT READY TO ACCUMULATE"
+
+    previous_cycle_high_reference = (
+        cycle_high * 0.985
+        if math.isfinite(cycle_high) and cycle_high > planned_entry
+        else np.nan
+    )
 
     return {
         "eligible": bool(eligible),
-        "reason": "Pre-breakout candidate" if eligible else (shape_rejection or "Shape filter not met"),
+        "shape_eligible": bool(shape_eligible),
+        "trade_target_eligible": bool(trade_target_eligible),
+        "reason": result_reason,
         "score": total,
         "price": price,
         "resistance": resistance,
@@ -420,21 +478,28 @@ def score_setup(
         "volume_ratio": round(vol_ratio, 2),
         "rs_vs_btc_pct": round(rs12 * 100, 2),
         "risk_reward": round(rr, 2),
+        "planned_entry": planned_entry,
+        "downside_to_invalidation_pct": round(downside_to_invalidation_pct, 2),
         "entry_low": entry_low,
         "entry_high": entry_high,
         "invalidation": invalidation,
         "target_1": resistance * 1.05,
         "target_2": resistance * 1.10,
+        "first_take_profit": first_take_profit,
+        "first_take_profit_basis": first_take_profit_basis,
         "projected_target": projected_target,
         "stretch_target": stretch_target,
-        "target_upside_pct": round(target_upside_pct, 2),
+        "target_upside_pct": round(float(target_upside_pct), 2) if math.isfinite(target_upside_pct) else np.nan,
         "target_basis": target_basis,
+        "minimum_gross_profit_pct": cfg.min_gross_profit_pct,
         "entry_basis": entry_basis,
         "cycle_position_pct": round(float(cycle_position_pct), 1) if math.isfinite(cycle_position_pct) else np.nan,
         "cycle_accumulation_low": cycle_accumulation_low,
         "cycle_accumulation_high": cycle_accumulation_high,
         "in_cycle_accumulation_zone": bool(in_cycle_accumulation_zone),
         "cycle_accumulation_basis": cycle_accumulation_basis,
+        "accumulation_verdict": accumulation_verdict,
+        "previous_cycle_high_reference": previous_cycle_high_reference,
         "bottom_score": bottom_score,
         "bottom_status": bottom_status,
         "accumulation_low": accumulation_low,
@@ -606,7 +671,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                     dfd = ohlcv_to_df(rowsd)
                     dfw = pd.DataFrame()
                     result = score_setup(df4, dfd, btc4h, cfg)
-                    if result.get("eligible"):
+                    if result.get("shape_eligible"):
                         try:
                             rowsw = await exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220)
                             dfw = ohlcv_to_df(rowsw)
