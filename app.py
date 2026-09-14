@@ -323,6 +323,106 @@ def macro_liquidity_regime() -> Dict:
     }
 
 
+@st.cache_data(ttl=900, show_spinner=False)
+def coingecko_tokenomics_snapshot() -> Dict[str, Dict]:
+    """
+    Bulk CoinGecko tokenomics snapshot keyed by ticker symbol.
+    Two pages cover up to 500 large/mid-cap assets without one request per coin.
+    When symbols collide, retain the higher market-cap-ranked asset.
+    """
+    rows = []
+    for page in (1, 2):
+        try:
+            r = requests.get(
+                "https://api.coingecko.com/api/v3/coins/markets",
+                params={
+                    "vs_currency": "usd",
+                    "order": "market_cap_desc",
+                    "per_page": 250,
+                    "page": page,
+                    "sparkline": "false",
+                },
+                headers={"User-Agent": "pre-breakout-screener/1.0"},
+                timeout=20,
+            )
+            r.raise_for_status()
+            page_rows = r.json() or []
+            if isinstance(page_rows, list):
+                rows.extend(page_rows)
+        except Exception:
+            continue
+
+    by_symbol: Dict[str, Dict] = {}
+    for item in rows:
+        symbol = str(item.get("symbol") or "").upper().strip()
+        if not symbol:
+            continue
+        existing = by_symbol.get(symbol)
+        rank = item.get("market_cap_rank") or 10**9
+        existing_rank = existing.get("market_cap_rank") or 10**9 if existing else 10**9
+        if existing is None or rank < existing_rank:
+            by_symbol[symbol] = item
+    return by_symbol
+
+
+def tokenomics_from_market(symbol: str, snapshot: Dict[str, Dict]) -> Dict:
+    base = str(symbol).split("/")[0].upper()
+    item = snapshot.get(base) or {}
+
+    circulating = _safe_float(item.get("circulating_supply"), np.nan)
+    total = _safe_float(item.get("total_supply"), np.nan)
+    max_supply = _safe_float(item.get("max_supply"), np.nan)
+    market_cap = _safe_float(item.get("market_cap"), np.nan)
+    fdv = _safe_float(item.get("fully_diluted_valuation"), np.nan)
+
+    denominator = total if math.isfinite(total) and total > 0 else max_supply
+    supply_basis = "Total supply" if math.isfinite(total) and total > 0 else (
+        "Max supply" if math.isfinite(max_supply) and max_supply > 0 else "Unavailable"
+    )
+
+    circulating_pct = (
+        circulating / denominator * 100
+        if math.isfinite(circulating)
+        and math.isfinite(denominator)
+        and denominator > 0
+        else np.nan
+    )
+    fdv_mcap = (
+        fdv / market_cap
+        if math.isfinite(fdv) and fdv > 0
+        and math.isfinite(market_cap) and market_cap > 0
+        else np.nan
+    )
+
+    if math.isfinite(circulating_pct):
+        gate = "PASS" if circulating_pct >= 25.0 else "FAIL"
+    else:
+        gate = "UNKNOWN"
+
+    risks = []
+    if math.isfinite(circulating_pct) and circulating_pct < 25.0:
+        risks.append("Low float <25%")
+    if math.isfinite(fdv_mcap) and fdv_mcap >= 4.0:
+        risks.append("High FDV / low-float risk")
+    if not item:
+        risks.append("Tokenomics data unverified")
+
+    return {
+        "tokenomics_gate": gate,
+        "circulating_supply": circulating,
+        "total_supply": total,
+        "max_supply": max_supply,
+        "supply_basis": supply_basis,
+        "circulating_pct": round(float(circulating_pct), 1) if math.isfinite(circulating_pct) else np.nan,
+        "market_cap": market_cap,
+        "fdv": fdv,
+        "fdv_mcap": round(float(fdv_mcap), 2) if math.isfinite(fdv_mcap) else np.nan,
+        "tokenomics_risks": "; ".join(risks),
+        "coingecko_id": item.get("id") or "",
+        "vc_unlock_review": "UNVERIFIED — specialist unlock/allocation data required",
+    }
+
+
 def ohlcv_to_df(rows: list) -> pd.DataFrame:
     df = pd.DataFrame(rows, columns=["timestamp", "open", "high", "low", "close", "volume"])
     if df.empty:
@@ -1092,6 +1192,8 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
         btcd_df = ohlcv_to_df(btcd)
         result = score_setup(df4, dfd, btcdf, cfg, dfw=dfw, btcd=btcd_df)
         result["symbol"] = symbol
+        tokenomics = tokenomics_from_market(symbol, coingecko_tokenomics_snapshot())
+        result.update(tokenomics)
         return symbol, result, {"4h": df4, "1d": dfd, "1w": dfw}
     finally:
         await exchange.close()
@@ -1100,6 +1202,7 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
 async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]], List[str]]:
     deadline = asyncio.get_running_loop().time() + 300
     universe, _, _ = await asyncio.wait_for(fetch_market_universe(cfg), timeout=45)
+    tokenomics_snapshot = await asyncio.to_thread(coingecko_tokenomics_snapshot)
     cls = getattr(ccxt, cfg.exchange_id)
     exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
     errors: List[str] = []
@@ -1157,6 +1260,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                         errors.append(f"{symbol}: {result.get('reason', 'Could not score market data')}")
                     result["symbol"] = symbol
                     result["quote_volume_24h"] = qv
+                    result.update(tokenomics_from_market(symbol, tokenomics_snapshot))
                     return result
                 except Exception as e:
                     errors.append(f"{symbol}: {type(e).__name__}: {e}")
@@ -1229,6 +1333,14 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Market trend": r.get("market_trend", "UNAVAILABLE"),
                 "Coin trend detail": r.get("coin_trend_detail", ""),
                 "Market trend detail": r.get("market_trend_detail", ""),
+                "Tokenomics gate": r.get("tokenomics_gate", "UNKNOWN"),
+                "Circulating %": r.get("circulating_pct", np.nan),
+                "Supply basis": r.get("supply_basis", "Unavailable"),
+                "FDV": r.get("fdv", np.nan),
+                "Market cap": r.get("market_cap", np.nan),
+                "FDV / MCap": r.get("fdv_mcap", np.nan),
+                "Tokenomics risks": r.get("tokenomics_risks", ""),
+                "VC / unlock review": r.get("vc_unlock_review", "UNVERIFIED"),
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
@@ -1555,12 +1667,15 @@ def live_scan():
         (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
         & (df["Score"] >= cfg.score_threshold)
     ].copy().sort_values("Score", ascending=False)
+    tokenomics_qualified_setups = technical_swing_setups[
+        technical_swing_setups["Tokenomics gate"] == "PASS"
+    ].copy()
     macro_now = st.session_state.get("macro_liquidity") or {}
     macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
     swing_setups = (
-        technical_swing_setups
+        tokenomics_qualified_setups
         if macro_allows_new_risk
-        else technical_swing_setups.iloc[0:0].copy()
+        else tokenomics_qualified_setups.iloc[0:0].copy()
     )
     accumulation_setups = df[
         df["Accumulation verdict"] == "ACCUMULATION READY"
@@ -1579,11 +1694,26 @@ def live_scan():
             if row["Status"] == "BUY"
             else (
                 (
+                    (
+                        "Technical setup qualifies, but tokenomics need review: "
+                        + (
+                            "circulating float is below the 25% rule. "
+                            if row.get("Tokenomics gate") == "FAIL"
+                            else "circulating/total supply could not be verified. "
+                        )
+                    )
+                    if (
+                        row["Symbol"] in set(technical_swing_setups["Symbol"])
+                        and row.get("Tokenomics gate") != "PASS"
+                    )
+                    else ""
+                )
+                + (
                     f"Technical setup qualifies, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')} "
                     f"({macro_now.get('score', np.nan):.1f}/100). "
                     if (
-                        row["Symbol"] in set(technical_swing_setups["Symbol"])
+                        row["Symbol"] in set(tokenomics_qualified_setups["Symbol"])
                         and not macro_allows_new_risk
                         and pd.notna(macro_now.get("score", np.nan))
                     )
@@ -1664,15 +1794,24 @@ def live_scan():
         st.caption(
             f"All {len(df)} analysed coins are shown. BUY requires a trade score of "
             f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
-            "A technical qualifier is only promoted to BUY when the macro-liquidity "
-            "regime is not deteriorating/contracting. WAIT candidates remain visible with their reasons. "
+            "A technical qualifier is only promoted to BUY when circulating supply is at least "
+            "25% of total/max supply and the macro-liquidity regime is not deteriorating/contracting. "
+            "Unknown tokenomics remain WAIT rather than passing by assumption. "
+            "WAIT candidates remain visible with their reasons. "
             "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
-            if not technical_swing_setups.empty and not macro_allows_new_risk:
+            tokenomics_blocked = len(technical_swing_setups) - len(tokenomics_qualified_setups)
+            if tokenomics_blocked > 0:
                 st.info(
-                    f"{len(technical_swing_setups)} technical setup(s) currently meet the "
-                    f"{cfg.score_threshold}+ and 30% target rules, but macro liquidity is "
+                    f"{tokenomics_blocked} technical setup(s) currently qualify technically "
+                    "but remain WAIT because the 25% circulating-supply tokenomics gate "
+                    "fails or cannot be verified."
+                )
+            elif not tokenomics_qualified_setups.empty and not macro_allows_new_risk:
+                st.info(
+                    f"{len(tokenomics_qualified_setups)} technical setup(s) currently meet the "
+                    f"{cfg.score_threshold}+, 30% target and tokenomics rules, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
                 )
             else:
@@ -1681,7 +1820,7 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Coin trend", "Market trend", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
+            "Coin", "Status", "Coin trend", "Market trend", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
             "Invalidation", "First resistance target", "Sell target",
@@ -1693,6 +1832,16 @@ def live_scan():
                 lambda value, column=trend_column: scan_cell_style(value, column),
                 subset=[trend_column],
             )
+        styled_swing = styled_swing.map(
+            lambda value: (
+                "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                if str(value) == "PASS"
+                else "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+                if str(value) == "FAIL"
+                else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+            ),
+            subset=["Tokenomics gate"],
+        )
         for column in [
             "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
         ]:
@@ -1705,6 +1854,8 @@ def live_scan():
             use_container_width=True,
             hide_index=True,
             column_config={
+                "Circulating %": st.column_config.NumberColumn(format="%.1f%%"),
+                "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
                 "Macro score": st.column_config.ProgressColumn(
                     "Macro liquidity", min_value=0, max_value=100, format="%.1f"
                 ),
@@ -1741,7 +1892,7 @@ def live_scan():
         if accumulation_setups.empty:
             st.info("No coin currently meets the confirmed accumulation rules.")
         accumulation_cols = [
-            "Coin", "Status", "Coin trend", "Market trend", "Accumulation score", "Reason", "Price", "Accumulation signal",
+            "Coin", "Status", "Coin trend", "Market trend", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
             "Accumulation low", "Accumulation high", "In accumulation zone",
             "Cycle accumulation low", "Cycle accumulation high",
             "In cycle accumulation zone", "4Y cycle position %",
@@ -1763,11 +1914,23 @@ def live_scan():
                 lambda value, column=trend_column: scan_cell_style(value, column),
                 subset=[trend_column],
             )
+        styled_accumulation = styled_accumulation.map(
+            lambda value: (
+                "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                if str(value) == "PASS"
+                else "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+                if str(value) == "FAIL"
+                else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+            ),
+            subset=["Tokenomics gate"],
+        )
         st.dataframe(
             styled_accumulation,
             use_container_width=True,
             hide_index=True,
             column_config={
+                "Circulating %": st.column_config.NumberColumn(format="%.1f%%"),
+                "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
                 "Accumulation score": st.column_config.ProgressColumn(
                     "Accumulation score",
                     min_value=0,
@@ -1832,15 +1995,30 @@ if qa:
         st.warning(qa_result.get("reason", "Not enough market data to score this coin."))
     else:
         macro_now = st.session_state.get("macro_liquidity") or {}
-        if qa_result.get("eligible") and macro_now.get("allows_new_swing_risk", True):
+        tokenomics_gate = qa_result.get("tokenomics_gate", "UNKNOWN")
+        if (
+            qa_result.get("eligible")
+            and tokenomics_gate == "PASS"
+            and macro_now.get("allows_new_swing_risk", True)
+        ):
             st.success(
-                "TRADE QUALIFIES: technical pre-breakout rules pass and the "
-                "macro-liquidity regime allows new swing risk."
+                "TRADE QUALIFIES: technical pre-breakout rules pass, circulating supply "
+                "meets the 25% tokenomics rule, and macro liquidity allows new swing risk."
+            )
+        elif qa_result.get("eligible") and tokenomics_gate != "PASS":
+            st.warning(
+                "TECHNICAL QUALIFIER — TOKENOMICS WAIT: "
+                + (
+                    "circulating supply is below 25% of total/max supply."
+                    if tokenomics_gate == "FAIL"
+                    else "circulating versus total/max supply could not be verified."
+                )
             )
         elif qa_result.get("eligible"):
             st.warning(
                 "TECHNICAL QUALIFIER — MACRO WAIT: the setup passes the pre-breakout "
-                f"rules, but macro liquidity is {macro_now.get('regime', 'DATA LIMITED')} "
+                f"rules and tokenomics gate, but macro liquidity is "
+                f"{macro_now.get('regime', 'DATA LIMITED')} "
                 f"({macro_now.get('score', np.nan):.1f}/100)."
             )
         elif qa_result.get("shape_eligible"):
@@ -1870,6 +2048,20 @@ if qa:
             f"Coin trend: {qa_result.get('coin_trend_detail', '')} · "
             f"Market trend: {qa_result.get('market_trend_detail', '')}"
         )
+
+        tok1, tok2, tok3, tok4 = st.columns(4)
+        tok1.metric("Tokenomics gate", qa_result.get("tokenomics_gate", "UNKNOWN"))
+        circ_pct = qa_result.get("circulating_pct", np.nan)
+        tok2.metric(
+            "Circulating / supply",
+            f"{circ_pct:.1f}%" if pd.notna(circ_pct) else "Unavailable",
+            qa_result.get("supply_basis", ""),
+        )
+        fdv_mcap = qa_result.get("fdv_mcap", np.nan)
+        tok3.metric("FDV / Market cap", f"{fdv_mcap:.2f}x" if pd.notna(fdv_mcap) else "Unavailable")
+        tok4.metric("VC / unlock review", "Needs verification")
+        if qa_result.get("tokenomics_risks"):
+            st.caption("Tokenomics risks: " + qa_result["tokenomics_risks"])
 
         qa_row = pd.Series({
             "Breakout": qa_result["resistance"],
@@ -2111,6 +2303,10 @@ The score measures **technical setup quality, not probability of success or expe
 #### Trend regime — directional context
 
 Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+
+#### Tokenomics gate — supply quality
+
+For altcoin BUY decisions, the scanner now requires **at least 25% of total supply (or max supply when total supply is unavailable) to be circulating**. Below 25% is treated as low float and remains WAIT; missing supply data is UNKNOWN and also remains WAIT rather than being assumed safe. The scanner also flags **FDV / market-cap ratios of 4x or more** as high-FDV/low-float risk. Detailed VC allocations and future insider unlock schedules require a specialist verified dataset and are shown as needing separate verification rather than guessed.
 
 #### BUY score — pre-breakout swing-trade quality
 
