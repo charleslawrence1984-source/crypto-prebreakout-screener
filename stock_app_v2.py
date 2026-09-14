@@ -136,7 +136,10 @@ src = src.replace(
                 "Valuation rating": fund["valuation_label"],
                 "Sector": fund.get("sector") or "—",
                 "Industry": fund.get("industry") or "—",
-                "Exchange Country": fund.get("exchange_country") or "Other / Unknown",''',
+                "Exchange Country": fund.get("exchange_country") or "Other / Unknown",
+                "Candle caution": "CAUTION" if tech_full.get("candle_caution") else "CLEAR",
+                "Last candle": tech_full.get("candle_pattern", "UNAVAILABLE"),
+                "Candle detail": tech_full.get("candle_detail", ""),''',
 )
 
 src = src.replace(
@@ -373,7 +376,11 @@ src = src.replace(
                 "Strong now": bool(row["Strong now"]),''',
 '''                "Preferred now": bool(row["Preferred now"]),
                 "Strong now": bool(row["Strong now"]),
-                "Signal": signal_label(float(row["Trade"]), float(row["R:R"]), bool(row["Preferred now"]), bool(row["Strong now"])),'''
+                "Signal": signal_label(
+                    float(row["Trade"]), float(row["R:R"]),
+                    bool(row["Preferred now"]), bool(row["Strong now"]),
+                    row.get("Candle caution", "CLEAR") == "CAUTION",
+                ),'''
 )
 
 src = src.replace(
@@ -393,7 +400,8 @@ src = src.replace(
                             r["Upside %"] >= 10 and
                             (bool(r["Preferred now"]) or bool(r["Strong now"])) and
                             r["1Y Hold"] >= 70 and
-                            r["Valuation"] >= 10
+                            r["Valuation"] >= 10 and
+                            r.get("Candle caution", "CLEAR") != "CAUTION"
                         ) else "WAIT",
                         axis=1,
                     )
@@ -419,7 +427,8 @@ src = src.replace(
                     with lane1:
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
                         trade_display = trade_ranked[[
-                            "Ticker", "Exchange Country", "Sector", "Industry", "Trade Action", "Trade", "1Y Hold", "Valuation", "Valuation rating",
+                            "Ticker", "Exchange Country", "Sector", "Industry", "Trade Action",
+                            "Candle caution", "Last candle", "Trade", "1Y Hold", "Valuation", "Valuation rating",
                             "Price", "Preferred entry", "Strong entry", "Target", "Invalidation",
                             "Upside %", "R:R"
                         ]].rename(columns={
@@ -460,7 +469,8 @@ src = src.replace(
                             axis=1,
                         )
                         investment_display = invest_ranked[[
-                            "Ticker", "Exchange Country", "Sector", "Industry", "Investment Action", "LT Compounder", "LT Entry",
+                            "Ticker", "Exchange Country", "Sector", "Industry", "Investment Action",
+                            "Candle caution", "Last candle", "LT Compounder", "LT Entry",
                             "Valuation", "Valuation rating", "Price", "Preferred entry",
                             "Strong entry", "Positive Exit Target", "Investment ROI %", "Invalidation", "1Y Hold"
                         ]].rename(columns={
@@ -521,6 +531,12 @@ src = src.replace(
 src = src.replace(
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.''',
 '''**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.
+
+**Daily candle execution caution**
+- A **red shooting star on the latest completed daily candle** is treated as seller-rejection risk.
+- A new TRADE entry remains **WAIT** until price confirms that the rejection has been absorbed.
+- The raw technical score is not reduced; this is a separate execution gate.
+- In the 20–30 year INVESTMENT lane it is shown only as entry-timing context.
 
 **Validated trade signal rule**
 - **80–84:** WATCH
