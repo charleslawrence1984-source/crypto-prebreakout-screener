@@ -2585,10 +2585,33 @@ def live_scan():
     swing_candidates["_freshness_rank"] = swing_candidates["Project freshness"].map(
         {"NEW": 0, "RECENT": 1, "MATURE": 2, "LEGACY": 3, "UNKNOWN": 4}
     ).fillna(4)
+
+    def _channel_rank(row):
+        direction = str(row.get("4h Channel", "UNAVAILABLE"))
+        quality = str(row.get("4h Channel quality", "LOW"))
+        pos = _safe_float(row.get("4h Channel pos %"), np.nan)
+        state = str(row.get("4h Channel state", "NONE"))
+        if direction == "RISING" and quality in ("HIGH", "MEDIUM") and math.isfinite(pos) and 10 <= pos <= 65:
+            return 0
+        if state == "ABOVE CHANNEL":
+            return 1
+        if direction == "SIDEWAYS" and quality in ("HIGH", "MEDIUM") and math.isfinite(pos) and pos <= 55:
+            return 1
+        if direction == "RISING" and math.isfinite(pos) and pos <= 85:
+            return 2
+        if direction == "SIDEWAYS":
+            return 3
+        if direction == "RISING":
+            return 4
+        if direction == "FALLING":
+            return 5
+        return 6
+
+    swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "_leader_rank", "_catalyst_rank", "_freshness_rank", "Score"],
-        ascending=[True, True, True, True, False],
-    ).drop(columns=["_leader_rank", "_catalyst_rank", "_freshness_rank"])
+        ["Status", "_leader_rank", "_catalyst_rank", "_channel_rank", "_freshness_rank", "Score"],
+        ascending=[True, True, True, True, True, False],
+    ).drop(columns=["_leader_rank", "_catalyst_rank", "_channel_rank", "_freshness_rank"])
     accumulation_candidates = df.copy()
     accumulation_candidates["Status"] = np.where(
         accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
