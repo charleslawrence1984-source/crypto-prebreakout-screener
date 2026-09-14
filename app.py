@@ -2999,7 +2999,9 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Candle caution", "Last 4h candle",
+            "Coin", "Status", "Pattern", "Triangle score", "Triangle touches",
+            "Triangle compression %", "Candle caution", "Last 4h candle",
+            "SMA regime", "SMA50", "SMA200", "Price vs SMA50 %", "Price vs SMA200 %",
             "4h Channel", "4h Channel pos %", "4h Channel support",
             "4h Channel resistance", "4h Channel R:R", "4h Channel quality",
             "Daily Channel", "Daily Channel pos %", "Price", "Entry Price",
