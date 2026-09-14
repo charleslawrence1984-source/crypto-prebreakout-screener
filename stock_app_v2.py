@@ -617,8 +617,23 @@ src = src.replace(
                             "Invalidation": "Negative Exit / Reassess",
                             "1Y Hold": "12M Fundamentals",
                         })
+                        investment_style_cols = [
+                            "Action", "Candle caution", "RSI", "BB regime",
+                            "Channel", "Channel quality", "Long-Term Quality",
+                            "Entry Quality", "Valuation", "Investment ROI %",
+                            "12M Fundamentals",
+                        ]
+                        investment_styled = investment_display.style
+                        for _col in investment_style_cols:
+                            if _col in investment_display.columns:
+                                investment_styled = investment_styled.map(
+                                    lambda value, col=_col: _traffic_style(value, col, "investment"),
+                                    subset=[_col],
+                                )
+
+                        st.caption("Colour key: 🟢 good / target met · 🟠 acceptable or borderline · 🔴 weak / target not met")
                         st.dataframe(
-                            investment_display,
+                            investment_styled,
                             hide_index=True,
                             use_container_width=True,
                         )
