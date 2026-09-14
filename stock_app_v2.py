@@ -127,7 +127,9 @@ src = src.replace(
                 "LT Entry": lt_entry["long_term_entry_score"],
                 "Strategy": strategy,
                 "Valuation": fund["valuation_score"],
-                "Valuation rating": fund["valuation_label"],''',
+                "Valuation rating": fund["valuation_label"],
+                "Sector": fund.get("sector") or "—",
+                "Industry": fund.get("industry") or "—",''',
 )
 
 src = src.replace(
@@ -388,7 +390,7 @@ src = src.replace(
                     with lane1:
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
                         trade_display = trade_ranked[[
-                            "Ticker", "Trade Action", "Trade", "1Y Hold", "Valuation", "Valuation rating",
+                            "Ticker", "Sector", "Industry", "Trade Action", "Trade", "1Y Hold", "Valuation", "Valuation rating",
                             "Price", "Preferred entry", "Strong entry", "Target", "Invalidation",
                             "Upside %", "R:R"
                         ]].rename(columns={
@@ -429,7 +431,7 @@ src = src.replace(
                             axis=1,
                         )
                         investment_display = invest_ranked[[
-                            "Ticker", "Investment Action", "LT Compounder", "LT Entry",
+                            "Ticker", "Sector", "Industry", "Investment Action", "LT Compounder", "LT Entry",
                             "Valuation", "Valuation rating", "Price", "Preferred entry",
                             "Strong entry", "Positive Exit Target", "Investment ROI %", "Invalidation", "1Y Hold"
                         ]].rename(columns={
@@ -580,6 +582,8 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                 lt_rows.append({
                     "Ticker": sym,
                     "Company": fund.get("name", sym),
+                    "Sector": fund.get("sector") or lt.get("sector") or "—",
+                    "Industry": fund.get("industry") or lt.get("industry") or "—",
                     "LT Compounder": lt["long_term_score"],
                     "LT Entry": entry["long_term_entry_score"],
                     "Strategy": strat,
@@ -659,7 +663,7 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
 
             st.dataframe(
                 lt_df[[
-                    "Ticker", "Company", "LT Compounder", "LT Entry", "Strategy",
+                    "Ticker", "Sector", "Industry", "Company", "LT Compounder", "LT Entry", "Strategy",
                     "Valuation", "Valuation rating", "1Y Hold", "Swing", "Signal",
                     "Revenue CAGR %", "Earnings CAGR %", "FCF/share CAGR %",
                     "ROIC %", "ROE %", "Operating margin %", "Dilution CAGR %",
