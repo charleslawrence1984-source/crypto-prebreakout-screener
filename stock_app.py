@@ -81,6 +81,71 @@ def atr(df: pd.DataFrame, n: int = 14) -> pd.Series:
     return tr.ewm(alpha=1/n, adjust=False).mean()
 
 
+def latest_completed_daily_candle_signal(df: pd.DataFrame) -> Dict:
+    if df is None or df.empty or len(df) < 2:
+        return {
+            "candle_pattern": "UNAVAILABLE",
+            "candle_caution": False,
+            "candle_detail": "Not enough daily candle history",
+        }
+
+    x = df.dropna(subset=["Open", "High", "Low", "Close"]).copy()
+    if len(x) < 2:
+        return {
+            "candle_pattern": "UNAVAILABLE",
+            "candle_caution": False,
+            "candle_detail": "Not enough completed daily candles",
+        }
+
+    idx = pd.to_datetime(x.index, errors="coerce", utc=True)
+    today_utc = pd.Timestamp.now(tz="UTC").normalize()
+    if len(idx) and pd.notna(idx[-1]) and idx[-1].normalize() >= today_utc:
+        candle = x.iloc[-2]
+    else:
+        candle = x.iloc[-1]
+
+    o = safe(candle["Open"])
+    h = safe(candle["High"])
+    l = safe(candle["Low"])
+    close = safe(candle["Close"])
+    candle_range = max(h - l, 0.0)
+
+    if candle_range <= 0:
+        return {
+            "candle_pattern": "OTHER",
+            "candle_caution": False,
+            "candle_detail": "Flat completed daily candle",
+        }
+
+    body = abs(close - o)
+    upper_wick = h - max(o, close)
+    lower_wick = min(o, close) - l
+    red = close < o
+
+    shooting_star = (
+        red
+        and body / candle_range <= 0.35
+        and upper_wick >= max(body * 2.0, candle_range * 0.45)
+        and lower_wick <= candle_range * 0.20
+    )
+
+    if shooting_star:
+        return {
+            "candle_pattern": "RED SHOOTING STAR",
+            "candle_caution": True,
+            "candle_detail": (
+                f"Latest completed daily candle rejected higher prices: "
+                f"upper wick {upper_wick / candle_range * 100:.0f}% of range; red close."
+            ),
+        }
+
+    return {
+        "candle_pattern": "OTHER",
+        "candle_caution": False,
+        "candle_detail": "No red shooting-star warning on latest completed daily candle",
+    }
+
+
 def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     if df is None or len(df) < 80:
         return None
@@ -88,6 +153,8 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     df = df.dropna(subset=["Open", "High", "Low", "Close", "Volume"]).copy()
     if len(df) < 80:
         return None
+
+    candle_signal = latest_completed_daily_candle_signal(df)
 
     close = df["Close"]
     df["SMA20"] = close.rolling(20).mean()
@@ -238,6 +305,9 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
         "avg_turnover": avg_turnover,
         "in_preferred_zone": bool(preferred_low <= price <= preferred_high),
         "in_strong_zone": bool(strong_low <= price <= strong_high),
+        "candle_pattern": candle_signal["candle_pattern"],
+        "candle_caution": bool(candle_signal["candle_caution"]),
+        "candle_detail": candle_signal["candle_detail"],
     }
 
 
@@ -683,6 +753,9 @@ def technical_market_scan(symbols_tuple: tuple[str, ...], max_symbols: int, min_
                     "Target": tech["swing_target"],
                     "Preferred now": tech["in_preferred_zone"],
                     "Strong now": tech["in_strong_zone"],
+                    "Candle caution": "CAUTION" if tech.get("candle_caution") else "CLEAR",
+                    "Last candle": tech.get("candle_pattern", "UNAVAILABLE"),
+                    "Candle detail": tech.get("candle_detail", ""),
                 })
             except Exception:
                 continue
