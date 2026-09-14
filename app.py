@@ -1724,7 +1724,6 @@ def live_scan():
                     )
                     else ""
                 )
-                )
                 + (
                     f"Technical setup qualifies, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')} "
