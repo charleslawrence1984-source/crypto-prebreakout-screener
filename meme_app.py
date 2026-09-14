@@ -996,7 +996,22 @@ if st.button("Run meme coin scan", type="primary", use_container_width=True):
             "Pair Age h", "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
         ]
         st.subheader("Ranked candidates")
-        st.dataframe(df[main_cols], hide_index=True, use_container_width=True)
+        meme_display = df[main_cols]
+        meme_styled = meme_display.style
+        for _col in [
+            "Decision", "Score", "Narrative Strength", "Narrative Score",
+            "Community Strength", "Community Score", "Social Breadth",
+            "Gate", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate",
+            "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
+            "Buy %", "1h %", "6h %", "24h %", "Pair Age h",
+        ]:
+            if _col in meme_display.columns:
+                meme_styled = meme_styled.map(
+                    lambda value, col=_col: meme_cell_style(value, col),
+                    subset=[_col],
+                )
+        st.caption("Colour key: 🟢 strong / healthy · 🟠 acceptable or watch · 🔴 weak / higher risk")
+        st.dataframe(meme_styled, hide_index=True, use_container_width=True)
 
         st.subheader("Community / discovery detail")
         community_cols = [
