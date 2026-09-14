@@ -10,6 +10,7 @@ import ccxt.async_support as ccxt
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
+import requests
 import streamlit as st
 
 
@@ -132,12 +133,15 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
     distance_pct = (resistance - price) / price * 100
     breakout_pct = (price - resistance) / resistance * 100
 
+    # Keep scoring even when the strict pre-breakout shape fails. The broad scan
+    # still excludes these coins, while Quick analyse can explain the full setup.
+    shape_rejection = None
     if breakout_pct > cfg.too_late_pct:
-        return {"eligible": False, "reason": "Too late / already broken out", "price": price, "resistance": resistance}
-    if distance_pct < -0.05:
-        return {"eligible": False, "reason": "Already above resistance", "price": price, "resistance": resistance}
-    if distance_pct > cfg.near_resistance_max_pct:
-        return {"eligible": False, "reason": "Too far below resistance", "price": price, "resistance": resistance}
+        shape_rejection = "Too late / already broken out"
+    elif distance_pct < -0.05:
+        shape_rejection = "Already above resistance"
+    elif distance_pct > cfg.near_resistance_max_pct:
+        shape_rejection = "Too far below resistance"
 
     # 1) Price structure: higher lows + repeated resistance tests + EMA structure (20 pts)
     lows_slope = lin_slope(recent["low"])
@@ -256,7 +260,7 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
 
     return {
         "eligible": bool(eligible),
-        "reason": "Pre-breakout candidate" if eligible else "Shape filter not met",
+        "reason": "Pre-breakout candidate" if eligible else (shape_rejection or "Shape filter not met"),
         "score": total,
         "price": price,
         "resistance": resistance,
@@ -315,6 +319,98 @@ async def fetch_market_universe(cfg: ScreenerConfig) -> Tuple[List[Tuple[str, fl
             candidates.append((symbol, qv))
         candidates.sort(key=lambda z: z[1], reverse=True)
         return candidates[: cfg.universe_size], markets, tickers
+    finally:
+        await exchange.close()
+
+
+def coingecko_symbol_candidates(query: str) -> List[str]:
+    """Resolve a typed coin name to likely ticker symbols."""
+    try:
+        response = requests.get(
+            "https://api.coingecko.com/api/v3/search",
+            params={"query": query},
+            headers={"User-Agent": "pre-breakout-screener/1.0"},
+            timeout=10,
+        )
+        response.raise_for_status()
+        coins = response.json().get("coins", [])
+    except Exception:
+        return []
+
+    query_lower = query.strip().lower()
+    ranked = sorted(
+        coins[:20],
+        key=lambda coin: (
+            0 if str(coin.get("name", "")).lower() == query_lower else
+            1 if str(coin.get("symbol", "")).lower() == query_lower else
+            2,
+            coin.get("market_cap_rank") or 10**9,
+        ),
+    )
+    symbols: List[str] = []
+    for coin in ranked:
+        symbol = str(coin.get("symbol", "")).upper().strip()
+        if symbol and symbol not in symbols:
+            symbols.append(symbol)
+    return symbols
+
+
+async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str, Dict, Dict[str, pd.DataFrame]]:
+    cls = getattr(ccxt, cfg.exchange_id)
+    exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+    try:
+        markets = await exchange.load_markets()
+        typed = query.strip().upper().replace("-", "/")
+        if typed.endswith(f"/{cfg.quote}"):
+            requested_base = typed.rsplit("/", 1)[0]
+        else:
+            requested_base = typed.split("/", 1)[0]
+
+        eligible_markets = {
+            symbol: market for symbol, market in markets.items()
+            if market.get("spot")
+            and market.get("active") is not False
+            and market.get("quote") == cfg.quote
+        }
+
+        direct = [
+            symbol for symbol, market in eligible_markets.items()
+            if str(market.get("base", "")).upper() == requested_base
+            or symbol.upper() == typed
+            or str(market.get("id", "")).upper() == typed.replace("/", "")
+        ]
+
+        if direct:
+            symbol = direct[0]
+        else:
+            bases = await asyncio.to_thread(coingecko_symbol_candidates, query)
+            symbol = next(
+                (
+                    market_symbol
+                    for base in bases
+                    for market_symbol, market in eligible_markets.items()
+                    if str(market.get("base", "")).upper() == base
+                ),
+                "",
+            )
+
+        if not symbol:
+            raise ValueError(
+                f"Could not find {query!r} as an active {cfg.quote} spot market on "
+                f"{exchange.name}. Try its ticker, for example SOL."
+            )
+
+        coin4, coind, btc4 = await asyncio.gather(
+            exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180),
+            exchange.fetch_ohlcv(symbol, timeframe="1d", limit=90),
+            exchange.fetch_ohlcv(f"BTC/{cfg.quote}", timeframe="4h", limit=180),
+        )
+        df4 = ohlcv_to_df(coin4)
+        dfd = ohlcv_to_df(coind)
+        btcdf = ohlcv_to_df(btc4)
+        result = score_setup(df4, dfd, btcdf, cfg)
+        result["symbol"] = symbol
+        return symbol, result, {"4h": df4, "1d": dfd}
     finally:
         await exchange.close()
 
@@ -606,6 +702,89 @@ def live_scan():
     )
 
 live_scan()
+
+st.divider()
+st.subheader("Quick analyse")
+st.caption("Search any active coin on the selected exchange, even if it did not appear in the main scan.")
+
+if "quick_analysis" not in st.session_state:
+    st.session_state.quick_analysis = None
+
+qa_input_col, qa_button_col = st.columns([4, 1])
+with qa_input_col:
+    quick_query = st.text_input(
+        "Ticker or coin name",
+        placeholder="For example: SOL, SOL/USDT or Solana",
+        key="quick_query",
+    )
+with qa_button_col:
+    st.write("")
+    st.write("")
+    run_quick_analysis = st.button("Analyse", type="primary", use_container_width=True)
+
+if run_quick_analysis:
+    if not quick_query.strip():
+        st.warning("Enter a ticker or coin name first.")
+    else:
+        with st.spinner(f"Analysing {quick_query.strip()}…"):
+            try:
+                qa_symbol, qa_result, qa_raw = asyncio.run(analyse_individual_coin(cfg, quick_query))
+                st.session_state.quick_analysis = {
+                    "symbol": qa_symbol,
+                    "result": qa_result,
+                    "raw": qa_raw,
+                    "exchange": exchange_name,
+                }
+            except Exception as e:
+                st.session_state.quick_analysis = None
+                st.error(f"{type(e).__name__}: {e}")
+
+qa = st.session_state.quick_analysis
+if qa:
+    qa_result = qa["result"]
+    qa_symbol = qa["symbol"]
+    st.markdown(f"### {qa_symbol.split('/')[0]} on {qa['exchange']}")
+
+    if "score" not in qa_result:
+        st.warning(qa_result.get("reason", "Not enough market data to score this coin."))
+    else:
+        if qa_result.get("eligible"):
+            st.success("This coin currently matches the pre-breakout shape filter.")
+        else:
+            st.warning("Not currently a qualifying setup: " + qa_result.get("reason", "Shape filter not met"))
+
+        q1, q2, q3, q4 = st.columns(4)
+        q1.metric("Score", f"{qa_result['score']:.1f}/100")
+        q2.metric("Price", fmt_price(qa_result["price"]))
+        q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
+        q4.metric("RSI", f"{qa_result['rsi']:.1f}")
+
+        qa_row = pd.Series({
+            "Breakout": qa_result["resistance"],
+            "Invalidation": qa_result["invalidation"],
+            "Entry low": qa_result["entry_low"],
+            "Entry high": qa_result["entry_high"],
+        })
+        if not qa["raw"]["4h"].empty:
+            qa_chart_key = "quick_chart_" + qa_symbol.replace("/", "_").replace(":", "_")
+            st.plotly_chart(
+                make_chart(qa["raw"]["4h"], qa_row),
+                use_container_width=True,
+                key=qa_chart_key,
+            )
+
+        l1, l2, l3, l4 = st.columns(4)
+        l1.metric("Entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}")
+        l2.metric("Breakout level", fmt_price(qa_result["resistance"]))
+        l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
+        l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
+
+        qa_components = qa_result["components"]
+        qa_comp_df = pd.DataFrame({
+            "Factor": list(qa_components.keys()),
+            "Points": list(qa_components.values()),
+        })
+        st.bar_chart(qa_comp_df.set_index("Factor"), horizontal=True)
 
 st.divider()
 st.subheader("Inspect a setup")
