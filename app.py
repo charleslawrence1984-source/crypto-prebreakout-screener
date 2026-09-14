@@ -38,7 +38,7 @@ class ScreenerConfig:
     resistance_lookback: int = 30
     near_resistance_min_pct: float = 0.15
     near_resistance_max_pct: float = 5.0
-    score_threshold: int = 75
+    score_threshold: int = 80
     too_late_pct: float = 2.0
     max_rsi: float = 69.0
     min_gross_profit_pct: float = 30.0
@@ -927,7 +927,7 @@ with st.sidebar:
     exchange_name = st.selectbox("Exchange", list(EXCHANGES.keys()), index=2)
     universe_size = st.select_slider("Top liquid coins to scan", options=[25, 50, 75, 100, 150], value=50)
     min_vol_m = st.number_input("Minimum 24h quote volume ($m)", min_value=1.0, max_value=500.0, value=5.0, step=1.0)
-    threshold = st.slider("Flag score", 60, 95, 80, 1)
+    threshold = st.slider("Minimum BUY score", 80, 95, 80, 1)
     max_distance = st.slider("Maximum distance below resistance (%)", 1.0, 8.0, 5.0, 0.25)
     max_rsi = st.slider("Maximum RSI", 60, 75, 69, 1)
     refresh_minutes = st.selectbox("Auto-refresh", [2, 5, 10, 15, 30], index=1, format_func=lambda x: f"Every {x} min")
