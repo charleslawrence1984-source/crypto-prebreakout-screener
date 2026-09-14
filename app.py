@@ -3377,6 +3377,12 @@ if not scan_df.empty:
     if row.get("Candle detail"):
         st.caption(str(row.get("Candle detail")))
 
+    channel1, channel2, channel3, channel4 = st.columns(4)
+    channel1.metric("4h channel", row.get("4h Channel", "UNAVAILABLE"))
+    channel2.metric("Channel position", row.get("4h Channel pos %", "Unavailable"))
+    channel3.metric("Channel quality", row.get("4h Channel quality", "LOW"))
+    channel4.metric("Channel R:R", row.get("4h Channel R:R", "Unavailable"))
+
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Pre-breakout entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}", row["Entry basis"])
     m2.metric("Breakout level", fmt_price(row["Breakout"]))
