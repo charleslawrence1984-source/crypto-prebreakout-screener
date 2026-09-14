@@ -2082,7 +2082,18 @@ with st.sidebar:
         st.caption("Scans above 150 coins refresh at most every 10 minutes.")
     sound_alerts = st.checkbox("Sound alert for new flags", value=False, help="Browser autoplay usually works after you have interacted with the page once.")
     st.divider()
-    st.caption("No exchange API key is required. This dashboard only reads public market data.")
+    cmcal_connected = bool(_streamlit_secret("COINMARKETCAL_API_KEY"))
+    x_connected = bool(_streamlit_secret("X_BEARER_TOKEN"))
+    st.caption(
+        "Catalyst feeds: "
+        + ("CoinMarketCal connected" if cmcal_connected else "CoinMarketCal not connected")
+        + " · "
+        + ("X official-post search connected" if x_connected else "X search not connected")
+    )
+    st.caption(
+        "Exchange market data remains public/no-key. Optional catalyst credentials "
+        "must be stored in Streamlit Secrets, never in GitHub."
+    )
 
 cfg = ScreenerConfig(
     exchange_id=EXCHANGES[exchange_name],
@@ -2509,6 +2520,7 @@ def live_scan():
                 "RS vs BTC 30d %": st.column_config.NumberColumn(format="%.2f%%"),
                 "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
                 "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
+                "Catalyst days": st.column_config.NumberColumn(format="%.1f"),
                 "R:R": st.column_config.NumberColumn(format="%.2f"),
                 "Price": st.column_config.NumberColumn(format="%.8g"),
                 "Entry low": st.column_config.NumberColumn(format="%.8g"),
@@ -2750,6 +2762,64 @@ if qa:
             qa_result.get("leader_categories") or "None identified",
         )
 
+        cat1, cat2, cat3 = st.columns(3)
+        cat1.metric("Catalyst radar", qa_result.get("catalyst_status", "NOT CONNECTED"))
+        cat2.metric(
+            "Next catalyst",
+            qa_result.get("next_catalyst") or "None in available window",
+        )
+        cat3.metric(
+            "Catalyst date",
+            qa_result.get("catalyst_date") or "Unavailable",
+        )
+        if qa_result.get("catalyst_categories") or qa_result.get("catalyst_impact"):
+            st.caption(
+                f"CoinMarketCal category: {qa_result.get('catalyst_categories') or 'Unavailable'} · "
+                f"Impact: {qa_result.get('catalyst_impact') or 'Unavailable on current plan'}"
+            )
+
+        coin_id = qa_result.get("coingecko_id", "")
+        project_links = coingecko_project_links(coin_id)
+        official_x = project_links.get("twitter", "")
+        with st.expander("Information advantage — official sources"):
+            if official_x:
+                st.write(f"Official X: **@{official_x}**")
+            if project_links.get("homepage"):
+                st.write("Official website:", project_links["homepage"])
+            if project_links.get("github"):
+                st.write("GitHub:", project_links["github"])
+            if project_links.get("official_forum"):
+                st.write("Official forum:", project_links["official_forum"])
+
+            x_token = _streamlit_secret("X_BEARER_TOKEN")
+            x_posts, x_status = x_official_catalyst_posts(official_x, x_token)
+            st.caption(f"Official-X catalyst search: {x_status}")
+            if x_posts:
+                post_rows = []
+                for post in x_posts[:5]:
+                    metrics = post.get("public_metrics") or {}
+                    post_rows.append({
+                        "Created": post.get("created_at", ""),
+                        "Post": post.get("text", ""),
+                        "Likes": metrics.get("like_count", 0),
+                        "Reposts": metrics.get("retweet_count", 0),
+                    })
+                st.dataframe(
+                    pd.DataFrame(post_rows),
+                    hide_index=True,
+                    use_container_width=True,
+                )
+            elif official_x and not x_token:
+                st.info(
+                    "Add X_BEARER_TOKEN to Streamlit Secrets to search the official "
+                    "project account's last 7 days for planned announcements."
+                )
+            if qa_result.get("catalyst_status") == "NOT CONNECTED":
+                st.info(
+                    "Add COINMARKETCAL_API_KEY to Streamlit Secrets to activate the "
+                    "structured upcoming-event feed."
+                )
+
         qa_row = pd.Series({
             "Breakout": qa_result["resistance"],
             "Invalidation": qa_result["invalidation"],
@@ -2990,6 +3060,12 @@ The score measures **technical setup quality, not probability of success or expe
 #### Trend regime — directional context
 
 Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+
+#### Information advantage — upcoming catalyst radar
+
+Swing trades now have an **Upcoming Catalyst** layer. When a server-side CoinMarketCal API key is configured, the scanner pulls the upcoming event catalog once per scan and maps events to coins. Mainnet launches, releases, upgrades, integrations, listings, partnerships, roadmap items and similar near-dated events are labelled **HIGH CATALYST / CATALYST WATCH**; token unlock or vesting-style events are labelled **RISK EVENT**. Catalyst presence is a ranking advantage, not a hard BUY gate and not automatically bullish because markets can price events early or sell the news.
+
+Quick Analyse also exposes official project links and can search the **official X account's last 7 days** for planned-announcement language when an optional X bearer token is configured. X search is intentionally on-demand rather than run across the full universe.
 
 #### Category rotation — find the narrative before selecting the coin
 
