@@ -1974,6 +1974,10 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Catalyst categories": r.get("catalyst_categories", ""),
                 "Catalyst impact": r.get("catalyst_impact", ""),
                 "Price": r["price"],
+                "Entry Price": (r["entry_low"] + r["entry_high"]) / 2,
+                "Exit / Stop": r["invalidation"],
+                "Price Target": r["projected_target"],
+                "ROI %": r["target_upside_pct"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
                 "RSI": r["rsi"],
@@ -2537,6 +2541,8 @@ def live_scan():
             "regime is not deteriorating/contracting. "
             "Unknown tokenomics remain WAIT rather than passing by assumption. "
             "WAIT candidates remain visible with their reasons. "
+            "The first columns show the trade plan: current price, planned entry, stop/exit, "
+            "price target, projected ROI and reward/risk. "
             "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
@@ -2572,15 +2578,22 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Category leader", "Leader categories",
+            "Coin", "Status",
+            "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
+            "Entry low", "Entry high", "Breakout", "First resistance target", "Stretch target",
+            "Score", "Reason",
+            "Category leader", "Leader categories",
             "Project freshness", "History days", "Freshness score",
             "Catalyst status", "Next catalyst", "Catalyst date", "Catalyst days",
-            "Catalyst categories", "Catalyst impact", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
-            "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
-            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
-            "Entry low", "Entry high", "Entry basis", "Breakout",
-            "Invalidation", "First resistance target", "Sell target",
-            "Stretch target", "Target upside %", "Target basis",
+            "Catalyst categories", "Catalyst impact",
+            "Coin trend", "Market trend",
+            "Major CEX quality", "Major CEX count", "Major CEX listings",
+            "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks",
+            "Macro regime", "Macro score",
+            "To resistance %", "Tests", "RSI", "ATR ratio", "Vol ratio",
+            "RS vs BTC %", "RS vs BTC 96h %",
+            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
+            "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
         ]
         styled_swing = swing_candidates[swing_cols].style
         for trend_column in ["Coin trend", "Market trend"]:
@@ -2631,7 +2644,11 @@ def live_scan():
                     "Freshness", min_value=0, max_value=100, format="%.0f"
                 ),
                 "R:R": st.column_config.NumberColumn(format="%.2f"),
-                "Price": st.column_config.NumberColumn(format="%.8g"),
+                "Price": st.column_config.NumberColumn("Current Price", format="%.8g"),
+                "Entry Price": st.column_config.NumberColumn("Entry Price", format="%.8g"),
+                "Exit / Stop": st.column_config.NumberColumn("Exit / Stop", format="%.8g"),
+                "Price Target": st.column_config.NumberColumn("Price Target", format="%.8g"),
+                "ROI %": st.column_config.NumberColumn("ROI %", format="%.2f%%"),
                 "Entry low": st.column_config.NumberColumn(format="%.8g"),
                 "Entry high": st.column_config.NumberColumn(format="%.8g"),
                 "Breakout": st.column_config.NumberColumn(format="%.8g"),
