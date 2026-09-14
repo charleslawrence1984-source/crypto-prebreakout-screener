@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
-import streamlit.components.v1 as components
+import plotly.graph_objects as go
 
 
 st.set_page_config(page_title="Meme Coin Screener", page_icon="🐸", layout="wide")
@@ -204,6 +204,95 @@ def pair_age_hours(pair_created_at) -> float:
         return np.nan
     now_ms = datetime.now(timezone.utc).timestamp() * 1000
     return max(0.0, (now_ms - ts) / 3_600_000)
+
+
+GECKO_NETWORKS = {
+    "solana": "solana",
+    "base": "base",
+    "ethereum": "eth",
+    "bsc": "bsc",
+    "robinhood": "robinhood",
+    "arbitrum": "arbitrum",
+    "polygon": "polygon_pos",
+}
+
+CHART_TIMEFRAMES = {
+    "15m": ("minute", "15", 160),
+    "1h": ("hour", "1", 180),
+    "4h": ("hour", "4", 180),
+    "1d": ("day", "1", 180),
+}
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def fetch_pool_ohlcv(chain_id: str, pool_address: str, token_address: str, chart_tf: str) -> pd.DataFrame:
+    network = GECKO_NETWORKS.get(str(chain_id).lower(), str(chain_id).lower())
+    timeframe, aggregate, limit = CHART_TIMEFRAMES.get(chart_tf, CHART_TIMEFRAMES["1h"])
+    url = (
+        f"https://api.geckoterminal.com/api/v2/networks/{network}"
+        f"/pools/{pool_address}/ohlcv/{timeframe}"
+    )
+    params = {
+        "aggregate": aggregate,
+        "limit": limit,
+        "currency": "usd",
+        "token": token_address or "base",
+        "include_empty_intervals": "true",
+    }
+    headers = {
+        "User-Agent": HEADERS["User-Agent"],
+        "Accept": "application/json;version=20230203",
+    }
+    r = requests.get(url, params=params, headers=headers, timeout=20)
+    r.raise_for_status()
+    payload = r.json() or {}
+    rows = (((payload.get("data") or {}).get("attributes") or {}).get("ohlcv_list") or [])
+    if not rows:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(rows, columns=["timestamp", "open", "high", "low", "close", "volume"])
+    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s", utc=True)
+    for col in ["open", "high", "low", "close", "volume"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=["timestamp", "open", "high", "low", "close"]).sort_values("timestamp")
+    if df.empty:
+        return df
+
+    df["EMA20"] = df["close"].ewm(span=20, adjust=False).mean()
+    df["EMA50"] = df["close"].ewm(span=50, adjust=False).mean()
+    return df
+
+
+def meme_price_chart(df: pd.DataFrame, ticker: str, timeframe_label: str) -> go.Figure:
+    fig = go.Figure()
+    fig.add_trace(go.Candlestick(
+        x=df["timestamp"],
+        open=df["open"],
+        high=df["high"],
+        low=df["low"],
+        close=df["close"],
+        name=ticker,
+    ))
+    fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["EMA20"],
+        mode="lines",
+        name="EMA20",
+    ))
+    fig.add_trace(go.Scatter(
+        x=df["timestamp"],
+        y=df["EMA50"],
+        mode="lines",
+        name="EMA50",
+    ))
+    fig.update_layout(
+        height=560,
+        xaxis_rangeslider_visible=False,
+        margin=dict(l=10, r=10, t=45, b=10),
+        title=f"{ticker} — {timeframe_label} candles",
+        yaxis_title="Price (USD)",
+    )
+    return fig
 
 
 def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
@@ -470,14 +559,35 @@ if quick_query.strip():
             )
 
             pair_address = result.get("Pair Address") or ""
+            token_address = result.get("Token Address") or ""
             if pair_address and result.get("Chain"):
-                chart_url = (
-                    f"https://dexscreener.com/{result['Chain']}/{pair_address}"
-                    "?embed=1&info=0&theme=dark&trades=0"
-                )
                 st.subheader("Price Chart")
-                components.iframe(chart_url, height=560, scrolling=False)
-                st.caption("Interactive DexScreener chart for the exact trading pair selected above.")
+                chart_tf = st.selectbox(
+                    "Chart timeframe",
+                    list(CHART_TIMEFRAMES.keys()),
+                    index=1,
+                    key=f"meme_chart_tf_{result['Chain']}_{pair_address}",
+                )
+                try:
+                    chart_df = fetch_pool_ohlcv(
+                        result["Chain"],
+                        pair_address,
+                        token_address,
+                        chart_tf,
+                    )
+                    if chart_df.empty:
+                        st.info("No OHLCV candle history is available for this pair yet.")
+                    else:
+                        st.plotly_chart(
+                            meme_price_chart(chart_df, result["Ticker"], chart_tf),
+                            use_container_width=True,
+                        )
+                        st.caption(
+                            "Native on-chain candlestick chart with EMA20 and EMA50. "
+                            "Candles are loaded for the exact DEX pool selected above."
+                        )
+                except Exception as exc:
+                    st.warning(f"Chart data is temporarily unavailable for this pair: {exc}")
 
             detail_cols = [
                 "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
