@@ -3294,6 +3294,7 @@ def live_scan():
             tokenomics_blocked = len(rs_qualified_setups) - len(tokenomics_qualified_setups)
             cex_blocked = len(tokenomics_qualified_setups) - len(cex_qualified_setups)
             candle_blocked = len(cex_qualified_setups) - len(candle_qualified_setups)
+            context_blocked = len(candle_qualified_setups) - len(context_qualified_setups)
             if rs_blocked > 0:
                 st.info(
                     f"{rs_blocked} technical setup(s) currently qualify technically but remain "
@@ -3315,11 +3316,16 @@ def live_scan():
                     f"{candle_blocked} otherwise-qualified setup(s) remain WAIT because the "
                     "latest completed 4h candle is a red shooting star."
                 )
-            elif not candle_qualified_setups.empty and not macro_allows_new_risk:
+            elif context_blocked > 0:
                 st.info(
-                    f"{len(candle_qualified_setups)} technical setup(s) currently meet the "
+                    f"{context_blocked} otherwise-qualified setup(s) remain WAIT because the "
+                    "TA limitation overlay is LOW confidence or a known high-risk event is present."
+                )
+            elif not context_qualified_setups.empty and not macro_allows_new_risk:
+                st.info(
+                    f"{len(context_qualified_setups)} technical setup(s) currently meet the "
                     f"{cfg.score_threshold}+, 30% target, relative-strength, tokenomics, "
-                    "major-CEX and candle rules, but macro liquidity is "
+                    "major-CEX, candle and conflict rules, but macro liquidity is "
                     f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
                 )
             else:
@@ -3328,7 +3334,9 @@ def live_scan():
                     "BUY rules and 30% gross-target requirement."
                 )
         swing_cols = [
-            "Coin", "Status", "Pattern", "Triangle score", "Triangle touches",
+            "Coin", "Status", "Context confidence", "Signal agreement %",
+            "Conflict count", "Known event risk", "Non-TA confirmations",
+            "Pattern", "Triangle score", "Triangle touches",
             "Triangle compression %", "Candle caution", "Last 4h candle",
             "SMA regime", "SMA50", "SMA200", "Price vs SMA50 %", "Price vs SMA200 %",
             "BB 4h regime", "BB 4h width %", "BB 4h width percentile", "BB 4h position %",
@@ -3345,7 +3353,8 @@ def live_scan():
             "Coin trend", "Market trend",
             "Major CEX quality", "Major CEX count", "Major CEX listings",
             "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks",
-            "Macro regime", "Macro score",
+            "Macro regime", "Macro score", "Conflicts", "Non-TA detail",
+            "News coverage", "Sentiment coverage", "TA limitation note",
             "To resistance %", "Tests", "RSI", "ATR ratio", "Vol ratio",
             "RS vs BTC %", "RS vs BTC 96h %",
             "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
@@ -3353,6 +3362,30 @@ def live_scan():
             "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
         ]
         styled_swing = swing_candidates[swing_cols].style
+        styled_swing = styled_swing.map(
+            lambda value: (
+                "background-color: #d8f3dc; color: #16351c; font-weight: 700"
+                if str(value) == "HIGH"
+                else "background-color: #fff3bf; color: #5f4500; font-weight: 700"
+                if str(value) == "MEDIUM"
+                else "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                if str(value) == "LOW"
+                else ""
+            ),
+            subset=["Context confidence"],
+        )
+        styled_swing = styled_swing.map(
+            lambda value: (
+                "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                if str(value) == "HIGH"
+                else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+                if str(value) in ("MEDIUM", "UNKNOWN")
+                else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                if str(value) == "LOW"
+                else ""
+            ),
+            subset=["Known event risk"],
+        )
         styled_swing = styled_swing.map(
             lambda value: (
                 "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
@@ -3395,6 +3428,9 @@ def live_scan():
                 "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
                 "Macro score": st.column_config.ProgressColumn(
                     "Macro liquidity", min_value=0, max_value=100, format="%.1f"
+                ),
+                "Signal agreement %": st.column_config.ProgressColumn(
+                    "Signal agreement", min_value=0, max_value=100, format="%.1f"
                 ),
                 "Score": st.column_config.ProgressColumn(
                     "Trade score", min_value=0, max_value=100, format="%.1f"
