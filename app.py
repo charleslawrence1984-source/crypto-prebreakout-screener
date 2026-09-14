@@ -3246,7 +3246,7 @@ if not scan_df.empty:
     if row.get("Coin trend detail") or row.get("Market trend detail"):
         st.caption(
             f"Coin: {row.get('Coin trend detail', '')} · "
-            f"Market: {row.get('Market trend_detail', '')}"
+            f"Market: {row.get('Market trend detail', '')}"
         )
 
     candle1, candle2 = st.columns(2)
