@@ -845,9 +845,18 @@ if quick_query.strip():
                             f"{bb_position:.1f}%" if math.isfinite(bb_position) else "Unavailable",
                         )
 
+                        chart_key = (
+                            "meme_price_chart_"
+                            + str(result.get("Chain", "")).replace("/", "_")
+                            + "_"
+                            + str(pair_address).replace("/", "_")
+                            + "_"
+                            + chart_tf
+                        )
                         st.plotly_chart(
                             meme_price_chart(chart_df, result["Ticker"], chart_tf),
                             use_container_width=True,
+                            key=chart_key,
                         )
                         st.caption(
                             "Native on-chain candlestick chart with EMA20/EMA50 and Bollinger Bands. "
