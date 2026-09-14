@@ -674,6 +674,7 @@ def meme_price_chart(
         entry_high = safe(trade_plan.get("Entry High"))
         negative_exit = safe(trade_plan.get("Negative Exit"))
         positive_exit = safe(trade_plan.get("Positive Exit"))
+        stretch_exit = safe(trade_plan.get("Stretch Exit"))
         if math.isfinite(entry_low) and math.isfinite(entry_high):
             fig.add_hrect(
                 y0=entry_low,
@@ -692,7 +693,15 @@ def meme_price_chart(
             fig.add_hline(
                 y=positive_exit,
                 line_dash="dash",
-                annotation_text="Positive exit target",
+                annotation_text="First exit target",
+            )
+        if math.isfinite(stretch_exit) and (
+            not math.isfinite(positive_exit) or stretch_exit > positive_exit * 1.005
+        ):
+            fig.add_hline(
+                y=stretch_exit,
+                line_dash="dot",
+                annotation_text="Stretch target",
             )
     fig.update_layout(
         height=560,
@@ -1350,7 +1359,10 @@ if quick_query.strip():
             detail_cols = [
                 "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
                 "Price USD", "Entry Low", "Entry High", "Entry Price", "Negative Exit",
-                "Positive Exit", "Potential ROI %", "R:R", "Plan Status", "Plan Basis",
+                "Positive Exit", "Stretch Exit", "Gross ROI %", "Net ROI %",
+                "Potential ROI %", "Gross R:R", "Net R:R", "R:R",
+                "Estimated Slippage %", "Estimated Total Costs %",
+                "Potential Profit $", "Potential Loss $", "Plan Status", "Plan Basis",
                 "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
                 "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
                 "Pair Age h", "Narrative Strength", "Narrative Score", "Narrative Signals",
