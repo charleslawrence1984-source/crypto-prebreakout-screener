@@ -175,8 +175,14 @@ src = src.replace(
                 i2.metric("Entry quality", f"{res['long_term_entry_score']:.0f}/100")
                 i3.metric("Valuation", f"{res['valuation_score']:.0f}/20")
                 st.write("**Intended hold:** 20–30 years")
-                st.write("**Entry:** buy only when long-term quality and entry both qualify")
-                st.write("**Exit:** no fixed price target — sell only if the long-term thesis materially breaks")
+                investment_exit_target = safe(res.get("analyst_target"))
+                if np.isnan(investment_exit_target) or investment_exit_target <= safe(res.get("price"), 0):
+                    investment_exit_target = safe(res.get("swing_target"))
+                st.write(f"**Entry price:** {fmt_price(res['preferred_low'])}–{fmt_price(res['preferred_high'])}")
+                st.write(f"**Deeper entry:** {fmt_price(res['strong_low'])}–{fmt_price(res['strong_high'])}")
+                st.write(f"**Positive exit target:** {fmt_price(investment_exit_target)}")
+                st.write(f"**Negative exit / reassess below:** {fmt_price(res['invalidation'])}")
+                st.caption("Investment exit levels are review points: the positive target uses the analyst mean target when available (otherwise the model technical target), while the downside level is a price-based reassessment trigger. A material long-term thesis break still overrides price.")
                 if owned and iv["actual_roi_pct"] is not None:
                     st.write(f"**Your current ROI:** {iv['actual_roi_pct']:+.1f}%")
                 if iv["action"] == "WAIT" and iv["reasons"]:
@@ -232,6 +238,14 @@ src = src.replace(
                 "Valuation": fund["valuation_score"],
                 "Valuation rating": fund["valuation_label"],
                 "Opportunity": sc.opportunity,'''
+)
+
+src = src.replace(
+'''                "Strong entry": f"{fmt_price(row['Strong low'])}–{fmt_price(row['Strong high'])}",
+                "Target": float(row["Target"]),''',
+'''                "Strong entry": f"{fmt_price(row['Strong low'])}–{fmt_price(row['Strong high'])}",
+                "Invalidation": float(row["Invalidation"]),
+                "Target": float(row["Target"]),'''
 )
 
 src = src.replace(
@@ -375,13 +389,16 @@ src = src.replace(
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
                         trade_display = trade_ranked[[
                             "Ticker", "Trade Action", "Trade", "1Y Hold", "Valuation",
-                            "Price", "Preferred entry", "Strong entry", "Target",
+                            "Price", "Preferred entry", "Strong entry", "Target", "Invalidation",
                             "Upside %", "R:R"
                         ]].rename(columns={
                             "Trade Action": "Action",
                             "Trade": "Technical Score",
                             "1Y Hold": "12M Fundamentals",
-                            "Target": "Exit Target",
+                            "Preferred entry": "Entry Price",
+                            "Strong entry": "Deeper Entry",
+                            "Target": "Positive Exit",
+                            "Invalidation": "Negative Exit",
                             "Upside %": "Potential ROI %",
                         })
                         st.dataframe(
@@ -392,13 +409,28 @@ src = src.replace(
 
                     with lane2:
                         st.caption("20–30 year candidates: long-term business quality first, then valuation and entry quality.")
+                        def _investment_exit_target_row(r):
+                            analyst_target = safe(r.get("Analyst target"))
+                            current_price = safe(r.get("Price"), 0)
+                            if not np.isnan(analyst_target) and analyst_target > current_price:
+                                return analyst_target
+                            return safe(r.get("Target"))
+
+                        invest_ranked["Positive Exit Target"] = invest_ranked.apply(
+                            _investment_exit_target_row,
+                            axis=1,
+                        )
                         investment_display = invest_ranked[[
                             "Ticker", "Investment Action", "LT Compounder", "LT Entry",
-                            "Valuation", "Valuation rating", "Price", "1Y Hold"
+                            "Valuation", "Valuation rating", "Price", "Preferred entry",
+                            "Strong entry", "Positive Exit Target", "Invalidation", "1Y Hold"
                         ]].rename(columns={
                             "Investment Action": "Action",
                             "LT Compounder": "Long-Term Quality",
                             "LT Entry": "Entry Quality",
+                            "Preferred entry": "Entry Price",
+                            "Strong entry": "Deeper Entry",
+                            "Invalidation": "Negative Exit / Reassess",
                             "1Y Hold": "12M Fundamentals",
                         })
                         st.dataframe(
@@ -406,6 +438,7 @@ src = src.replace(
                             hide_index=True,
                             use_container_width=True,
                         )
+                        st.caption("Investment price levels: the positive exit target uses the analyst mean target when available and above the current price; otherwise it falls back to the model technical target. The negative level is a price-based reassessment trigger, not an automatic long-term thesis failure.")
 
                     st.subheader("Combined shortlist")'''
 )
@@ -548,6 +581,15 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                     "Swing": tech["trade_score"],
                     "Signal": sig,
                     "Price": tech["price"],
+                    "Entry Price": f"{fmt_price(tech['preferred_low'])}–{fmt_price(tech['preferred_high'])}",
+                    "Deeper Entry": f"{fmt_price(tech['strong_low'])}–{fmt_price(tech['strong_high'])}",
+                    "Positive Exit Target": (
+                        fund["analyst_target"]
+                        if not np.isnan(safe(fund.get("analyst_target")))
+                        and safe(fund.get("analyst_target")) > safe(tech.get("price"), 0)
+                        else tech["swing_target"]
+                    ),
+                    "Negative Exit / Reassess": tech["invalidation"],
                     "Revenue CAGR %": lt["revenue_cagr_pct"],
                     "Earnings CAGR %": lt["earnings_cagr_pct"],
                     "FCF/share CAGR %": lt["fcf_per_share_cagr_pct"],
@@ -602,7 +644,8 @@ if st.button("Run long-term compounder scan", key="run_lt_compounder_scan", type
                     "Revenue CAGR %", "Earnings CAGR %", "FCF/share CAGR %",
                     "ROIC %", "ROE %", "Operating margin %", "Dilution CAGR %",
                     "Net debt / FCF", "Evidence /10", "Elite gate", "Sector model",
-                    "Book value/share CAGR %", "Market cap bn", "Price"
+                    "Book value/share CAGR %", "Market cap bn", "Price", "Entry Price",
+                    "Deeper Entry", "Positive Exit Target", "Negative Exit / Reassess"
                 ]],
                 hide_index=True,
                 use_container_width=True,
