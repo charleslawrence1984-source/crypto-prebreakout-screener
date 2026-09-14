@@ -20,6 +20,7 @@ CHAIN_OPTIONS = {
     "Base": "base",
     "Ethereum": "ethereum",
     "BNB Chain": "bsc",
+    "Robinhood Chain": "robinhood",
     "Arbitrum": "arbitrum",
     "Polygon": "polygon",
 }
@@ -354,7 +355,7 @@ with st.sidebar:
     selected_names = st.multiselect(
         "Chains",
         list(CHAIN_OPTIONS.keys()),
-        default=["Solana", "Base", "Ethereum", "BNB Chain"],
+        default=["Solana", "Base", "Ethereum", "BNB Chain", "Robinhood Chain"],
     )
     min_liq = st.number_input("Minimum liquidity ($)", min_value=0, value=int(DEFAULTS["min_liquidity"]), step=10_000)
     min_vol = st.number_input("Minimum 24h volume ($)", min_value=0, value=int(DEFAULTS["min_volume_24h"]), step=25_000)
