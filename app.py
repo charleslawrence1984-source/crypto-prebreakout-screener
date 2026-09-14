@@ -1621,9 +1621,13 @@ def live_scan():
         last_scan is None
         or (now - last_scan).total_seconds() >= refresh_minutes * 60
     )
+    required_scan_columns = {
+        "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
+        "Circulating %", "RS vs BTC 96h %",
+    }
     needs_candidate_refresh = (
         not st.session_state.scan_df.empty
-        and "Trade reason" not in st.session_state.scan_df.columns
+        and not required_scan_columns.issubset(set(st.session_state.scan_df.columns))
     )
     settings_changed = st.session_state.get("last_scan_config") != vars(cfg)
     should_scan = manual_scan or needs_candidate_refresh or settings_changed or scan_due
