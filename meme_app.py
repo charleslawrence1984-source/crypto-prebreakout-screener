@@ -1177,17 +1177,50 @@ if quick_query.strip():
             tp1.metric("Current Price", fmt_meme_price(result.get("Price USD")))
             tp2.metric("Entry Price", fmt_meme_price(trade_plan.get("Entry Price")))
             tp3.metric("Negative Exit / Stop", fmt_meme_price(trade_plan.get("Negative Exit")))
-            tp4.metric("Positive Exit Target", fmt_meme_price(trade_plan.get("Positive Exit")))
+            tp4.metric("First Exit Target", fmt_meme_price(trade_plan.get("Positive Exit")))
             tp5.metric(
-                "Potential ROI",
-                f"{safe(trade_plan.get('Potential ROI %')):.1f}%"
-                if math.isfinite(safe(trade_plan.get("Potential ROI %")))
+                "Net ROI",
+                f"{safe(trade_plan.get('Net ROI %')):.1f}%"
+                if math.isfinite(safe(trade_plan.get("Net ROI %")))
                 else "Unavailable",
             )
             tp6.metric(
-                "R:R",
-                f"{safe(trade_plan.get('R:R')):.2f}:1"
-                if math.isfinite(safe(trade_plan.get("R:R")))
+                "Net R:R",
+                f"{safe(trade_plan.get('Net R:R')):.2f}:1"
+                if math.isfinite(safe(trade_plan.get("Net R:R")))
+                else "Unavailable",
+            )
+
+            tc1, tc2, tc3, tc4, tc5, tc6 = st.columns(6)
+            tc1.metric("Stretch Target", fmt_meme_price(trade_plan.get("Stretch Exit")))
+            tc2.metric(
+                "Gross ROI",
+                f"{safe(trade_plan.get('Gross ROI %')):.1f}%"
+                if math.isfinite(safe(trade_plan.get("Gross ROI %")))
+                else "Unavailable",
+            )
+            tc3.metric(
+                "Est. Slippage",
+                f"{safe(trade_plan.get('Estimated Slippage %')):.2f}%"
+                if math.isfinite(safe(trade_plan.get("Estimated Slippage %")))
+                else "Unavailable",
+            )
+            tc4.metric(
+                "Est. Total Costs",
+                f"{safe(trade_plan.get('Estimated Total Costs %')):.2f}%"
+                if math.isfinite(safe(trade_plan.get("Estimated Total Costs %")))
+                else "Unavailable",
+            )
+            tc5.metric(
+                "Potential Profit",
+                ("$" + format(safe(trade_plan.get("Potential Profit $")), ",.2f"))
+                if math.isfinite(safe(trade_plan.get("Potential Profit $")))
+                else "Unavailable",
+            )
+            tc6.metric(
+                "Potential Loss",
+                ("$" + format(safe(trade_plan.get("Potential Loss $")), ",.2f"))
+                if math.isfinite(safe(trade_plan.get("Potential Loss $")))
                 else "Unavailable",
             )
             st.caption(
@@ -1217,6 +1250,21 @@ if quick_query.strip():
                 st.warning(
                     "The structural stop is very wide for this meme coin. "
                     "Treat the setup as WAIT rather than forcing a high-risk entry."
+                )
+            elif trade_plan.get("Plan Status") == "LIQUIDITY / SLIPPAGE — WAIT":
+                st.warning(
+                    "Your planned trade size is large relative to this pool's liquidity. "
+                    "Estimated slippage is too high for a clean entry/exit."
+                )
+            elif trade_plan.get("Plan Status") == "POOR R:R — WAIT":
+                st.warning(
+                    "The first realistic resistance target does not offer enough reward "
+                    "for the structural downside risk. The model will not invent a higher target."
+                )
+            elif trade_plan.get("Plan Status") == "WAIT FOR ENTRY":
+                st.info(
+                    "Current price is above the preferred entry zone. Wait for the pullback "
+                    "rather than chasing the move."
                 )
 
             if pair_address and result.get("Chain"):
