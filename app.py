@@ -2760,7 +2760,10 @@ def live_scan():
                 )
         swing_cols = [
             "Coin", "Status", "Candle caution", "Last 4h candle",
-            "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
+            "4h Channel", "4h Channel pos %", "4h Channel support",
+            "4h Channel resistance", "4h Channel R:R", "4h Channel quality",
+            "Daily Channel", "Daily Channel pos %", "Price", "Entry Price",
+            "Exit / Stop", "Price Target", "ROI %", "R:R",
             "Entry low", "Entry high", "Breakout", "First resistance target", "Stretch target",
             "Score", "Reason",
             "Category leader", "Leader categories",
@@ -2840,6 +2843,11 @@ def live_scan():
                 "Exit / Stop": st.column_config.NumberColumn("Exit / Stop", format="%.8g"),
                 "Price Target": st.column_config.NumberColumn("Price Target", format="%.8g"),
                 "ROI %": st.column_config.NumberColumn("ROI %", format="%.2f%%"),
+                "4h Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
+                "4h Channel support": st.column_config.NumberColumn(format="%.8g"),
+                "4h Channel resistance": st.column_config.NumberColumn(format="%.8g"),
+                "4h Channel R:R": st.column_config.NumberColumn(format="%.2f"),
+                "Daily Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
                 "Entry low": st.column_config.NumberColumn(format="%.8g"),
                 "Entry high": st.column_config.NumberColumn(format="%.8g"),
                 "Breakout": st.column_config.NumberColumn(format="%.8g"),
