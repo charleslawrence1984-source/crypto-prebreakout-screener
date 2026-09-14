@@ -1510,9 +1510,9 @@ def score_setup(
         "Daily EMA20": daily_ema,
         "20-day support cluster": float(d["low"].iloc[-20:].quantile(0.35)),
     }
-    if channel_4h.get("quality") in ("HIGH", "MEDIUM"):
+    if channel_4h.get("quality") in ("HIGH", "MEDIUM") and channel_4h.get("direction") != "FALLING":
         support_candidates["4h channel support"] = _safe_float(channel_4h.get("support"))
-    if channel_daily.get("quality") in ("HIGH", "MEDIUM"):
+    if channel_daily.get("quality") in ("HIGH", "MEDIUM") and channel_daily.get("direction") != "FALLING":
         support_candidates["Daily channel support"] = _safe_float(channel_daily.get("support"))
     valid_supports = {
         label: level for label, level in support_candidates.items()
