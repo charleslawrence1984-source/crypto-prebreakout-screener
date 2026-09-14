@@ -62,6 +62,23 @@ def token_key(chain_id: str, token_address: str) -> str:
 
 
 @st.cache_data(ttl=120, show_spinner=False)
+def dex_search(query: str) -> List[Dict]:
+    query = str(query or "").strip()
+    if not query:
+        return []
+    r = requests.get(
+        API + "/latest/dex/search",
+        params={"q": query},
+        headers=HEADERS,
+        timeout=20,
+    )
+    r.raise_for_status()
+    data = r.json() or {}
+    pairs = data.get("pairs") or []
+    return pairs if isinstance(pairs, list) else []
+
+
+@st.cache_data(ttl=120, show_spinner=False)
 def discovery_universe() -> Dict[str, Dict]:
     """Discover emerging tokens from DexScreener's public discovery surfaces."""
     sources = {}
@@ -377,6 +394,112 @@ cfg = {
     "shortlist_score": float(threshold),
 }
 
+st.subheader("Quick Analyse")
+st.caption("Search by coin name, ticker or contract address, then analyse the exact pair you want.")
+
+quick_query = st.text_input(
+    "Coin name, ticker or contract address",
+    placeholder="e.g. PEPE, BONK, DOGE or paste a contract address",
+    key="meme_quick_query",
+)
+
+if quick_query.strip():
+    try:
+        quick_pairs = dex_search(quick_query)
+    except Exception as exc:
+        quick_pairs = []
+        st.error(f"Search failed: {exc}")
+
+    if quick_pairs:
+        quick_pairs = sorted(
+            quick_pairs,
+            key=lambda p: safe((p.get("liquidity") or {}).get("usd"), 0),
+            reverse=True,
+        )[:30]
+
+        def _pair_label(p):
+            base = p.get("baseToken") or {}
+            quote = p.get("quoteToken") or {}
+            chain = p.get("chainId") or "?"
+            dex = p.get("dexId") or "?"
+            liq = safe((p.get("liquidity") or {}).get("usd"), 0)
+            return (
+                f"{base.get('symbol','?')} — {base.get('name','?')} | "
+                f"{chain} | {dex} | {base.get('symbol','?')}/{quote.get('symbol','?')} | "
+                f"Liquidity ${liq:,.0f}"
+            )
+
+        selected_idx = st.selectbox(
+            "Choose result",
+            options=list(range(len(quick_pairs))),
+            format_func=lambda i: _pair_label(quick_pairs[i]),
+            key="meme_quick_pair",
+        )
+        selected_pair = quick_pairs[selected_idx]
+
+        if st.button("Analyse coin", type="primary", key="analyse_meme_coin"):
+            base = selected_pair.get("baseToken") or {}
+            chain = str(selected_pair.get("chainId") or "").lower()
+            address = str(base.get("address") or "")
+            meta = {}
+            try:
+                discovered = discovery_universe()
+                meta = discovered.get(token_key(chain, address), {})
+            except Exception:
+                meta = {}
+
+            result = score_candidate(selected_pair, meta, cfg)
+
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Decision", result["Decision"])
+            m2.metric("Meme Score", f"{result['Score']:.1f}/100")
+            m3.metric("Market Cap", "—" if np.isnan(safe(result["Market Cap"])) else f"${result['Market Cap']:,.0f}")
+            m4.metric("Liquidity", f"${result['Liquidity']:,.0f}")
+
+            p1, p2, p3, p4 = st.columns(4)
+            p1.metric("Price", "—" if np.isnan(safe(result["Price USD"])) else f"${result['Price USD']:.10g}")
+            p2.metric("24h Volume", f"${result['24h Volume']:,.0f}")
+            p3.metric("Buy %", f"{result['Buy %']:.1f}%")
+            p4.metric("24h Move", f"{result['24h %']:+.2f}%")
+
+            st.write(
+                f"**{result['Name']} ({result['Ticker']})** · "
+                f"Chain: **{result['Chain']}** · DEX: **{result['DEX']}** · Pair: **{result['Pair']}**"
+            )
+
+            detail_cols = [
+                "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
+                "Market Cap", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
+                "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
+                "Pair Age h", "Community Takeover", "Boost", "Gate Reasons", "Risk Flags",
+            ]
+            st.dataframe(
+                pd.DataFrame([{k: result.get(k) for k in detail_cols}]),
+                hide_index=True,
+                use_container_width=True,
+            )
+
+            social_cols = [
+                "X", "Telegram", "Discord", "Website", "Discovery",
+                "Token Address", "DexScreener",
+            ]
+            st.dataframe(
+                pd.DataFrame([{k: result.get(k) for k in social_cols}]),
+                hide_index=True,
+                use_container_width=True,
+            )
+
+            if result["Gate"] == "FAIL":
+                st.warning("This coin currently fails one or more preliminary gates: " + (result["Gate Reasons"] or "see table above."))
+            elif result["Decision"] in ("HIGH PRIORITY", "SHORTLIST"):
+                st.success("This coin currently passes the preliminary gates and reaches the model's shortlist threshold.")
+            else:
+                st.info("This coin passes the lookup, but the current v0.1 model does not rank it as a shortlist candidate yet.")
+    else:
+        st.warning("No DexScreener pairs matched that search.")
+
+st.divider()
+st.subheader("Discovery Scan")
 st.info(
     "v0.1 uses DexScreener's latest profiles, boosts and community-takeover feeds for discovery, then scores the most liquid pair for each token. "
     "Boosts are treated as a small discovery signal, not proof of quality."
