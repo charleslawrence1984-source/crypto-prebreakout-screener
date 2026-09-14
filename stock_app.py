@@ -879,6 +879,18 @@ def chart(result: Dict) -> go.Figure:
         close=d["Close"],
         name=result["symbol"],
     ))
+    channel = stock_trend_channel(d, 90)
+    if channel.get("lower_series") and channel.get("upper_series"):
+        start = int(channel.get("start", 0))
+        channel_dates = d.index[start:]
+        fig.add_trace(go.Scatter(
+            x=channel_dates, y=channel["lower_series"], mode="lines",
+            name="Channel support", line=dict(dash="dot"),
+        ))
+        fig.add_trace(go.Scatter(
+            x=channel_dates, y=channel["upper_series"], mode="lines",
+            name="Channel resistance", line=dict(dash="dot"),
+        ))
     fig.add_trace(go.Scatter(x=d.index, y=d["SMA20"], mode="lines", name="SMA20"))
     fig.add_trace(go.Scatter(x=d.index, y=d["SMA50"], mode="lines", name="SMA50"))
     fig.add_hrect(
@@ -1015,6 +1027,12 @@ with tab2:
                 "Target": r["swing_target"],
                 "Upside %": r["upside_pct"],
                 "Preferred now": r["in_preferred_zone"],
+                "Candle caution": "CAUTION" if r.get("candle_caution") else "CLEAR",
+                "Last candle": r.get("candle_pattern", "UNAVAILABLE"),
+                "Channel": r.get("channel_direction", "UNAVAILABLE"),
+                "Channel pos %": r.get("channel_position_pct", np.nan),
+                "Channel R:R": r.get("channel_rr", np.nan),
+                "Channel quality": r.get("channel_quality", "LOW"),
             } for r in output]).sort_values("Opportunity", ascending=False)
             st.dataframe(rows, hide_index=True, use_container_width=True)
         else:
@@ -1054,7 +1072,11 @@ with tab3:
             else:
                 st.success(f"Stage 1 complete: {len(pre):,} liquid stocks scored technically.")
                 st.subheader("Best technical entries")
-                quick_cols = ["Ticker", "Trade", "Price", "RSI", "R:R", "Upside %", "Preferred now", "Strong now", "Target"]
+                quick_cols = [
+                    "Ticker", "Candle caution", "Last candle", "Channel", "Channel pos %",
+                    "Channel R:R", "Channel quality", "Trade", "Price", "RSI", "R:R",
+                    "Upside %", "Preferred now", "Strong now", "Target"
+                ]
                 st.dataframe(pre[quick_cols].head(30), hide_index=True, use_container_width=True)
 
                 with st.spinner(f"Stage 2: checking fundamentals on the top {deep_n} technical setups…"):
