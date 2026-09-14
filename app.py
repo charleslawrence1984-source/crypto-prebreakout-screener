@@ -3177,10 +3177,11 @@ def live_scan():
 
     swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "_confidence_rank", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
+        ["Status", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
         ascending=[True, True, True, True, True, True, True, True, False],
     ).drop(columns=[
-        "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank"
+        "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank",
+        "_bb_rank", "_channel_rank", "_freshness_rank"
     ])
     accumulation_candidates = df.copy()
     accumulation_candidates["Status"] = np.where(
