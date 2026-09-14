@@ -3471,6 +3471,16 @@ def live_scan():
                 lambda value, column=trend_column: scan_cell_style(value, column),
                 subset=[trend_column],
             )
+        for traffic_column in [
+            "Status", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
+            "4h Channel", "4h Channel quality", "Daily Channel",
+            "Category leader", "Major CEX quality", "Macro regime", "Catalyst status",
+        ]:
+            if traffic_column in swing_candidates.columns:
+                styled_swing = styled_swing.map(
+                    lambda value, column=traffic_column: scan_cell_style(value, column),
+                    subset=[traffic_column],
+                )
         styled_swing = styled_swing.map(
             lambda value: (
                 "background-color: #d8f3dc; color: #16351c; font-weight: 600"
@@ -3482,6 +3492,9 @@ def live_scan():
             subset=["Tokenomics gate"],
         )
         for column in [
+            "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
+            "Triangle score", "ROI %", "Macro score", "4h Channel R:R",
+            "4h Channel pos %", "BB 4h width percentile",
             "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
             "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
         ]:
