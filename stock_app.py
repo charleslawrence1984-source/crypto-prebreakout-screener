@@ -236,6 +236,7 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     channel_support = safe(channel.get("support"))
     if (
         channel.get("quality") in ("HIGH", "MEDIUM")
+        and channel.get("direction") != "FALLING"
         and not np.isnan(channel_support)
         and 0 < channel_support < price
     ):
