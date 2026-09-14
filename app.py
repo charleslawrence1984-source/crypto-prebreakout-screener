@@ -3082,6 +3082,15 @@ if qa:
         )
         st.caption(qa_result.get("candle_detail", ""))
 
+        ch1, ch2, ch3, ch4 = st.columns(4)
+        ch1.metric("4h channel", qa_result.get("channel_4h_direction", "UNAVAILABLE"))
+        ch2.metric("4h channel position", str(qa_result.get("channel_4h_position", "Unavailable")))
+        ch3.metric("4h channel quality", qa_result.get("channel_4h_quality", "LOW"))
+        ch4.metric("4h channel R:R", str(qa_result.get("channel_4h_rr", "Unavailable")))
+        dch1, dch2 = st.columns(2)
+        dch1.metric("Daily channel", qa_result.get("channel_daily_direction", "UNAVAILABLE"))
+        dch2.metric("Daily channel position", str(qa_result.get("channel_daily_position", "Unavailable")))
+
         rs1, rs2 = st.columns(2)
         rs1.metric("RS vs BTC — 48h", f"{qa_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
         rs2.metric("RS vs BTC — 96h", f"{qa_result.get('rs_vs_btc_96h_pct', np.nan):+.2f}%")
