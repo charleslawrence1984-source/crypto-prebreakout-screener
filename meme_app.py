@@ -47,6 +47,64 @@ def safe(v, default=np.nan):
         return default
 
 
+def meme_cell_style(value, column: str) -> str:
+    green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+    amber = "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+    red = "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+    label = str(value).upper()
+
+    if column == "Decision":
+        if label in ("HIGH PRIORITY", "SHORTLIST"):
+            return green
+        return amber if label == "WATCH" else red
+    if column in ("Gate", "Tokenomics Gate"):
+        return green if label == "PASS" else red if label == "FAIL" else amber
+    if column == "Narrative Strength":
+        if label in ("ICONIC POTENTIAL", "STRONG NARRATIVE"):
+            return green
+        return amber if label == "DEVELOPING" else red
+    if column == "Community Strength":
+        if label in ("VERY STRONG", "STRONG"):
+            return green
+        return amber if label == "DEVELOPING" else red
+
+    number = safe(value)
+    if np.isnan(number):
+        return ""
+
+    if column == "Score":
+        return green if number >= 75 else amber if number >= 60 else red
+    if column == "Narrative Score":
+        return green if number >= 12 else amber if number >= 8 else red
+    if column == "Community Score":
+        return green if number >= 18 else amber if number >= 12 else red
+    if column == "Social Breadth":
+        return green if number >= 3 else amber if number >= 2 else red
+    if column == "Circulating % (proxy)":
+        return green if number >= 10 else red
+    if column == "FDV / MCap":
+        return green if number <= 4 else amber if number < 10 else red
+    if column == "Liquidity":
+        return green if number >= 250_000 else amber if number >= 50_000 else red
+    if column == "Liquidity/Cap %":
+        return green if number >= 5 else amber if number >= 2 else red
+    if column == "24h Volume":
+        return green if number >= 500_000 else amber if number >= 100_000 else red
+    if column == "Vol/Liq":
+        return green if 0.5 <= number <= 3 else amber if 0.2 <= number <= 5 else red
+    if column == "Buy %":
+        return green if 53 <= number <= 72 else amber if 45 <= number <= 80 else red
+    if column == "1h %":
+        return green if -2 <= number <= 8 else amber if -5 <= number <= 12 else red
+    if column == "6h %":
+        return green if -5 <= number <= 20 else amber if -10 <= number <= 30 else red
+    if column == "24h %":
+        return green if -10 <= number <= 35 else amber if -20 <= number <= 45 else red
+    if column == "Pair Age h":
+        return green if number >= 24 else amber if number >= 6 else red
+    return ""
+
+
 @st.cache_data(ttl=120, show_spinner=False)
 def get_json(url: str):
     r = requests.get(url, headers=HEADERS, timeout=20)
