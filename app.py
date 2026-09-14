@@ -2381,6 +2381,13 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "SMA200": r.get("sma200", np.nan),
                 "Price vs SMA50 %": r.get("price_vs_sma50_pct", np.nan),
                 "Price vs SMA200 %": r.get("price_vs_sma200_pct", np.nan),
+                "BB 4h regime": r.get("bb_4h_regime", "UNAVAILABLE"),
+                "BB 4h width %": r.get("bb_4h_width_pct", np.nan),
+                "BB 4h width percentile": r.get("bb_4h_width_percentile", np.nan),
+                "BB 4h position %": r.get("bb_4h_position_pct", np.nan),
+                "BB Daily regime": r.get("bb_daily_regime", "UNAVAILABLE"),
+                "BB Daily width %": r.get("bb_daily_width_pct", np.nan),
+                "BB Daily position %": r.get("bb_daily_position_pct", np.nan),
                 "4h Channel": r.get("channel_4h_direction", "UNAVAILABLE"),
                 "4h Channel pos %": r.get("channel_4h_position", np.nan),
                 "4h Channel support": r.get("channel_4h_support", np.nan),
@@ -2751,7 +2758,8 @@ def live_scan():
         "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
         "Category leader", "Leader categories", "Project freshness", "Catalyst status",
         "Candle caution", "Last 4h candle", "Pattern", "Triangle score",
-        "SMA regime", "SMA50", "SMA200", "4h Channel", "4h Channel pos %",
+        "SMA regime", "SMA50", "SMA200", "BB 4h regime", "BB 4h width %",
+        "4h Channel", "4h Channel pos %",
         "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     }
     needs_candidate_refresh = (
@@ -2931,6 +2939,9 @@ def live_scan():
             "NO TRIANGLE": 3,
         }
     ).fillna(4)
+    swing_candidates["_bb_rank"] = swing_candidates["BB 4h regime"].map(
+        {"SQUEEZE": 0, "NORMAL": 1, "EXPANDING": 2, "UNAVAILABLE": 3}
+    ).fillna(3)
 
     def _channel_rank(row):
         direction = str(row.get("4h Channel", "UNAVAILABLE"))
@@ -2955,10 +2966,10 @@ def live_scan():
 
     swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_channel_rank", "_freshness_rank", "Score"],
-        ascending=[True, True, True, True, True, True, False],
+        ["Status", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
+        ascending=[True, True, True, True, True, True, True, False],
     ).drop(columns=[
-        "_leader_rank", "_catalyst_rank", "_triangle_rank", "_channel_rank", "_freshness_rank"
+        "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank"
     ])
     accumulation_candidates = df.copy()
     accumulation_candidates["Status"] = np.where(
@@ -3110,7 +3121,8 @@ def live_scan():
             "Coin", "Status", "Pattern", "Triangle score", "Triangle touches",
             "Triangle compression %", "Candle caution", "Last 4h candle",
             "SMA regime", "SMA50", "SMA200", "Price vs SMA50 %", "Price vs SMA200 %",
-            "4h Channel", "4h Channel pos %", "4h Channel support",
+            "BB 4h regime", "BB 4h width %", "BB 4h width percentile", "BB 4h position %",
+            "BB Daily regime", "4h Channel", "4h Channel pos %", "4h Channel support",
             "4h Channel resistance", "4h Channel R:R", "4h Channel quality",
             "Daily Channel", "Daily Channel pos %", "Price", "Entry Price",
             "Exit / Stop", "Price Target", "ROI %", "R:R",
