@@ -1130,40 +1130,45 @@ if quick_query.strip():
                 "Entry Price": np.nan,
                 "Negative Exit": np.nan,
                 "Positive Exit": np.nan,
+                "Stretch Exit": np.nan,
+                "Gross ROI %": np.nan,
+                "Net ROI %": np.nan,
                 "Potential ROI %": np.nan,
+                "Gross R:R": np.nan,
+                "Net R:R": np.nan,
                 "R:R": np.nan,
+                "Estimated Slippage %": np.nan,
+                "Estimated Total Costs %": np.nan,
+                "Potential Profit $": np.nan,
+                "Potential Loss $": np.nan,
                 "Plan Basis": "No candle history",
             }
-            plan_timeframe = "4h"
+            plan_timeframe = "4h structure + 1h entry timing"
             if pair_address and result.get("Chain"):
                 try:
-                    plan_df = fetch_pool_ohlcv(
+                    plan_4h = fetch_pool_ohlcv(
                         result["Chain"],
                         pair_address,
                         token_address,
                         "4h",
                     )
-                    if plan_df.empty or len(plan_df) < 24:
-                        plan_timeframe = "1h"
-                        plan_df = fetch_pool_ohlcv(
-                            result["Chain"],
-                            pair_address,
-                            token_address,
-                            "1h",
-                        )
-                    trade_plan = meme_trade_plan(plan_df)
+                    plan_1h = fetch_pool_ohlcv(
+                        result["Chain"],
+                        pair_address,
+                        token_address,
+                        "1h",
+                    )
+                    if plan_4h.empty or len(plan_4h) < 24:
+                        plan_timeframe = "1h fallback"
+                    trade_plan = meme_trade_plan(
+                        plan_4h,
+                        plan_1h,
+                        liquidity=result.get("Liquidity", np.nan),
+                        position_size=planned_position_size,
+                        round_trip_fees_pct=round_trip_fees_pct,
+                    )
                 except Exception:
-                    trade_plan = {
-                        "Plan Status": "UNAVAILABLE",
-                        "Entry Low": np.nan,
-                        "Entry High": np.nan,
-                        "Entry Price": np.nan,
-                        "Negative Exit": np.nan,
-                        "Positive Exit": np.nan,
-                        "Potential ROI %": np.nan,
-                        "R:R": np.nan,
-                        "Plan Basis": "Trade-plan candle data unavailable",
-                    }
+                    trade_plan["Plan Basis"] = "Trade-plan candle data unavailable"
 
             result.update(trade_plan)
 
