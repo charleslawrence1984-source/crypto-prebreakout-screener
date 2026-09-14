@@ -1437,6 +1437,7 @@ def score_setup(
     )
     freshness_info = project_freshness(dfd, dfw)
     candle_signal = latest_completed_4h_candle_signal(df4h)
+    triangle = ascending_triangle_pattern(df4h, 60)
     channel_4h = trend_channel(df4h, 80)
     channel_daily = trend_channel(dfd, 90)
 
@@ -1544,12 +1545,32 @@ def score_setup(
     # 7) Daily context: positive but not extended (5 pts)
     d = dfd.copy()
     d["ema20"] = ema(d["close"], 20)
+    d["sma50"] = d["close"].rolling(50).mean()
+    d["sma200"] = d["close"].rolling(200).mean()
     d["rsi"] = rsi(d["close"])
     d["atr"] = atr(d)
     d["obv"] = obv(d)
     daily_price = float(d["close"].iloc[-1])
     daily_ema = float(d["ema20"].iloc[-1])
+    daily_sma50 = _safe_float(d["sma50"].iloc[-1], np.nan)
+    daily_sma200 = _safe_float(d["sma200"].iloc[-1], np.nan)
     daily_rsi = float(d["rsi"].iloc[-1])
+
+    if math.isfinite(daily_sma50) and math.isfinite(daily_sma200):
+        if daily_price > daily_sma50 > daily_sma200:
+            sma_regime = "BULLISH STACK"
+        elif daily_sma50 > daily_sma200 and daily_price <= daily_sma50:
+            sma_regime = "GOLDEN CROSS — PULLBACK"
+        elif daily_price > daily_sma50 and daily_sma50 <= daily_sma200:
+            sma_regime = "EARLY RECOVERY"
+        elif daily_price > daily_sma200:
+            sma_regime = "ABOVE 200D"
+        else:
+            sma_regime = "BELOW 200D"
+    elif math.isfinite(daily_sma50):
+        sma_regime = "ABOVE 50D" if daily_price > daily_sma50 else "BELOW 50D"
+    else:
+        sma_regime = "UNAVAILABLE"
     if daily_price >= daily_ema and daily_rsi <= 70:
         daily_component = 1.0
     elif daily_price >= daily_ema:
@@ -1645,6 +1666,8 @@ def score_setup(
         "4h EMA20": float(x["ema20"].iloc[-1]),
         "4h EMA50": float(x["ema50"].iloc[-1]),
         "Daily EMA20": daily_ema,
+        "Daily SMA50": daily_sma50,
+        "Daily SMA200": daily_sma200,
         "20-day support cluster": float(d["low"].iloc[-20:].quantile(0.35)),
     }
     if channel_4h.get("quality") in ("HIGH", "MEDIUM") and channel_4h.get("direction") != "FALLING":
@@ -1755,6 +1778,16 @@ def score_setup(
     credible_targets = list(weekly_target_levels)
     if measured_target > price:
         credible_targets.append(float(measured_target))
+    triangle_target = _safe_float(triangle.get("triangle_measured_target"), np.nan)
+    if (
+        triangle.get("triangle_label") in (
+            "ASCENDING TRIANGLE — STRONG",
+            "ASCENDING TRIANGLE — DEVELOPING",
+        )
+        and math.isfinite(triangle_target)
+        and triangle_target > price
+    ):
+        credible_targets.append(float(triangle_target))
     credible_targets = sorted(set(credible_targets))
 
     minimum_trade_target = planned_entry * (1 + cfg.min_gross_profit_pct / 100)
@@ -1769,6 +1802,9 @@ def score_setup(
         target_basis = (
             "Major weekly resistance meeting the 30% rule"
             if any(abs(projected_target - level) < max(level * 1e-8, 1e-12) for level in weekly_target_levels)
+            else "Ascending-triangle measured move meeting the 30% rule"
+            if math.isfinite(triangle_target)
+            and abs(projected_target - triangle_target) < max(triangle_target * 1e-8, 1e-12)
             else "4h measured move meeting the 30% rule"
         )
         target_upside_pct = (projected_target - planned_entry) / planned_entry * 100
@@ -1877,6 +1913,26 @@ def score_setup(
         "candle_pattern": candle_signal["candle_pattern"],
         "candle_caution": bool(candle_signal["candle_caution"]),
         "candle_detail": candle_signal["candle_detail"],
+        "triangle_label": triangle.get("triangle_label", "NO TRIANGLE"),
+        "triangle_score": triangle.get("triangle_score", 0.0),
+        "triangle_resistance": triangle.get("triangle_resistance", np.nan),
+        "triangle_support_now": triangle.get("triangle_support_now", np.nan),
+        "triangle_touches": triangle.get("triangle_touches", 0),
+        "triangle_flatness_pct": triangle.get("triangle_flatness_pct", np.nan),
+        "triangle_compression_pct": triangle.get("triangle_compression_pct", np.nan),
+        "triangle_measured_target": triangle.get("triangle_measured_target", np.nan),
+        "triangle_detail": triangle.get("triangle_detail", ""),
+        "sma50": daily_sma50,
+        "sma200": daily_sma200,
+        "sma_regime": sma_regime,
+        "price_vs_sma50_pct": (
+            round((daily_price / daily_sma50 - 1) * 100, 2)
+            if math.isfinite(daily_sma50) and daily_sma50 > 0 else np.nan
+        ),
+        "price_vs_sma200_pct": (
+            round((daily_price / daily_sma200 - 1) * 100, 2)
+            if math.isfinite(daily_sma200) and daily_sma200 > 0 else np.nan
+        ),
         "channel_4h_direction": channel_4h.get("direction", "UNAVAILABLE"),
         "channel_4h_position": channel_4h.get("position", np.nan),
         "channel_4h_support": channel_4h.get("support", np.nan),
