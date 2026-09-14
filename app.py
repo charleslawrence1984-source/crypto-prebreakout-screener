@@ -946,10 +946,25 @@ if qa:
             "Accumulation high": qa_result["accumulation_high"],
             "Sell target": qa_result["projected_target"],
         })
-        if not qa["raw"]["4h"].empty:
-            qa_chart_key = "quick_chart_" + qa_symbol.replace("/", "_").replace(":", "_")
+        qa_timeframes = {
+            "4-hour — entry timing (30 days)": ("4h", "4h", 180),
+            "Daily — structure (up to 1 year)": ("1d", "1d", 365),
+            "Weekly — cycle context (about 4 years)": ("1w", "1w", 209),
+        }
+        qa_timeframe_choice = st.selectbox(
+            "Chart timeframe",
+            list(qa_timeframes.keys()),
+            key="quick_chart_timeframe",
+        )
+        qa_data_key, qa_label, qa_bars = qa_timeframes[qa_timeframe_choice]
+        qa_chart_data = qa["raw"].get(qa_data_key, pd.DataFrame())
+        if not qa_chart_data.empty:
+            qa_chart_key = (
+                "quick_chart_" + qa_symbol.replace("/", "_").replace(":", "_")
+                + "_" + qa_data_key
+            )
             st.plotly_chart(
-                make_chart(qa["raw"]["4h"], qa_row),
+                make_chart(qa_chart_data, qa_row, qa_label, qa_bars),
                 use_container_width=True,
                 key=qa_chart_key,
             )
@@ -968,9 +983,16 @@ if qa:
         )
         a3.metric("Inside accumulation zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
         a4.metric(
-            "Sell target",
+            "Primary sell target",
             fmt_price(qa_result["projected_target"]),
             f"{qa_result['target_upside_pct']:.1f}% from current price",
+        )
+        cycle_position = qa_result.get("cycle_position_pct", np.nan)
+        cycle_text = f"{cycle_position:.1f}%" if pd.notna(cycle_position) else "Unavailable"
+        st.caption(
+            f"Target basis: {qa_result['target_basis']} · "
+            f"Stretch target: {fmt_price(qa_result['stretch_target'])} · "
+            f"Position within available four-year range: {cycle_text}"
         )
 
         qa_components = qa_result["components"]
@@ -997,9 +1019,32 @@ if not scan_df.empty:
     )
     row = scan_df.loc[scan_df["Symbol"] == selected].iloc[0]
     raw = st.session_state.raw_data.get(selected, {})
-    if "4h" in raw:
-        chart_key = "inspect_chart_" + selected.replace("/", "_").replace(":", "_")
-        st.plotly_chart(make_chart(raw["4h"], row), use_container_width=True, key=chart_key)
+    inspect_timeframes = {
+        "4-hour — entry timing (30 days)": ("4h", "4h", 180),
+        "Daily — structure (up to 1 year)": ("1d", "1d", 365),
+        "Weekly — cycle context (about 4 years)": ("1w", "1w", 209),
+    }
+    available_timeframes = {
+        label: values
+        for label, values in inspect_timeframes.items()
+        if values[0] in raw and not raw[values[0]].empty
+    }
+    if available_timeframes:
+        inspect_timeframe_choice = st.selectbox(
+            "Chart timeframe",
+            list(available_timeframes.keys()),
+            key="inspect_chart_timeframe",
+        )
+        inspect_data_key, inspect_label, inspect_bars = available_timeframes[inspect_timeframe_choice]
+        chart_key = (
+            "inspect_chart_" + selected.replace("/", "_").replace(":", "_")
+            + "_" + inspect_data_key
+        )
+        st.plotly_chart(
+            make_chart(raw[inspect_data_key], row, inspect_label, inspect_bars),
+            use_container_width=True,
+            key=chart_key,
+        )
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}")
@@ -1014,7 +1059,13 @@ if not scan_df.empty:
         f"{fmt_price(row['Accumulation low'])} – {fmt_price(row['Accumulation high'])}",
     )
     a3.metric("Inside accumulation zone", "Yes" if row["In accumulation zone"] else "No")
-    a4.metric("Sell target", fmt_price(row["Sell target"]), f"{row['Target upside %']:.1f}% from current price")
+    a4.metric("Primary sell target", fmt_price(row["Sell target"]), f"{row['Target upside %']:.1f}% from current price")
+    cycle_text = f"{row['4Y cycle position %']:.1f}%" if pd.notna(row["4Y cycle position %"]) else "Unavailable"
+    st.caption(
+        f"Target basis: {row['Target basis']} · "
+        f"Stretch target: {fmt_price(row['Stretch target'])} · "
+        f"Position within available four-year range: {cycle_text}"
+    )
 
     comps = row["_components"]
     comp_df = pd.DataFrame({"Factor": list(comps.keys()), "Points": list(comps.values())})
