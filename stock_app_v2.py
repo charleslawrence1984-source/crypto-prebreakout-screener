@@ -476,6 +476,69 @@ src = src.replace(
                         ascending=[True, False, False],
                     )
 
+                    def _traffic_style(value, column, lane):
+                        green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                        amber = "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+                        red = "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+                        text_value = str(value).upper()
+                        number = safe(value)
+
+                        if column == "Action":
+                            return green if text_value == "BUY" else amber
+                        if column == "Candle caution":
+                            return red if text_value == "CAUTION" else green if text_value == "CLEAR" else amber
+                        if column == "RSI":
+                            if np.isnan(number):
+                                return ""
+                            return green if 42 <= number <= 58 else amber if 35 <= number <= 65 else red
+                        if column == "BB regime":
+                            return green if text_value == "SQUEEZE" else amber if text_value == "NORMAL" else red if text_value == "EXPANDING" else ""
+                        if column == "Channel":
+                            return green if text_value == "RISING" else amber if text_value == "SIDEWAYS" else red if text_value == "FALLING" else ""
+                        if column == "Channel quality":
+                            return green if text_value == "HIGH" else amber if text_value == "MEDIUM" else red if text_value == "LOW" else ""
+                        if column in ("R:R", "Channel R:R"):
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 2 else amber if number >= 1.5 else red
+                        if lane == "trade" and column == "Technical Score":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 85 else amber if number >= 75 else red
+                        if lane == "trade" and column == "12M Fundamentals":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 70 else amber if number >= 60 else red
+                        if lane == "trade" and column == "Valuation":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 15 else amber if number >= 10 else red
+                        if lane == "trade" and column == "Potential ROI %":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 15 else amber if number >= 10 else red
+                        if lane == "investment" and column == "Long-Term Quality":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 90 else amber if number >= 80 else red
+                        if lane == "investment" and column == "Entry Quality":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 70 else amber if number >= 55 else red
+                        if lane == "investment" and column == "Valuation":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 15 else amber if number >= 10 else red
+                        if lane == "investment" and column == "Investment ROI %":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 20 else amber if number >= 10 else red
+                        if lane == "investment" and column == "12M Fundamentals":
+                            if np.isnan(number):
+                                return ""
+                            return green if number >= 70 else amber if number >= 60 else red
+                        return ""
+
                     lane1, lane2 = st.tabs(["TRADE", "INVESTMENT"])
                     with lane1:
                         st.caption("Technical setup + 10% or more modelled upside + fundamentals strong enough to hold for roughly 12 months if needed.")
