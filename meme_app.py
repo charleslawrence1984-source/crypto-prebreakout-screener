@@ -404,136 +404,195 @@ def fetch_pool_ohlcv(chain_id: str, pool_address: str, token_address: str, chart
     return df
 
 
-def meme_trade_plan(df: pd.DataFrame) -> Dict:
+def meme_trade_plan(
+    df4h: pd.DataFrame,
+    df1h: Optional[pd.DataFrame] = None,
+    liquidity: float = np.nan,
+    position_size: float = 250.0,
+    round_trip_fees_pct: float = 1.0,
+) -> Dict:
     """
-    Build a volatility-aware trade plan from on-chain OHLCV.
-    This is deliberately separate from the meme score: community/narrative find the
-    candidate; candle structure defines the entry, invalidation and target.
+    Structure-first meme trade plan.
+    4h defines structural support/resistance and invalidation; 1h refines entry.
+    Net ROI includes a conservative liquidity-based slippage estimate plus user-set fees/gas.
     """
-    if df is None or df.empty or len(df) < 24:
-        return {
-            "Plan Status": "UNAVAILABLE",
-            "Entry Low": np.nan,
-            "Entry High": np.nan,
-            "Entry Price": np.nan,
-            "Negative Exit": np.nan,
-            "Positive Exit": np.nan,
-            "Potential ROI %": np.nan,
-            "R:R": np.nan,
-            "Plan Basis": "Not enough candle history",
-        }
+    empty_plan = {
+        "Plan Status": "UNAVAILABLE",
+        "Entry Low": np.nan,
+        "Entry High": np.nan,
+        "Entry Price": np.nan,
+        "Negative Exit": np.nan,
+        "Positive Exit": np.nan,
+        "Stretch Exit": np.nan,
+        "Gross ROI %": np.nan,
+        "Net ROI %": np.nan,
+        "Potential ROI %": np.nan,
+        "Gross R:R": np.nan,
+        "Net R:R": np.nan,
+        "R:R": np.nan,
+        "ATR %": np.nan,
+        "Risk to Stop %": np.nan,
+        "Estimated Slippage %": np.nan,
+        "Estimated Total Costs %": np.nan,
+        "Potential Profit $": np.nan,
+        "Potential Loss $": np.nan,
+        "Plan Basis": "Not enough candle history",
+    }
 
-    d = df.copy().tail(min(120, len(df)))
-    for col in ["open", "high", "low", "close"]:
-        d[col] = pd.to_numeric(d[col], errors="coerce")
-    d = d.dropna(subset=["open", "high", "low", "close"])
-    if len(d) < 24:
-        return {
-            "Plan Status": "UNAVAILABLE",
-            "Entry Low": np.nan,
-            "Entry High": np.nan,
-            "Entry Price": np.nan,
-            "Negative Exit": np.nan,
-            "Positive Exit": np.nan,
-            "Potential ROI %": np.nan,
-            "R:R": np.nan,
-            "Plan Basis": "Not enough clean candle history",
-        }
+    structural = df4h.copy() if df4h is not None else pd.DataFrame()
+    timing = df1h.copy() if df1h is not None else pd.DataFrame()
 
-    prev_close = d["close"].shift(1)
-    tr = pd.concat(
-        [
-            d["high"] - d["low"],
-            (d["high"] - prev_close).abs(),
-            (d["low"] - prev_close).abs(),
-        ],
-        axis=1,
-    ).max(axis=1)
-    atr14 = safe(tr.rolling(14).mean().iloc[-1])
-    price = safe(d["close"].iloc[-1])
-    ema20_now = safe(d["close"].ewm(span=20, adjust=False).mean().iloc[-1])
-    recent = d.tail(min(48, len(d)))
+    if len(structural) < 24:
+        structural = timing.copy()
+    if len(structural) < 24:
+        return empty_plan
+    if len(timing) < 24:
+        timing = structural.copy()
 
-    if not math.isfinite(price) or price <= 0 or not math.isfinite(atr14) or atr14 <= 0:
-        return {
-            "Plan Status": "UNAVAILABLE",
-            "Entry Low": np.nan,
-            "Entry High": np.nan,
-            "Entry Price": np.nan,
-            "Negative Exit": np.nan,
-            "Positive Exit": np.nan,
-            "Potential ROI %": np.nan,
-            "R:R": np.nan,
-            "Plan Basis": "Invalid price/volatility data",
-        }
+    def _clean(frame: pd.DataFrame) -> pd.DataFrame:
+        out = frame.tail(min(160, len(frame))).copy()
+        for col in ["open", "high", "low", "close"]:
+            out[col] = pd.to_numeric(out[col], errors="coerce")
+        return out.dropna(subset=["open", "high", "low", "close"])
 
-    support_cluster = safe(recent["low"].quantile(0.30))
-    swing_support = safe(recent["low"].tail(min(20, len(recent))).min())
+    structural = _clean(structural)
+    timing = _clean(timing)
+    if len(structural) < 24 or len(timing) < 24:
+        plan = empty_plan.copy()
+        plan["Plan Basis"] = "Not enough clean candle history"
+        return plan
 
-    support_candidates = [
-        value for value in [ema20_now, support_cluster]
-        if math.isfinite(value) and 0 < value <= price * 1.03
+    def _atr14(frame: pd.DataFrame) -> float:
+        prev_close = frame["close"].shift(1)
+        tr = pd.concat(
+            [
+                frame["high"] - frame["low"],
+                (frame["high"] - prev_close).abs(),
+                (frame["low"] - prev_close).abs(),
+            ],
+            axis=1,
+        ).max(axis=1)
+        return safe(tr.rolling(14).mean().iloc[-1])
+
+    structural_atr = _atr14(structural)
+    timing_atr = _atr14(timing)
+    price = safe(timing["close"].iloc[-1])
+    if (
+        not math.isfinite(price) or price <= 0
+        or not math.isfinite(structural_atr) or structural_atr <= 0
+        or not math.isfinite(timing_atr) or timing_atr <= 0
+    ):
+        plan = empty_plan.copy()
+        plan["Plan Basis"] = "Invalid price/volatility data"
+        return plan
+
+    # Entry uses 1h timing support; stop and targets use broader structure.
+    timing_recent = timing.tail(min(72, len(timing)))
+    timing_ema20 = safe(timing["close"].ewm(span=20, adjust=False).mean().iloc[-1])
+    timing_bb_mid = safe(timing["close"].rolling(20).mean().iloc[-1])
+    timing_support = safe(timing_recent["low"].quantile(0.30))
+
+    entry_candidates = [
+        x for x in [timing_ema20, timing_bb_mid, timing_support]
+        if math.isfinite(x) and 0 < x <= price * 1.02
     ]
-    entry_anchor = max(support_candidates) if support_candidates else price
+    entry_anchor = max(entry_candidates) if entry_candidates else price
 
-    # Do not encourage chasing. If support is far below price, wait for a pullback.
+    # If support is far below current price, do not invent an entry at market.
     if entry_anchor < price * 0.85:
         entry_anchor = price * 0.90
 
-    entry_low = max(entry_anchor - 0.30 * atr14, 0)
-    entry_high = min(entry_anchor + 0.30 * atr14, price * 1.01)
+    entry_low = max(entry_anchor - 0.25 * timing_atr, 0)
+    entry_high = min(entry_anchor + 0.25 * timing_atr, price * 1.01)
     if entry_high <= entry_low:
         entry_high = entry_anchor
     entry_price = (entry_low + entry_high) / 2
 
+    structural_recent = structural.tail(min(60, len(structural)))
+    swing_support = safe(structural_recent["low"].quantile(0.12))
     structural_stop = (
-        swing_support - 0.35 * atr14
+        swing_support - 0.30 * structural_atr
         if math.isfinite(swing_support)
-        else entry_price - 1.50 * atr14
+        else entry_price - 1.40 * structural_atr
     )
-    volatility_stop = entry_price - 1.50 * atr14
+    volatility_stop = entry_price - 1.40 * structural_atr
     negative_exit = min(structural_stop, volatility_stop)
     negative_exit = max(negative_exit, entry_price * 0.65)
 
     risk = entry_price - negative_exit
     if risk <= 0:
-        return {
-            "Plan Status": "UNAVAILABLE",
+        plan = empty_plan.copy()
+        plan.update({
             "Entry Low": entry_low,
             "Entry High": entry_high,
             "Entry Price": entry_price,
-            "Negative Exit": np.nan,
-            "Positive Exit": np.nan,
-            "Potential ROI %": np.nan,
-            "R:R": np.nan,
-            "Plan Basis": "Could not define valid downside risk",
-        }
+            "Plan Basis": "Could not define a valid downside invalidation",
+        })
+        return plan
 
-    # Resistance is discovered from completed recent candles, avoiding the latest bar.
-    resistance_window = d.iloc[-min(60, len(d)):-1]
-    resistance_candidates = []
-    if not resistance_window.empty:
-        for quantile in (0.80, 0.90, 0.97):
-            level = safe(resistance_window["high"].quantile(quantile))
+    risk_pct = risk / entry_price * 100
+
+    # Use actual completed swing highs first. Do not force a 2R target through resistance.
+    resistance_source = structural.iloc[-min(100, len(structural)):-1].copy()
+    highs = resistance_source["high"]
+    pivot_mask = (
+        (highs > highs.shift(1))
+        & (highs >= highs.shift(2))
+        & (highs > highs.shift(-1))
+        & (highs >= highs.shift(-2))
+    )
+    resistance_levels = sorted({
+        float(x) for x in highs[pivot_mask].dropna().tolist()
+        if float(x) > entry_price * 1.02
+    })
+
+    if not resistance_levels:
+        for q in (0.80, 0.90, 0.97):
+            level = safe(highs.quantile(q))
             if math.isfinite(level) and level > entry_price * 1.02:
-                resistance_candidates.append(level)
+                resistance_levels.append(float(level))
+        resistance_levels = sorted(set(resistance_levels))
 
     two_r_target = entry_price + 2.0 * risk
-    if resistance_candidates:
-        positive_exit = max(min(resistance_candidates), two_r_target)
-        basis = "Nearby resistance with minimum 2:1 reward/risk"
+    if resistance_levels:
+        positive_exit = resistance_levels[0]
+        stretch_candidates = [x for x in resistance_levels[1:] if x > positive_exit * 1.01]
+        stretch_exit = stretch_candidates[0] if stretch_candidates else max(two_r_target, positive_exit)
+        basis = "First completed-swing resistance; stretch target shown separately"
     else:
         positive_exit = two_r_target
-        basis = "2:1 volatility target; no clear nearby resistance"
+        stretch_exit = entry_price + 3.0 * risk
+        basis = "No clear overhead swing resistance; volatility R-multiple target"
 
-    roi = (positive_exit / entry_price - 1) * 100
-    rr = (positive_exit - entry_price) / risk
+    gross_roi = (positive_exit / entry_price - 1) * 100
+    gross_rr = (positive_exit - entry_price) / risk
 
-    # If current price is already materially above the proposed entry, call it a wait.
+    # Approximate AMM price impact from trade size versus half of reported pool liquidity.
+    liq = safe(liquidity)
+    size = max(safe(position_size, 250.0), 0.0)
+    if math.isfinite(liq) and liq > 0 and size > 0:
+        quote_reserve_proxy = liq / 2.0
+        one_way_slippage = size / (quote_reserve_proxy + size) * 100
+        estimated_slippage = min(50.0, 2.0 * one_way_slippage)
+    else:
+        estimated_slippage = 0.0
+
+    fees_pct = max(safe(round_trip_fees_pct, 0.0), 0.0)
+    total_cost_pct = estimated_slippage + fees_pct
+    net_roi = gross_roi - total_cost_pct
+    net_risk_pct = risk_pct + total_cost_pct
+    net_rr = net_roi / net_risk_pct if net_risk_pct > 0 else np.nan
+
+    potential_profit = size * net_roi / 100 if size > 0 else np.nan
+    potential_loss = size * net_risk_pct / 100 if size > 0 else np.nan
+
     chase_pct = (price / entry_high - 1) * 100 if entry_high > 0 else 0
-    risk_pct = risk / entry_price * 100 if entry_price > 0 else np.nan
-    if math.isfinite(risk_pct) and risk_pct > 20:
+    if estimated_slippage >= 5:
+        status = "LIQUIDITY / SLIPPAGE — WAIT"
+    elif risk_pct > 20:
         status = "HIGH VOLATILITY — WAIT"
+    elif gross_rr < 1.5 or (math.isfinite(net_rr) and net_rr < 1.25):
+        status = "POOR R:R — WAIT"
     elif chase_pct > 5:
         status = "WAIT FOR ENTRY"
     else:
@@ -546,10 +605,19 @@ def meme_trade_plan(df: pd.DataFrame) -> Dict:
         "Entry Price": entry_price,
         "Negative Exit": negative_exit,
         "Positive Exit": positive_exit,
-        "Potential ROI %": round(roi, 1),
-        "R:R": round(rr, 2),
-        "ATR %": round(atr14 / price * 100, 1),
-        "Risk to Stop %": round(risk_pct, 1) if math.isfinite(risk_pct) else np.nan,
+        "Stretch Exit": stretch_exit,
+        "Gross ROI %": round(gross_roi, 1),
+        "Net ROI %": round(net_roi, 1),
+        "Potential ROI %": round(net_roi, 1),
+        "Gross R:R": round(gross_rr, 2),
+        "Net R:R": round(net_rr, 2) if math.isfinite(net_rr) else np.nan,
+        "R:R": round(net_rr, 2) if math.isfinite(net_rr) else round(gross_rr, 2),
+        "ATR %": round(structural_atr / price * 100, 1),
+        "Risk to Stop %": round(risk_pct, 1),
+        "Estimated Slippage %": round(estimated_slippage, 2),
+        "Estimated Total Costs %": round(total_cost_pct, 2),
+        "Potential Profit $": round(potential_profit, 2) if math.isfinite(potential_profit) else np.nan,
+        "Potential Loss $": round(potential_loss, 2) if math.isfinite(potential_loss) else np.nan,
         "Plan Basis": basis,
     }
 
