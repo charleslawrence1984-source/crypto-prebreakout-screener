@@ -725,8 +725,8 @@ def category_rotation_table(df: pd.DataFrame) -> pd.DataFrame:
     versus BTC over ~30/90/180 days.
     """
     required = {
-        "Category leader", "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "Leader categories", "RS vs BTC 30d %",
-        "RS vs BTC 90d %", "RS vs BTC 180d %", "Coin",
+        "Category leader", "Leader categories", "Coin",
+        "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     }
     if df is None or df.empty or not required.issubset(set(df.columns)):
         return pd.DataFrame()
@@ -1955,7 +1955,8 @@ def live_scan():
     required_scan_columns = {
         "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
         "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
-        "Category leader",
+        "Category leader", "Leader categories",
+        "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     }
     needs_candidate_refresh = (
         not st.session_state.scan_df.empty
