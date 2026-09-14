@@ -3508,6 +3508,10 @@ For an **altcoin** to become a BUY, its 48-hour return must be stronger than BTC
 
 For altcoin BUY decisions, the scanner now requires **at least 25% of total supply (or max supply when total supply is unavailable) to be circulating**. Below 25% is treated as low float and remains WAIT; missing supply data is UNKNOWN and also remains WAIT rather than being assumed safe. The scanner also flags **FDV / market-cap ratios of 4x or more** as high-FDV/low-float risk. Detailed VC allocations and future insider unlock schedules require a specialist verified dataset and are shown as needing separate verification rather than guessed.
 
+#### Trend channels — swing structure and location
+
+The scanner uses a reproducible regression channel rather than hand-picked trendlines. Crypto uses an **80-bar 4h channel for execution** and a **90-day channel for broader swing structure**. It reports channel direction, support, resistance, price position, validation quality and channel-based reward/risk. Reliable channel support can help define the planned entry. Better lower/middle-channel locations rank ahead of otherwise similar upper-channel setups, while falling channels are treated cautiously. A move above the channel is not automatically rejected because breakout/retest trades can still be valid.
+
 #### Latest 4h candle — rejection caution
 
 The scanner checks the **latest completed 4h candle**, ignoring an unfinished live candle. A **red shooting star** requires a red close, a relatively small body near the low of the candle and a long upper wick showing rejection of higher prices. Because the screener is deliberately looking for entries close to resistance, an otherwise-qualified setup with this candle pattern is held at **WAIT** until the next candles confirm that the rejection has been absorbed. The raw technical score is left unchanged; this is a separate execution-risk gate.
