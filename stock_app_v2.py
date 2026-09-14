@@ -72,7 +72,10 @@ src = src.replace(
 '''    fund = valuation_fundamental_analysis(symbol, tech["price"])
     lt = long_term_analysis(symbol, tech["price"], fund)
     lt_entry = long_term_entry_score(symbol, tech["price"], fund["valuation_score"], tech)
-    trade_signal = signal_label(tech["trade_score"], tech["rr"], tech["in_preferred_zone"], tech["in_strong_zone"])
+    trade_signal = signal_label(
+        tech["trade_score"], tech["rr"], tech["in_preferred_zone"],
+        tech["in_strong_zone"], tech.get("candle_caution", False)
+    )
     sc = classify(tech["trade_score"], fund["hold_score"], fund["valuation_score"])
     strategy = strategy_label(
         trade_signal,
@@ -103,7 +106,10 @@ src = src.replace(
             tech_full = technical_analysis(sym)
             lt = long_term_analysis(sym, float(row["Price"]), fund)
             lt_entry = long_term_entry_score(sym, float(row["Price"]), fund["valuation_score"], tech_full)
-            trade_signal = signal_label(float(row["Trade"]), float(row["R:R"]), bool(row["Preferred now"]), bool(row["Strong now"]))
+            trade_signal = signal_label(
+                float(row["Trade"]), float(row["R:R"]), bool(row["Preferred now"]),
+                bool(row["Strong now"]), bool(tech_full.get("candle_caution", False))
+            )
             sc = classify(float(row["Trade"]), fund["hold_score"], fund["valuation_score"])
             strategy = strategy_label(
                 trade_signal,
@@ -152,6 +158,12 @@ src = src.replace(
 
             td = trade_decision(res, owned=owned, average_buy_price=average_buy)
             iv = investment_decision(res, owned=owned, average_buy_price=average_buy)
+            if res.get("candle_caution") and td.get("action") == "BUY":
+                td["action"] = "WAIT"
+                td.setdefault("reasons", [])
+                td["reasons"].append(
+                    "Latest completed daily candle is a red shooting star; wait for confirmation"
+                )
 
             left, right = st.columns(2)
             with left:
@@ -165,6 +177,15 @@ src = src.replace(
                 st.write(f"**Stronger entry:** {fmt_price(res['strong_low'])}–{fmt_price(res['strong_high'])}")
                 st.write(f"**Exit target:** {fmt_price(res['swing_target'])}")
                 st.write(f"**Reassess / exit below:** {fmt_price(res['invalidation'])}")
+                st.write(
+                    f"**Latest completed daily candle:** {res.get('candle_pattern', 'UNAVAILABLE')} "
+                    f"({'CAUTION' if res.get('candle_caution') else 'CLEAR'})"
+                )
+                if res.get("candle_caution"):
+                    st.warning(
+                        "Daily candle caution: red shooting star / upper-wick rejection. "
+                        "For a new TRADE entry, wait for confirmation."
+                    )
                 if owned and td["actual_roi_pct"] is not None:
                     st.write(f"**Your current ROI:** {td['actual_roi_pct']:+.1f}%")
                 if td["action"] == "WAIT" and td["reasons"]:
@@ -185,6 +206,11 @@ src = src.replace(
                 st.write(f"**Deeper entry:** {fmt_price(res['strong_low'])}–{fmt_price(res['strong_high'])}")
                 st.write(f"**Positive exit target:** {fmt_price(investment_exit_target)}")
                 st.write(f"**Negative exit / reassess below:** {fmt_price(res['invalidation'])}")
+                if res.get("candle_caution"):
+                    st.caption(
+                        "Entry timing caution: latest completed daily candle is a red shooting star. "
+                        "This does not invalidate a 20–30 year investment thesis."
+                    )
                 st.caption("Investment exit levels are review points: the positive target uses the analyst mean target when available (otherwise the model technical target), while the downside level is a price-based reassessment trigger. A material long-term thesis break still overrides price.")
                 if owned and iv["actual_roi_pct"] is not None:
                     st.write(f"**Your current ROI:** {iv['actual_roi_pct']:+.1f}%")
@@ -325,7 +351,9 @@ src = src.replace(
 
 src = src.replace(
 '''def chart(result: Dict) -> go.Figure:''',
-'''def signal_label(trade, rr, preferred, strong):
+'''def signal_label(trade, rr, preferred, strong, candle_caution=False):
+    if candle_caution:
+        return "WAIT"
     if not (preferred or strong) or rr < 2:
         return "WAIT"
     if trade >= 90:
