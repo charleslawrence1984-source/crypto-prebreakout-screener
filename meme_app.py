@@ -47,6 +47,17 @@ def safe(v, default=np.nan):
         return default
 
 
+def fmt_meme_price(value, fallback="Unavailable"):
+    number = safe(value)
+    if np.isnan(number):
+        return fallback
+    if number >= 1:
+        return f"$" + f"{number:,.4f}"
+    if number >= 0.01:
+        return f"$" + f"{number:.6f}"
+    return f"$" + f"{number:.10g}"
+
+
 def meme_cell_style(value, column: str) -> str:
     green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
     amber = "background-color: #fff3bf; color: #5f4500; font-weight: 600"
