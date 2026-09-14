@@ -620,6 +620,31 @@ def coingecko_category_leaders() -> Dict[str, List[str]]:
     return leaders
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def coingecko_trending_attention() -> Dict[str, Dict]:
+    try:
+        r = requests.get(
+            "https://api.coingecko.com/api/v3/search/trending",
+            headers={"User-Agent": "pre-breakout-screener/1.0"},
+            timeout=15,
+        )
+        r.raise_for_status()
+        payload = r.json() or {}
+    except Exception:
+        return {}
+
+    out: Dict[str, Dict] = {}
+    for rank, row in enumerate(payload.get("coins") or [], start=1):
+        item = row.get("item") or {}
+        symbol = str(item.get("symbol") or "").upper().strip()
+        if symbol:
+            out[symbol] = {
+                "trending_rank": rank,
+                "trending_name": str(item.get("name") or ""),
+            }
+    return out
+
+
 @st.cache_data(ttl=900, show_spinner=False)
 def coingecko_tokenomics_snapshot() -> Dict[str, Dict]:
     """
