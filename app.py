@@ -740,13 +740,8 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                     return None
 
         results = await asyncio.gather(*(one(symbol, qv) for symbol, qv in universe))
-        rows = [
-            r for r in results
-            if r and (
-                r.get("eligible")
-                or r.get("accumulation_verdict") == "ACCUMULATION READY"
-            )
-        ]
+        # Keep all successfully scored coins visible for candidate review.
+        rows = [r for r in results if r and "score" in r]
         if not rows:
             return pd.DataFrame(), raw, errors
 
@@ -771,8 +766,13 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
             {
                 "Coin": r["symbol"].split("/")[0],
                 "Symbol": r["symbol"],
-                "Opportunity": "BUY" if r["eligible"] else "ACCUMULATE",
-                "Score": r["score"] if r["eligible"] else r["bottom_score"],
+                "Opportunity": (
+                    "BUY" if r["eligible"] and r["score"] >= cfg.score_threshold
+                    else "ACCUMULATE" if r["accumulation_verdict"] == "ACCUMULATION READY"
+                    else "WAIT"
+                ),
+                "Score": r["score"],
+                "Trade reason": r["reason"],
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
@@ -795,7 +795,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Trade verdict": (
                     "QUALIFIES — 30%+ GROSS TARGET"
                     if r["eligible"]
-                    else "PASS — NO QUALIFYING 30% TARGET"
+                    else "PASS — " + r["reason"]
                 ),
                 "Target upside %": r["target_upside_pct"],
                 "Target basis": r["target_basis"],
@@ -812,7 +812,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Accumulation verdict": r["accumulation_verdict"],
                 "Previous cycle-high reference": r["previous_cycle_high_reference"],
                 "24h quote vol": r["quote_volume_24h"],
-                "_components": r["components"] if r["eligible"] else r["bottom_components"],
+                "_components": r["components"],
             }
             for r in rows
         ])
@@ -1008,7 +1008,11 @@ def live_scan():
         last_scan is None
         or (now - last_scan).total_seconds() >= refresh_minutes * 60
     )
-    should_scan = manual_scan or st.session_state.scan_df.empty or scan_due
+    needs_candidate_refresh = (
+        not st.session_state.scan_df.empty
+        and "Trade reason" not in st.session_state.scan_df.columns
+    )
+    should_scan = manual_scan or needs_candidate_refresh or scan_due
     if should_scan:
         status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
         try:
@@ -1016,7 +1020,7 @@ def live_scan():
             st.session_state.scan_df = df
             st.session_state.raw_data = raw
             st.session_state.last_scan = datetime.now(timezone.utc)
-            status.update(label=f"Scan complete — {len(df)} trade or accumulation candidates found", state="complete")
+            status.update(label=f"Scan complete — {len(df)} coins analysed — candidate tables ready", state="complete")
             if errors:
                 with st.expander(f"{len(errors)} market-data warnings"):
                     st.code("\n".join(errors[:25]))
@@ -1030,7 +1034,7 @@ def live_scan():
         st.caption("Last scan: " + st.session_state.last_scan.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"))
 
     if df.empty:
-        st.warning("No coins currently meet either the pre-breakout trade rules or the accumulation-watch rules. Don't force a position.")
+        st.warning("No coins could be scored from the available market data. Check market-data warnings and try another scan.")
         return
 
     swing_setups = df[
@@ -1040,6 +1044,46 @@ def live_scan():
     accumulation_setups = df[
         df["Accumulation verdict"] == "ACCUMULATION READY"
     ].copy().sort_values("Accumulation score", ascending=False)
+
+    # Tables retain potential candidates even when no actionable setups exist.
+    swing_candidates = df.copy()
+    swing_candidates["Status"] = np.where(
+        swing_candidates["Symbol"].isin(swing_setups["Symbol"]), "BUY", "WAIT"
+    )
+    swing_candidates["Reason"] = swing_candidates.apply(
+        lambda row: (
+            "Meets swing-trade rules" if row["Status"] == "BUY"
+            else (
+                (f"Score {row['Score']:.1f} below {cfg.score_threshold}. "
+                 if row["Score"] < cfg.score_threshold else "")
+                + (row["Trade reason"]
+                   if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET" else "")
+            )
+        ), axis=1,
+    )
+    swing_candidates = swing_candidates.sort_values(
+        ["Status", "Score"], ascending=[True, False]
+    )
+    accumulation_candidates = df.copy()
+    accumulation_candidates["Status"] = np.where(
+        accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
+        "ACCUMULATE", "WAIT",
+    )
+    accumulation_candidates["Reason"] = accumulation_candidates.apply(
+        lambda row: (
+            "Meets accumulation rules" if row["Status"] == "ACCUMULATE"
+            else (
+                (f"Base score {row['Accumulation score']:.1f} below 70. "
+                 if row["Accumulation score"] < 70 else "")
+                + ("Price outside daily and weekly accumulation zones."
+                   if not (row["In accumulation zone"] or row["In cycle accumulation zone"])
+                   else "")
+            )
+        ), axis=1,
+    )
+    accumulation_candidates = accumulation_candidates.sort_values(
+        ["Status", "Accumulation score"], ascending=[True, False]
+    )
 
     current_flags = set(swing_setups["Symbol"].tolist()) | set(
         accumulation_setups["Symbol"].tolist()
@@ -1071,102 +1115,102 @@ def live_scan():
     swing_tab, accumulation_tab = st.tabs(["Swing trades", "Accumulation"])
 
     with swing_tab:
-        st.subheader("BUY — swing-trade setups")
+        st.subheader("Swing-trade candidates")
         st.caption(
-            f"Only technically qualified pre-breakout trades scoring "
-            f"{cfg.score_threshold}+ appear here. Green = preferred, amber = "
-            "borderline and red = weak or extended."
+            f"All {len(df)} analysed coins are shown. BUY requires a trade score of "
+            f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
+            "WAIT candidates remain visible with their reasons. "
+            "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
             st.info(
                 f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
                 "BUY rules and 30% gross-target requirement."
             )
-        else:
-            swing_cols = [
-                "Coin", "Score", "Price", "To resistance %", "Tests", "RSI",
-                "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
-                "Entry low", "Entry high", "Entry basis", "Breakout",
-                "Invalidation", "First resistance target", "Sell target",
-                "Stretch target", "Target upside %", "Target basis",
-            ]
-            styled_swing = swing_setups[swing_cols].style
-            for column in [
-                "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
-            ]:
-                styled_swing = styled_swing.map(
-                    lambda value, column=column: scan_cell_style(value, column),
-                    subset=[column],
-                )
-            st.dataframe(
-                styled_swing,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Score": st.column_config.ProgressColumn(
-                        "Trade score", min_value=0, max_value=100, format="%.1f"
-                    ),
-                    "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
-                    "RS vs BTC %": st.column_config.NumberColumn(format="%.2f%%"),
-                    "R:R": st.column_config.NumberColumn(format="%.2f"),
-                    "Price": st.column_config.NumberColumn(format="%.8g"),
-                    "Entry low": st.column_config.NumberColumn(format="%.8g"),
-                    "Entry high": st.column_config.NumberColumn(format="%.8g"),
-                    "Breakout": st.column_config.NumberColumn(format="%.8g"),
-                    "Invalidation": st.column_config.NumberColumn(format="%.8g"),
-                    "First resistance target": st.column_config.NumberColumn(
-                        "First resistance / partial profit", format="%.8g"
-                    ),
-                    "Sell target": st.column_config.NumberColumn(
-                        "30% trade target", format="%.8g"
-                    ),
-                    "Stretch target": st.column_config.NumberColumn(format="%.8g"),
-                    "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
-                },
+        swing_cols = [
+            "Coin", "Status", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
+            "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
+            "Entry low", "Entry high", "Entry basis", "Breakout",
+            "Invalidation", "First resistance target", "Sell target",
+            "Stretch target", "Target upside %", "Target basis",
+        ]
+        styled_swing = swing_candidates[swing_cols].style
+        for column in [
+            "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
+        ]:
+            styled_swing = styled_swing.map(
+                lambda value, column=column: scan_cell_style(value, column),
+                subset=[column],
             )
+        st.dataframe(
+            styled_swing,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Score": st.column_config.ProgressColumn(
+                    "Trade score", min_value=0, max_value=100, format="%.1f"
+                ),
+                "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
+                "RS vs BTC %": st.column_config.NumberColumn(format="%.2f%%"),
+                "R:R": st.column_config.NumberColumn(format="%.2f"),
+                "Price": st.column_config.NumberColumn(format="%.8g"),
+                "Entry low": st.column_config.NumberColumn(format="%.8g"),
+                "Entry high": st.column_config.NumberColumn(format="%.8g"),
+                "Breakout": st.column_config.NumberColumn(format="%.8g"),
+                "Invalidation": st.column_config.NumberColumn(format="%.8g"),
+                "First resistance target": st.column_config.NumberColumn(
+                    "First resistance / partial profit", format="%.8g"
+                ),
+                "Sell target": st.column_config.NumberColumn(
+                    "30% trade target", format="%.8g"
+                ),
+                "Stretch target": st.column_config.NumberColumn(format="%.8g"),
+                "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
+            },
+        )
 
     with accumulation_tab:
-        st.subheader("ACCUMULATE — confirmed bottoming setups")
+        st.subheader("Accumulation candidates")
         st.caption(
-            "Only coins with an accumulation score of at least 70 and price inside "
-            "a confirmed daily or weekly accumulation zone appear here."
+            "All analysed coins are ranked by their separate accumulation score. "
+            "ACCUMULATE requires at least 70 and price inside a daily or weekly "
+            "accumulation zone. WAIT shows candidates still missing these conditions."
         )
         if accumulation_setups.empty:
             st.info("No coin currently meets the confirmed accumulation rules.")
-        else:
-            accumulation_cols = [
-                "Coin", "Accumulation score", "Price", "Accumulation signal",
-                "Accumulation low", "Accumulation high", "In accumulation zone",
-                "Cycle accumulation low", "Cycle accumulation high",
-                "In cycle accumulation zone", "4Y cycle position %",
-                "Previous cycle-high reference", "Accumulation verdict",
-            ]
-            styled_accumulation = accumulation_setups[accumulation_cols].style.map(
-                lambda value: scan_cell_style(value, "Accumulation signal"),
-                subset=["Accumulation signal"],
-            )
-            st.dataframe(
-                styled_accumulation,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "Accumulation score": st.column_config.ProgressColumn(
-                        "Accumulation score",
-                        min_value=0,
-                        max_value=100,
-                        format="%.1f",
-                    ),
-                    "Price": st.column_config.NumberColumn(format="%.8g"),
-                    "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
-                    "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
-                    "Cycle accumulation low": st.column_config.NumberColumn(format="%.8g"),
-                    "Cycle accumulation high": st.column_config.NumberColumn(format="%.8g"),
-                    "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
-                    "Previous cycle-high reference": st.column_config.NumberColumn(
-                        format="%.8g"
-                    ),
-                },
-            )
+        accumulation_cols = [
+            "Coin", "Status", "Accumulation score", "Reason", "Price", "Accumulation signal",
+            "Accumulation low", "Accumulation high", "In accumulation zone",
+            "Cycle accumulation low", "Cycle accumulation high",
+            "In cycle accumulation zone", "4Y cycle position %",
+            "Previous cycle-high reference", "Accumulation verdict",
+        ]
+        styled_accumulation = accumulation_candidates[accumulation_cols].style.map(
+            lambda value: scan_cell_style(value, "Accumulation signal"),
+            subset=["Accumulation signal"],
+        )
+        st.dataframe(
+            styled_accumulation,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Accumulation score": st.column_config.ProgressColumn(
+                    "Accumulation score",
+                    min_value=0,
+                    max_value=100,
+                    format="%.1f",
+                ),
+                "Price": st.column_config.NumberColumn(format="%.8g"),
+                "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
+                "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
+                "Cycle accumulation low": st.column_config.NumberColumn(format="%.8g"),
+                "Cycle accumulation high": st.column_config.NumberColumn(format="%.8g"),
+                "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
+                "Previous cycle-high reference": st.column_config.NumberColumn(
+                    format="%.8g"
+                ),
+            },
+        )
 
 live_scan()
 
@@ -1457,7 +1501,7 @@ if not scan_df.empty:
 with st.expander("How the opportunity scores work"):
     st.markdown(
         """
-The score measures **technical setup quality, not probability of success or expected return**. The table shows the score that matches the Opportunity column.
+The score measures **technical setup quality, not probability of success or expected return**. The Swing trades tab shows trade quality; the Accumulation tab shows bottoming quality. WAIT rows remain visible for review and are not actionable signals.
 
 #### BUY score — pre-breakout swing-trade quality
 
