@@ -2815,6 +2815,14 @@ def live_scan():
     swing_candidates["_freshness_rank"] = swing_candidates["Project freshness"].map(
         {"NEW": 0, "RECENT": 1, "MATURE": 2, "LEGACY": 3, "UNKNOWN": 4}
     ).fillna(4)
+    swing_candidates["_triangle_rank"] = swing_candidates["Pattern"].map(
+        {
+            "ASCENDING TRIANGLE — STRONG": 0,
+            "ASCENDING TRIANGLE — DEVELOPING": 1,
+            "POSSIBLE ASCENDING TRIANGLE": 2,
+            "NO TRIANGLE": 3,
+        }
+    ).fillna(4)
 
     def _channel_rank(row):
         direction = str(row.get("4h Channel", "UNAVAILABLE"))
