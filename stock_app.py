@@ -107,7 +107,10 @@ def stock_trend_channel(df: pd.DataFrame, window: int = 90) -> Dict:
     touches = int((np.abs(d["Low"].to_numpy(dtype=float)-lower) <= tol).sum() + (np.abs(d["High"].to_numpy(dtype=float)-upper) <= tol).sum())
     ss_res = float(np.sum((y-centre)**2)); ss_tot = float(np.sum((y-np.mean(y))**2))
     r2 = max(0.0, 1-ss_res/ss_tot) if ss_tot > 0 else 0.0
-    quality = "HIGH" if touches >= 6 and r2 >= 0.45 else "MEDIUM" if touches >= 4 and r2 >= 0.20 else "LOW"
+    if direction == "SIDEWAYS":
+        quality = "HIGH" if touches >= 6 else "MEDIUM" if touches >= 4 else "LOW"
+    else:
+        quality = "HIGH" if touches >= 6 and r2 >= 0.45 else "MEDIUM" if touches >= 4 and r2 >= 0.20 else "LOW"
     state = "ABOVE CHANNEL" if price > resistance+tol else "BELOW CHANNEL" if price < support-tol else "INSIDE"
     downside = max(price-support, price*0.001); upside = max(resistance-price,0.0)
     return {"direction":direction,"position":round(position,1),"support":support,"resistance":resistance,"width_pct":round(width/price*100,2),"rr":round(upside/downside,2),"touches":touches,"quality":quality,"state":state,"slope_pct":round(slope_pct,2),"lower_series":lower.tolist(),"upper_series":upper.tolist(),"start":len(df)-len(d)}
