@@ -1297,6 +1297,8 @@ def score_setup(
     )
     freshness_info = project_freshness(dfd, dfw)
     candle_signal = latest_completed_4h_candle_signal(df4h)
+    channel_4h = trend_channel(df4h, 80)
+    channel_daily = trend_channel(dfd, 90)
 
     x = df4h.copy()
     x["rsi"] = rsi(x["close"])
@@ -1505,6 +1507,10 @@ def score_setup(
         "Daily EMA20": daily_ema,
         "20-day support cluster": float(d["low"].iloc[-20:].quantile(0.35)),
     }
+    if channel_4h.get("quality") in ("HIGH", "MEDIUM"):
+        support_candidates["4h channel support"] = _safe_float(channel_4h.get("support"))
+    if channel_daily.get("quality") in ("HIGH", "MEDIUM"):
+        support_candidates["Daily channel support"] = _safe_float(channel_daily.get("support"))
     valid_supports = {
         label: level for label, level in support_candidates.items()
         if 0 < level <= price
@@ -1731,6 +1737,21 @@ def score_setup(
         "candle_pattern": candle_signal["candle_pattern"],
         "candle_caution": bool(candle_signal["candle_caution"]),
         "candle_detail": candle_signal["candle_detail"],
+        "channel_4h_direction": channel_4h.get("direction", "UNAVAILABLE"),
+        "channel_4h_position": channel_4h.get("position", np.nan),
+        "channel_4h_support": channel_4h.get("support", np.nan),
+        "channel_4h_resistance": channel_4h.get("resistance", np.nan),
+        "channel_4h_width_pct": channel_4h.get("width_pct", np.nan),
+        "channel_4h_rr": channel_4h.get("rr", np.nan),
+        "channel_4h_touches": channel_4h.get("touches", 0),
+        "channel_4h_quality": channel_4h.get("quality", "LOW"),
+        "channel_4h_state": channel_4h.get("state", "NONE"),
+        "channel_daily_direction": channel_daily.get("direction", "UNAVAILABLE"),
+        "channel_daily_position": channel_daily.get("position", np.nan),
+        "channel_daily_support": channel_daily.get("support", np.nan),
+        "channel_daily_resistance": channel_daily.get("resistance", np.nan),
+        "channel_daily_quality": channel_daily.get("quality", "LOW"),
+        "channel_daily_state": channel_daily.get("state", "NONE"),
         "cycle_position_pct": round(float(cycle_position_pct), 1) if math.isfinite(cycle_position_pct) else np.nan,
         "cycle_accumulation_low": cycle_accumulation_low,
         "cycle_accumulation_high": cycle_accumulation_high,
