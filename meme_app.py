@@ -35,6 +35,7 @@ DEFAULTS = {
     "max_1h_change": 12.0,
     "max_24h_change": 45.0,
     "shortlist_score": 65.0,
+    "min_circulating_pct": 10.0,
 }
 
 
@@ -297,9 +298,31 @@ def meme_price_chart(df: pd.DataFrame, ticker: str, timeframe_label: str) -> go.
 
 def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
     liq = safe((pair.get("liquidity") or {}).get("usd"), 0)
-    mcap = safe(pair.get("marketCap"))
+    reported_mcap = safe(pair.get("marketCap"))
+    fdv = safe(pair.get("fdv"))
+    mcap = reported_mcap
     if np.isnan(mcap) or mcap <= 0:
-        mcap = safe(pair.get("fdv"))
+        mcap = fdv
+
+    circulating_pct_proxy = (
+        reported_mcap / fdv * 100
+        if math.isfinite(reported_mcap) and reported_mcap > 0
+        and math.isfinite(fdv) and fdv > 0
+        else np.nan
+    )
+    fdv_mcap = (
+        fdv / reported_mcap
+        if math.isfinite(fdv) and fdv > 0
+        and math.isfinite(reported_mcap) and reported_mcap > 0
+        else np.nan
+    )
+    tokenomics_gate = (
+        "PASS" if math.isfinite(circulating_pct_proxy)
+        and circulating_pct_proxy >= cfg["min_circulating_pct"]
+        else "FAIL" if math.isfinite(circulating_pct_proxy)
+        else "UNKNOWN"
+    )
+
     vol24 = safe((pair.get("volume") or {}).get("h24"), 0)
     vol6 = safe((pair.get("volume") or {}).get("h6"), 0)
     pc = pair.get("priceChange") or {}
@@ -325,6 +348,12 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
         gates.append("Market cap too small/unknown")
     elif mcap > cfg["max_market_cap"]:
         gates.append("Market cap above target range")
+    if tokenomics_gate == "FAIL":
+        gates.append(
+            f"Low circulating float (<{cfg['min_circulating_pct']:.0f}%)"
+        )
+    elif tokenomics_gate == "UNKNOWN":
+        gates.append("Circulating float could not be verified")
     if not np.isnan(age_h) and age_h < cfg["min_pair_age_hours"]:
         gates.append("Pair too new")
 
@@ -399,6 +428,10 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
         risk_flags.append("Paid boost present")
     if ch24 > 80:
         risk_flags.append("Extreme 24h move")
+    if math.isfinite(circulating_pct_proxy) and circulating_pct_proxy < cfg["min_circulating_pct"]:
+        risk_flags.append("Low circulating float")
+    if math.isfinite(fdv_mcap) and fdv_mcap >= 10.0:
+        risk_flags.append("High FDV / low-float risk")
 
     score = round(min(100.0, score), 1)
     gate_pass = len(gates) == 0
@@ -426,6 +459,11 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
         "Gate": "PASS" if gate_pass else "FAIL",
         "Price USD": safe(pair.get("priceUsd")),
         "Market Cap": mcap,
+        "FDV": fdv,
+        "Circulating % (proxy)": round(float(circulating_pct_proxy), 1) if math.isfinite(circulating_pct_proxy) else np.nan,
+        "FDV / MCap": round(float(fdv_mcap), 2) if math.isfinite(fdv_mcap) else np.nan,
+        "Tokenomics Gate": tokenomics_gate,
+        "VC / Unlock Review": "UNVERIFIED — specialist allocation/unlock data required",
         "Liquidity": liq,
         "Liquidity/Cap %": round(liq_ratio * 100, 2),
         "24h Volume": vol24,
@@ -472,6 +510,14 @@ with st.sidebar:
     min_age = st.number_input("Minimum pair age (hours)", min_value=0.0, value=DEFAULTS["min_pair_age_hours"], step=1.0)
     max_1h = st.number_input("Anti-chase: max 1h rise %", min_value=1.0, value=DEFAULTS["max_1h_change"], step=1.0)
     max_24h = st.number_input("Anti-chase: max 24h rise %", min_value=5.0, value=DEFAULTS["max_24h_change"], step=5.0)
+    min_circ = st.number_input(
+        "Minimum circulating float (%)",
+        min_value=0.0,
+        max_value=100.0,
+        value=DEFAULTS["min_circulating_pct"],
+        step=1.0,
+        help="Meme-coin rule: at least 10% circulating. Estimated from market cap / FDV when both are available.",
+    )
     threshold = st.slider("Shortlist score", 50, 90, int(DEFAULTS["shortlist_score"]))
 
 cfg = {
@@ -483,6 +529,7 @@ cfg = {
     "max_1h_change": float(max_1h),
     "max_24h_change": float(max_24h),
     "shortlist_score": float(threshold),
+    "min_circulating_pct": float(min_circ),
 }
 
 st.subheader("Quick Analyse")
@@ -553,6 +600,18 @@ if quick_query.strip():
             p3.metric("Buy %", f"{result['Buy %']:.1f}%")
             p4.metric("24h Move", f"{result['24h %']:+.2f}%")
 
+            tk1, tk2, tk3, tk4 = st.columns(4)
+            tk1.metric("Tokenomics gate", result["Tokenomics Gate"])
+            circ_proxy = result.get("Circulating % (proxy)", np.nan)
+            tk2.metric(
+                "Circulating float",
+                f"{circ_proxy:.1f}%" if pd.notna(circ_proxy) else "Unavailable",
+                "Market cap / FDV proxy",
+            )
+            ratio = result.get("FDV / MCap", np.nan)
+            tk3.metric("FDV / Market cap", f"{ratio:.2f}x" if pd.notna(ratio) else "Unavailable")
+            tk4.metric("VC / unlock review", "Needs verification")
+
             st.write(
                 f"**{result['Name']} ({result['Ticker']})** · "
                 f"Chain: **{result['Chain']}** · DEX: **{result['DEX']}** · Pair: **{result['Pair']}**"
@@ -591,7 +650,7 @@ if quick_query.strip():
 
             detail_cols = [
                 "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
-                "Market Cap", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
+                "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
                 "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
                 "Pair Age h", "Community Takeover", "Boost", "Gate Reasons", "Risk Flags",
             ]
@@ -655,7 +714,7 @@ if st.button("Run meme coin scan", type="primary", use_container_width=True):
 
         main_cols = [
             "Ticker", "Name", "Chain", "Decision", "Score", "Gate",
-            "Price USD", "Market Cap", "Liquidity", "Liquidity/Cap %",
+            "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
             "24h Volume", "Vol/Liq", "Buy %", "1h %", "6h %", "24h %",
             "Pair Age h", "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
         ]
@@ -682,7 +741,9 @@ with st.expander("How v0.1 scores candidates"):
 - **15 — Momentum without chasing:** constructive 1h/6h/24h movement scores better than a vertical pump.
 - **5 — Pair maturity:** enough history to reduce immediate-launch noise.
 
-**Hard gates** currently cover liquidity, volume, market-cap range, minimum pair age and anti-chase limits.
+**Hard gates** currently cover liquidity, volume, market-cap range, minimum pair age, anti-chase limits and the meme tokenomics rule: **at least 10% circulating float**. Because very new DEX tokens often lack a verified supply feed, v0.1 estimates circulating float as **market cap ÷ FDV** when both values are available. If it cannot verify the ratio, tokenomics is UNKNOWN and the coin does not pass the hard gate. A **FDV/market-cap ratio of 10x or more** is flagged as high-FDV/low-float risk.
+
+Detailed VC allocations and insider unlock schedules are not guessed; they require a specialist verified tokenomics/unlock source and are marked for separate review.
 
 This is **v0.1**, not the final meme-coin model. Narrative quality, holder distribution, LP lock/burn, contract/security checks, influencer quality, community growth/engagement and migration/relaunch rules are intentionally left as the next modular layers rather than being guessed.
 """
