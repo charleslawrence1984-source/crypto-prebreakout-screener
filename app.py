@@ -2654,6 +2654,167 @@ def historical_backtest(coin4: pd.DataFrame, coind: pd.DataFrame, btc4: pd.DataF
     return pd.DataFrame(records)
 
 
+def assess_ta_limitations(row: pd.Series, macro_now: Dict) -> Dict:
+    """
+    Keep technical setup quality separate from confidence that the setup is usable.
+    This is an agreement/context overlay, not a probability forecast.
+    """
+    constructive: List[str] = []
+    conflicts: List[str] = []
+    neutral: List[str] = []
+
+    if str(row.get("Candle caution", "CLEAR")) == "CAUTION":
+        conflicts.append("bearish rejection candle")
+    else:
+        constructive.append("no bearish rejection candle")
+
+    coin = str(row.get("Coin", "")).upper()
+    rs = _safe_float(row.get("RS vs BTC %"), np.nan)
+    if coin == "BTC":
+        neutral.append("BTC relative-strength gate exempt")
+    elif math.isfinite(rs) and rs > 0:
+        constructive.append("beating BTC")
+    elif math.isfinite(rs):
+        conflicts.append("not beating BTC")
+
+    coin_trend = str(row.get("Coin trend", "UNAVAILABLE")).upper()
+    if coin_trend == "UPTREND":
+        constructive.append("coin uptrend")
+    elif coin_trend == "DOWNTREND":
+        conflicts.append("coin downtrend")
+    else:
+        neutral.append("coin trend sideways/unclear")
+
+    market_trend = str(row.get("Market trend", "UNAVAILABLE")).upper()
+    if market_trend == "UPTREND":
+        constructive.append("BTC market uptrend")
+    elif market_trend == "DOWNTREND":
+        conflicts.append("BTC market downtrend")
+    else:
+        neutral.append("BTC market sideways/unclear")
+
+    sma_regime = str(row.get("SMA regime", "UNAVAILABLE")).upper()
+    if sma_regime in ("BULLISH STACK", "GOLDEN CROSS — PULLBACK", "ABOVE 200D"):
+        constructive.append("constructive 50/200-day structure")
+    elif sma_regime == "BELOW 200D":
+        conflicts.append("below 200-day SMA")
+    else:
+        neutral.append("50/200-day structure not fully confirmed")
+
+    channel = str(row.get("4h Channel", "UNAVAILABLE")).upper()
+    if channel == "RISING":
+        constructive.append("rising 4h channel")
+    elif channel == "FALLING":
+        conflicts.append("falling 4h channel")
+    else:
+        neutral.append("sideways/unclear 4h channel")
+
+    rsi_value = _safe_float(row.get("RSI"), np.nan)
+    if math.isfinite(rsi_value):
+        if 40 <= rsi_value <= 65:
+            constructive.append("RSI constructive")
+        elif rsi_value > 70:
+            conflicts.append("RSI extended")
+        elif rsi_value < 30:
+            conflicts.append("RSI weak/oversold")
+        else:
+            neutral.append("RSI neutral")
+
+    bb_regime = str(row.get("BB 4h regime", "UNAVAILABLE")).upper()
+    bb_position = _safe_float(row.get("BB 4h position %"), np.nan)
+    if bb_regime == "SQUEEZE":
+        constructive.append("Bollinger squeeze")
+    elif bb_regime == "EXPANDING" and math.isfinite(bb_position) and bb_position >= 95:
+        conflicts.append("expanding bands near/above upper band")
+    else:
+        neutral.append("Bollinger state not conflicting")
+
+    pattern = str(row.get("Pattern", "NO TRIANGLE")).upper()
+    if "ASCENDING TRIANGLE — STRONG" in pattern:
+        constructive.append("strong ascending triangle")
+    elif "ASCENDING TRIANGLE — DEVELOPING" in pattern:
+        constructive.append("developing ascending triangle")
+    else:
+        neutral.append("no confirmed ascending triangle")
+
+    macro_regime = str(macro_now.get("regime", "DATA LIMITED")).upper()
+    if macro_regime in ("EXPANSION", "IMPROVING"):
+        constructive.append("supportive macro liquidity")
+    elif macro_regime in ("DETERIORATING", "CONTRACTION"):
+        conflicts.append("weak macro liquidity")
+    else:
+        neutral.append("macro liquidity mixed/data-limited")
+
+    catalyst_status = str(row.get("Catalyst status", "NOT CONNECTED")).upper()
+    catalyst_days = _safe_float(row.get("Catalyst days"), np.nan)
+    if catalyst_status == "RISK EVENT":
+        event_risk = "HIGH"
+        conflicts.append("known token/unlock-style risk event")
+    elif math.isfinite(catalyst_days) and catalyst_days <= 3:
+        event_risk = "MEDIUM"
+        neutral.append("near-dated catalyst can create event volatility")
+    elif catalyst_status in ("NOT CONNECTED",) or catalyst_status.startswith("ERROR"):
+        event_risk = "UNKNOWN"
+    else:
+        event_risk = "LOW"
+
+    non_ta: List[str] = []
+    if row.get("Tokenomics gate") == "PASS":
+        non_ta.append("tokenomics")
+    if row.get("Major CEX gate") == "PASS":
+        non_ta.append("major-exchange breadth")
+    if row.get("Category leader") == "TOP 3":
+        non_ta.append("category leadership")
+    if macro_regime in ("EXPANSION", "IMPROVING"):
+        non_ta.append("macro liquidity")
+
+    directional = len(constructive) + len(conflicts)
+    agreement = (
+        len(constructive) / directional * 100
+        if directional > 0 else 50.0
+    )
+
+    if event_risk == "HIGH" or len(conflicts) >= 3:
+        confidence = "LOW"
+    elif event_risk == "MEDIUM" or len(conflicts) >= 1 or agreement < 75:
+        confidence = "MEDIUM"
+    else:
+        confidence = "HIGH"
+
+    news_coverage = (
+        "STRUCTURED EVENTS ONLY"
+        if catalyst_status not in ("NOT CONNECTED",) and not catalyst_status.startswith("ERROR")
+        else "LIMITED"
+    )
+
+    return {
+        "Context confidence": confidence,
+        "Signal agreement %": round(float(agreement), 1),
+        "Constructive signals": len(constructive),
+        "Conflict count": len(conflicts),
+        "Conflicts": "; ".join(conflicts),
+        "Known event risk": event_risk,
+        "Non-TA confirmations": len(non_ta),
+        "Non-TA detail": "; ".join(non_ta),
+        "News coverage": news_coverage,
+        "Sentiment coverage": "PROXY ONLY",
+        "TA limitation note": (
+            "TA is backward-looking; unexpected news cannot be predicted. "
+            "Use the defined invalidation/stop if the setup fails."
+        ),
+    }
+
+
+def apply_ta_context_overlay(df: pd.DataFrame, macro_now: Dict) -> pd.DataFrame:
+    if df.empty:
+        return df
+    overlay = df.apply(
+        lambda row: pd.Series(assess_ta_limitations(row, macro_now)),
+        axis=1,
+    )
+    return pd.concat([df.reset_index(drop=True), overlay.reset_index(drop=True)], axis=1)
+
+
 # ---------------- UI ----------------
 st.title("⚡ Pre-Breakout Crypto Screener")
 st.caption("Built to find compression before expansion — and reject coins that have already run.")
