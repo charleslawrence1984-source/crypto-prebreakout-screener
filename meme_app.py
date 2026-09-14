@@ -396,6 +396,7 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
     buy_ratio = buys / total_tx if total_tx > 0 else 0
     age_h = pair_age_hours(pair.get("pairCreatedAt"))
     socials = social_flags(pair, meta)
+    narrative = narrative_quality(pair, meta, socials)
     active_boost = safe((pair.get("boosts") or {}).get("active"), 0)
 
     gates = []
@@ -422,29 +423,29 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
 
     score = 0.0
 
-    # Liquidity quality: 15
+    # Liquidity quality: 12
     liq_ratio = liq / mcap if mcap and not np.isnan(mcap) else 0
     liquidity_score = 0.0
-    liquidity_score += min(9, max(0, liq_ratio / 0.10 * 9))
-    liquidity_score += min(6, max(0, math.log10(max(liq, 1) / 25_000) * 3))
+    liquidity_score += min(7, max(0, liq_ratio / 0.10 * 7))
+    liquidity_score += min(5, max(0, math.log10(max(liq, 1) / 25_000) * 2.5))
     score += liquidity_score
 
-    # Real activity: 15
+    # Real activity: 10
     vol_liq = vol24 / liq if liq > 0 else 0
     activity_score = 0.0
-    activity_score += min(9, max(0, vol_liq / 2.0 * 9))
-    activity_score += min(6, max(0, total_tx / 2000 * 6))
+    activity_score += min(6, max(0, vol_liq / 2.0 * 6))
+    activity_score += min(4, max(0, total_tx / 2000 * 4))
     score += activity_score
 
-    # Buy pressure: 10. Strong but not one-sided.
+    # Buy pressure: 8. Strong but not one-sided.
     if 0.53 <= buy_ratio <= 0.72:
-        buy_pressure_score = 10.0
+        buy_pressure_score = 8.0
     elif 0.50 <= buy_ratio < 0.53 or 0.72 < buy_ratio <= 0.80:
-        buy_pressure_score = 7.0
+        buy_pressure_score = 5.5
     elif buy_ratio > 0.80:
-        buy_pressure_score = 3.0
+        buy_pressure_score = 2.5
     else:
-        buy_pressure_score = max(0, buy_ratio / 0.50 * 4)
+        buy_pressure_score = max(0, buy_ratio / 0.50 * 3)
     score += buy_pressure_score
 
     # Community strength: 30
@@ -488,36 +489,39 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
     else:
         community_strength = "WEAK"
 
-    # Discovery/catalyst signals: 10, deliberately capped because boosts are paid.
+    # Narrative / cultural-icon potential: 20
+    score += narrative["Narrative Score"]
+
+    # Discovery/catalyst signals: 8, deliberately capped because boosts are paid.
     discovery_score = 0.0
     if active_boost > 0 or meta.get("boost_total", 0) > 0:
-        discovery_score += 4
+        discovery_score += 3
     if len(meta.get("sources", [])) >= 2:
-        discovery_score += 4
+        discovery_score += 3
     if "Top boost" in meta.get("sources", set()):
         discovery_score += 2
-    score += min(10.0, discovery_score)
+    score += min(8.0, discovery_score)
 
-    # Constructive momentum, without rewarding an already vertical chart: 15
+    # Constructive momentum, without rewarding an already vertical chart: 8
     if -2 <= ch1 <= 8:
-        score += 5
-    elif -5 <= ch1 <= 12:
         score += 3
+    elif -5 <= ch1 <= 12:
+        score += 2
     if -5 <= ch6 <= 20:
-        score += 5
+        score += 3
     elif -10 <= ch6 <= 30:
-        score += 2
+        score += 1
     if -10 <= ch24 <= 35:
-        score += 5
-    elif -20 <= ch24 <= 45:
         score += 2
+    elif -20 <= ch24 <= 45:
+        score += 1
 
-    # Pair maturity: 5
+    # Pair maturity: 4
     if not np.isnan(age_h):
         if 24 <= age_h <= 24 * 180:
-            score += 5
+            score += 4
         elif 6 <= age_h < 24 or age_h <= 24 * 365:
-            score += 3
+            score += 2
 
     risk_flags = []
     if liq_ratio < 0.02:
