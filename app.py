@@ -1267,7 +1267,9 @@ def ascending_triangle_pattern(df4h: pd.DataFrame, window: int = 60) -> Dict:
     top_mask = highs >= resistance * 0.985
     top_x = x[top_mask]
     top_y = highs[top_mask]
-    touches = int(top_mask.sum())
+    # Count separate resistance-test clusters rather than every adjacent candle.
+    prior_hit = np.concatenate(([False], top_mask[:-1]))
+    touches = int(np.sum(top_mask & ~prior_hit))
 
     if touches >= 2:
         top_slope, top_intercept = np.polyfit(top_x, top_y, 1)
