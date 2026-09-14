@@ -2847,9 +2847,11 @@ def live_scan():
 
     swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "_leader_rank", "_catalyst_rank", "_channel_rank", "_freshness_rank", "Score"],
-        ascending=[True, True, True, True, True, False],
-    ).drop(columns=["_leader_rank", "_catalyst_rank", "_channel_rank", "_freshness_rank"])
+        ["Status", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_channel_rank", "_freshness_rank", "Score"],
+        ascending=[True, True, True, True, True, True, False],
+    ).drop(columns=[
+        "_leader_rank", "_catalyst_rank", "_triangle_rank", "_channel_rank", "_freshness_rank"
+    ])
     accumulation_candidates = df.copy()
     accumulation_candidates["Status"] = np.where(
         accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
