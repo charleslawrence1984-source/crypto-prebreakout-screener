@@ -3594,6 +3594,27 @@ if qa:
         st.warning(qa_result.get("reason", "Not enough market data to score this coin."))
     else:
         macro_now = st.session_state.get("macro_liquidity") or {}
+        qa_overlay = assess_ta_limitations(
+            pd.Series({
+                "Coin": qa_symbol.split("/")[0].upper(),
+                "Candle caution": "CAUTION" if qa_result.get("candle_caution") else "CLEAR",
+                "RS vs BTC %": qa_result.get("rs_vs_btc_pct", np.nan),
+                "Coin trend": qa_result.get("coin_trend", "UNAVAILABLE"),
+                "Market trend": qa_result.get("market_trend", "UNAVAILABLE"),
+                "SMA regime": qa_result.get("sma_regime", "UNAVAILABLE"),
+                "4h Channel": qa_result.get("channel_4h_direction", "UNAVAILABLE"),
+                "RSI": qa_result.get("rsi", np.nan),
+                "BB 4h regime": qa_result.get("bb_4h_regime", "UNAVAILABLE"),
+                "BB 4h position %": qa_result.get("bb_4h_position_pct", np.nan),
+                "Pattern": qa_result.get("triangle_label", "NO TRIANGLE"),
+                "Catalyst status": qa_result.get("catalyst_status", "NOT CONNECTED"),
+                "Catalyst days": qa_result.get("catalyst_days", np.nan),
+                "Tokenomics gate": qa_result.get("tokenomics_gate", "UNKNOWN"),
+                "Major CEX gate": qa_result.get("major_cex_gate", "UNKNOWN"),
+                "Category leader": qa_result.get("category_leader", "UNKNOWN"),
+            }),
+            macro_now,
+        )
         tokenomics_gate = qa_result.get("tokenomics_gate", "UNKNOWN")
         cex_gate = qa_result.get("major_cex_gate", "UNKNOWN")
         candle_caution = bool(qa_result.get("candle_caution", False))
@@ -3605,6 +3626,8 @@ if qa:
             and tokenomics_gate == "PASS"
             and cex_gate == "PASS"
             and not candle_caution
+            and qa_overlay["Context confidence"] != "LOW"
+            and qa_overlay["Known event risk"] != "HIGH"
             and macro_now.get("allows_new_swing_risk", True)
         ):
             st.success(
@@ -3638,10 +3661,26 @@ if qa:
                 "is a red shooting star. Wait for confirmation rather than entering into "
                 "fresh rejection near resistance."
             )
+        elif (
+            qa_result.get("eligible")
+            and (
+                qa_overlay["Context confidence"] == "LOW"
+                or qa_overlay["Known event risk"] == "HIGH"
+            )
+        ):
+            st.warning(
+                "TECHNICAL QUALIFIER — CONTEXT WAIT: the chart setup qualifies, but the "
+                f"TA limitation overlay is {qa_overlay['Context confidence']} confidence "
+                f"with known event risk {qa_overlay['Known event risk']}. "
+                + (
+                    "Conflicts: " + qa_overlay["Conflicts"]
+                    if qa_overlay["Conflicts"] else ""
+                )
+            )
         elif qa_result.get("eligible"):
             st.warning(
                 "TECHNICAL QUALIFIER — MACRO WAIT: the setup passes the pre-breakout "
-                f"rules, tokenomics, major-CEX and candle gates, but macro liquidity is "
+                f"rules, tokenomics, major-CEX, candle and context gates, but macro liquidity is "
                 f"{macro_now.get('regime', 'DATA LIMITED')} "
                 f"({macro_now.get('score', np.nan):.1f}/100)."
             )
@@ -3662,6 +3701,19 @@ if qa:
         q2.metric("Price", fmt_price(qa_result["price"]))
         q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
         q4.metric("RSI", f"{qa_result['rsi']:.1f}")
+
+        cf1, cf2, cf3, cf4 = st.columns(4)
+        cf1.metric("Context confidence", qa_overlay["Context confidence"])
+        cf2.metric("Signal agreement", f"{qa_overlay['Signal agreement %']:.1f}%")
+        cf3.metric("Known event risk", qa_overlay["Known event risk"])
+        cf4.metric("Non-TA confirmations", qa_overlay["Non-TA confirmations"])
+        if qa_overlay["Conflicts"]:
+            st.caption("Conflicting signals: " + qa_overlay["Conflicts"])
+        st.caption(
+            f"News coverage: {qa_overlay['News coverage']} · "
+            f"Sentiment coverage: {qa_overlay['Sentiment coverage']} · "
+            "Unexpected news cannot be predicted by technical analysis."
+        )
 
         cd1, cd2 = st.columns(2)
         cd1.metric(
