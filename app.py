@@ -1060,7 +1060,7 @@ def live_scan():
         "Accumulation low", "Accumulation high", "In accumulation zone",
         "Cycle accumulation low", "Cycle accumulation high", "In cycle accumulation zone",
         "Entry low", "Entry high", "Entry basis", "Breakout",
-        "First resistance target", "Sell target", "Stretch target", "Trade verdict",
+        "First resistance target", "Sell target", "Stretch target",
         "Target upside %", "Target basis", "4Y cycle position %",
         "Accumulation verdict", "Previous cycle-high reference", "Invalidation"
     ]
