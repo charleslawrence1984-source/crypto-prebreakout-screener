@@ -2782,6 +2782,14 @@ if qa:
         project_links = coingecko_project_links(coin_id)
         official_x = project_links.get("twitter", "")
         with st.expander("Information advantage — official sources"):
+            link1, link2, link3 = st.columns(3)
+            link1.link_button("CoinMarketCap Events", "https://coinmarketcap.com/events/")
+            link2.link_button("CoinMarketCal", "https://coinmarketcal.com/")
+            if official_x:
+                link3.link_button("Official X", f"https://x.com/{official_x}")
+            else:
+                link3.caption("Official X unavailable")
+
             if official_x:
                 st.write(f"Official X: **@{official_x}**")
             if project_links.get("homepage"):
