@@ -693,8 +693,9 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
         await exchange.close()
 
 
-async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]], List[str]]:
-    universe, _, _ = await fetch_market_universe(cfg)
+async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFrame, Dict[str, Dict[str, pd.DataFrame]], List[str]]:
+    deadline = asyncio.get_running_loop().time() + 300
+    universe, _, _ = await asyncio.wait_for(fetch_market_universe(cfg), timeout=45)
     cls = getattr(ccxt, cfg.exchange_id)
     exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
     errors: List[str] = []
@@ -702,18 +703,23 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
     sem = asyncio.Semaphore(cfg.concurrency)
 
     try:
-        await exchange.load_markets()
+        await asyncio.wait_for(exchange.load_markets(), timeout=45)
         btc_symbol = f"BTC/{cfg.quote}"
         if btc_symbol not in exchange.markets:
             raise RuntimeError(f"{btc_symbol} is not available on {cfg.exchange_id}")
-        btc4h = ohlcv_to_df(await exchange.fetch_ohlcv(btc_symbol, timeframe="4h", limit=180))
+        btc4h = ohlcv_to_df(await asyncio.wait_for(
+            exchange.fetch_ohlcv(btc_symbol, timeframe="4h", limit=180), timeout=20
+        ))
 
         async def one(symbol: str, qv: float):
             async with sem:
                 try:
-                    rows4, rowsd = await asyncio.gather(
-                        exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180),
-                        exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365),
+                    # One candle request per worker; keep exchange throttling enabled.
+                    rows4 = await asyncio.wait_for(
+                        exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180), timeout=20
+                    )
+                    rowsd = await asyncio.wait_for(
+                        exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365), timeout=20
                     )
                     df4 = ohlcv_to_df(rows4)
                     dfd = ohlcv_to_df(rowsd)
@@ -726,12 +732,16 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                     )
                     if needs_weekly_context:
                         try:
-                            rowsw = await exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220)
+                            rowsw = await asyncio.wait_for(
+                                exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220), timeout=20
+                            )
                             dfw = ohlcv_to_df(rowsw)
                             result = score_setup(df4, dfd, btc4h, cfg, dfw=dfw)
                         except Exception as weekly_error:
                             errors.append(f"{symbol} weekly context: {type(weekly_error).__name__}: {weekly_error}")
                     raw[symbol] = {"4h": df4, "1d": dfd, "1w": dfw}
+                    if "score" not in result:
+                        errors.append(f"{symbol}: {result.get('reason', 'Could not score market data')}")
                     result["symbol"] = symbol
                     result["quote_volume_24h"] = qv
                     return result
@@ -739,11 +749,40 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                     errors.append(f"{symbol}: {type(e).__name__}: {e}")
                     return None
 
-        results = await asyncio.gather(*(one(symbol, qv) for symbol, qv in universe))
+        results = []
+        attempted = 0
+        # Schedule only a small batch at a time. Keep completed results on timeout.
+        for offset in range(0, len(universe), 10):
+            remaining = deadline - asyncio.get_running_loop().time()
+            if remaining <= 0:
+                errors.append(f"Scan time limit reached: completed {attempted} of {len(universe)} markets.")
+                break
+            batch = universe[offset:offset + 10]
+            tasks = [asyncio.create_task(one(symbol, qv)) for symbol, qv in batch]
+            try:
+                done, pending = await asyncio.wait(tasks, timeout=remaining)
+                for task in tasks:
+                    if task in done:
+                        results.append(task.result())
+                attempted += len(done)
+            finally:
+                # Drain cancelled requests before closing the exchange connection.
+                for task in tasks:
+                    if not task.done():
+                        task.cancel()
+                await asyncio.gather(*tasks, return_exceptions=True)
+            if progress is not None:
+                progress(attempted, len(universe))
+            if pending:
+                errors.append(f"Scan time limit reached: completed {attempted} of {len(universe)} markets. Showing partial results.")
+                break
         # Keep all successfully scored coins visible for candidate review.
         rows = [r for r in results if r and "score" in r]
         if not rows:
-            return pd.DataFrame(), raw, errors
+            empty = pd.DataFrame()
+            empty.attrs["markets_selected"] = len(universe)
+            empty.attrs["markets_completed"] = attempted
+            return empty, raw, errors
 
         def opportunity_rank(result: Dict) -> Tuple[int, float]:
             accumulation_ready = result.get("accumulation_verdict") == "ACCUMULATION READY"
@@ -816,6 +855,8 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
             }
             for r in rows
         ])
+        display.attrs["markets_selected"] = len(universe)
+        display.attrs["markets_completed"] = attempted
         return display, raw, errors
     finally:
         await exchange.close()
@@ -962,12 +1003,16 @@ st.markdown("""
 with st.sidebar:
     st.header("Scan settings")
     exchange_name = st.selectbox("Exchange", list(EXCHANGES.keys()), index=2)
-    universe_size = st.select_slider("Top liquid coins to scan", options=[25, 50, 75, 100, 150], value=50)
+    universe_size = st.select_slider("Top liquid coins to scan", options=[25, 50, 75, 100, 150, 200, 250], value=200)
+    st.caption("Scan up to 250 liquid coins. Fewer may qualify for your volume filter.")
     min_vol_m = st.number_input("Minimum 24h quote volume ($m)", min_value=1.0, max_value=500.0, value=5.0, step=1.0)
     threshold = st.slider("Minimum BUY score", 80, 95, 80, 1)
     max_distance = st.slider("Maximum distance below resistance (%)", 1.0, 8.0, 5.0, 0.25)
     max_rsi = st.slider("Maximum RSI", 60, 75, 69, 1)
     refresh_minutes = st.selectbox("Auto-refresh", [2, 5, 10, 15, 30], index=1, format_func=lambda x: f"Every {x} min")
+    if universe_size > 150 and refresh_minutes < 10:
+        refresh_minutes = 10
+        st.caption("Scans above 150 coins refresh at most every 10 minutes.")
     sound_alerts = st.checkbox("Sound alert for new flags", value=False, help="Browser autoplay usually works after you have interacted with the page once.")
     st.divider()
     st.caption("No exchange API key is required. This dashboard only reads public market data.")
@@ -1012,15 +1057,30 @@ def live_scan():
         not st.session_state.scan_df.empty
         and "Trade reason" not in st.session_state.scan_df.columns
     )
-    should_scan = manual_scan or needs_candidate_refresh or scan_due
+    settings_changed = st.session_state.get("last_scan_config") != vars(cfg)
+    should_scan = manual_scan or needs_candidate_refresh or settings_changed or scan_due
     if should_scan:
         status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
         try:
-            df, raw, errors = asyncio.run(scan_exchange(cfg))
+            def report_progress(completed, total):
+                status.update(label=f"Analysing markets: {completed}/{total} completed…")
+            df, raw, errors = asyncio.run(scan_exchange(cfg, progress=report_progress))
+            if df.empty and errors:
+                raise RuntimeError("No markets could be scored; previous results have been retained. " + errors[0])
             st.session_state.scan_df = df
             st.session_state.raw_data = raw
+            st.session_state.last_scan_config = dict(vars(cfg))
             st.session_state.last_scan = datetime.now(timezone.utc)
-            status.update(label=f"Scan complete — {len(df)} coins analysed — candidate tables ready", state="complete")
+            selected_count = df.attrs.get("markets_selected", len(df))
+            status.update(
+                label=f"Scan finished — {len(df)} coins scored from {selected_count} selected markets",
+                state="complete",
+            )
+            if len(df) < selected_count:
+                st.warning(
+                    f"Partial coverage: {len(df)} of {selected_count} selected markets were scored. "
+                    "See market-data warnings for unavailable or timed-out data."
+                )
             if errors:
                 with st.expander(f"{len(errors)} market-data warnings"):
                     st.code("\n".join(errors[:25]))
