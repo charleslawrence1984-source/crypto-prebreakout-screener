@@ -262,13 +262,18 @@ def score_setup(
     daily_obv_slope = lin_slope(d["obv"].iloc[-20:])
     daily_obv_component = clamp_score((daily_obv_slope + 0.006) / 0.024)
 
-    bottom_score = round(float(
-        30 * base_location_component
-        + 25 * higher_base_component
-        + 20 * flattening_component
-        + 15 * rsi_recovery_component
-        + 10 * daily_obv_component
-    ), 1)
+    bottom_components_raw = {
+        "Base proximity": 30 * base_location_component,
+        "Higher lows": 25 * higher_base_component,
+        "Trend flattening": 20 * flattening_component,
+        "RSI recovery": 15 * rsi_recovery_component,
+        "Daily OBV": 10 * daily_obv_component,
+    }
+    bottom_score = round(float(sum(bottom_components_raw.values())), 1)
+    bottom_components = {
+        label: round(float(points), 1)
+        for label, points in bottom_components_raw.items()
+    }
 
     recent_support = float(d["low"].iloc[-20:].min())
     daily_atr = float(d["atr"].iloc[-5:].mean())
@@ -431,8 +436,13 @@ def score_setup(
     rr_component = clamp_score((rr - 1.0) / 2.5)
     entry_score = 5 * distance_component + 5 * rr_component
 
-    total = structure_score + compression_score + volume_score + rs_score + momentum_score + obv_score + daily_score + entry_score
-    total = round(float(max(0, min(100, total))), 1)
+    # The trade model's published component weights total 95 points. Normalize
+    # the raw result so the displayed score genuinely uses a 0–100 scale.
+    raw_total = (
+        structure_score + compression_score + volume_score + rs_score
+        + momentum_score + obv_score + daily_score + entry_score
+    )
+    total = round(float(max(0, min(100, raw_total / 95 * 100))), 1)
 
     shape_eligible = (
         cfg.near_resistance_min_pct <= distance_pct <= cfg.near_resistance_max_pct
@@ -501,6 +511,7 @@ def score_setup(
         "accumulation_verdict": accumulation_verdict,
         "previous_cycle_high_reference": previous_cycle_high_reference,
         "bottom_score": bottom_score,
+        "bottom_components": bottom_components,
         "bottom_status": bottom_status,
         "accumulation_low": accumulation_low,
         "accumulation_high": accumulation_high,
@@ -724,7 +735,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Coin": r["symbol"].split("/")[0],
                 "Symbol": r["symbol"],
                 "Opportunity": "BUY" if r["eligible"] else "ACCUMULATE",
-                "Score": r["score"],
+                "Score": r["score"] if r["eligible"] else r["bottom_score"],
                 "Price": r["price"],
                 "To resistance %": r["distance_pct"],
                 "Tests": r["resistance_tests"],
@@ -764,7 +775,7 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Accumulation verdict": r["accumulation_verdict"],
                 "Previous cycle-high reference": r["previous_cycle_high_reference"],
                 "24h quote vol": r["quote_volume_24h"],
-                "_components": r["components"],
+                "_components": r["components"] if r["eligible"] else r["bottom_components"],
             }
             for r in rows
         ])
@@ -1044,7 +1055,7 @@ def live_scan():
                 st.write(f"**Four-year cycle range position:** {q['4Y cycle position %']:.1f}%")
 
     display_cols = [
-        "Coin", "Opportunity", "Trade verdict", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
+        "Coin", "Opportunity", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
         "Vol ratio", "RS vs BTC %", "R:R", "Accumulation signal", "Accumulation score",
         "Accumulation low", "Accumulation high", "In accumulation zone",
         "Cycle accumulation low", "Cycle accumulation high", "In cycle accumulation zone",
@@ -1053,12 +1064,16 @@ def live_scan():
         "Target upside %", "Target basis", "4Y cycle position %",
         "Accumulation verdict", "Previous cycle-high reference", "Invalidation"
     ]
+    st.caption(
+        "Opportunity score: BUY uses pre-breakout trade quality; ACCUMULATE uses "
+        "bottoming quality. It is not a probability of success."
+    )
     st.dataframe(
         shown[display_cols],
         use_container_width=True,
         hide_index=True,
         column_config={
-            "Score": st.column_config.ProgressColumn("Score", min_value=0, max_value=100, format="%.1f"),
+            "Score": st.column_config.ProgressColumn("Opportunity score", min_value=0, max_value=100, format="%.1f"),
             "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
             "RS vs BTC %": st.column_config.NumberColumn(format="%.2f%%"),
             "R:R": st.column_config.NumberColumn(format="%.2f"),
@@ -1143,7 +1158,7 @@ if qa:
             st.caption("LONG-TERM: " + accumulation_verdict)
 
         q1, q2, q3, q4 = st.columns(4)
-        q1.metric("Score", f"{qa_result['score']:.1f}/100")
+        q1.metric("Trade setup score", f"{qa_result['score']:.1f}/100")
         q2.metric("Price", fmt_price(qa_result["price"]))
         q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
         q4.metric("RSI", f"{qa_result['rsi']:.1f}")
@@ -1367,21 +1382,33 @@ if not scan_df.empty:
             except Exception as e:
                 st.error(f"Backtest failed: {type(e).__name__}: {e}")
 
-with st.expander("How the 100-point score works"):
+with st.expander("How the opportunity scores work"):
     st.markdown(
         """
-- **20 pts — Structure:** higher lows, repeated resistance tests, 4h EMA structure.
-- **15 pts — Compression:** ATR contraction and a tightening trading range.
-- **15 pts — Volume:** volume dries up during the coil, with preference for stronger volume on up-bars.
-- **15 pts — Relative strength:** coin return versus BTC over recent 4h windows.
-- **10 pts — Momentum:** RSI in a constructive zone plus improving MACD histogram.
-- **5 pts — OBV:** accumulation proxy via rising on-balance volume.
-- **5 pts — Daily context:** daily trend constructive without being extremely stretched.
-- **10 pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk.
+The score measures **technical setup quality, not probability of success or expected return**. The table shows the score that matches the Opportunity column.
 
-The screener applies a **hard trade filter**: the coin must still be below resistance, close enough to matter, have at least two resistance tests, not be materially overbought, and have a technically credible target offering at least **30% gross upside from the planned entry**. The nearest weekly resistance is shown separately as a possible partial-profit level.
+#### BUY score — pre-breakout swing-trade quality
 
-The **long-term accumulation verdict is separate**. It uses daily bottoming evidence and the weekly cycle accumulation zone, so a coin can fail the breakout-trade test while remaining a longer-term accumulation watch.
+- **20 raw pts — Structure:** higher lows, repeated resistance tests, 4h EMA structure.
+- **15 raw pts — Compression:** ATR contraction and a tightening trading range.
+- **15 raw pts — Volume:** volume dries up during the coil, with preference for stronger volume on up-bars.
+- **15 raw pts — Relative strength:** coin return versus BTC over recent 4h windows.
+- **10 raw pts — Momentum:** RSI in a constructive zone plus improving MACD histogram.
+- **5 raw pts — OBV:** accumulation proxy via rising on-balance volume.
+- **5 raw pts — Daily context:** daily trend constructive without being extremely stretched.
+- **10 raw pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk.
+
+Those weights total 95 raw points, which the app now normalises to a genuine **0–100 score**. BUY also has separate hard rules: the setup must still be below and near resistance, show at least two tests, avoid material overextension, and have a technically credible target offering at least **30% gross upside from the planned entry**.
+
+#### ACCUMULATE score — bottoming quality
+
+- **30 pts — Base proximity:** price is near its 60-day low.
+- **25 pts — Higher lows:** the recent daily low is improving versus the prior base.
+- **20 pts — Trend flattening:** the daily 20 EMA is stabilising or turning up.
+- **15 pts — RSI recovery:** daily momentum is recovering from a constructive level.
+- **10 pts — Daily OBV:** volume flow is improving.
+
+ACCUMULATE also requires the score to reach 70 and price to be inside either the daily base zone or confirmed weekly cycle accumulation zone.
         """
     )
 
