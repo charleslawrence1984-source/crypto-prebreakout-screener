@@ -1032,6 +1032,49 @@ def category_rotation_table(df: pd.DataFrame) -> pd.DataFrame:
     ).drop(columns=["_status_rank"])
 
 
+def project_freshness(dfd: pd.DataFrame, dfw: Optional[pd.DataFrame] = None) -> Dict:
+    """
+    Practical freshness proxy based on available spot-price history on the selected
+    exchange. This is not the project's true launch age, but it is useful for
+    distinguishing newer listings from long-established assets without one extra
+    API request per coin.
+    """
+    source = dfw if dfw is not None and not dfw.empty else dfd
+    if source is None or source.empty or "timestamp" not in source.columns:
+        return {
+            "freshness": "UNKNOWN",
+            "history_days": np.nan,
+            "freshness_score": np.nan,
+            "freshness_basis": "No exchange-history data",
+        }
+
+    ts = pd.to_datetime(source["timestamp"], errors="coerce", utc=True).dropna()
+    if len(ts) < 2:
+        return {
+            "freshness": "UNKNOWN",
+            "history_days": np.nan,
+            "freshness_score": np.nan,
+            "freshness_basis": "Insufficient exchange-history data",
+        }
+
+    history_days = max(0.0, (ts.iloc[-1] - ts.iloc[0]).total_seconds() / 86400)
+    if history_days < 180:
+        label, score = "NEW", 100.0
+    elif history_days < 540:
+        label, score = "RECENT", 80.0
+    elif history_days < 1095:
+        label, score = "MATURE", 55.0
+    else:
+        label, score = "LEGACY", 35.0
+
+    return {
+        "freshness": label,
+        "history_days": round(history_days, 0),
+        "freshness_score": score,
+        "freshness_basis": "Available spot history on selected exchange",
+    }
+
+
 def scan_cell_style(value, column: str) -> str:
     """Traffic-light styling for the main scan's decision columns."""
     green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
@@ -1104,6 +1147,7 @@ def score_setup(
             "detail": "BTC daily history unavailable",
         }
     )
+    freshness_info = project_freshness(dfd, dfw)
 
     x = df4h.copy()
     x["rsi"] = rsi(x["close"])
@@ -1531,6 +1575,10 @@ def score_setup(
         "market_trend_daily": market_trend_info["daily"],
         "market_trend_4h": market_trend_info["four_hour"],
         "market_trend_detail": market_trend_info["detail"],
+        "project_freshness": freshness_info["freshness"],
+        "history_days": freshness_info["history_days"],
+        "freshness_score": freshness_info["freshness_score"],
+        "freshness_basis": freshness_info["freshness_basis"],
         "cycle_position_pct": round(float(cycle_position_pct), 1) if math.isfinite(cycle_position_pct) else np.nan,
         "cycle_accumulation_low": cycle_accumulation_low,
         "cycle_accumulation_high": cycle_accumulation_high,
@@ -1865,6 +1913,10 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Major CEX listings": r.get("major_cex_list", ""),
                 "Category leader": r.get("category_leader", "UNKNOWN"),
                 "Leader categories": r.get("leader_categories", ""),
+                "Project freshness": r.get("project_freshness", "UNKNOWN"),
+                "History days": r.get("history_days", np.nan),
+                "Freshness score": r.get("freshness_score", np.nan),
+                "Freshness basis": r.get("freshness_basis", ""),
                 "Catalyst status": r.get("catalyst_status", "NOT CONNECTED"),
                 "Catalyst count": r.get("catalyst_count", 0),
                 "Next catalyst": r.get("next_catalyst", ""),
@@ -2171,7 +2223,7 @@ def live_scan():
     required_scan_columns = {
         "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
         "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
-        "Category leader", "Leader categories", "Catalyst status",
+        "Category leader", "Leader categories", "Project freshness", "Catalyst status",
         "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
     }
     needs_candidate_refresh = (
@@ -2326,10 +2378,13 @@ def live_scan():
             "NOT CONNECTED": 4,
         }
     ).fillna(5)
+    swing_candidates["_freshness_rank"] = swing_candidates["Project freshness"].map(
+        {"NEW": 0, "RECENT": 1, "MATURE": 2, "LEGACY": 3, "UNKNOWN": 4}
+    ).fillna(4)
     swing_candidates = swing_candidates.sort_values(
-        ["Status", "_leader_rank", "_catalyst_rank", "Score"],
-        ascending=[True, True, True, False],
-    ).drop(columns=["_leader_rank", "_catalyst_rank"])
+        ["Status", "_leader_rank", "_catalyst_rank", "_freshness_rank", "Score"],
+        ascending=[True, True, True, True, False],
+    ).drop(columns=["_leader_rank", "_catalyst_rank", "_freshness_rank"])
     accumulation_candidates = df.copy()
     accumulation_candidates["Status"] = np.where(
         accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
@@ -2469,6 +2524,7 @@ def live_scan():
                 )
         swing_cols = [
             "Coin", "Status", "Category leader", "Leader categories",
+            "Project freshness", "History days", "Freshness score",
             "Catalyst status", "Next catalyst", "Catalyst date", "Catalyst days",
             "Catalyst categories", "Catalyst impact", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
@@ -2521,6 +2577,10 @@ def live_scan():
                 "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
                 "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
                 "Catalyst days": st.column_config.NumberColumn(format="%.1f"),
+                "History days": st.column_config.NumberColumn(format="%.0f"),
+                "Freshness score": st.column_config.ProgressColumn(
+                    "Freshness", min_value=0, max_value=100, format="%.0f"
+                ),
                 "R:R": st.column_config.NumberColumn(format="%.2f"),
                 "Price": st.column_config.NumberColumn(format="%.8g"),
                 "Entry low": st.column_config.NumberColumn(format="%.8g"),
@@ -2549,7 +2609,8 @@ def live_scan():
         if accumulation_setups.empty:
             st.info("No coin currently meets the confirmed accumulation rules.")
         accumulation_cols = [
-            "Coin", "Status", "Category leader", "Leader categories", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
+            "Coin", "Status", "Category leader", "Leader categories",
+            "Project freshness", "History days", "Freshness score", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
             "Accumulation low", "Accumulation high", "In accumulation zone",
             "Cycle accumulation low", "Cycle accumulation high",
             "In cycle accumulation zone", "4Y cycle position %",
@@ -2588,6 +2649,10 @@ def live_scan():
             column_config={
                 "Circulating %": st.column_config.NumberColumn(format="%.1f%%"),
                 "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
+                "History days": st.column_config.NumberColumn(format="%.0f"),
+                "Freshness score": st.column_config.ProgressColumn(
+                    "Freshness", min_value=0, max_value=100, format="%.0f"
+                ),
                 "Accumulation score": st.column_config.ProgressColumn(
                     "Accumulation score",
                     min_value=0,
@@ -2760,6 +2825,23 @@ if qa:
         lead2.metric(
             "Leader categories",
             qa_result.get("leader_categories") or "None identified",
+        )
+
+        fresh1, fresh2, fresh3 = st.columns(3)
+        fresh1.metric("Project freshness", qa_result.get("project_freshness", "UNKNOWN"))
+        history_days = qa_result.get("history_days", np.nan)
+        fresh2.metric(
+            "Exchange history",
+            f"{history_days:.0f} days" if pd.notna(history_days) else "Unavailable",
+        )
+        fresh3.metric(
+            "Freshness score",
+            f"{qa_result.get('freshness_score', np.nan):.0f}/100"
+            if pd.notna(qa_result.get("freshness_score", np.nan))
+            else "Unavailable",
+        )
+        st.caption(
+            "Freshness is an exchange-history proxy, not the project's exact launch age."
         )
 
         cat1, cat2, cat3 = st.columns(3)
@@ -3068,6 +3150,10 @@ The score measures **technical setup quality, not probability of success or expe
 #### Trend regime — directional context
 
 Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+
+#### Project freshness — prefer newer narratives, with risk controls
+
+The scanner now labels assets **NEW, RECENT, MATURE or LEGACY** using the amount of spot-price history available on the selected exchange. This is a **freshness proxy**, not the project's exact launch date. Newer/recent projects are ranked ahead of otherwise similar older assets because fresh narratives often attract more speculative capital, but freshness is **not a hard BUY gate** and cannot override low-float tokenomics, weak liquidity, poor relative strength or a bad technical setup.
 
 #### Information advantage — upcoming catalyst radar
 
