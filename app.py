@@ -216,6 +216,8 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
     d = dfd.copy()
     d["ema20"] = ema(d["close"], 20)
     d["rsi"] = rsi(d["close"])
+    d["atr"] = atr(d)
+    d["obv"] = obv(d)
     daily_price = float(d["close"].iloc[-1])
     daily_ema = float(d["ema20"].iloc[-1])
     daily_rsi = float(d["rsi"].iloc[-1])
@@ -227,6 +229,56 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
         daily_component = 0.25
     daily_score = 5 * daily_component
 
+    # Separate potential-base signal for disciplined accumulation entries.
+    # This does not reward averaging into an unconfirmed downtrend.
+    base_window = d.iloc[-60:]
+    base_low = float(base_window["low"].min())
+    base_distance_pct = (daily_price / base_low - 1) * 100 if base_low else 100.0
+    base_location_component = clamp_score((25 - base_distance_pct) / 20)
+
+    recent_daily_low = float(d["low"].iloc[-10:].min())
+    prior_daily_low = float(d["low"].iloc[-30:-10].min())
+    higher_base_component = clamp_score(
+        0.5 + ((recent_daily_low / prior_daily_low - 1) / 0.08)
+    ) if prior_daily_low else 0.0
+
+    daily_ema_slope = lin_slope(d["ema20"].iloc[-10:])
+    flattening_component = clamp_score((daily_ema_slope + 0.004) / 0.010)
+
+    daily_rsi_change = daily_rsi - float(d["rsi"].iloc[-6])
+    rsi_recovery_component = (
+        clamp_score(0.55 + daily_rsi_change / 16)
+        if 32 <= daily_rsi <= 62
+        else 0.2
+    )
+
+    daily_obv_slope = lin_slope(d["obv"].iloc[-20:])
+    daily_obv_component = clamp_score((daily_obv_slope + 0.006) / 0.024)
+
+    bottom_score = round(float(
+        30 * base_location_component
+        + 25 * higher_base_component
+        + 20 * flattening_component
+        + 15 * rsi_recovery_component
+        + 10 * daily_obv_component
+    ), 1)
+
+    recent_support = float(d["low"].iloc[-20:].min())
+    daily_atr = float(d["atr"].iloc[-5:].mean())
+    accumulation_low = recent_support
+    accumulation_high = min(
+        recent_support + 1.5 * daily_atr,
+        recent_support * 1.12,
+    )
+    in_accumulation_zone = accumulation_low <= daily_price <= accumulation_high
+
+    if bottom_score >= 70:
+        bottom_status = "Strong potential base"
+    elif bottom_score >= 50:
+        bottom_status = "Base developing"
+    else:
+        bottom_status = "Bottom not confirmed"
+
     # 8) Entry quality: near resistance but not touching it, with nearby invalidation (10 pts)
     ideal_mid = (cfg.near_resistance_min_pct + min(cfg.near_resistance_max_pct, 3.5)) / 2
     distance_component = clamp_score(1 - abs(distance_pct - ideal_mid) / max(ideal_mid, 1.0))
@@ -237,7 +289,8 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
     base_low = float(hist["low"].min())
     pattern_height_pct = max((resistance - base_low) / resistance * 100, 0)
     projected_target = resistance * (1 + min(pattern_height_pct, 25) / 100)
-    reward_pct = max((projected_target - price) / price * 100, 0)
+    target_upside_pct = (projected_target - price) / price * 100
+    reward_pct = max(target_upside_pct, 0)
     rr = reward_pct / risk_pct if risk_pct else 0
     rr_component = clamp_score((rr - 1.0) / 2.5)
     entry_score = 5 * distance_component + 5 * rr_component
@@ -277,6 +330,12 @@ def score_setup(df4h: pd.DataFrame, dfd: pd.DataFrame, btc4h: pd.DataFrame, cfg:
         "target_1": resistance * 1.05,
         "target_2": resistance * 1.10,
         "projected_target": projected_target,
+        "target_upside_pct": round(target_upside_pct, 2),
+        "bottom_score": bottom_score,
+        "bottom_status": bottom_status,
+        "accumulation_low": accumulation_low,
+        "accumulation_high": accumulation_high,
+        "in_accumulation_zone": bool(in_accumulation_zone),
         "components": {
             "Structure": round(structure_score, 1),
             "Compression": round(compression_score, 1),
@@ -473,6 +532,13 @@ async def scan_exchange(cfg: ScreenerConfig) -> Tuple[pd.DataFrame, Dict[str, Di
                 "Invalidation": r["invalidation"],
                 "Target +5%": r["target_1"],
                 "Target +10%": r["target_2"],
+                "Sell target": r["projected_target"],
+                "Target upside %": r["target_upside_pct"],
+                "Accumulation signal": r["bottom_status"],
+                "Accumulation score": r["bottom_score"],
+                "Accumulation low": r["accumulation_low"],
+                "Accumulation high": r["accumulation_high"],
+                "In accumulation zone": r["in_accumulation_zone"],
                 "24h quote vol": r["quote_volume_24h"],
                 "_components": r["components"],
             }
@@ -502,7 +568,20 @@ def make_chart(df: pd.DataFrame, row: pd.Series) -> go.Figure:
     ))
     fig.add_hline(y=float(row["Breakout"]), line_dash="dash", annotation_text="Breakout / resistance")
     fig.add_hline(y=float(row["Invalidation"]), line_dash="dot", annotation_text="Invalidation")
-    fig.add_hrect(y0=float(row["Entry low"]), y1=float(row["Entry high"]), opacity=0.12, line_width=0, annotation_text="Entry zone")
+    fig.add_hrect(
+        y0=float(row["Entry low"]), y1=float(row["Entry high"]),
+        opacity=0.12, line_width=0, fillcolor="#2ecc71", annotation_text="Entry zone",
+    )
+    if "Accumulation low" in row and "Accumulation high" in row:
+        fig.add_hrect(
+            y0=float(row["Accumulation low"]), y1=float(row["Accumulation high"]),
+            opacity=0.10, line_width=0, fillcolor="#3498db", annotation_text="Potential accumulation zone",
+        )
+    if "Sell target" in row:
+        fig.add_hline(
+            y=float(row["Sell target"]), line_dash="dashdot",
+            line_color="#f39c12", annotation_text="Sell target",
+        )
     fig.update_layout(height=480, margin=dict(l=10, r=10, t=35, b=10), xaxis_rangeslider_visible=False)
     return fig
 
@@ -679,10 +758,15 @@ def live_scan():
             st.write(f"**Entry:** {fmt_price(q['Entry low'])} – {fmt_price(q['Entry high'])}")
             st.write(f"**Breakout:** {fmt_price(q['Breakout'])}")
             st.write(f"**Invalidation:** {fmt_price(q['Invalidation'])}")
+            st.write(f"**Potential accumulation zone:** {fmt_price(q['Accumulation low'])} – {fmt_price(q['Accumulation high'])}")
+            st.write(f"**Bottoming signal:** {q['Accumulation signal']} ({q['Accumulation score']:.1f}/100)")
+            st.write(f"**Sell target:** {fmt_price(q['Sell target'])} ({q['Target upside %']:.1f}% from current price)")
 
     display_cols = [
         "Coin", "Score", "Price", "To resistance %", "Tests", "RSI", "ATR ratio",
-        "Vol ratio", "RS vs BTC %", "R:R", "Entry low", "Entry high", "Breakout", "Invalidation"
+        "Vol ratio", "RS vs BTC %", "R:R", "Accumulation signal", "Accumulation score",
+        "Accumulation low", "Accumulation high", "In accumulation zone",
+        "Entry low", "Entry high", "Breakout", "Sell target", "Target upside %", "Invalidation"
     ]
     st.dataframe(
         shown[display_cols],
@@ -698,6 +782,11 @@ def live_scan():
             "Entry high": st.column_config.NumberColumn(format="%.8g"),
             "Breakout": st.column_config.NumberColumn(format="%.8g"),
             "Invalidation": st.column_config.NumberColumn(format="%.8g"),
+            "Accumulation score": st.column_config.ProgressColumn("Accumulation score", min_value=0, max_value=100, format="%.1f"),
+            "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
+            "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
+            "Sell target": st.column_config.NumberColumn(format="%.8g"),
+            "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
         },
     )
 
@@ -764,6 +853,9 @@ if qa:
             "Invalidation": qa_result["invalidation"],
             "Entry low": qa_result["entry_low"],
             "Entry high": qa_result["entry_high"],
+            "Accumulation low": qa_result["accumulation_low"],
+            "Accumulation high": qa_result["accumulation_high"],
+            "Sell target": qa_result["projected_target"],
         })
         if not qa["raw"]["4h"].empty:
             qa_chart_key = "quick_chart_" + qa_symbol.replace("/", "_").replace(":", "_")
@@ -778,6 +870,19 @@ if qa:
         l2.metric("Breakout level", fmt_price(qa_result["resistance"]))
         l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
         l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
+
+        a1, a2, a3, a4 = st.columns(4)
+        a1.metric("Bottoming signal", qa_result["bottom_status"], f"{qa_result['bottom_score']:.1f}/100")
+        a2.metric(
+            "Potential accumulation zone",
+            f"{fmt_price(qa_result['accumulation_low'])} – {fmt_price(qa_result['accumulation_high'])}",
+        )
+        a3.metric("Inside accumulation zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
+        a4.metric(
+            "Sell target",
+            fmt_price(qa_result["projected_target"]),
+            f"{qa_result['target_upside_pct']:.1f}% from current price",
+        )
 
         qa_components = qa_result["components"]
         qa_comp_df = pd.DataFrame({
@@ -812,6 +917,15 @@ if not scan_df.empty:
     m2.metric("Breakout level", fmt_price(row["Breakout"]))
     m3.metric("Invalidation", fmt_price(row["Invalidation"]))
     m4.metric("Risk / reward", f"{row['R:R']:.2f}:1")
+
+    a1, a2, a3, a4 = st.columns(4)
+    a1.metric("Bottoming signal", row["Accumulation signal"], f"{row['Accumulation score']:.1f}/100")
+    a2.metric(
+        "Potential accumulation zone",
+        f"{fmt_price(row['Accumulation low'])} – {fmt_price(row['Accumulation high'])}",
+    )
+    a3.metric("Inside accumulation zone", "Yes" if row["In accumulation zone"] else "No")
+    a4.metric("Sell target", fmt_price(row["Sell target"]), f"{row['Target upside %']:.1f}% from current price")
 
     comps = row["_components"]
     comp_df = pd.DataFrame({"Factor": list(comps.keys()), "Points": list(comps.values())})
