@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import io
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -51,6 +52,245 @@ def _safe_float(x, default=np.nan):
         return v if math.isfinite(v) else default
     except Exception:
         return default
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _fred_series(series_id: str) -> pd.Series:
+    r = requests.get(
+        "https://fred.stlouisfed.org/graph/fredgraph.csv",
+        params={"id": series_id},
+        headers={"User-Agent": "pre-breakout-screener/1.0"},
+        timeout=15,
+    )
+    r.raise_for_status()
+    df = pd.read_csv(io.StringIO(r.text))
+    if df.empty or len(df.columns) < 2:
+        return pd.Series(dtype=float)
+    date_col = df.columns[0]
+    value_col = df.columns[-1]
+    idx = pd.to_datetime(df[date_col], errors="coerce", utc=True)
+    values = pd.to_numeric(df[value_col], errors="coerce")
+    out = pd.Series(values.to_numpy(), index=idx).dropna()
+    return out[~out.index.isna()].sort_index()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _stablecoin_supply_series() -> pd.Series:
+    r = requests.get(
+        "https://stablecoins.llama.fi/stablecoincharts/all",
+        headers={"User-Agent": "pre-breakout-screener/1.0"},
+        timeout=20,
+    )
+    r.raise_for_status()
+    data = r.json() or []
+    points = []
+    for item in data:
+        try:
+            ts = pd.to_datetime(float(item.get("date")), unit="s", utc=True)
+            circulating = item.get("totalCirculatingUSD") or item.get("totalCirculating") or {}
+            value = _safe_float(circulating.get("peggedUSD"), np.nan)
+            if math.isfinite(value):
+                points.append((ts, value))
+        except Exception:
+            continue
+    if not points:
+        return pd.Series(dtype=float)
+    idx, vals = zip(*points)
+    return pd.Series(vals, index=pd.DatetimeIndex(idx)).sort_index()
+
+
+def _series_change_days(series: pd.Series, days: int) -> float:
+    if series is None or series.empty:
+        return np.nan
+    s = series.dropna().sort_index()
+    if len(s) < 2:
+        return np.nan
+    latest_time = s.index[-1]
+    target = latest_time - pd.Timedelta(days=days)
+    prior = s.loc[:target]
+    if prior.empty:
+        return np.nan
+    old = float(prior.iloc[-1])
+    new = float(s.iloc[-1])
+    if old == 0:
+        return np.nan
+    return (new / old - 1) * 100
+
+
+def _score_growth(change: float, bands: List[Tuple[float, float]], fallback: float = 0.0) -> float:
+    if not math.isfinite(change):
+        return np.nan
+    for threshold, points in bands:
+        if change >= threshold:
+            return points
+    return fallback
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def macro_liquidity_regime() -> Dict:
+    factors = []
+    errors = []
+
+    def add_factor(name, value, change, points, max_points, signal, source):
+        if math.isfinite(points):
+            factors.append({
+                "Factor": name,
+                "Latest": value,
+                "Change %": change,
+                "Points": round(points, 1),
+                "Max": max_points,
+                "Signal": signal,
+                "Source": source,
+            })
+
+    # Broad money: medium-term expansion/contraction.
+    try:
+        s = _fred_series("M2SL")
+        ch = _series_change_days(s, 100)
+        pts = _score_growth(ch, [(1.5, 20), (0.5, 16), (0.0, 12), (-0.5, 8)], 3)
+        add_factor(
+            "US M2", float(s.iloc[-1]), ch, pts, 20,
+            "Expanding" if ch > 0 else "Contracting",
+            "FRED M2SL",
+        )
+    except Exception as exc:
+        errors.append("US M2: " + str(exc))
+
+    # Central-bank balance sheet direction.
+    try:
+        s = _fred_series("WALCL")
+        ch = _series_change_days(s, 91)
+        pts = _score_growth(ch, [(2.0, 15), (0.5, 12), (0.0, 9), (-2.0, 5)], 2)
+        add_factor(
+            "Fed balance sheet", float(s.iloc[-1]), ch, pts, 15,
+            "Expanding" if ch > 0 else "Contracting",
+            "FRED WALCL",
+        )
+    except Exception as exc:
+        errors.append("Fed balance sheet: " + str(exc))
+
+    # Financial conditions: negative NFCI is loose; falling NFCI is easing.
+    try:
+        s = _fred_series("NFCI")
+        latest = float(s.iloc[-1])
+        ch = _series_change_days(s, 28)
+        prior = latest / (1 + ch / 100) if math.isfinite(ch) and (1 + ch / 100) != 0 else np.nan
+        delta = latest - prior if math.isfinite(prior) else np.nan
+        if latest <= -0.5 and (not math.isfinite(delta) or delta <= 0):
+            pts = 20
+        elif latest <= -0.25:
+            pts = 17 if not math.isfinite(delta) or delta <= 0 else 14
+        elif latest <= 0:
+            pts = 13 if not math.isfinite(delta) or delta <= 0 else 10
+        elif math.isfinite(delta) and delta < 0:
+            pts = 7
+        else:
+            pts = 2
+        add_factor(
+            "Financial conditions (NFCI)", latest, ch, pts, 20,
+            "Loose / easing" if latest < 0 and (not math.isfinite(delta) or delta <= 0)
+            else "Tightening / restrictive",
+            "FRED NFCI",
+        )
+    except Exception as exc:
+        errors.append("NFCI: " + str(exc))
+
+    # Falling real yields generally improve liquidity/risk-asset conditions.
+    try:
+        s = _fred_series("DFII10")
+        latest = float(s.iloc[-1])
+        ch = _series_change_days(s, 30)
+        prior = latest / (1 + ch / 100) if math.isfinite(ch) and (1 + ch / 100) != 0 else np.nan
+        delta = latest - prior if math.isfinite(prior) else np.nan
+        if math.isfinite(delta) and delta <= -0.25:
+            pts = 15
+        elif math.isfinite(delta) and delta < -0.05:
+            pts = 12
+        elif math.isfinite(delta) and delta <= 0.05:
+            pts = 8
+        elif math.isfinite(delta) and delta <= 0.25:
+            pts = 4
+        else:
+            pts = 1
+        add_factor(
+            "10Y real yield", latest, ch, pts, 15,
+            "Falling / supportive" if math.isfinite(delta) and delta < 0 else "Rising / headwind",
+            "FRED DFII10",
+        )
+    except Exception as exc:
+        errors.append("10Y real yield: " + str(exc))
+
+    # A weaker broad dollar is normally supportive for global risk liquidity.
+    try:
+        s = _fred_series("DTWEXBGS")
+        latest = float(s.iloc[-1])
+        ch = _series_change_days(s, 30)
+        if ch <= -2:
+            pts = 15
+        elif ch <= -0.5:
+            pts = 12
+        elif ch <= 0.5:
+            pts = 8
+        elif ch <= 2:
+            pts = 4
+        else:
+            pts = 1
+        add_factor(
+            "Broad US dollar", latest, ch, pts, 15,
+            "Weakening / supportive" if ch < 0 else "Strengthening / headwind",
+            "FRED DTWEXBGS",
+        )
+    except Exception as exc:
+        errors.append("Broad dollar: " + str(exc))
+
+    # Crypto-native liquidity: stablecoin supply growth.
+    try:
+        s = _stablecoin_supply_series()
+        latest = float(s.iloc[-1])
+        ch = _series_change_days(s, 30)
+        pts = _score_growth(ch, [(5.0, 15), (2.0, 13), (0.5, 10), (0.0, 8), (-2.0, 4)], 1)
+        add_factor(
+            "Stablecoin supply", latest, ch, pts, 15,
+            "Expanding" if ch > 0 else "Contracting",
+            "DefiLlama stablecoins",
+        )
+    except Exception as exc:
+        errors.append("Stablecoin supply: " + str(exc))
+
+    available_max = sum(float(f["Max"]) for f in factors)
+    raw_points = sum(float(f["Points"]) for f in factors)
+    if available_max < 45:
+        return {
+            "available": False,
+            "score": np.nan,
+            "regime": "DATA LIMITED",
+            "stance": "Do not macro-gate trades",
+            "allows_new_swing_risk": True,
+            "factors": factors,
+            "errors": errors,
+        }
+
+    score = round(raw_points / available_max * 100, 1)
+    if score >= 70:
+        regime, stance = "EXPANSION", "Risk-on supportive"
+    elif score >= 58:
+        regime, stance = "IMPROVING", "Supportive / selective risk-on"
+    elif score >= 42:
+        regime, stance = "MIXED / NEUTRAL", "Technical setups can proceed selectively"
+    elif score >= 30:
+        regime, stance = "DETERIORATING", "New swing risk should wait"
+    else:
+        regime, stance = "CONTRACTION", "Defensive — avoid new swing risk"
+
+    return {
+        "available": True,
+        "score": score,
+        "regime": regime,
+        "stance": stance,
+        "allows_new_swing_risk": score >= 42,
+        "factors": factors,
+        "errors": errors,
+    }
 
 
 def ohlcv_to_df(rows: list) -> pd.DataFrame:
@@ -352,8 +592,9 @@ def score_setup(
     invalidation = min(swing_low, entry_anchor - 1.25 * entry_atr) * 0.995
     risk_pct = max((price - invalidation) / price * 100, 0.01)
 
-    # Short-term measured move remains useful, but the main target now comes from
-    # major weekly resistance over approximately one four-year crypto cycle.
+    # Short-term measured move remains useful, while long-range weekly resistance
+    # uses up to ~4 years of available history as a technical reference window.
+    # This is not treated as evidence of a fixed four-year crypto cycle.
     pattern_base_low = float(hist["low"].min())
     pattern_height_pct = max((resistance - pattern_base_low) / resistance * 100, 0)
     measured_target = resistance * (1 + min(pattern_height_pct, 35) / 100)
@@ -497,9 +738,12 @@ def score_setup(
     else:
         result_reason = "Pre-breakout shape found, but no credible 30% gross-profit target"
 
-    if bottom_score >= 70 and (in_accumulation_zone or in_cycle_accumulation_zone):
+    # Accumulation is now driven by the actual daily base structure. Long-range
+    # weekly support and the four-year range are reference context only and do
+    # not trigger an accumulation decision.
+    if bottom_score >= 70 and in_accumulation_zone:
         accumulation_verdict = "ACCUMULATION READY"
-    elif bottom_score >= 50 or in_cycle_accumulation_zone:
+    elif bottom_score >= 50 or in_accumulation_zone:
         accumulation_verdict = "WATCH FOR BASE CONFIRMATION"
     else:
         accumulation_verdict = "NOT READY TO ACCUMULATE"
@@ -924,7 +1168,7 @@ def make_chart(
             fig.add_hrect(
                 y0=cycle_zone_low, y1=cycle_zone_high,
                 opacity=0.12, line_width=0, fillcolor="#8e44ad",
-                annotation_text="Weekly cycle accumulation zone",
+                annotation_text="Long-range weekly support zone",
             )
     if "Sell target" in row and pd.notna(row["Sell target"]):
         take_profit = float(row["Sell target"])
@@ -1035,6 +1279,43 @@ if "previous_flags" not in st.session_state:
 if "last_scan" not in st.session_state:
     st.session_state.last_scan = None
 
+macro = macro_liquidity_regime()
+st.session_state.macro_liquidity = macro
+
+st.subheader("Macro liquidity regime")
+if macro.get("available"):
+    ml1, ml2, ml3, ml4 = st.columns(4)
+    ml1.metric("Liquidity score", f"{macro['score']:.1f}/100")
+    ml2.metric("Regime", macro["regime"])
+    ml3.metric("Risk stance", macro["stance"])
+    ml4.metric(
+        "New swing risk",
+        "ALLOWED" if macro["allows_new_swing_risk"] else "WAIT",
+    )
+    if not macro["allows_new_swing_risk"]:
+        st.warning(
+            "Technical setups can still be identified, but new swing BUY signals are "
+            "downgraded to WAIT while the macro-liquidity regime is deteriorating or contracting."
+        )
+else:
+    st.info(
+        "Macro-liquidity data is currently incomplete, so the scanner will not block "
+        "technical BUY signals on macro grounds."
+    )
+
+with st.expander("Macro liquidity factors"):
+    macro_factors = pd.DataFrame(macro.get("factors", []))
+    if not macro_factors.empty:
+        st.dataframe(macro_factors, hide_index=True, use_container_width=True)
+    if macro.get("errors"):
+        st.caption("Unavailable inputs: " + " | ".join(macro["errors"]))
+    st.caption(
+        "Primary cycle framework: macro liquidity, not a fixed four-year crypto cycle. "
+        "The regime combines broad money, the Fed balance sheet, financial conditions, "
+        "real yields, the broad US dollar and stablecoin supply. Four-year price-range "
+        "statistics remain reference-only."
+    )
+
 manual_col, info_col = st.columns([1, 4])
 with manual_col:
     manual_scan = st.button("Run scan now", type="primary", use_container_width=True)
@@ -1097,10 +1378,17 @@ def live_scan():
         st.warning("No coins could be scored from the available market data. Check market-data warnings and try another scan.")
         return
 
-    swing_setups = df[
+    technical_swing_setups = df[
         (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
         & (df["Score"] >= cfg.score_threshold)
     ].copy().sort_values("Score", ascending=False)
+    macro_now = st.session_state.get("macro_liquidity") or {}
+    macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
+    swing_setups = (
+        technical_swing_setups
+        if macro_allows_new_risk
+        else technical_swing_setups.iloc[0:0].copy()
+    )
     accumulation_setups = df[
         df["Accumulation verdict"] == "ACCUMULATION READY"
     ].copy().sort_values("Accumulation score", ascending=False)
@@ -1110,14 +1398,32 @@ def live_scan():
     swing_candidates["Status"] = np.where(
         swing_candidates["Symbol"].isin(swing_setups["Symbol"]), "BUY", "WAIT"
     )
+    swing_candidates["Macro regime"] = macro_now.get("regime", "DATA LIMITED")
+    swing_candidates["Macro score"] = macro_now.get("score", np.nan)
     swing_candidates["Reason"] = swing_candidates.apply(
         lambda row: (
-            "Meets swing-trade rules" if row["Status"] == "BUY"
+            "Meets technical rules and macro liquidity allows new swing risk"
+            if row["Status"] == "BUY"
             else (
-                (f"Score {row['Score']:.1f} below {cfg.score_threshold}. "
-                 if row["Score"] < cfg.score_threshold else "")
-                + (row["Trade reason"]
-                   if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET" else "")
+                (
+                    f"Technical setup qualifies, but macro liquidity is "
+                    f"{macro_now.get('regime', 'DATA LIMITED')} "
+                    f"({macro_now.get('score', np.nan):.1f}/100). "
+                    if (
+                        row["Symbol"] in set(technical_swing_setups["Symbol"])
+                        and not macro_allows_new_risk
+                        and pd.notna(macro_now.get("score", np.nan))
+                    )
+                    else ""
+                )
+                + (
+                    f"Score {row['Score']:.1f} below {cfg.score_threshold}. "
+                    if row["Score"] < cfg.score_threshold else ""
+                )
+                + (
+                    row["Trade reason"]
+                    if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET" else ""
+                )
             )
         ), axis=1,
     )
@@ -1135,8 +1441,8 @@ def live_scan():
             else (
                 (f"Base score {row['Accumulation score']:.1f} below 70. "
                  if row["Accumulation score"] < 70 else "")
-                + ("Price outside daily and weekly accumulation zones."
-                   if not (row["In accumulation zone"] or row["In cycle accumulation zone"])
+                + ("Price outside the confirmed daily base accumulation zone."
+                   if not row["In accumulation zone"]
                    else "")
             )
         ), axis=1,
@@ -1179,7 +1485,8 @@ def live_scan():
         st.caption(
             f"All {len(df)} analysed coins are shown. BUY requires a trade score of "
             f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
-            "WAIT candidates remain visible with their reasons. "
+            "A technical qualifier is only promoted to BUY when the macro-liquidity "
+            "regime is not deteriorating/contracting. WAIT candidates remain visible with their reasons. "
             "Green = preferred, amber = borderline, red = weak or extended."
         )
         if swing_setups.empty:
@@ -1188,7 +1495,7 @@ def live_scan():
                 "BUY rules and 30% gross-target requirement."
             )
         swing_cols = [
-            "Coin", "Status", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
+            "Coin", "Status", "Macro regime", "Macro score", "Score", "Reason", "Price", "To resistance %", "Tests", "RSI",
             "ATR ratio", "Vol ratio", "RS vs BTC %", "R:R",
             "Entry low", "Entry high", "Entry basis", "Breakout",
             "Invalidation", "First resistance target", "Sell target",
@@ -1207,6 +1514,9 @@ def live_scan():
             use_container_width=True,
             hide_index=True,
             column_config={
+                "Macro score": st.column_config.ProgressColumn(
+                    "Macro liquidity", min_value=0, max_value=100, format="%.1f"
+                ),
                 "Score": st.column_config.ProgressColumn(
                     "Trade score", min_value=0, max_value=100, format="%.1f"
                 ),
@@ -1233,8 +1543,9 @@ def live_scan():
         st.subheader("Accumulation candidates")
         st.caption(
             "All analysed coins are ranked by their separate accumulation score. "
-            "ACCUMULATE requires at least 70 and price inside a daily or weekly "
-            "accumulation zone. WAIT shows candidates still missing these conditions."
+            "ACCUMULATE requires at least 70 and price inside the confirmed daily "
+            "base accumulation zone. Long-range weekly support and the 4Y range are "
+            "reference-only and do not trigger the decision."
         )
         if accumulation_setups.empty:
             st.info("No coin currently meets the confirmed accumulation rules.")
@@ -1245,7 +1556,14 @@ def live_scan():
             "In cycle accumulation zone", "4Y cycle position %",
             "Previous cycle-high reference", "Accumulation verdict",
         ]
-        styled_accumulation = accumulation_candidates[accumulation_cols].style.map(
+        accumulation_display = accumulation_candidates[accumulation_cols].rename(columns={
+            "Cycle accumulation low": "Weekly support low",
+            "Cycle accumulation high": "Weekly support high",
+            "In cycle accumulation zone": "In weekly support zone",
+            "4Y cycle position %": "4Y range position % (reference)",
+            "Previous cycle-high reference": "4Y range-high reference",
+        })
+        styled_accumulation = accumulation_display.style.map(
             lambda value: scan_cell_style(value, "Accumulation signal"),
             subset=["Accumulation signal"],
         )
@@ -1263,12 +1581,10 @@ def live_scan():
                 "Price": st.column_config.NumberColumn(format="%.8g"),
                 "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
                 "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
-                "Cycle accumulation low": st.column_config.NumberColumn(format="%.8g"),
-                "Cycle accumulation high": st.column_config.NumberColumn(format="%.8g"),
-                "4Y cycle position %": st.column_config.NumberColumn(format="%.1f%%"),
-                "Previous cycle-high reference": st.column_config.NumberColumn(
-                    format="%.8g"
-                ),
+                "Weekly support low": st.column_config.NumberColumn(format="%.8g"),
+                "Weekly support high": st.column_config.NumberColumn(format="%.8g"),
+                "4Y range position % (reference)": st.column_config.NumberColumn(format="%.1f%%"),
+                "4Y range-high reference": st.column_config.NumberColumn(format="%.8g"),
             },
         )
 
@@ -1319,8 +1635,18 @@ if qa:
     if "score" not in qa_result:
         st.warning(qa_result.get("reason", "Not enough market data to score this coin."))
     else:
-        if qa_result.get("eligible"):
-            st.success("TRADE QUALIFIES: pre-breakout shape plus a credible target offering at least 30% gross upside.")
+        macro_now = st.session_state.get("macro_liquidity") or {}
+        if qa_result.get("eligible") and macro_now.get("allows_new_swing_risk", True):
+            st.success(
+                "TRADE QUALIFIES: technical pre-breakout rules pass and the "
+                "macro-liquidity regime allows new swing risk."
+            )
+        elif qa_result.get("eligible"):
+            st.warning(
+                "TECHNICAL QUALIFIER — MACRO WAIT: the setup passes the pre-breakout "
+                f"rules, but macro liquidity is {macro_now.get('regime', 'DATA LIMITED')} "
+                f"({macro_now.get('score', np.nan):.1f}/100)."
+            )
         elif qa_result.get("shape_eligible"):
             st.warning("TRADE PASS: the pre-breakout shape is present, but no credible 30% gross-profit target was found.")
         else:
@@ -1353,7 +1679,7 @@ if qa:
         qa_timeframes = {
             "4-hour — entry timing (30 days)": ("4h", "4h", 180),
             "Daily — structure (up to 1 year)": ("1d", "1d", 365),
-            "Weekly — cycle context (about 4 years)": ("1w", "1w", 209),
+            "Weekly — long-range structure (up to ~4 years)": ("1w", "1w", 209),
         }
         qa_timeframe_choice = st.selectbox(
             "Chart timeframe",
@@ -1417,14 +1743,14 @@ if qa:
             else "Unavailable"
         )
         st.caption(
-            f"Weekly cycle accumulation zone: {cycle_zone_text} · "
+            f"Long-range weekly support zone: {cycle_zone_text} · "
             f"Inside zone: {'Yes' if qa_result.get('in_cycle_accumulation_zone') else 'No'} · "
             f"{qa_result.get('cycle_accumulation_basis', '')}"
         )
         st.caption(
             f"30% target basis: {qa_result['target_basis']} · "
             f"Next qualifying target: {fmt_optional_price(qa_result['stretch_target'], 'Unavailable')} · "
-            f"Position within available four-year range: {cycle_text}"
+            f"Position within available 4Y range (reference only): {cycle_text}"
         )
 
         qa_components = qa_result["components"]
@@ -1454,7 +1780,7 @@ if not scan_df.empty:
     inspect_timeframes = {
         "4-hour — entry timing (30 days)": ("4h", "4h", 180),
         "Daily — structure (up to 1 year)": ("1d", "1d", 365),
-        "Weekly — cycle context (about 4 years)": ("1w", "1w", 209),
+        "Weekly — long-range structure (up to ~4 years)": ("1w", "1w", 209),
     }
     available_timeframes = {
         label: values
@@ -1511,14 +1837,14 @@ if not scan_df.empty:
         else "Unavailable"
     )
     st.caption(
-        f"Weekly cycle accumulation zone: {cycle_zone_text} · "
+        f"Long-range weekly support zone: {cycle_zone_text} · "
         f"Inside zone: {'Yes' if row['In cycle accumulation zone'] else 'No'} · "
         f"{row['Cycle accumulation basis']}"
     )
     st.caption(
         f"30% target basis: {row['Target basis']} · "
         f"Next qualifying target: {fmt_optional_price(row['Stretch target'], 'Unavailable')} · "
-        f"Position within available four-year range: {cycle_text}"
+        f"Position within available 4Y range (reference only): {cycle_text}"
     )
 
     comps = row["_components"]
@@ -1529,7 +1855,11 @@ else:
 
 st.divider()
 st.subheader("Historical sanity check")
-st.caption("This is a simple event study, not a full execution simulator. It checks what happened after past pre-breakout flags.")
+st.caption(
+    "This is a simple event study, not a full execution simulator. It replays the "
+    "technical setup only; the new macro-liquidity overlay is not yet historically "
+    "replayed in this backtest."
+)
 
 if not scan_df.empty:
     bc1, bc2, bc3 = st.columns(3)
@@ -1584,7 +1914,11 @@ Those weights total 95 raw points, which the app now normalises to a genuine **0
 - **15 pts — RSI recovery:** daily momentum is recovering from a constructive level.
 - **10 pts — Daily OBV:** volume flow is improving.
 
-ACCUMULATE also requires the score to reach 70 and price to be inside either the daily base zone or confirmed weekly cycle accumulation zone.
+ACCUMULATE also requires the score to reach 70 and price to be inside the confirmed daily base zone. Long-range weekly support and the four-year price range remain visible as technical reference only; they do not trigger ACCUMULATE.
+
+#### Macro-liquidity regime — primary cycle framework
+
+The scanner no longer assumes crypto must follow a fixed four-year cycle. New swing BUY signals are overlaid with a macro-liquidity regime built from **US M2 (20 pts), Fed balance sheet direction (15), Chicago Fed financial conditions (20), 10Y real-yield direction (15), the broad US dollar (15), and stablecoin supply growth (15)**. Scores below 42 are treated as a macro headwind and technically qualified swings remain WAIT until liquidity improves.
         """
     )
 
