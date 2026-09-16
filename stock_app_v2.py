@@ -18,6 +18,10 @@ src = src.replace(
     'fundamental_analysis(sym, float(row["Price"]))',
     'valuation_fundamental_analysis(sym, float(row["Price"]))',
 )
+src = src.replace(
+    'fundamental_analysis(sym, price)',
+    'valuation_fundamental_analysis(sym, price)',
+)
 
 src = src.replace(
 '''def classify(trade: float, hold: float) -> Scores:
