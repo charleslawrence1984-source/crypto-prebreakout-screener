@@ -934,6 +934,7 @@ def fundamental_market_scan(
     rate_limit_errors = 0
     other_errors = 0
     price_failures = 0
+    error_samples = []
 
     # One batch price request is much gentler on Yahoo than one history request
     # per company. Per-ticker history remains only as a fallback.
@@ -1042,6 +1043,10 @@ def fundamental_market_scan(
                 rate_limit_errors += 1
             else:
                 other_errors += 1
+                if len(error_samples) < 5:
+                    error_samples.append(
+                        f"{sym}: {exc.__class__.__name__}: {str(exc)[:220]}"
+                    )
             continue
 
     if not rows:
@@ -1051,6 +1056,7 @@ def fundamental_market_scan(
             "rate_limit_errors": rate_limit_errors,
             "other_errors": other_errors,
             "price_failures": price_failures,
+            "error_samples": error_samples,
         }
         return out
 
@@ -1061,6 +1067,7 @@ def fundamental_market_scan(
         "rate_limit_errors": rate_limit_errors,
         "other_errors": other_errors,
         "price_failures": price_failures,
+        "error_samples": error_samples,
     }
     action_rank = {"BUY": 0, "WAIT": 1, "PASS": 2}
     out["_action_rank"] = out["Action"].map(action_rank).fillna(3)
@@ -1371,6 +1378,7 @@ with tab4:
                 rate_limited = int(diag.get("rate_limit_errors", 0))
                 price_failures = int(diag.get("price_failures", 0))
                 other_errors = int(diag.get("other_errors", 0))
+                error_samples = diag.get("error_samples", [])
                 if rate_limited or price_failures:
                     st.error(
                         f"Investment Search could not retrieve usable Yahoo data for this batch. "
@@ -1383,6 +1391,8 @@ with tab4:
                         f"No companies returned enough investment data under these filters. "
                         f"Other company errors: {other_errors}."
                     )
+                if error_samples:
+                    st.code("\n".join(error_samples), language="text")
             else:
                 filtered_fundamentals = fundamental_results[
                     fundamental_results["Quality score"] >= min_quality_score
