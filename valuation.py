@@ -216,6 +216,10 @@ def fundamental_analysis(symbol: str, price: float):
         "fcf_yield": fcf_yield,
         "sector": info.get("sector"),
         "industry": info.get("industry"),
+        "business_summary": info.get("longBusinessSummary") or "",
+        "return_on_equity": _safe(info.get("returnOnEquity")),
+        "return_on_assets": _safe(info.get("returnOnAssets")),
+        "current_ratio": _safe(info.get("currentRatio")),
         "exchange": info.get("fullExchangeName") or info.get("exchange"),
         "exchange_country": _exchange_country(symbol, info),
     }
