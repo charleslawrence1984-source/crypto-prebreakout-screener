@@ -832,7 +832,12 @@ def extract_ticker_frame(batch: pd.DataFrame, symbol: str) -> Optional[pd.DataFr
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def technical_market_scan(symbols_tuple: tuple[str, ...], max_symbols: int, min_turnover: float) -> pd.DataFrame:
-    symbols = list(symbols_tuple)[:max_symbols] if max_symbols > 0 else list(symbols_tuple)
+    universe_symbols = list(symbols_tuple)
+    if max_symbols > 0 and max_symbols < len(universe_symbols):
+        idx = np.linspace(0, len(universe_symbols) - 1, max_symbols, dtype=int)
+        symbols = [universe_symbols[i] for i in idx]
+    else:
+        symbols = universe_symbols
     rows = []
     chunk_size = 80
 
@@ -1032,7 +1037,7 @@ def fundamental_market_scan(
                 "Moat score": lt.get("moat_score", np.nan),
                 "Moat confidence": lt.get("moat_confidence", "LOW"),
                 "Structural moat": lt.get("structural_moat_status", "UNVERIFIED"),
-                "Moat evidence": lt.get("moat_mechanisms", "Needs manual verification"),
+                "Moat clues": lt.get("moat_mechanisms", "Needs manual verification"),
                 "Hard gates": "PASS" if lt.get("hard_gate_pass") else "FAIL",
                 "Hard-gate failures": lt.get("hard_gate_failures", ""),
                 "Base intrinsic value": lt.get("dcf_base"),
@@ -1431,6 +1436,11 @@ with tab4:
                 c2.metric("WAIT", waits)
                 c3.metric("PASS", passes)
                 c4.metric("Analysed", len(fundamental_results))
+
+                if not fundamental_results.empty and "Exchange Country" in fundamental_results.columns:
+                    mix = fundamental_results["Exchange Country"].fillna("Unknown").value_counts().to_dict()
+                    mix_text = " · ".join(f"{k}: {v}" for k, v in mix.items())
+                    st.caption("Successful market mix: " + mix_text)
 
                 if filtered_fundamentals.empty:
                     st.info("No company currently meets your selected minimum quality score.")
