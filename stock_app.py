@@ -967,6 +967,7 @@ def fundamental_market_scan(
             rate_limit_errors += 1
 
     for sym in symbols:
+        stage = "price"
         try:
             ticker = yf.Ticker(sym)
             price = safe(batch_prices.get(sym))
@@ -990,13 +991,16 @@ def fundamental_market_scan(
                 price_failures += 1
                 continue
 
+            stage = "company fundamentals"
             fund = valuation_fundamental_analysis(sym, price)
             market_cap = safe(fund.get("market_cap"))
             if not np.isnan(market_cap) and market_cap < min_market_cap:
                 continue
 
+            stage = "long-term analysis"
             lt = long_term_analysis(sym, price, fund)
             merged = {**fund, **lt, "price": price}
+            stage = "decision logic"
             decision = investment_decision(merged)
 
             rows.append({
@@ -1045,7 +1049,7 @@ def fundamental_market_scan(
                 other_errors += 1
                 if len(error_samples) < 5:
                     error_samples.append(
-                        f"{sym}: {exc.__class__.__name__}: {str(exc)[:220]}"
+                        f"{sym} @ {stage}: {exc.__class__.__name__}: {str(exc)[:220]}"
                     )
             continue
 
