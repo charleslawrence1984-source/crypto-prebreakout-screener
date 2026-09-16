@@ -931,6 +931,9 @@ def fundamental_market_scan(
     """
     symbols = list(symbols_tuple)[:max_symbols] if max_symbols > 0 else list(symbols_tuple)
     rows = []
+    rate_limit_errors = 0
+    other_errors = 0
+    price_failures = 0
 
     for sym in symbols:
         try:
@@ -946,6 +949,7 @@ def fundamental_market_scan(
                     continue
                 price = safe(hist["Close"].dropna().iloc[-1])
             if np.isnan(price) or price <= 0:
+                price_failures += 1
                 continue
 
             fund = valuation_fundamental_analysis(sym, price)
@@ -996,13 +1000,31 @@ def fundamental_market_scan(
                 "Manual checks": lt.get("qualitative_review_items", ""),
                 "Decision reason": lt.get("action_reason", ""),
             })
-        except Exception:
+        except Exception as exc:
+            if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
+                rate_limit_errors += 1
+            else:
+                other_errors += 1
             continue
 
     if not rows:
-        return pd.DataFrame()
+        out = pd.DataFrame()
+        out.attrs["scan_diagnostics"] = {
+            "requested": len(symbols),
+            "rate_limit_errors": rate_limit_errors,
+            "other_errors": other_errors,
+            "price_failures": price_failures,
+        }
+        return out
 
     out = pd.DataFrame(rows)
+    out.attrs["scan_diagnostics"] = {
+        "requested": len(symbols),
+        "returned": len(rows),
+        "rate_limit_errors": rate_limit_errors,
+        "other_errors": other_errors,
+        "price_failures": price_failures,
+    }
     action_rank = {"BUY": 0, "WAIT": 1, "PASS": 2}
     out["_action_rank"] = out["Action"].map(action_rank).fillna(3)
     out = out.sort_values(
@@ -1308,7 +1330,22 @@ with tab4:
                 )
 
             if fundamental_results.empty:
-                st.warning("No companies returned enough investment data under these filters.")
+                diag = fundamental_results.attrs.get("scan_diagnostics", {})
+                rate_limited = int(diag.get("rate_limit_errors", 0))
+                price_failures = int(diag.get("price_failures", 0))
+                other_errors = int(diag.get("other_errors", 0))
+                if rate_limited or price_failures:
+                    st.error(
+                        f"Investment Search could not retrieve usable Yahoo data for this batch. "
+                        f"Rate-limit errors: {rate_limited}; price-data failures: {price_failures}; "
+                        f"other company errors: {other_errors}. This is a data-provider problem, not a zero-candidate result."
+                    )
+                    st.info("Try 25 companies first. If Yahoo is temporarily rate-limiting the Streamlit server, wait a few minutes before running another batch.")
+                else:
+                    st.warning(
+                        f"No companies returned enough investment data under these filters. "
+                        f"Other company errors: {other_errors}."
+                    )
             else:
                 filtered_fundamentals = fundamental_results[
                     fundamental_results["Quality score"] >= min_quality_score
