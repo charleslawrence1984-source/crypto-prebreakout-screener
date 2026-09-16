@@ -220,6 +220,8 @@ def fundamental_analysis(symbol: str, price: float):
         "return_on_equity": _safe(info.get("returnOnEquity")),
         "return_on_assets": _safe(info.get("returnOnAssets")),
         "current_ratio": _safe(info.get("currentRatio")),
+        "quote_currency": info.get("currency") or "",
+        "financial_currency": info.get("financialCurrency") or "",
         "exchange": info.get("fullExchangeName") or info.get("exchange"),
         "exchange_country": _exchange_country(symbol, info),
     }
