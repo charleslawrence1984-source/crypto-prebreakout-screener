@@ -12,6 +12,9 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 import yfinance as yf
+from valuation import fundamental_analysis as valuation_fundamental_analysis
+from strategy_scores_v3 import long_term_analysis
+from two_strategy import investment_decision
 
 st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", layout="wide")
 
@@ -918,6 +921,11 @@ def fundamental_market_scan(
     max_symbols: int,
     min_market_cap: float,
 ) -> pd.DataFrame:
+    """Independent 10-years-to-forever investment scan.
+
+    This deliberately separates business quality from valuation. Hard-gate
+    failures cannot be rescued by a high weighted score.
+    """
     symbols = list(symbols_tuple)[:max_symbols] if max_symbols > 0 else list(symbols_tuple)
     rows = []
 
@@ -937,31 +945,53 @@ def fundamental_market_scan(
             if np.isnan(price) or price <= 0:
                 continue
 
-            fund = fundamental_analysis(sym, price)
+            fund = valuation_fundamental_analysis(sym, price)
             market_cap = safe(fund.get("market_cap"))
             if not np.isnan(market_cap) and market_cap < min_market_cap:
                 continue
 
+            lt = long_term_analysis(sym, price, fund)
+            merged = {**fund, **lt, "price": price}
+            decision = investment_decision(merged)
+
             rows.append({
                 "Ticker": sym,
                 "Company": fund.get("name") or sym,
+                "Action": decision["action"],
                 "Price": price,
-                "Fundamental score": fund.get("hold_score", np.nan),
-                "Business quality": fund.get("quality_score", fund.get("hold_score", np.nan)),
-                "Valuation": fund.get("valuation_score", np.nan),
-                "Valuation rating": fund.get("valuation_label", "—"),
+                "Quality score": lt.get("quality_score", np.nan),
+                "Moat score": lt.get("moat_score", np.nan),
+                "Moat confidence": lt.get("moat_confidence", "LOW"),
+                "Structural moat": lt.get("structural_moat_status", "UNVERIFIED"),
+                "Moat evidence": lt.get("moat_mechanisms", "Needs manual verification"),
+                "Hard gates": "PASS" if lt.get("hard_gate_pass") else "FAIL",
+                "Hard-gate failures": lt.get("hard_gate_failures", ""),
+                "Base intrinsic value": lt.get("dcf_base"),
+                "Bear intrinsic value": lt.get("dcf_bear"),
+                "Bull intrinsic value": lt.get("dcf_bull"),
+                "Base margin of safety %": lt.get("margin_of_safety_base_pct"),
+                "Required margin of safety %": lt.get("required_margin_of_safety_pct"),
+                "Bear margin of safety %": lt.get("margin_of_safety_bear_pct"),
+                "Valuation gate": "PASS" if lt.get("valuation_gate_pass") else "WAIT",
+                "Resilience": lt.get("resilience_score", np.nan),
+                "Reinvestment": lt.get("reinvestment_score", np.nan),
+                "Capital allocation": lt.get("capital_allocation_score", np.nan),
+                "Cash quality": lt.get("cash_quality_score", np.nan),
+                "ROIC %": lt.get("roic_pct"),
+                "ROIC trend %": lt.get("roic_trend_pct"),
+                "FCF/share CAGR %": lt.get("fcf_per_share_cagr_pct"),
+                "Positive FCF years %": lt.get("positive_fcf_years_pct"),
+                "Dilution CAGR %": lt.get("dilution_cagr_pct"),
+                "Net debt / FCF": lt.get("net_debt_to_fcf"),
+                "Evidence years": lt.get("evidence_years"),
+                "Sector model": lt.get("sector_model", "Generic"),
                 "Exchange Country": fund.get("exchange_country", "Other / Unknown"),
                 "Sector": fund.get("sector") or "—",
                 "Industry": fund.get("industry") or "—",
                 "Market cap": market_cap,
-                "Revenue growth %": fund.get("revenue_growth"),
-                "EPS growth %": fund.get("earnings_growth"),
-                "Profit margin %": fund.get("profit_margin"),
-                "Debt / equity": fund.get("debt_equity"),
-                "Free cash flow": fund.get("free_cash_flow"),
-                "FCF yield %": fund.get("fcf_yield", np.nan),
-                "Analyst upside %": fund.get("analyst_upside", np.nan),
-                "Valuation warning": fund.get("valuation_warning", ""),
+                "Review flags": lt.get("hard_gate_warnings", ""),
+                "Manual checks": lt.get("qualitative_review_items", ""),
+                "Decision reason": lt.get("action_reason", ""),
             })
         except Exception:
             continue
@@ -970,9 +1000,14 @@ def fundamental_market_scan(
         return pd.DataFrame()
 
     out = pd.DataFrame(rows)
-    sort_cols = [x for x in ["Fundamental score", "Business quality", "Valuation"] if x in out.columns]
-    return out.sort_values(sort_cols, ascending=[False] * len(sort_cols)).reset_index(drop=True)
-
+    action_rank = {"BUY": 0, "WAIT": 1, "PASS": 2}
+    out["_action_rank"] = out["Action"].map(action_rank).fillna(3)
+    out = out.sort_values(
+        ["_action_rank", "Quality score", "Base margin of safety %"],
+        ascending=[True, False, False],
+        na_position="last",
+    ).drop(columns=["_action_rank"]).reset_index(drop=True)
+    return out
 
 def chart(result: Dict) -> go.Figure:
     d = result["history"].tail(120)
@@ -1204,16 +1239,16 @@ with tab3:
                 )
 
 with tab4:
-    st.subheader("Fundamental Search")
+    st.subheader("Investment Search — 10 Years to Forever")
     st.caption(
-        "Searches companies independently of the technical model. "
-        "This is for finding businesses worth further research based on company quality and valuation."
+        "Independent long-term investment search. Business quality is tested first; "
+        "valuation is a separate hard gate. Technical setup does not affect the result."
     )
 
     f1, f2, f3, f4 = st.columns(4)
     with f1:
         fundamental_universe_label = st.selectbox(
-            "Fundamental universe",
+            "Investment universe",
             list(PUBLIC_UNIVERSES.keys()),
             index=0,
             key="fundamental_universe",
@@ -1235,8 +1270,8 @@ with tab4:
             key="fundamental_min_cap",
         )
     with f4:
-        min_fund_score = st.slider(
-            "Minimum fundamental score",
+        min_quality_score = st.slider(
+            "Minimum quality score",
             min_value=0,
             max_value=100,
             value=60,
@@ -1245,18 +1280,24 @@ with tab4:
         )
 
     st.caption(
-        "Fundamental searches are slower because company financial data must be requested company by company. "
-        "Start with 25–50 companies while we validate the model."
+        "BUY requires the measurable hard gates plus the DCF margin-of-safety gate. "
+        "WAIT means the business may qualify but price, evidence or specialist review is not good enough yet. "
+        "PASS means a measurable non-negotiable failed."
+    )
+    st.warning(
+        "The broad scan cannot safely prove every qualitative issue from market data alone. "
+        "Technology disruption, key-person risk, customer/supplier/geographic concentration, governance, "
+        "regulatory dependence and market-share trends remain explicit manual checks rather than fabricated scores."
     )
 
-    if st.button("Run Fundamental Search", type="primary", use_container_width=True):
+    if st.button("Run Investment Search", type="primary", use_container_width=True):
         with st.spinner("Loading public stock universe…"):
             fundamental_universe = get_universe(PUBLIC_UNIVERSES[fundamental_universe_label])
 
         if not fundamental_universe:
             st.error("The public universe list could not be loaded right now.")
         else:
-            with st.spinner("Checking company fundamentals and valuation…"):
+            with st.spinner("Running moat, resilience, cash-quality and DCF tests…"):
                 fundamental_results = fundamental_market_scan(
                     tuple(fundamental_universe),
                     fundamental_cap,
@@ -1264,40 +1305,48 @@ with tab4:
                 )
 
             if fundamental_results.empty:
-                st.warning("No companies returned enough fundamental data under these filters.")
+                st.warning("No companies returned enough investment data under these filters.")
             else:
                 filtered_fundamentals = fundamental_results[
-                    fundamental_results["Fundamental score"] >= min_fund_score
+                    fundamental_results["Quality score"] >= min_quality_score
                 ].copy()
-                st.success(
-                    f"Fundamental Search complete: {len(fundamental_results)} companies analysed; "
-                    f"{len(filtered_fundamentals)} meet the selected score threshold."
-                )
+
+                buys = int((filtered_fundamentals["Action"] == "BUY").sum()) if not filtered_fundamentals.empty else 0
+                waits = int((filtered_fundamentals["Action"] == "WAIT").sum()) if not filtered_fundamentals.empty else 0
+                passes = int((filtered_fundamentals["Action"] == "PASS").sum()) if not filtered_fundamentals.empty else 0
+
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("BUY", buys)
+                c2.metric("WAIT", waits)
+                c3.metric("PASS", passes)
+                c4.metric("Analysed", len(fundamental_results))
+
                 if filtered_fundamentals.empty:
-                    st.info("No company currently meets your selected minimum fundamental score.")
+                    st.info("No company currently meets your selected minimum quality score.")
                 else:
                     st.dataframe(
                         filtered_fundamentals,
                         hide_index=True,
                         use_container_width=True,
                         column_config={
-                            "Fundamental score": st.column_config.ProgressColumn(
-                                min_value=0, max_value=100, format="%.1f"
-                            ),
-                            "Business quality": st.column_config.ProgressColumn(
-                                min_value=0, max_value=100, format="%.1f"
-                            ),
-                            "Valuation": st.column_config.ProgressColumn(
-                                min_value=0, max_value=20, format="%.1f"
-                            ),
+                            "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                            "Moat score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                            "Resilience": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                            "Reinvestment": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                            "Capital allocation": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                            "Cash quality": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                            "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "Bear margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "ROIC %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "ROIC trend %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "FCF/share CAGR %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "Positive FCF years %": st.column_config.NumberColumn(format="%.0f%%"),
+                            "Dilution CAGR %": st.column_config.NumberColumn(format="%.2f%%"),
                             "Market cap": st.column_config.NumberColumn(format="%.0f"),
-                            "Revenue growth %": st.column_config.NumberColumn(format="%.1f%%"),
-                            "EPS growth %": st.column_config.NumberColumn(format="%.1f%%"),
-                            "Profit margin %": st.column_config.NumberColumn(format="%.1f%%"),
-                            "FCF yield %": st.column_config.NumberColumn(format="%.2f%%"),
-                            "Analyst upside %": st.column_config.NumberColumn(format="%.1f%%"),
                         },
                     )
+
 
 with st.expander("How the scores work"):
     st.markdown("""
@@ -1313,7 +1362,7 @@ with st.expander("How the scores work"):
 - **Core opportunity:** excellent hold quality with an acceptable entry.
 - **Developing / Watch:** not strong enough yet.
 
-**Trade Search and Fundamental Search are independent.** Trade Search looks for technical setups without forcing a fundamental second stage. Fundamental Search looks for company quality and valuation without requiring a technical setup first. Quick Analyse can still bring both sides together for a specific ticker.
+**Trade Search and Investment Search are independent.** Trade Search looks for technical setups. Investment Search applies the 10-years-to-forever quality gates and DCF valuation without requiring a technical setup. Quick Analyse can still bring both sides together for a specific ticker.
 """)
 
 st.caption("Screening aid only, not financial advice. Public market data and analyst estimates can be delayed, incomplete or unavailable for some listings.")
