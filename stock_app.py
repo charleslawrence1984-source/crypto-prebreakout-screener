@@ -935,19 +935,56 @@ def fundamental_market_scan(
     other_errors = 0
     price_failures = 0
 
+    # One batch price request is much gentler on Yahoo than one history request
+    # per company. Per-ticker history remains only as a fallback.
+    batch_prices = {}
+    try:
+        batch = yf.download(
+            tickers=symbols,
+            period="5d",
+            interval="1d",
+            auto_adjust=False,
+            progress=False,
+            threads=False,
+            group_by="column",
+        )
+        if batch is not None and not batch.empty:
+            if isinstance(batch.columns, pd.MultiIndex):
+                if "Close" in batch.columns.get_level_values(0):
+                    closes = batch["Close"]
+                    for sym in symbols:
+                        if sym in closes.columns:
+                            ss = pd.to_numeric(closes[sym], errors="coerce").dropna()
+                            if not ss.empty:
+                                batch_prices[sym] = safe(ss.iloc[-1])
+            elif "Close" in batch.columns and len(symbols) == 1:
+                ss = pd.to_numeric(batch["Close"], errors="coerce").dropna()
+                if not ss.empty:
+                    batch_prices[symbols[0]] = safe(ss.iloc[-1])
+    except Exception as exc:
+        if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
+            rate_limit_errors += 1
+
     for sym in symbols:
         try:
             ticker = yf.Ticker(sym)
-            price = np.nan
-            try:
-                price = safe(ticker.fast_info.get("last_price"))
-            except Exception:
-                pass
+            price = safe(batch_prices.get(sym))
             if np.isnan(price) or price <= 0:
-                hist = ticker.history(period="5d", interval="1d", auto_adjust=False)
-                if hist is None or hist.empty:
-                    continue
-                price = safe(hist["Close"].dropna().iloc[-1])
+                try:
+                    price = safe(ticker.fast_info.get("last_price"))
+                except Exception:
+                    pass
+            if np.isnan(price) or price <= 0:
+                try:
+                    hist = ticker.history(period="5d", interval="1d", auto_adjust=False)
+                except Exception as exc:
+                    if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
+                        rate_limit_errors += 1
+                    hist = pd.DataFrame()
+                if hist is not None and not hist.empty and "Close" in hist.columns:
+                    close_s = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+                    if not close_s.empty:
+                        price = safe(close_s.iloc[-1])
             if np.isnan(price) or price <= 0:
                 price_failures += 1
                 continue
