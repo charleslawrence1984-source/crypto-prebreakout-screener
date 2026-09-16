@@ -75,7 +75,7 @@ src = src.replace(
     }''',
 '''    fund = valuation_fundamental_analysis(symbol, tech["price"])
     lt = long_term_analysis(symbol, tech["price"], fund)
-    lt_entry = long_term_entry_score(symbol, tech["price"], fund["valuation_score"], tech)
+    lt_entry = long_term_entry_score(symbol, tech["price"], lt["valuation_score"], tech)
     trade_signal = signal_label(
         tech["trade_score"], tech["rr"], tech["in_preferred_zone"],
         tech["in_strong_zone"], tech.get("candle_caution", False)
@@ -109,7 +109,7 @@ src = src.replace(
 '''            fund = valuation_fundamental_analysis(sym, float(row["Price"]))
             tech_full = technical_analysis(sym)
             lt = long_term_analysis(sym, float(row["Price"]), fund)
-            lt_entry = long_term_entry_score(sym, float(row["Price"]), fund["valuation_score"], tech_full)
+            lt_entry = long_term_entry_score(sym, float(row["Price"]), lt["valuation_score"], tech_full)
             trade_signal = signal_label(
                 float(row["Trade"]), float(row["R:R"]), bool(row["Preferred now"]),
                 bool(row["Strong now"]), bool(tech_full.get("candle_caution", False))
@@ -233,27 +233,30 @@ src = src.replace(
                 st.subheader("INVESTMENT")
                 st.metric("Action", iv["action"])
                 i1, i2, i3 = st.columns(3)
-                i1.metric("Long-term quality", f"{res['long_term_score']:.1f}/100")
-                i2.metric("Entry quality", f"{res['long_term_entry_score']:.0f}/100")
-                i3.metric("Valuation", f"{res['valuation_score']:.0f}/20")
-                st.write("**Intended hold:** 20–30 years")
-                investment_exit_target = safe(res.get("analyst_target"))
-                if np.isnan(investment_exit_target) or investment_exit_target <= safe(res.get("price"), 0):
-                    investment_exit_target = safe(res.get("swing_target"))
-                st.write(f"**Entry price:** {fmt_price(res['preferred_low'])}–{fmt_price(res['preferred_high'])}")
-                st.write(f"**Deeper entry:** {fmt_price(res['strong_low'])}–{fmt_price(res['strong_high'])}")
-                st.write(f"**Positive exit target:** {fmt_price(investment_exit_target)}")
-                st.write(f"**Negative exit / reassess below:** {fmt_price(res['invalidation'])}")
-                if res.get("candle_caution"):
-                    st.caption(
-                        "Entry timing caution: latest completed daily candle is a red shooting star. "
-                        "This does not invalidate a 20–30 year investment thesis."
-                    )
-                st.caption("Investment exit levels are review points: the positive target uses the analyst mean target when available (otherwise the model technical target), while the downside level is a price-based reassessment trigger. A material long-term thesis break still overrides price.")
+                i1.metric("Business quality", f"{res.get('quality_score', res['long_term_score']):.1f}/100")
+                i2.metric("Moat evidence", f"{res.get('moat_score', 0):.0f}/100")
+                i3.metric("Moat confidence", res.get("moat_confidence", "LOW"))
+                st.write("**Intended hold:** 10 years to forever")
+                d1, d2, d3 = st.columns(3)
+                d1.metric("Bear intrinsic value", "—" if res.get("dcf_bear") is None else fmt_price(res["dcf_bear"]))
+                d2.metric("Base intrinsic value", "—" if res.get("dcf_base") is None else fmt_price(res["dcf_base"]))
+                d3.metric("Bull intrinsic value", "—" if res.get("dcf_bull") is None else fmt_price(res["dcf_bull"]))
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Base margin of safety", "—" if res.get("margin_of_safety_base_pct") is None else f"{res['margin_of_safety_base_pct']:.1f}%")
+                m2.metric("Required margin of safety", f"{res.get('required_margin_of_safety_pct', 0):.1f}%")
+                m3.metric("Bear margin of safety", "—" if res.get("margin_of_safety_bear_pct") is None else f"{res['margin_of_safety_bear_pct']:.1f}%")
+                st.write(f"**Structural moat:** {res.get('structural_moat_status', 'UNVERIFIED')} — {res.get('moat_mechanisms', 'Needs manual verification')}")
+                st.write(f"**Hard gates:** {'PASS' if res.get('hard_gate_pass') else 'FAIL'}")
+                if res.get("hard_gate_failures"):
+                    st.error("Hard-gate failure: " + res["hard_gate_failures"])
+                if res.get("hard_gate_warnings"):
+                    st.warning("Review: " + res["hard_gate_warnings"])
+                if owned:
+                    st.write(f"**Dynamic valuation sell ceiling:** {iv.get('dynamic_sell_premium_pct', 0):.0f}% above base intrinsic value")
                 if owned and iv["actual_roi_pct"] is not None:
                     st.write(f"**Your current ROI:** {iv['actual_roi_pct']:+.1f}%")
-                if iv["action"] == "WAIT" and iv["reasons"]:
-                    st.caption("Waiting because: " + "; ".join(iv["reasons"]))
+                if iv["action"] in ("WAIT", "PASS", "REASSESS", "SELL") and iv["reasons"]:
+                    st.caption("Decision reasons: " + "; ".join(iv["reasons"]))
 
             st.caption(f"Valuation: **{res['valuation_score']:.0f}/20 {res['valuation_label']}** · Business quality: **{res['quality_score']:.0f}/80**")'''
 )
@@ -347,11 +350,11 @@ src = src.replace(
 
 src = src.replace(
     'st.caption("Swing-trade entries + fundamental hold quality. No broker connection or brokerage credentials required.")',
-    'st.caption("Two strategies only: TRADE for technical setups you can hold up to ~12 months, and INVESTMENT for 20–30 year holdings. No broker connection required.")',
+    'st.caption("Two strategies only: TRADE for technical setups you can hold up to ~12 months, and INVESTMENT for 10-years-to-forever holdings. No broker connection required.")',
 )
 src = src.replace(
     'st.write("**Hold Quality:** growth, margins, debt, cash flow and analyst outlook.")',
-    'st.write("**TRADE:** technical setup + 10%+ upside + fundamentals good enough for a ~12-month hold.")\n    st.write("**INVESTMENT:** long-term quality + valuation + attractive entry for a 20–30 year hold.")',
+    'st.write("**TRADE:** technical setup + 10%+ upside + fundamentals good enough for a ~12-month hold.")\n    st.write("**INVESTMENT:** long-term quality + valuation + attractive entry for a 10-years-to-forever hold.")',
 )
 src = src.replace(
     'st.header("Scoring")',
@@ -586,7 +589,7 @@ src = src.replace(
                         )
 
                     with lane2:
-                        st.caption("20–30 year candidates: long-term business quality first, then valuation and entry quality.")
+                        st.caption("10-years-to-forever candidates: long-term business quality first, then valuation and entry quality.")
                         def _investment_exit_target_row(r):
                             analyst_target = safe(r.get("Analyst target"))
                             current_price = safe(r.get("Price"), 0)
@@ -703,7 +706,7 @@ src = src.replace(
 - A **red shooting star on the latest completed daily candle** is treated as seller-rejection risk.
 - A new TRADE entry remains **WAIT** until price confirms that the rejection has been absorbed.
 - The raw technical score is not reduced; this is a separate execution gate.
-- In the 20–30 year INVESTMENT lane it is shown only as entry-timing context.
+- In the 10-years-to-forever INVESTMENT lane it is shown only as entry-timing context.
 
 **Validated trade signal rule**
 - **80–84:** WATCH
@@ -717,7 +720,7 @@ exec(compile(src, "stock_app.py", "exec"), globals(), globals())
 
 st.divider()
 st.subheader("Dedicated Investment Scan")
-st.caption("Quality-first scan for 20–30 year investment candidates. Stocks do not need a strong short-term technical setup to qualify.")
+st.caption("Quality-first scan for 10-years-to-forever investment candidates. Stocks do not need a strong short-term technical setup to qualify.")
 
 ltc1, ltc2, ltc3 = st.columns(3)
 with ltc1:
