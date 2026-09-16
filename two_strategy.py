@@ -88,7 +88,7 @@ def _dynamic_sell_premium(res: dict) -> float:
 
 def investment_decision(res: dict, owned: bool = False, average_buy_price: float | None = None) -> dict:
     price = _f(res.get("price"))
-    quality = _f(res.get("quality_score", res.get("long_term_score", 0)))
+    quality = _f(res.get("investment_quality_score", res.get("long_term_score", 0)))
     hard_gate_pass = bool(res.get("hard_gate_pass", res.get("elite_gate_pass", False)))
     structural_moat = str(res.get("structural_moat_status") or "UNVERIFIED").upper()
     valuation_gate_pass = bool(res.get("valuation_gate_pass"))
