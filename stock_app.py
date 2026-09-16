@@ -1083,7 +1083,7 @@ st.markdown("""
 with st.sidebar:
     st.header("Stock Screener")
     st.write("**Trade Search:** technical setups, entries, targets and risk/reward.")
-    st.write("**Fundamental Search:** company quality, financial strength and valuation.")
+    st.write("**Investment Search:** 10-years-to-forever quality gates, resilience and DCF valuation.")
     st.divider()
     watch_text = st.text_area(
         "Priority watchlist",
@@ -1093,7 +1093,7 @@ with st.sidebar:
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Quick analyse", "Watchlist", "Trade Search", "Fundamental Search"])
+tab1, tab2, tab3, tab4 = st.tabs(["Quick analyse", "Watchlist", "Trade Search", "Investment Search"])
 
 with tab1:
     c1, c2 = st.columns([3, 1])
@@ -1352,9 +1352,9 @@ with st.expander("How the scores work"):
     st.markdown("""
 **Trade Setup /100** rewards constructive trend, proximity to support, RSI in a usable entry zone, improving MACD, healthy volume, risk/reward, realistic upside and avoiding overextended entries.
 
-**Hold Quality /100** rewards market size, revenue and EPS growth, profit margin, manageable debt, positive free cash flow, analyst upside/coverage and sensible dividend/payout characteristics. Growth stocks are not automatically penalised for paying no dividend.
+**12-month Hold Quality /100** is retained only for the TRADE workflow as a secondary check on whether a technical trade has enough fundamental support for a longer trade hold.
 
-**Opportunity Score** is currently 55% Trade Setup + 45% Hold Quality.
+**Investment Search** uses a separate 10-years-to-forever framework: hard gates first, then moat/durability, resilience, reinvestment, capital allocation and cash quality, followed by bear/base/bull DCF valuation and a dynamic margin-of-safety hurdle.
 
 **Classification**
 - **Swing-to-hold:** strong trade setup and fundamentals good enough to justify a longer hold.
