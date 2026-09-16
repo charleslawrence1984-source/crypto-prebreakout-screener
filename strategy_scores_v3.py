@@ -168,10 +168,13 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     than invented from missing data.
     """
     t = yf.Ticker(symbol)
-    try:
-        info = t.info or {}
-    except Exception:
-        info = {}
+    fund = fund_snapshot or {}
+    info = {} if fund_snapshot is not None else None
+    if info is None:
+        try:
+            info = t.info or {}
+        except Exception:
+            info = {}
 
     try:
         income = t.financials
@@ -186,10 +189,9 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     except Exception:
         balance = pd.DataFrame()
 
-    fund = fund_snapshot or {}
     sector = str(fund.get("sector") or info.get("sector") or "")
     industry = str(fund.get("industry") or info.get("industry") or "")
-    summary = str(info.get("longBusinessSummary") or "")
+    summary = str(fund.get("business_summary") or info.get("longBusinessSummary") or "")
     market_cap = safe(fund.get("market_cap", info.get("marketCap")))
 
     is_insurer = "insurance" in industry.lower()
@@ -322,10 +324,10 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     if not np.isnan(latest_ebit) and not np.isnan(latest_interest) and latest_interest != 0:
         interest_coverage = latest_ebit / abs(latest_interest)
 
-    current_ratio = safe(info.get("currentRatio"))
+    current_ratio = safe(fund.get("current_ratio", info.get("currentRatio")))
     debt_equity = safe(fund.get("debt_equity", info.get("debtToEquity")))
-    roe = safe(info.get("returnOnEquity"))
-    roa = safe(info.get("returnOnAssets"))
+    roe = safe(fund.get("return_on_equity", info.get("returnOnEquity")))
+    roa = safe(fund.get("return_on_assets", info.get("returnOnAssets")))
 
     # --- Moat evidence ---
     moat_mechanisms = _detect_moat_mechanisms(summary)
