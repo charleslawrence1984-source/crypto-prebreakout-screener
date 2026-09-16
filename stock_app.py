@@ -698,6 +698,22 @@ def us_all_listed() -> List[str]:
     return sorted(set(s for s in all_syms if s and "$" not in s and len(s) <= 12))
 
 
+def interleave_universes(*groups: List[str]) -> List[str]:
+    """Round-robin markets so truncated global scans stay geographically balanced."""
+    clean = [list(dict.fromkeys(g)) for g in groups if g]
+    out = []
+    seen = set()
+    max_len = max((len(g) for g in clean), default=0)
+    for i in range(max_len):
+        for group in clean:
+            if i < len(group):
+                sym = group[i]
+                if sym not in seen:
+                    seen.add(sym)
+                    out.append(sym)
+    return out
+
+
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_universe(kind: str) -> List[str]:
     sp500 = wikipedia_symbols(
@@ -736,21 +752,25 @@ def get_universe(kind: str) -> List[str]:
     cac40 = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/CAC_40",
         ("Ticker", "Symbol"),
+        ".PA",
         replace_dot=False,
     )
     aex = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/AEX_index",
         ("Ticker", "Symbol"),
+        ".AS",
         replace_dot=False,
     )
     ibex = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/IBEX_35",
         ("Ticker", "Symbol"),
+        ".MC",
         replace_dot=False,
     )
     ftse_mib = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/FTSE_MIB",
         ("Ticker", "Symbol"),
+        ".MI",
         replace_dot=False,
     )
     asx200 = wikipedia_symbols(
@@ -768,7 +788,7 @@ def get_universe(kind: str) -> List[str]:
     uk350 = sorted(set(ftse100 + ftse250))
     canada = sorted(set(tsx))
     europe = sorted(set(dax + cac40 + aex + ibex + ftse_mib))
-    global_core = sorted(set(us_core + uk350 + canada + europe))
+    global_core = interleave_universes(us_core, uk350, canada, europe)
 
     if kind == "global_core":
         return global_core
@@ -781,9 +801,9 @@ def get_universe(kind: str) -> List[str]:
     if kind == "europe_broad":
         return europe
     if kind == "us_uk":
-        return sorted(set(us_core + uk350))
+        return interleave_universes(us_core, uk350)
     if kind == "global_broad":
-        return sorted(set(us_all_listed() + uk350 + canada + europe + asx200 + nikkei225))
+        return interleave_universes(us_all_listed(), uk350, canada, europe, asx200, nikkei225)
     if kind == "us_all":
         return us_all_listed()
     return global_core
