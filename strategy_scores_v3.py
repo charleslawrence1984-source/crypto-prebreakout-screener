@@ -1,10 +1,29 @@
 from __future__ import annotations
 
 import math
+import re
 import numpy as np
 import pandas as pd
 import streamlit as st
 import yfinance as yf
+
+
+BASE_REQUIRED_RETURN = 0.09
+
+CYCLICAL_TERMS = (
+    "oil", "gas", "coal", "steel", "copper", "aluminum", "aluminium",
+    "mining", "metals", "shipping", "marine", "airline", "homebuilding",
+    "homebuilder", "lumber", "paper", "commodity"
+)
+
+MOAT_PATTERNS = {
+    "brand/pricing power": ("brand", "premium", "trademark", "loyal", "pricing"),
+    "switching costs/ecosystem": ("subscription", "workflow", "ecosystem", "integrated", "mission-critical", "recurring"),
+    "network effects": ("network", "marketplace", "platform", "participants", "users"),
+    "proprietary IP/technology": ("patent", "proprietary", "intellectual property", "patented"),
+    "regulatory/licensing": ("license", "licence", "regulatory approval", "regulated"),
+    "scale/cost advantage": ("scale", "low-cost", "cost advantage", "installed base", "distribution network"),
+}
 
 
 def safe(v, default=np.nan):
@@ -32,64 +51,121 @@ def _cagr(series):
     s = pd.to_numeric(series, errors="coerce").dropna().sort_index()
     if len(s) < 2:
         return np.nan
-    first = safe(s.iloc[0])
-    last = safe(s.iloc[-1])
+    first, last = safe(s.iloc[0]), safe(s.iloc[-1])
     years = max(len(s) - 1, 1)
     if np.isnan(first) or np.isnan(last) or first <= 0 or last <= 0:
         return np.nan
     return (last / first) ** (1 / years) - 1
 
 
-def _positive_growth_share(series):
-    if series is None or len(series) < 2:
-        return np.nan
-    s = pd.to_numeric(series, errors="coerce").dropna().sort_index()
-    g = s.pct_change().replace([np.inf, -np.inf], np.nan).dropna()
-    if g.empty:
-        return np.nan
-    return float((g > 0).mean())
-
-
 def _positive_share(series):
-    if series is None or len(series) == 0:
+    if series is None:
         return np.nan
     s = pd.to_numeric(series, errors="coerce").dropna()
-    if s.empty:
-        return np.nan
-    return float((s > 0).mean())
+    return np.nan if s.empty else float((s > 0).mean())
 
 
 def _latest(series):
-    if series is None or len(series) == 0:
+    if series is None:
         return np.nan
     s = pd.to_numeric(series, errors="coerce").dropna().sort_index()
-    return safe(s.iloc[-1]) if not s.empty else np.nan
+    return np.nan if s.empty else safe(s.iloc[-1])
+
+
+def _median_positive(series, n=3):
+    if series is None:
+        return np.nan
+    s = pd.to_numeric(series, errors="coerce").dropna().sort_index().tail(n)
+    s = s[s > 0]
+    return np.nan if s.empty else float(s.median())
+
+
+def _margin_series(num, den):
+    if num is None or den is None:
+        return None
+    common = num.index.intersection(den.index)
+    if len(common) == 0:
+        return None
+    x = pd.to_numeric(num.loc[common], errors="coerce")
+    y = pd.to_numeric(den.loc[common], errors="coerce").replace(0, np.nan)
+    return (x / y).replace([np.inf, -np.inf], np.nan).dropna().sort_index()
 
 
 def _latest_pair_ratio(num, den):
-    if num is None or den is None:
+    s = _margin_series(num, den)
+    return np.nan if s is None or s.empty else safe(s.iloc[-1])
+
+
+def _series_cv(series):
+    if series is None:
         return np.nan
-    common = num.index.intersection(den.index)
-    if len(common) == 0:
+    s = pd.to_numeric(series, errors="coerce").dropna()
+    if len(s) < 3:
         return np.nan
-    n = pd.to_numeric(num.loc[common], errors="coerce").dropna()
-    d = pd.to_numeric(den.loc[common], errors="coerce").dropna()
-    common2 = n.index.intersection(d.index)
-    if len(common2) == 0:
+    m = abs(float(s.mean()))
+    return np.nan if m <= 1e-12 else float(s.std(ddof=0) / m)
+
+
+def _detect_moat_mechanisms(summary: str) -> list[str]:
+    text = re.sub(r"\s+", " ", str(summary or "").lower())
+    found = []
+    for label, patterns in MOAT_PATTERNS.items():
+        if any(p in text for p in patterns):
+            found.append(label)
+    return found
+
+
+def _growth_path(start: float, terminal: float, years: int, moat_confidence: str) -> list[float]:
+    start = max(-0.05, min(0.18, start))
+    terminal = max(0.0, min(0.035, terminal))
+    exponent = {"HIGH": 1.8, "MEDIUM": 1.25, "LOW": 0.85}.get(moat_confidence, 1.0)
+    out = []
+    for y in range(1, years + 1):
+        progress = (y / years) ** exponent
+        out.append(start * (1 - progress) + terminal * progress)
+    return out
+
+
+def _dcf_per_share(
+    starting_fcf_per_share: float,
+    start_growth: float,
+    terminal_growth: float,
+    discount_rate: float,
+    moat_confidence: str,
+    years: int = 10,
+) -> float:
+    if (
+        np.isnan(starting_fcf_per_share)
+        or starting_fcf_per_share <= 0
+        or discount_rate <= terminal_growth
+    ):
         return np.nan
-    nv = safe(n.loc[common2].iloc[-1])
-    dv = safe(d.loc[common2].iloc[-1])
-    if np.isnan(nv) or np.isnan(dv) or dv == 0:
-        return np.nan
-    return nv / dv
+    fcf = starting_fcf_per_share
+    pv = 0.0
+    growths = _growth_path(start_growth, terminal_growth, years, moat_confidence)
+    for year, g in enumerate(growths, start=1):
+        fcf *= 1 + g
+        pv += fcf / ((1 + discount_rate) ** year)
+    terminal = fcf * (1 + terminal_growth) / (discount_rate - terminal_growth)
+    pv += terminal / ((1 + discount_rate) ** years)
+    return pv
+
+
+def _score_band(value, bands):
+    for threshold, points in bands:
+        if value >= threshold:
+            return points
+    return 0.0
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = None) -> dict:
-    """Strict financial compounder filter.
+    """10-years-to-forever investment research model.
 
-    Yahoo typically exposes roughly 3-4 annual statements here, so this is a
-    research filter rather than a complete 25-35 year investment thesis.
+    The automated layer is deliberately conservative. Yahoo commonly exposes
+    only ~3-4 annual statements, so structural moat, disruption, concentration,
+    governance and other qualitative items are surfaced as review items rather
+    than invented from missing data.
     """
     t = yf.Ticker(symbol)
     try:
@@ -111,28 +187,42 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         balance = pd.DataFrame()
 
     fund = fund_snapshot or {}
-    market_cap = safe(fund.get("market_cap", info.get("marketCap")))
     sector = str(fund.get("sector") or info.get("sector") or "")
     industry = str(fund.get("industry") or info.get("industry") or "")
+    summary = str(info.get("longBusinessSummary") or "")
+    market_cap = safe(fund.get("market_cap", info.get("marketCap")))
+
     is_insurer = "insurance" in industry.lower()
     is_reit = "reit" in industry.lower() or "real estate investment trust" in industry.lower()
     is_financial = sector.lower() == "financial services" and not is_insurer
+    specialist_sector = is_insurer or is_reit or is_financial
 
     revenue = _row(income, ["Total Revenue", "Operating Revenue"])
-    net_income = _row(income, ["Net Income", "Net Income Common Stockholders"])
+    gross_profit = _row(income, ["Gross Profit"])
     operating_income = _row(income, ["Operating Income", "EBIT"])
+    net_income = _row(income, ["Net Income", "Net Income Common Stockholders"])
     pretax_income = _row(income, ["Pretax Income", "Income Before Tax"])
     tax_provision = _row(income, ["Tax Provision", "Income Tax Expense"])
     interest_expense = _row(income, ["Interest Expense", "Interest Expense Non Operating"])
 
+    cfo = _row(cashflow, ["Operating Cash Flow", "Total Cash From Operating Activities"])
+    capex = _row(cashflow, ["Capital Expenditure", "Capital Expenditures"])
     fcf = _row(cashflow, ["Free Cash Flow"])
-    if fcf is None:
-        cfo = _row(cashflow, ["Operating Cash Flow", "Total Cash From Operating Activities"])
-        capex = _row(cashflow, ["Capital Expenditure", "Capital Expenditures"])
-        if cfo is not None and capex is not None:
-            common = cfo.index.intersection(capex.index)
-            if len(common) >= 2:
-                fcf = (cfo.loc[common] + capex.loc[common]).sort_index()
+    if fcf is None and cfo is not None and capex is not None:
+        common = cfo.index.intersection(capex.index)
+        if len(common):
+            fcf = (cfo.loc[common] + capex.loc[common]).sort_index()
+
+    sbc = _row(cashflow, ["Stock Based Compensation", "Stock Based Compensation Expense"])
+    adjusted_fcf = fcf.copy() if fcf is not None else None
+    if adjusted_fcf is not None and sbc is not None:
+        common = adjusted_fcf.index.intersection(sbc.index)
+        if len(common):
+            adjusted_fcf.loc[common] = adjusted_fcf.loc[common] - sbc.loc[common].clip(lower=0)
+
+    acquisitions = _row(cashflow, ["Net Business Purchases", "Purchase Of Business", "Acquisitions Net"])
+    dividends = _row(cashflow, ["Cash Dividends Paid", "Common Stock Dividend Paid"])
+    repurchases = _row(cashflow, ["Repurchase Of Capital Stock", "Repurchase Of Stock"])
 
     shares = _row(balance, ["Ordinary Shares Number", "Share Issued"])
     total_debt = _row(balance, ["Total Debt"])
@@ -142,291 +232,430 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         "Cash And Cash Equivalents",
         "Cash",
     ])
+    goodwill = _row(balance, ["Goodwill And Other Intangible Assets", "Goodwill"])
+    invested_capital_stmt = _row(balance, ["Invested Capital"])
+    working_capital = _row(balance, ["Working Capital"])
 
     revenue_cagr = _cagr(revenue)
     earnings_cagr = _cagr(net_income)
-    fcf_cagr = _cagr(fcf)
-    revenue_positive_growth = _positive_growth_share(revenue)
+    fcf_cagr = _cagr(adjusted_fcf)
     positive_income_share = _positive_share(net_income)
-    positive_fcf_share = _positive_share(fcf)
+    positive_fcf_share = _positive_share(adjusted_fcf)
 
-    # FCF per share CAGR rewards genuine per-share compounding and penalises dilution.
+    latest_shares = _latest(shares)
+    normalized_fcf = _median_positive(adjusted_fcf, 3)
+    normalized_fcf_per_share = (
+        normalized_fcf / latest_shares
+        if not np.isnan(normalized_fcf) and not np.isnan(latest_shares) and latest_shares > 0
+        else np.nan
+    )
+
     fcf_per_share_cagr = np.nan
-    if fcf is not None and shares is not None:
-        common = fcf.index.intersection(shares.index)
+    if adjusted_fcf is not None and shares is not None:
+        common = adjusted_fcf.index.intersection(shares.index)
         if len(common) >= 2:
-            sh = shares.loc[common].replace(0, np.nan)
-            fps = (fcf.loc[common] / sh).replace([np.inf, -np.inf], np.nan).dropna()
+            fps = adjusted_fcf.loc[common] / shares.loc[common].replace(0, np.nan)
             fcf_per_share_cagr = _cagr(fps)
 
     book_value_per_share_cagr = np.nan
     if equity is not None and shares is not None:
-        common_bv = equity.index.intersection(shares.index)
-        if len(common_bv) >= 2:
-            sh_bv = shares.loc[common_bv].replace(0, np.nan)
-            bvps = (equity.loc[common_bv] / sh_bv).replace([np.inf, -np.inf], np.nan).dropna()
-            book_value_per_share_cagr = _cagr(bvps)
+        common = equity.index.intersection(shares.index)
+        if len(common) >= 2:
+            book_value_per_share_cagr = _cagr(
+                equity.loc[common] / shares.loc[common].replace(0, np.nan)
+            )
 
-    dilution_cagr = np.nan
-    if shares is not None and len(shares) >= 2:
-        s = shares.sort_index()
-        first = safe(s.iloc[0])
-        last = safe(s.iloc[-1])
-        years = max(len(s) - 1, 1)
-        if not np.isnan(first) and first > 0 and not np.isnan(last) and last > 0:
-            dilution_cagr = (last / first) ** (1 / years) - 1
+    dilution_cagr = _cagr(shares)
 
-    # Latest margins / efficiency.
-    operating_margin = _latest_pair_ratio(operating_income, revenue)
-    roe = safe(info.get("returnOnEquity"))
-    roa = safe(info.get("returnOnAssets"))
+    gross_margin_s = _margin_series(gross_profit, revenue)
+    operating_margin_s = _margin_series(operating_income, revenue)
+    operating_margin = np.nan if operating_margin_s is None or operating_margin_s.empty else safe(operating_margin_s.iloc[-1])
+    gross_margin = np.nan if gross_margin_s is None or gross_margin_s.empty else safe(gross_margin_s.iloc[-1])
+    operating_margin_cv = _series_cv(operating_margin_s)
+    gross_margin_cv = _series_cv(gross_margin_s)
 
     latest_ebit = _latest(operating_income)
     latest_pretax = _latest(pretax_income)
     latest_tax = _latest(tax_provision)
-    tax_rate = 0.21
-    if not np.isnan(latest_pretax) and latest_pretax > 0 and not np.isnan(latest_tax):
-        tax_rate = min(max(latest_tax / latest_pretax, 0.0), 0.35)
-
     latest_debt = _latest(total_debt)
     latest_equity = _latest(equity)
     latest_cash = _latest(cash)
-    latest_fcf = _latest(fcf)
+    latest_fcf = _latest(adjusted_fcf)
 
-    # Approximate ROIC = NOPAT / invested capital.
+    tax_rate = 0.21
+    if not np.isnan(latest_pretax) and latest_pretax > 0 and not np.isnan(latest_tax):
+        tax_rate = min(max(latest_tax / latest_pretax, 0.15), 0.30)
+
     roic = np.nan
-    if not np.isnan(latest_ebit) and not np.isnan(latest_equity):
-        debt_for_ic = 0.0 if np.isnan(latest_debt) else latest_debt
-        cash_for_ic = 0.0 if np.isnan(latest_cash) else latest_cash
-        invested_capital = debt_for_ic + latest_equity - cash_for_ic
-        if invested_capital > 0:
-            roic = latest_ebit * (1 - tax_rate) / invested_capital
+    invested_capital = _latest(invested_capital_stmt)
+    if np.isnan(invested_capital):
+        if not np.isnan(latest_equity):
+            invested_capital = latest_equity + (0 if np.isnan(latest_debt) else latest_debt) - (0 if np.isnan(latest_cash) else latest_cash)
+    if not np.isnan(latest_ebit) and not np.isnan(invested_capital) and invested_capital > 0:
+        roic = latest_ebit * (1 - tax_rate) / invested_capital
+
+    roic_history = []
+    if operating_income is not None and equity is not None:
+        common = operating_income.index.intersection(equity.index)
+        if total_debt is not None:
+            common = common.intersection(total_debt.index)
+        for dt in common:
+            ebit = safe(operating_income.get(dt))
+            eq = safe(equity.get(dt))
+            debt = safe(total_debt.get(dt), 0) if total_debt is not None else 0
+            cash_dt = safe(cash.get(dt), 0) if cash is not None and dt in cash.index else 0
+            ic = eq + debt - cash_dt
+            if not np.isnan(ebit) and ic > 0:
+                roic_history.append(ebit * (1 - tax_rate) / ic)
+    roic_median = float(np.median(roic_history)) if roic_history else roic
+    roic_trend = np.nan
+    if len(roic_history) >= 3:
+        # _row is ascending by date, so this is oldest -> newest.
+        roic_trend = roic_history[-1] - roic_history[0]
 
     net_debt_to_fcf = np.nan
     if not np.isnan(latest_fcf) and latest_fcf > 0:
-        debt_v = 0.0 if np.isnan(latest_debt) else latest_debt
-        cash_v = 0.0 if np.isnan(latest_cash) else latest_cash
-        net_debt_to_fcf = (debt_v - cash_v) / latest_fcf
+        net_debt_to_fcf = ((0 if np.isnan(latest_debt) else latest_debt) - (0 if np.isnan(latest_cash) else latest_cash)) / latest_fcf
 
-    interest_coverage = np.nan
     latest_interest = _latest(interest_expense)
+    interest_coverage = np.nan
     if not np.isnan(latest_ebit) and not np.isnan(latest_interest) and latest_interest != 0:
         interest_coverage = latest_ebit / abs(latest_interest)
 
     current_ratio = safe(info.get("currentRatio"))
     debt_equity = safe(fund.get("debt_equity", info.get("debtToEquity")))
+    roe = safe(info.get("returnOnEquity"))
+    roa = safe(info.get("returnOnAssets"))
 
-    score = 0.0
+    # --- Moat evidence ---
+    moat_mechanisms = _detect_moat_mechanisms(summary)
+    structural_moat_status = "SUPPORTED" if moat_mechanisms else "UNVERIFIED"
 
-    # 1) Multi-year growth durability — 20
-    if not np.isnan(revenue_cagr):
-        rg = revenue_cagr * 100
-        score += 8 if rg >= 15 else 7 if rg >= 10 else 5.5 if rg >= 7 else 3.5 if rg >= 4 else 1.5 if rg > 0 else 0
-    if not np.isnan(revenue_positive_growth):
-        score += 4 if revenue_positive_growth >= 0.99 else 3 if revenue_positive_growth >= 0.66 else 1.5 if revenue_positive_growth >= 0.5 else 0
-    if not np.isnan(earnings_cagr):
-        eg = earnings_cagr * 100
-        score += 5 if eg >= 15 else 4 if eg >= 10 else 2.5 if eg >= 5 else 1 if eg > 0 else 0
-    if not np.isnan(positive_income_share):
-        score += 3 if positive_income_share >= 0.99 else 2 if positive_income_share >= 0.75 else 0.5 if positive_income_share >= 0.5 else 0
-
-    # 2) Cash compounding — 20
+    moat_score = 0.0
+    if not np.isnan(roic_median):
+        moat_score += _score_band(roic_median * 100, [(25, 34), (20, 31), (15, 27), (12, 22), (10, 16), (7, 8)])
     if not np.isnan(positive_fcf_share):
-        score += 7 if positive_fcf_share >= 0.99 else 5 if positive_fcf_share >= 0.75 else 2 if positive_fcf_share >= 0.5 else 0
-    if not np.isnan(fcf_cagr):
-        fg = fcf_cagr * 100
-        score += 5 if fg >= 15 else 4 if fg >= 10 else 2.5 if fg >= 5 else 1 if fg > 0 else 0
-    if not np.isnan(fcf_per_share_cagr):
-        fpg = fcf_per_share_cagr * 100
-        score += 8 if fpg >= 15 else 6 if fpg >= 10 else 4 if fpg >= 5 else 1.5 if fpg > 0 else 0
+        moat_score += _score_band(positive_fcf_share, [(0.99, 18), (0.75, 15), (0.60, 9), (0.50, 5)])
+    if not np.isnan(operating_margin_cv):
+        moat_score += 14 if operating_margin_cv <= 0.10 else 11 if operating_margin_cv <= 0.20 else 7 if operating_margin_cv <= 0.35 else 2
+    elif not np.isnan(operating_margin):
+        moat_score += 7
+    if not np.isnan(gross_margin_cv):
+        moat_score += 10 if gross_margin_cv <= 0.08 else 7 if gross_margin_cv <= 0.18 else 3
+    elif not np.isnan(gross_margin):
+        moat_score += 5
+    if moat_mechanisms:
+        moat_score += min(18, 10 + 3 * (len(moat_mechanisms) - 1))
+    if not np.isnan(roic_trend):
+        if roic_trend >= -0.02:
+            moat_score += 6
+        elif roic_trend <= -0.05:
+            moat_score -= 8
+    moat_score = round(max(0, min(100, moat_score)), 1)
 
-    # 3) Profitability / capital efficiency — 20
-    if not np.isnan(roic):
-        r = roic * 100
-        score += 10 if r >= 20 else 8 if r >= 15 else 6 if r >= 10 else 3 if r >= 7 else 1 if r > 0 else 0
-    if not np.isnan(operating_margin):
-        om = operating_margin * 100
-        score += 6 if om >= 25 else 5 if om >= 18 else 3.5 if om >= 12 else 2 if om >= 7 else 0.5 if om > 0 else 0
-    if not np.isnan(roa):
-        a = roa * 100
-        score += 2 if a >= 10 else 1.5 if a >= 6 else 0.5 if a > 0 else 0
-    if not np.isnan(roe):
-        e = roe * 100
-        score += 2 if e >= 18 else 1.5 if e >= 12 else 0.5 if e > 0 else 0
+    evidence_years = max(
+        len(revenue) if revenue is not None else 0,
+        len(adjusted_fcf) if adjusted_fcf is not None else 0,
+        len(roic_history),
+    )
+    if evidence_years >= 8 and moat_score >= 78 and structural_moat_status == "SUPPORTED":
+        moat_confidence = "HIGH"
+    elif moat_score >= 70 and structural_moat_status == "SUPPORTED":
+        moat_confidence = "MEDIUM"
+    else:
+        moat_confidence = "LOW"
 
-    # 4) Balance-sheet resilience — 15
-    if not np.isnan(net_debt_to_fcf):
-        score += 7 if net_debt_to_fcf <= 0 else 6 if net_debt_to_fcf <= 1 else 4.5 if net_debt_to_fcf <= 2 else 2.5 if net_debt_to_fcf <= 3 else 0.5 if net_debt_to_fcf <= 5 else 0
-    if not np.isnan(debt_equity):
-        score += 4 if debt_equity <= 50 else 3 if debt_equity <= 100 else 2 if debt_equity <= 150 else 0.5 if debt_equity <= 250 else 0
+    quantitative_moat_pass = (
+        moat_score >= 62
+        and (np.isnan(roic_median) or roic_median >= 0.10)
+        and (np.isnan(positive_fcf_share) or positive_fcf_share >= 0.75)
+    )
+
+    # --- Resilience / cash / capital allocation ---
+    resilience_score = 0.0
+    if np.isnan(net_debt_to_fcf):
+        resilience_score += 8
+    else:
+        resilience_score += 30 if net_debt_to_fcf <= 0 else 25 if net_debt_to_fcf <= 1 else 18 if net_debt_to_fcf <= 2 else 10 if net_debt_to_fcf <= 3 else 3 if net_debt_to_fcf <= 4 else 0
     if not np.isnan(interest_coverage):
-        score += 3 if interest_coverage >= 10 else 2 if interest_coverage >= 5 else 1 if interest_coverage >= 2 else 0
-    elif not np.isnan(current_ratio):
-        score += 2 if current_ratio >= 1.5 else 1 if current_ratio >= 1 else 0
-    if not np.isnan(current_ratio) and not np.isnan(interest_coverage):
-        score += 1 if current_ratio >= 1.2 else 0
-
-    # 5) Shareholder dilution discipline — 10
+        resilience_score += 20 if interest_coverage >= 12 else 16 if interest_coverage >= 8 else 11 if interest_coverage >= 5 else 5 if interest_coverage >= 2 else 0
+    else:
+        resilience_score += 8
+    if not np.isnan(positive_fcf_share):
+        resilience_score += 25 if positive_fcf_share >= 0.99 else 20 if positive_fcf_share >= 0.75 else 8 if positive_fcf_share >= 0.5 else 0
+    if not np.isnan(current_ratio):
+        resilience_score += 12 if current_ratio >= 1.5 else 8 if current_ratio >= 1.1 else 2
+    else:
+        resilience_score += 5
     if not np.isnan(dilution_cagr):
         d = dilution_cagr * 100
-        score += 10 if d <= 0 else 8 if d <= 1 else 6 if d <= 2 else 3 if d <= 4 else 0
+        resilience_score += 13 if d <= 0 else 10 if d <= 1 else 7 if d <= 2 else 2 if d <= 3 else 0
     else:
-        score += 2
+        resilience_score += 4
+    resilience_score = round(min(100, resilience_score), 1)
 
-    # 6) Evidence / consistency quality — 10
-    evidence = 0
-    if revenue is not None and len(revenue) >= 3:
-        evidence += 2
-    if fcf is not None and len(fcf) >= 3:
-        evidence += 2
-    if shares is not None and len(shares) >= 2:
-        evidence += 2
-    if not np.isnan(roic):
-        evidence += 2
-    if not np.isnan(net_debt_to_fcf):
-        evidence += 1
+    cash_quality_score = 0.0
+    if not np.isnan(positive_fcf_share):
+        cash_quality_score += 40 if positive_fcf_share >= 0.99 else 32 if positive_fcf_share >= 0.75 else 15 if positive_fcf_share >= 0.5 else 0
+    if not np.isnan(fcf_per_share_cagr):
+        g = fcf_per_share_cagr * 100
+        cash_quality_score += 30 if g >= 12 else 25 if g >= 8 else 18 if g >= 4 else 8 if g >= 0 else 0
+    if adjusted_fcf is not None and net_income is not None:
+        common = adjusted_fcf.index.intersection(net_income.index)
+        if len(common):
+            ni = pd.to_numeric(net_income.loc[common], errors="coerce").replace(0, np.nan)
+            conversion = (pd.to_numeric(adjusted_fcf.loc[common], errors="coerce") / ni).replace([np.inf, -np.inf], np.nan).dropna()
+            if len(conversion):
+                med = float(conversion.median())
+                cash_quality_score += 20 if med >= 0.9 else 15 if med >= 0.7 else 8 if med >= 0.5 else 0
+    if not np.isnan(normalized_fcf_per_share) and normalized_fcf_per_share > 0:
+        cash_quality_score += 10
+    cash_quality_score = round(min(100, cash_quality_score), 1)
+
+    # Retained cash / reinvestment proxy. Dividends and buybacks are not rewarded merely for existing.
+    payout = safe(info.get("payoutRatio"))
+    if np.isnan(payout):
+        retained_rate = 0.65
+    else:
+        retained_rate = max(0.15, min(0.85, 1 - payout))
+    roic_for_growth = roic_median if not np.isnan(roic_median) else 0.10
+    reinvestment_engine = max(0.0, min(0.16, retained_rate * max(roic_for_growth, 0)))
+
+    history_checks = [x for x in [revenue_cagr, fcf_per_share_cagr] if not np.isnan(x)]
+    historical_anchor = np.median(history_checks) if history_checks else reinvestment_engine
+    base_growth = float(np.clip(0.65 * reinvestment_engine + 0.35 * historical_anchor, -0.02, 0.12))
+    if revenue_cagr is not np.nan and not np.isnan(revenue_cagr) and revenue_cagr < 0:
+        base_growth = min(base_growth, 0.02)
+
+    reinvestment_score = 0.0
+    reinvestment_score += _score_band(roic_for_growth * 100, [(25, 40), (20, 36), (15, 30), (12, 22), (10, 16), (7, 8)])
+    reinvestment_score += _score_band(base_growth * 100, [(10, 30), (7, 25), (5, 19), (3, 12), (0, 6)])
+    if not np.isnan(fcf_per_share_cagr):
+        reinvestment_score += _score_band(fcf_per_share_cagr * 100, [(12, 20), (8, 16), (5, 12), (0, 6)])
     if not np.isnan(dilution_cagr):
-        evidence += 1
-    score += evidence
+        reinvestment_score += 10 if dilution_cagr <= 0.01 else 6 if dilution_cagr <= 0.02 else 0
+    reinvestment_score = round(min(100, reinvestment_score), 1)
 
-    # 7) Scale / resilience proxy — 5. This is deliberately small; size is not a moat.
-    if not np.isnan(market_cap):
-        score += 5 if market_cap >= 100e9 else 4 if market_cap >= 20e9 else 3 if market_cap >= 5e9 else 1.5 if market_cap >= 1e9 else 0
+    capital_allocation_score = 60.0
+    if not np.isnan(dilution_cagr):
+        capital_allocation_score += 12 if dilution_cagr <= 0 else 8 if dilution_cagr <= 0.01 else 2 if dilution_cagr <= 0.02 else -12
+    if not np.isnan(net_debt_to_fcf):
+        capital_allocation_score += 10 if net_debt_to_fcf <= 1 else 4 if net_debt_to_fcf <= 2 else -12 if net_debt_to_fcf > 4 else 0
+    if acquisitions is not None and adjusted_fcf is not None:
+        common = acquisitions.index.intersection(adjusted_fcf.index)
+        heavy_years = 0
+        valid_years = 0
+        for dt in common:
+            acq = abs(safe(acquisitions.get(dt), 0))
+            cf = abs(safe(adjusted_fcf.get(dt), 0))
+            if cf > 0:
+                valid_years += 1
+                if acq > cf:
+                    heavy_years += 1
+        if valid_years >= 2 and heavy_years >= 2:
+            capital_allocation_score -= 25
+    capital_allocation_score = round(max(0, min(100, capital_allocation_score)), 1)
 
-    raw_score = min(100.0, score)
-    cap_reasons = []
+    # --- Hard gates that can be measured reliably ---
+    hard_gate_failures = []
+    hard_gate_warnings = []
 
-    # Hard quality gates: a very high grade requires enough evidence and genuine
-    # per-share compounding, not just strong current margins.
-    score_cap = 100.0
-    if evidence < 7:
-        score_cap = min(score_cap, 74.0)
-        cap_reasons.append("limited multi-year evidence")
-    elif evidence < 9:
-        score_cap = min(score_cap, 84.0)
-        cap_reasons.append("incomplete elite-level evidence")
+    if not specialist_sector and not quantitative_moat_pass:
+        hard_gate_failures.append("quantitative moat evidence is not strong enough")
+    if structural_moat_status != "SUPPORTED":
+        hard_gate_warnings.append("structural moat mechanism needs manual verification")
 
-    if np.isnan(fcf_per_share_cagr):
-        score_cap = min(score_cap, 84.0)
-        cap_reasons.append("FCF/share history unavailable")
-    if np.isnan(roic):
-        score_cap = min(score_cap, 84.0)
-        cap_reasons.append("ROIC unavailable")
+    if not specialist_sector:
+        if not np.isnan(net_debt_to_fcf) and net_debt_to_fcf > 4:
+            hard_gate_failures.append("excessive net debt relative to FCF")
+        if not np.isnan(interest_coverage) and interest_coverage < 2 and (np.isnan(net_debt_to_fcf) or net_debt_to_fcf > 1):
+            hard_gate_failures.append("weak interest coverage")
+        if not np.isnan(positive_fcf_share) and positive_fcf_share < 0.75:
+            hard_gate_failures.append("persistent weak/negative adjusted FCF")
+        if not np.isnan(latest_fcf) and latest_fcf <= 0:
+            hard_gate_failures.append("latest adjusted FCF is not positive")
+        if not np.isnan(positive_income_share) and positive_income_share < 0.75:
+            hard_gate_failures.append("turnaround/depressed earnings profile")
+        if not np.isnan(roic_trend) and roic_trend <= -0.05:
+            hard_gate_warnings.append("ROIC has deteriorated materially")
 
-    if not np.isnan(positive_fcf_share) and positive_fcf_share < 0.5:
-        score_cap = min(score_cap, 64.0)
-        cap_reasons.append("weak FCF consistency")
-    if not np.isnan(revenue_cagr) and revenue_cagr < 0:
-        score_cap = min(score_cap, 69.0)
-        cap_reasons.append("shrinking multi-year revenue")
-    if not np.isnan(fcf_per_share_cagr) and fcf_per_share_cagr < 0:
-        score_cap = min(score_cap, 74.0)
-        cap_reasons.append("declining FCF/share")
-    if not np.isnan(net_debt_to_fcf) and net_debt_to_fcf > 5:
-        score_cap = min(score_cap, 79.0)
-        cap_reasons.append("high net debt vs FCF")
+    cyclical_keyword = any(term in industry.lower() for term in CYCLICAL_TERMS)
+    revenue_cv = _series_cv(revenue)
+    if cyclical_keyword and not np.isnan(revenue_cv) and revenue_cv > 0.25:
+        hard_gate_failures.append("strongly cyclical earnings/revenue profile")
 
-    elite_gate = all([
-        evidence >= 9,
-        not np.isnan(revenue_cagr) and revenue_cagr >= 0.08,
-        not np.isnan(fcf_per_share_cagr) and fcf_per_share_cagr >= 0.08,
-        not np.isnan(positive_fcf_share) and positive_fcf_share >= 0.75,
-        not np.isnan(roic) and roic >= 0.15,
-        not np.isnan(dilution_cagr) and dilution_cagr <= 0.02,
-        np.isnan(net_debt_to_fcf) or net_debt_to_fcf <= 2.5,
-    ])
-    if raw_score >= 90 and not elite_gate:
-        score_cap = min(score_cap, 89.0)
-        cap_reasons.append("elite gate not fully met")
+    acquisition_heavy = False
+    if acquisitions is not None and adjusted_fcf is not None:
+        common = acquisitions.index.intersection(adjusted_fcf.index)
+        ratios = []
+        for dt in common:
+            cf = abs(safe(adjusted_fcf.get(dt), 0))
+            if cf > 0:
+                ratios.append(abs(safe(acquisitions.get(dt), 0)) / cf)
+        acquisition_heavy = len(ratios) >= 2 and sum(r > 1.0 for r in ratios) >= 2
+        if acquisition_heavy:
+            hard_gate_failures.append("serial acquisition dependence")
+
+    # Items Yahoo cannot safely prove either way.
+    qualitative_review_items = [
+        "technology disruption risk",
+        "key-person dependency",
+        "customer concentration",
+        "geographic concentration",
+        "supplier concentration",
+        "governance/minority shareholder protections",
+        "regulatory dependence",
+        "market-share trend",
+    ]
+
+    # --- DCF / margin of safety ---
+    terminal_base = 0.025
+    if base_growth <= 0.02:
+        terminal_base = 0.015
+    elif moat_confidence == "HIGH" and base_growth >= 0.07:
+        terminal_base = 0.028
+
+    bear_growth = min(base_growth * 0.45, 0.045)
+    bull_growth = min(base_growth + 0.025, 0.14)
+    base_value = _dcf_per_share(normalized_fcf_per_share, base_growth, terminal_base, BASE_REQUIRED_RETURN, moat_confidence)
+    bear_value = _dcf_per_share(normalized_fcf_per_share, bear_growth, max(0.01, terminal_base - 0.01), BASE_REQUIRED_RETURN, "LOW")
+    bull_value = _dcf_per_share(normalized_fcf_per_share, bull_growth, min(0.032, terminal_base + 0.004), BASE_REQUIRED_RETURN, "HIGH")
+
+    base_mos = 0.15 if moat_confidence == "HIGH" else 0.25 if moat_confidence == "MEDIUM" else 0.35
+    valuation_uncertainty_pct = np.nan
+    if not np.isnan(base_value) and base_value > 0 and not np.isnan(bear_value):
+        valuation_uncertainty_pct = max(0.0, (base_value - bear_value) / base_value * 100)
+    uncertainty_add = 0.0 if np.isnan(valuation_uncertainty_pct) else min(0.10, valuation_uncertainty_pct / 100 * 0.20)
+    evidence_add = 0.05 if evidence_years < 5 else 0.0
+    required_mos = min(0.45, base_mos + uncertainty_add + evidence_add)
+
+    mos_base = np.nan if np.isnan(base_value) or base_value <= 0 or price <= 0 else 1 - price / base_value
+    mos_bear = np.nan if np.isnan(bear_value) or bear_value <= 0 or price <= 0 else 1 - price / bear_value
+
+    valuation_gate_pass = (
+        not np.isnan(mos_base)
+        and mos_base >= required_mos
+        and not np.isnan(mos_bear)
+        and mos_bear >= 0
+    )
+
+    valuation_score = 0.0
+    if not np.isnan(mos_base):
+        valuation_score = float(np.clip((mos_base + 0.25) / 0.70 * 100, 0, 100))
+
+    quality_score = round(
+        0.35 * moat_score
+        + 0.20 * resilience_score
+        + 0.20 * reinvestment_score
+        + 0.15 * capital_allocation_score
+        + 0.10 * cash_quality_score,
+        1,
+    )
 
     sector_model = "Generic"
     sector_review_required = False
-
     if is_insurer:
-        # Generic corporate FCF/ROIC can be misleading for insurers because
-        # premiums, reserves and investment assets drive cash flows/capital.
-        # Use a preliminary insurer score from metrics that are more comparable,
-        # then require specialist underwriting/reserve review before an ELITE grade.
-        insurer_score = 0.0
-
-        if not np.isnan(revenue_cagr):
-            rg = revenue_cagr * 100
-            insurer_score += 15 if rg >= 12 else 12 if rg >= 8 else 9 if rg >= 5 else 4 if rg > 0 else 0
-
-        if not np.isnan(earnings_cagr):
-            eg = earnings_cagr * 100
-            insurer_score += 15 if eg >= 15 else 12 if eg >= 10 else 8 if eg >= 5 else 3 if eg > 0 else 0
-
-        if not np.isnan(positive_income_share):
-            insurer_score += 10 if positive_income_share >= 0.99 else 7 if positive_income_share >= 0.75 else 3 if positive_income_share >= 0.5 else 0
-
-        if not np.isnan(roe):
-            r = roe * 100
-            insurer_score += 20 if r >= 25 else 17 if r >= 20 else 13 if r >= 15 else 8 if r >= 10 else 3 if r > 0 else 0
-
-        if not np.isnan(book_value_per_share_cagr):
-            bg = book_value_per_share_cagr * 100
-            insurer_score += 20 if bg >= 15 else 16 if bg >= 10 else 11 if bg >= 6 else 6 if bg >= 3 else 2 if bg > 0 else 0
-
-        if not np.isnan(dilution_cagr):
-            d = dilution_cagr * 100
-            insurer_score += 8 if d <= 0 else 7 if d <= 1 else 5 if d <= 2 else 2 if d <= 4 else 0
-
-        if not np.isnan(debt_equity):
-            insurer_score += 5 if debt_equity <= 50 else 4 if debt_equity <= 100 else 2 if debt_equity <= 150 else 0
-
-        insurer_score += 7 if evidence >= 9 else 4 if evidence >= 7 else 1
-
-        raw_score = min(100.0, insurer_score)
-        score_cap = min(score_cap, 89.0)
-        cap_reasons.append("insurance specialist review required: combined ratio, reserves and capital")
-        elite_gate = False
-        sector_model = "Insurance preliminary"
+        sector_model = "Insurance specialist"
         sector_review_required = True
-
+        hard_gate_warnings.append("use insurer-specific underwriting, reserves, float and capital review")
     elif is_reit:
-        score_cap = min(score_cap, 89.0)
-        elite_gate = False
-        sector_model = "REIT preliminary"
+        sector_model = "REIT specialist"
         sector_review_required = True
-        cap_reasons.append("REIT specialist review required: FFO/AFFO, leverage, occupancy and dividend coverage")
-
+        hard_gate_warnings.append("use AFFO/FFO, occupancy, lease quality, NAV/cap-rate and debt review")
     elif is_financial:
-        score_cap = min(score_cap, 89.0)
-        elite_gate = False
-        sector_model = "Financials preliminary"
+        sector_model = "Bank/financial specialist"
         sector_review_required = True
-        cap_reasons.append("financial-sector specialist review required: capital strength, credit quality, profitability and sector-specific valuation")
+        hard_gate_warnings.append("use ROTCE/ROE, CET1, credit quality, deposit franchise and tangible-book review")
 
-    final_score = round(min(raw_score, score_cap), 1)
-    label = (
-        "ELITE" if final_score >= 90 else
-        "STRONG" if final_score >= 82 else
-        "QUALITY" if final_score >= 72 else
-        "DEVELOPING" if final_score >= 60 else
-        "WEAK"
+    hard_gate_pass = len(hard_gate_failures) == 0
+
+    # Preliminary model action. Specialist sectors stay WAIT until specialist review.
+    if not hard_gate_pass:
+        preliminary_action = "PASS"
+    elif sector_review_required:
+        preliminary_action = "WAIT"
+    elif valuation_gate_pass and structural_moat_status == "SUPPORTED":
+        preliminary_action = "BUY"
+    else:
+        preliminary_action = "WAIT"
+
+    if not hard_gate_pass:
+        action_reason = "; ".join(hard_gate_failures)
+    elif structural_moat_status != "SUPPORTED":
+        action_reason = "quality may qualify, but structural moat mechanism still needs verification"
+    elif not valuation_gate_pass:
+        action_reason = "quality may qualify, but valuation / bear-case margin of safety is insufficient"
+    elif sector_review_required:
+        action_reason = "specialist sector review required before a buy decision"
+    else:
+        action_reason = "hard gates passed and DCF margin-of-safety requirement met"
+
+    score_cap_reason = "; ".join(hard_gate_failures + hard_gate_warnings)
+    long_term_score = quality_score if hard_gate_pass else min(quality_score, 59.0)
+    long_term_label = (
+        "ELITE" if long_term_score >= 90 else
+        "STRONG" if long_term_score >= 80 else
+        "QUALITY" if long_term_score >= 70 else
+        "DEVELOPING" if long_term_score >= 60 else
+        "PASS"
     )
 
     return {
-        "long_term_score": final_score,
-        "long_term_raw_score": round(raw_score, 1),
-        "long_term_label": label,
-        "evidence_score": evidence,
-        "elite_gate_pass": bool(elite_gate),
-        "score_cap_reason": ", ".join(dict.fromkeys(cap_reasons)),
+        "long_term_score": round(long_term_score, 1),
+        "long_term_raw_score": round(quality_score, 1),
+        "long_term_label": long_term_label,
+        "quality_score": round(quality_score, 1),
+        "moat_score": moat_score,
+        "moat_confidence": moat_confidence,
+        "structural_moat_status": structural_moat_status,
+        "moat_mechanisms": ", ".join(moat_mechanisms) if moat_mechanisms else "Needs manual verification",
+        "quantitative_moat_pass": bool(quantitative_moat_pass),
+        "resilience_score": resilience_score,
+        "reinvestment_score": reinvestment_score,
+        "capital_allocation_score": capital_allocation_score,
+        "cash_quality_score": cash_quality_score,
+        "hard_gate_pass": bool(hard_gate_pass),
+        "hard_gate_failures": "; ".join(hard_gate_failures),
+        "hard_gate_warnings": "; ".join(hard_gate_warnings),
+        "qualitative_review_items": "; ".join(qualitative_review_items),
+        "preliminary_action": preliminary_action,
+        "action_reason": action_reason,
+        "valuation_gate_pass": bool(valuation_gate_pass),
+        "required_margin_of_safety_pct": round(required_mos * 100, 1),
+        "margin_of_safety_base_pct": None if np.isnan(mos_base) else round(mos_base * 100, 1),
+        "margin_of_safety_bear_pct": None if np.isnan(mos_bear) else round(mos_bear * 100, 1),
+        "dcf_bear": None if np.isnan(bear_value) else round(bear_value, 2),
+        "dcf_base": None if np.isnan(base_value) else round(base_value, 2),
+        "dcf_bull": None if np.isnan(bull_value) else round(bull_value, 2),
+        "dcf_base_growth_pct": round(base_growth * 100, 1),
+        "dcf_bear_growth_pct": round(bear_growth * 100, 1),
+        "dcf_bull_growth_pct": round(bull_growth * 100, 1),
+        "dcf_terminal_growth_pct": round(terminal_base * 100, 1),
+        "dcf_discount_rate_pct": round(BASE_REQUIRED_RETURN * 100, 1),
+        "valuation_uncertainty_pct": None if np.isnan(valuation_uncertainty_pct) else round(valuation_uncertainty_pct, 1),
+        "valuation_score": round(valuation_score, 1),
+        "normalized_fcf_per_share": None if np.isnan(normalized_fcf_per_share) else round(normalized_fcf_per_share, 4),
+        "evidence_score": min(10, evidence_years + (2 if not np.isnan(roic) else 0) + (1 if not np.isnan(dilution_cagr) else 0)),
+        "evidence_years": evidence_years,
+        "elite_gate_pass": bool(hard_gate_pass and quality_score >= 85 and structural_moat_status == "SUPPORTED"),
+        "score_cap_reason": score_cap_reason,
         "revenue_cagr_pct": None if np.isnan(revenue_cagr) else round(revenue_cagr * 100, 1),
         "earnings_cagr_pct": None if np.isnan(earnings_cagr) else round(earnings_cagr * 100, 1),
         "fcf_cagr_pct": None if np.isnan(fcf_cagr) else round(fcf_cagr * 100, 1),
         "fcf_per_share_cagr_pct": None if np.isnan(fcf_per_share_cagr) else round(fcf_per_share_cagr * 100, 1),
         "positive_fcf_years_pct": None if np.isnan(positive_fcf_share) else round(positive_fcf_share * 100, 0),
         "roic_pct": None if np.isnan(roic) else round(roic * 100, 1),
+        "roic_median_pct": None if np.isnan(roic_median) else round(roic_median * 100, 1),
+        "roic_trend_pct": None if np.isnan(roic_trend) else round(roic_trend * 100, 1),
         "roe_pct": None if np.isnan(roe) else round(roe * 100, 1),
         "operating_margin_pct": None if np.isnan(operating_margin) else round(operating_margin * 100, 1),
+        "gross_margin_pct": None if np.isnan(gross_margin) else round(gross_margin * 100, 1),
         "dilution_cagr_pct": None if np.isnan(dilution_cagr) else round(dilution_cagr * 100, 2),
         "net_debt_to_fcf": None if np.isnan(net_debt_to_fcf) else round(net_debt_to_fcf, 2),
         "interest_coverage": None if np.isnan(interest_coverage) else round(interest_coverage, 1),
         "current_ratio": None if np.isnan(current_ratio) else round(current_ratio, 2),
         "book_value_per_share_cagr_pct": None if np.isnan(book_value_per_share_cagr) else round(book_value_per_share_cagr * 100, 1),
+        "acquisition_heavy": bool(acquisition_heavy),
         "sector_model": sector_model,
         "sector_review_required": sector_review_required,
         "sector": sector,
@@ -435,74 +664,30 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
 
 
 def long_term_entry_score(symbol: str, price: float, valuation_score: float, tech: dict | None = None) -> dict:
-    # Entry is deliberately separate from business quality.
-    score = max(0.0, min(60.0, (safe(valuation_score, 10) / 20.0) * 60.0))
+    """Compatibility wrapper.
 
-    history = None
-    if tech and isinstance(tech.get("history"), pd.DataFrame):
-        history = tech["history"]
-    if history is None or history.empty:
-        try:
-            history = yf.Ticker(symbol).history(period="1y", interval="1d", auto_adjust=False)
-        except Exception:
-            history = pd.DataFrame()
-
-    sma200 = np.nan
-    high52 = np.nan
-    if history is not None and not history.empty and "Close" in history.columns:
-        close = pd.to_numeric(history["Close"], errors="coerce").dropna()
-        if len(close) >= 50:
-            high52 = safe(close.tail(252).max())
-        if len(close) >= 200:
-            sma200 = safe(close.rolling(200).mean().iloc[-1])
-
-    if not np.isnan(high52) and high52 > 0:
-        drawdown = (1 - price / high52) * 100
-        score += 15 if drawdown >= 20 else 11 if drawdown >= 12 else 7 if drawdown >= 7 else 3 if drawdown >= 3 else 1
-    else:
-        score += 7
-
-    if not np.isnan(sma200) and sma200 > 0:
-        ratio = price / sma200
-        score += 15 if ratio <= 1.00 else 12 if ratio <= 1.05 else 8 if ratio <= 1.10 else 4 if ratio <= 1.20 else 1
-    else:
-        score += 7
-
-    if tech:
-        if tech.get("in_strong_zone"):
-            score += 10
-        elif tech.get("in_preferred_zone"):
-            score += 8
-        else:
-            score += 2
-    else:
-        score += 5
-
-    score = round(min(100, score), 1)
-    label = "EXCELLENT" if score >= 80 else "ATTRACTIVE" if score >= 70 else "FAIR" if score >= 60 else "WAIT"
-    return {"long_term_entry_score": score, "long_term_entry_label": label}
+    Long-term entry quality is now valuation-led. Technical position is context
+    only and cannot turn an expensive stock into a buy.
+    """
+    score = float(np.clip(safe(valuation_score, 0), 0, 100))
+    label = "EXCELLENT" if score >= 80 else "ATTRACTIVE" if score >= 65 else "FAIR" if score >= 50 else "WAIT"
+    return {"long_term_entry_score": round(score, 1), "long_term_entry_label": label}
 
 
-def strategy_label(trade_signal: str, one_year_score: float, valuation_score: float, long_term_score: float, long_term_entry: float) -> str:
+def strategy_label(
+    trade_signal: str,
+    one_year_score: float,
+    valuation_score: float,
+    long_term_score: float,
+    long_term_entry: float,
+) -> str:
     active_trade = trade_signal in ("ACTIONABLE", "ELITE")
-
-    if active_trade and long_term_score >= 90 and long_term_entry >= 70:
-        return "SWING + ELITE LONG-TERM CANDIDATE"
-    if active_trade and long_term_score >= 82 and long_term_entry >= 70:
-        return "SWING + LONG-TERM RESEARCH CANDIDATE"
-    if active_trade and one_year_score >= 70 and valuation_score >= 12:
-        return "SWING-TO-1Y-HOLD"
+    if active_trade and long_term_score >= 80 and long_term_entry >= 65:
+        return "TRADE + LONG-TERM QUALITY"
     if active_trade:
-        return "SWING ONLY"
-
-    if long_term_score >= 90 and long_term_entry >= 70:
-        return "ELITE LONG-TERM CANDIDATE"
-    if long_term_score >= 82 and long_term_entry >= 70:
-        return "LONG-TERM RESEARCH CANDIDATE"
-    if long_term_score >= 90:
-        return "ELITE COMPOUNDER — WAIT FOR ENTRY"
-    if long_term_score >= 82:
-        return "QUALITY COMPOUNDER — WAIT FOR ENTRY"
-    if one_year_score >= 70 and valuation_score >= 12:
-        return "1Y HOLD WATCH"
+        return "TRADE"
+    if long_term_score >= 80 and long_term_entry >= 65:
+        return "LONG-TERM QUALITY"
+    if long_term_score >= 70:
+        return "LONG-TERM WATCH"
     return "WAIT"
