@@ -723,6 +723,15 @@ src = src.replace(
 - A live trade signal also requires **R:R ≥ 2.0** and price inside the **preferred or strong entry zone**.'''
 )
 
+# Final alias normalization must happen after every source transform above.
+# Some broad legacy replacements match the "fundamental_analysis" substring
+# inside "valuation_fundamental_analysis", which can create repeated prefixes.
+while "valuation_valuation_fundamental_analysis" in src:
+    src = src.replace(
+        "valuation_valuation_fundamental_analysis",
+        "valuation_fundamental_analysis",
+    )
+
 exec(compile(src, "stock_app.py", "exec"), globals(), globals())
 
 
