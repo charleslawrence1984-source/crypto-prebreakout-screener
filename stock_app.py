@@ -911,6 +911,69 @@ def deep_score_shortlist(pre: pd.DataFrame, n: int) -> pd.DataFrame:
     return pd.DataFrame(out).sort_values(["Opportunity", "Trade"], ascending=[False, False]).reset_index(drop=True)
 
 
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def fundamental_market_scan(
+    symbols_tuple: tuple[str, ...],
+    max_symbols: int,
+    min_market_cap: float,
+) -> pd.DataFrame:
+    symbols = list(symbols_tuple)[:max_symbols] if max_symbols > 0 else list(symbols_tuple)
+    rows = []
+
+    for sym in symbols:
+        try:
+            ticker = yf.Ticker(sym)
+            price = np.nan
+            try:
+                price = safe(ticker.fast_info.get("last_price"))
+            except Exception:
+                pass
+            if np.isnan(price) or price <= 0:
+                hist = ticker.history(period="5d", interval="1d", auto_adjust=False)
+                if hist is None or hist.empty:
+                    continue
+                price = safe(hist["Close"].dropna().iloc[-1])
+            if np.isnan(price) or price <= 0:
+                continue
+
+            fund = fundamental_analysis(sym, price)
+            market_cap = safe(fund.get("market_cap"))
+            if not np.isnan(market_cap) and market_cap < min_market_cap:
+                continue
+
+            rows.append({
+                "Ticker": sym,
+                "Company": fund.get("name") or sym,
+                "Price": price,
+                "Fundamental score": fund.get("hold_score", np.nan),
+                "Business quality": fund.get("quality_score", fund.get("hold_score", np.nan)),
+                "Valuation": fund.get("valuation_score", np.nan),
+                "Valuation rating": fund.get("valuation_label", "—"),
+                "Exchange Country": fund.get("exchange_country", "Other / Unknown"),
+                "Sector": fund.get("sector") or "—",
+                "Industry": fund.get("industry") or "—",
+                "Market cap": market_cap,
+                "Revenue growth %": fund.get("revenue_growth"),
+                "EPS growth %": fund.get("earnings_growth"),
+                "Profit margin %": fund.get("profit_margin"),
+                "Debt / equity": fund.get("debt_equity"),
+                "Free cash flow": fund.get("free_cash_flow"),
+                "FCF yield %": fund.get("fcf_yield", np.nan),
+                "Analyst upside %": fund.get("analyst_upside", np.nan),
+                "Valuation warning": fund.get("valuation_warning", ""),
+            })
+        except Exception:
+            continue
+
+    if not rows:
+        return pd.DataFrame()
+
+    out = pd.DataFrame(rows)
+    sort_cols = [x for x in ["Fundamental score", "Business quality", "Valuation"] if x in out.columns]
+    return out.sort_values(sort_cols, ascending=[False] * len(sort_cols)).reset_index(drop=True)
+
+
 def chart(result: Dict) -> go.Figure:
     d = result["history"].tail(120)
     fig = go.Figure()
@@ -995,7 +1058,7 @@ with st.sidebar:
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
 
-tab1, tab2, tab3 = st.tabs(["Quick analyse", "Watchlist", "Broad market screener"])
+tab1, tab2, tab3, tab4 = st.tabs(["Quick analyse", "Watchlist", "Trade Search", "Fundamental Search"])
 
 with tab1:
     c1, c2 = st.columns([3, 1])
@@ -1095,8 +1158,8 @@ with tab2:
             st.warning("No watchlist symbols returned enough data.")
 
 with tab3:
-    st.subheader("Broad market screener")
-    st.caption("Stage 1 scans price/volume data across the selected public universe. Stage 2 runs slower fundamentals only on the strongest technical candidates.")
+    st.subheader("Trade Search")
+    st.caption("Searches the selected market universe for technical trade setups only. Fundamental quality is no longer a second mandatory stage of this search.")
 
     u1, u2, u3, u4 = st.columns(4)
     with u1:
@@ -1106,11 +1169,11 @@ with tab3:
     with u3:
         min_turnover_m = st.number_input("Min avg daily turnover (m)", 0.1, 100.0, 1.0, 0.5)
     with u4:
-        deep_n = st.selectbox("Deep-score top", [10, 15, 20, 30], index=2)
+        st.metric("Search type", "TECHNICAL ONLY")
 
-    st.caption("Recommended starting point: US large + mid, 1,000 symbols, £/$1m+ daily turnover, deep-score top 20.")
+    st.caption("Recommended starting point: US large + mid, 1,000 symbols and £/$1m+ average daily turnover.")
 
-    if st.button("Run broad market scan", type="primary", use_container_width=True):
+    if st.button("Run Trade Search", type="primary", use_container_width=True):
         with st.spinner("Loading public stock universe…"):
             universe = get_universe(PUBLIC_UNIVERSES[universe_label])
 
@@ -1120,14 +1183,14 @@ with tab3:
             limit_text = "all" if cap_choice == 0 else f"{min(cap_choice, len(universe)):,}"
             st.info(f"Universe loaded: {len(universe):,} tickers. Scanning {limit_text} symbols.")
 
-            with st.spinner("Stage 1: scanning price, volume, support, momentum and risk/reward…"):
+            with st.spinner("Scanning price, volume, support, momentum and risk/reward…"):
                 pre = technical_market_scan(tuple(universe), cap_choice, min_turnover_m * 1_000_000)
 
             if pre.empty:
                 st.warning("No symbols returned usable technical data under these filters.")
             else:
-                st.success(f"Stage 1 complete: {len(pre):,} liquid stocks scored technically.")
-                st.subheader("Best technical entries")
+                st.success(f"Trade Search complete: {len(pre):,} liquid stocks scored technically.")
+                st.subheader("Best technical trade setups")
                 quick_cols = [
                     "Ticker", "Candle caution", "Last candle", "Channel", "Channel pos %",
                     "Channel R:R", "Channel quality", "Trade", "Price", "RSI", "R:R",
@@ -1135,34 +1198,106 @@ with tab3:
                 ]
                 st.dataframe(pre[quick_cols].head(30), hide_index=True, use_container_width=True)
 
-                with st.spinner(f"Stage 2: checking fundamentals on the top {deep_n} technical setups…"):
-                    ranked = deep_score_shortlist(pre, deep_n)
+                st.caption(
+                    "This search intentionally stops at the technical setup. "
+                    "Use Fundamental Search separately when you want to research company quality and valuation."
+                )
 
-                if ranked.empty:
-                    st.warning("Technical candidates were found, but fundamental data was unavailable for the shortlist.")
+with tab4:
+    st.subheader("Fundamental Search")
+    st.caption(
+        "Searches companies independently of the technical model. "
+        "This is for finding businesses worth further research based on company quality and valuation."
+    )
+
+    f1, f2, f3, f4 = st.columns(4)
+    with f1:
+        fundamental_universe_label = st.selectbox(
+            "Fundamental universe",
+            list(PUBLIC_UNIVERSES.keys()),
+            index=0,
+            key="fundamental_universe",
+        )
+    with f2:
+        fundamental_cap = st.selectbox(
+            "Companies to analyse",
+            [25, 50, 100, 250],
+            index=1,
+            key="fundamental_cap",
+        )
+    with f3:
+        min_market_cap_bn = st.number_input(
+            "Minimum market cap (bn)",
+            min_value=0.0,
+            max_value=100.0,
+            value=0.5,
+            step=0.5,
+            key="fundamental_min_cap",
+        )
+    with f4:
+        min_fund_score = st.slider(
+            "Minimum fundamental score",
+            min_value=0,
+            max_value=100,
+            value=60,
+            step=5,
+            key="fundamental_min_score",
+        )
+
+    st.caption(
+        "Fundamental searches are slower because company financial data must be requested company by company. "
+        "Start with 25–50 companies while we validate the model."
+    )
+
+    if st.button("Run Fundamental Search", type="primary", use_container_width=True):
+        with st.spinner("Loading public stock universe…"):
+            fundamental_universe = get_universe(PUBLIC_UNIVERSES[fundamental_universe_label])
+
+        if not fundamental_universe:
+            st.error("The public universe list could not be loaded right now.")
+        else:
+            with st.spinner("Checking company fundamentals and valuation…"):
+                fundamental_results = fundamental_market_scan(
+                    tuple(fundamental_universe),
+                    fundamental_cap,
+                    min_market_cap_bn * 1_000_000_000,
+                )
+
+            if fundamental_results.empty:
+                st.warning("No companies returned enough fundamental data under these filters.")
+            else:
+                filtered_fundamentals = fundamental_results[
+                    fundamental_results["Fundamental score"] >= min_fund_score
+                ].copy()
+                st.success(
+                    f"Fundamental Search complete: {len(fundamental_results)} companies analysed; "
+                    f"{len(filtered_fundamentals)} meet the selected score threshold."
+                )
+                if filtered_fundamentals.empty:
+                    st.info("No company currently meets your selected minimum fundamental score.")
                 else:
-                    st.subheader("Best overall opportunities")
                     st.dataframe(
-                        ranked[[
-                            "Ticker", "Opportunity", "Trade", "Hold", "Type", "Price",
-                            "Preferred entry", "Strong entry", "Target", "Upside %",
-                            "R:R", "Analyst target", "Analyst upside %", "Analysts"
-                        ]],
+                        filtered_fundamentals,
                         hide_index=True,
                         use_container_width=True,
+                        column_config={
+                            "Fundamental score": st.column_config.ProgressColumn(
+                                min_value=0, max_value=100, format="%.1f"
+                            ),
+                            "Business quality": st.column_config.ProgressColumn(
+                                min_value=0, max_value=100, format="%.1f"
+                            ),
+                            "Valuation": st.column_config.ProgressColumn(
+                                min_value=0, max_value=20, format="%.1f"
+                            ),
+                            "Market cap": st.column_config.NumberColumn(format="%.0f"),
+                            "Revenue growth %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "EPS growth %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "Profit margin %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "FCF yield %": st.column_config.NumberColumn(format="%.2f%%"),
+                            "Analyst upside %": st.column_config.NumberColumn(format="%.1f%%"),
+                        },
                     )
-
-                    st.subheader("Top 5 quick view")
-                    for _, q in ranked.head(5).iterrows():
-                        with st.expander(f"{q['Ticker']} — Opportunity {q['Opportunity']:.1f}/100 — {q['Type']}"):
-                            c1, c2, c3 = st.columns(3)
-                            c1.metric("Trade", f"{q['Trade']:.0f}/100")
-                            c2.metric("Hold", f"{q['Hold']:.0f}/100")
-                            c3.metric("Upside", f"{q['Upside %']:.1f}%")
-                            st.write(f"**Current:** {fmt_price(q['Price'])}")
-                            st.write(f"**Preferred entry:** {q['Preferred entry']}")
-                            st.write(f"**Strong entry:** {q['Strong entry']}")
-                            st.write(f"**Swing target:** {fmt_price(q['Target'])} · **R:R:** {q['R:R']:.2f}:1")
 
 with st.expander("How the scores work"):
     st.markdown("""
