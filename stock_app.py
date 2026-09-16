@@ -411,8 +411,11 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
 
 
 def technical_analysis(symbol: str) -> Optional[Dict]:
-    t = yf.Ticker(symbol)
-    df = t.history(period="1y", interval="1d", auto_adjust=False)
+    try:
+        t = yf.Ticker(symbol)
+        df = t.history(period="1y", interval="1d", auto_adjust=False)
+    except Exception:
+        return None
     return technical_from_df(df)
 
 
@@ -1102,9 +1105,9 @@ with tab1:
     with c2:
         st.write("")
         st.write("")
-        st.button("Analyse", type="primary", use_container_width=True)
+        analyse_clicked = st.button("Analyse", type="primary", use_container_width=True)
 
-    if manual:
+    if analyse_clicked and manual:
         with st.spinner(f"Analysing {manual.upper()}…"):
             res = analyse_symbol(manual)
 
