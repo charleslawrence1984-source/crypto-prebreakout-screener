@@ -75,7 +75,7 @@ src = src.replace(
     }''',
 '''    fund = valuation_fundamental_analysis(symbol, tech["price"])
     lt = long_term_analysis(symbol, tech["price"], fund)
-    lt_entry = long_term_entry_score(symbol, tech["price"], lt["valuation_score"], tech)
+    lt_entry = long_term_entry_score(symbol, tech["price"], lt["investment_valuation_score"], tech)
     trade_signal = signal_label(
         tech["trade_score"], tech["rr"], tech["in_preferred_zone"],
         tech["in_strong_zone"], tech.get("candle_caution", False)
@@ -109,7 +109,7 @@ src = src.replace(
 '''            fund = valuation_fundamental_analysis(sym, float(row["Price"]))
             tech_full = technical_analysis(sym)
             lt = long_term_analysis(sym, float(row["Price"]), fund)
-            lt_entry = long_term_entry_score(sym, float(row["Price"]), lt["valuation_score"], tech_full)
+            lt_entry = long_term_entry_score(sym, float(row["Price"]), lt["investment_valuation_score"], tech_full)
             trade_signal = signal_label(
                 float(row["Trade"]), float(row["R:R"]), bool(row["Preferred now"]),
                 bool(row["Strong now"]), bool(tech_full.get("candle_caution", False))
@@ -233,7 +233,7 @@ src = src.replace(
                 st.subheader("INVESTMENT")
                 st.metric("Action", iv["action"])
                 i1, i2, i3 = st.columns(3)
-                i1.metric("Business quality", f"{res.get('quality_score', res['long_term_score']):.1f}/100")
+                i1.metric("Business quality", f"{res.get('investment_quality_score', res['long_term_score']):.1f}/100")
                 i2.metric("Moat evidence", f"{res.get('moat_score', 0):.0f}/100")
                 i3.metric("Moat confidence", res.get("moat_confidence", "LOW"))
                 st.write("**Intended hold:** 10 years to forever")
