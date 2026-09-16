@@ -6,21 +6,12 @@ from two_strategy import trade_decision, investment_decision
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
 src = src.replace(
-    "import yfinance as yf\n",
-    "import yfinance as yf\nfrom valuation import fundamental_analysis as valuation_fundamental_analysis\n",
-)
-
-src = src.replace(
-    'fundamental_analysis(symbol, tech["price"])',
-    'valuation_fundamental_analysis(symbol, tech["price"])',
+    '\n    fund = fundamental_analysis(symbol, tech["price"])',
+    '\n    fund = valuation_fundamental_analysis(symbol, tech["price"])',
 )
 src = src.replace(
-    'fundamental_analysis(sym, float(row["Price"]))',
-    'valuation_fundamental_analysis(sym, float(row["Price"]))',
-)
-src = src.replace(
-    'fundamental_analysis(sym, price)',
-    'valuation_fundamental_analysis(sym, price)',
+    '\n            fund = fundamental_analysis(sym, float(row["Price"]))',
+    '\n            fund = valuation_fundamental_analysis(sym, float(row["Price"]))',
 )
 
 # The base app now contains some calls already using the valuation alias.
