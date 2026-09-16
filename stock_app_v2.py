@@ -23,6 +23,14 @@ src = src.replace(
     'valuation_fundamental_analysis(sym, price)',
 )
 
+# The base app now contains some calls already using the valuation alias.
+# The broad string replacements above can otherwise turn them into
+# valuation_valuation_fundamental_analysis. Normalise the alias once here.
+src = src.replace(
+    "valuation_valuation_fundamental_analysis",
+    "valuation_fundamental_analysis",
+)
+
 src = src.replace(
 '''def classify(trade: float, hold: float) -> Scores:
     opp = round(0.55*trade + 0.45*hold, 1)
