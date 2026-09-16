@@ -1046,9 +1046,9 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.header("Scoring")
-    st.write("**Trade Setup:** entry, trend, momentum, volume, support and risk/reward.")
-    st.write("**Hold Quality:** growth, margins, debt, cash flow and analyst outlook.")
+    st.header("Stock Screener")
+    st.write("**Trade Search:** technical setups, entries, targets and risk/reward.")
+    st.write("**Fundamental Search:** company quality, financial strength and valuation.")
     st.divider()
     watch_text = st.text_area(
         "Priority watchlist",
@@ -1313,7 +1313,7 @@ with st.expander("How the scores work"):
 - **Core opportunity:** excellent hold quality with an acceptable entry.
 - **Developing / Watch:** not strong enough yet.
 
-The broad screener uses a two-stage process so it does not make thousands of slow fundamental-data calls. Technical data is used to narrow the universe first, then fundamentals are checked on the best setups.
+**Trade Search and Fundamental Search are independent.** Trade Search looks for technical setups without forcing a fundamental second stage. Fundamental Search looks for company quality and valuation without requiring a technical setup first. Quick Analyse can still bring both sides together for a specific ticker.
 """)
 
 st.caption("Screening aid only, not financial advice. Public market data and analyst estimates can be delayed, incomplete or unavailable for some listings.")
