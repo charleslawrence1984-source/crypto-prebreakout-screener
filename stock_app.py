@@ -959,7 +959,7 @@ def fundamental_market_scan(
                 "Company": fund.get("name") or sym,
                 "Action": decision["action"],
                 "Price": price,
-                "Quality score": lt.get("quality_score", np.nan),
+                "Quality score": lt.get("investment_quality_score", lt.get("long_term_score", np.nan)),
                 "Moat score": lt.get("moat_score", np.nan),
                 "Moat confidence": lt.get("moat_confidence", "LOW"),
                 "Structural moat": lt.get("structural_moat_status", "UNVERIFIED"),
