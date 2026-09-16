@@ -331,7 +331,7 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
 
     # --- Moat evidence ---
     moat_mechanisms = _detect_moat_mechanisms(summary)
-    structural_moat_status = "SUPPORTED" if moat_mechanisms else "UNVERIFIED"
+    structural_moat_status = "CANDIDATE" if moat_mechanisms else "UNVERIFIED"
 
     moat_score = 0.0
     if not np.isnan(roic_median):
@@ -347,7 +347,8 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     elif not np.isnan(gross_margin):
         moat_score += 5
     if moat_mechanisms:
-        moat_score += min(18, 10 + 3 * (len(moat_mechanisms) - 1))
+        # Description keywords are only supporting clues. They must never prove a moat.
+        moat_score += min(6, 2 + 1.5 * (len(moat_mechanisms) - 1))
     if not np.isnan(roic_trend):
         if roic_trend >= -0.02:
             moat_score += 6
@@ -362,7 +363,7 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     )
     if evidence_years >= 8 and moat_score >= 78 and structural_moat_status == "SUPPORTED":
         moat_confidence = "HIGH"
-    elif moat_score >= 70 and structural_moat_status == "SUPPORTED":
+    elif moat_score >= 70 and structural_moat_status in ("SUPPORTED", "CANDIDATE"):
         moat_confidence = "MEDIUM"
     else:
         moat_confidence = "LOW"
@@ -415,7 +416,7 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     cash_quality_score = round(min(100, cash_quality_score), 1)
 
     # Retained cash / reinvestment proxy. Dividends and buybacks are not rewarded merely for existing.
-    payout = safe(info.get("payoutRatio"))
+    payout = safe(fund.get("payout_ratio", info.get("payoutRatio")))
     if np.isnan(payout):
         retained_rate = 0.65
     else:
@@ -465,7 +466,7 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     if not specialist_sector and not quantitative_moat_pass:
         hard_gate_failures.append("quantitative moat evidence is not strong enough")
     if structural_moat_status != "SUPPORTED":
-        hard_gate_warnings.append("structural moat mechanism needs manual verification")
+        hard_gate_warnings.append("structural moat mechanism needs manual verification; description matches are only clues")
 
     if not specialist_sector:
         if not np.isnan(net_debt_to_fcf) and net_debt_to_fcf > 4:
@@ -511,6 +512,18 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     ]
 
     # --- DCF / margin of safety ---
+    # Financial statements are reported in major currency units, while some
+    # exchanges (notably London) quote shares in minor units such as GBp.
+    quote_currency = str(fund.get("quote_currency") or "")
+    financial_currency = str(fund.get("financial_currency") or "")
+    quote_scale = 1.0
+    if quote_currency.upper() in ("GBP", "GBX") and financial_currency.upper() == "GBP":
+        # yfinance often reports London quotes as GBp/GBX while statements are GBP.
+        # Treat an uppercase GBP quote as already major units; GBX is definitely pence.
+        quote_scale = 100.0 if quote_currency.upper() == "GBX" else 1.0
+    if quote_currency == "GBp" and financial_currency.upper() == "GBP":
+        quote_scale = 100.0
+
     terminal_base = 0.025
     if base_growth <= 0.02:
         terminal_base = 0.015
@@ -522,6 +535,10 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     base_value = _dcf_per_share(normalized_fcf_per_share, base_growth, terminal_base, BASE_REQUIRED_RETURN, moat_confidence)
     bear_value = _dcf_per_share(normalized_fcf_per_share, bear_growth, max(0.01, terminal_base - 0.01), BASE_REQUIRED_RETURN, "LOW")
     bull_value = _dcf_per_share(normalized_fcf_per_share, bull_growth, min(0.032, terminal_base + 0.004), BASE_REQUIRED_RETURN, "HIGH")
+    if quote_scale != 1.0:
+        base_value = base_value * quote_scale if not np.isnan(base_value) else base_value
+        bear_value = bear_value * quote_scale if not np.isnan(bear_value) else bear_value
+        bull_value = bull_value * quote_scale if not np.isnan(bull_value) else bull_value
 
     base_mos = 0.15 if moat_confidence == "HIGH" else 0.25 if moat_confidence == "MEDIUM" else 0.35
     valuation_uncertainty_pct = np.nan
@@ -583,14 +600,22 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
 
     if not hard_gate_pass:
         action_reason = "; ".join(hard_gate_failures)
+    elif sector_review_required:
+        action_reason = "specialist sector review required before a buy decision"
     elif structural_moat_status != "SUPPORTED":
         action_reason = "quality may qualify, but structural moat mechanism still needs verification"
     elif not valuation_gate_pass:
         action_reason = "quality may qualify, but valuation / bear-case margin of safety is insufficient"
-    elif sector_review_required:
-        action_reason = "specialist sector review required before a buy decision"
     else:
         action_reason = "hard gates passed and DCF margin-of-safety requirement met"
+
+    if sector_review_required:
+        base_value = np.nan
+        bear_value = np.nan
+        bull_value = np.nan
+        mos_base = np.nan
+        mos_bear = np.nan
+        valuation_gate_pass = False
 
     score_cap_reason = "; ".join(hard_gate_failures + hard_gate_warnings)
     long_term_score = quality_score if hard_gate_pass else min(quality_score, 59.0)
@@ -634,6 +659,9 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         "dcf_bull_growth_pct": round(bull_growth * 100, 1),
         "dcf_terminal_growth_pct": round(terminal_base * 100, 1),
         "dcf_discount_rate_pct": round(BASE_REQUIRED_RETURN * 100, 1),
+        "quote_currency": quote_currency,
+        "financial_currency": financial_currency,
+        "quote_scale": quote_scale,
         "valuation_uncertainty_pct": None if np.isnan(valuation_uncertainty_pct) else round(valuation_uncertainty_pct, 1),
         "investment_valuation_score": round(valuation_score, 1),
         "normalized_fcf_per_share": None if np.isnan(normalized_fcf_per_share) else round(normalized_fcf_per_share, 4),
