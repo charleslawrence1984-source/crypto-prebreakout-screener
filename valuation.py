@@ -17,6 +17,66 @@ def _pct(v):
     return None if np.isnan(x) else x * 100
 
 
+def _object_value(source, *keys):
+    """Read a value from dict-like or attribute-based yfinance objects."""
+    for key in keys:
+        try:
+            value = source[key]
+        except Exception:
+            try:
+                value = getattr(source, key)
+            except Exception:
+                continue
+        if value not in (None, ""):
+            return value
+    return None
+
+
+def _resolve_market_cap(ticker, info: dict, fast, price: float) -> float:
+    """Resolve market cap without allowing a missing Yahoo field to pass silently."""
+    candidates = [
+        info.get("marketCap"),
+        _object_value(fast, "market_cap", "marketCap"),
+    ]
+    for candidate in candidates:
+        market_cap = _safe(candidate)
+        if not np.isnan(market_cap) and market_cap > 0:
+            return market_cap
+
+    shares = _safe(info.get("sharesOutstanding"))
+    if np.isnan(shares) or shares <= 0:
+        shares = _safe(info.get("impliedSharesOutstanding"))
+    if np.isnan(shares) or shares <= 0:
+        shares = _safe(_object_value(fast, "shares", "shares_outstanding"))
+
+    if np.isnan(shares) or shares <= 0:
+        try:
+            history = ticker.get_shares_full()
+            if history is not None:
+                for value in reversed(np.asarray(history).reshape(-1)):
+                    shares = _safe(value)
+                    if not np.isnan(shares) and shares > 0:
+                        break
+        except Exception:
+            pass
+
+    quote_price = _safe(price)
+    if np.isnan(quote_price) or quote_price <= 0:
+        quote_price = _safe(
+            info.get("currentPrice")
+            or info.get("regularMarketPrice")
+            or _object_value(fast, "last_price", "lastPrice")
+        )
+    if np.isnan(shares) or shares <= 0 or np.isnan(quote_price) or quote_price <= 0:
+        return np.nan
+
+    # London prices may be quoted in pence while market capitalisation is GBP.
+    currency = info.get("currency") or _object_value(fast, "currency") or ""
+    if str(currency) in {"GBp", "GBX"}:
+        quote_price /= 100
+    return shares * quote_price
+
+
 def _search_metadata(symbol: str) -> dict:
     """Best-effort lightweight metadata fallback when quoteSummary/info is unavailable."""
     try:
@@ -114,12 +174,7 @@ def fundamental_analysis(symbol: str, price: float):
             if v not in (None, "") and not info.get(k):
                 info[k] = v
 
-    market_cap = _safe(info.get("marketCap"))
-    if np.isnan(market_cap):
-        try:
-            market_cap = _safe(fast.get("market_cap"))
-        except Exception:
-            pass
+    market_cap = _resolve_market_cap(t, info, fast, price)
 
     revenue_growth = _pct(info.get("revenueGrowth"))
     earnings_growth = _pct(info.get("earningsGrowth"))
