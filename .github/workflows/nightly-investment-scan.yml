@@ -1,0 +1,92 @@
+name: Nightly investment scans
+
+on:
+  workflow_dispatch:
+    inputs:
+      exchange:
+        description: Exchange key or all
+        required: true
+        default: all
+      max_symbols:
+        description: Maximum symbols inside each rolling batch; 0 means the full batch
+        required: true
+        default: "0"
+      chunk_size:
+        description: Rolling companies per exchange
+        required: true
+        default: "100"
+  schedule:
+    # Both UTC times are triggered; the timezone guard keeps only 22:15 UK
+    # across GMT and BST.
+    - cron: "15 21 * * 1-5"
+    - cron: "15 22 * * 1-5"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-investment-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check UK schedule
+        id: schedule_guard
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "15 21 * * 1-5" ] && [ "$(TZ=Europe/London date +%z)" = "+0100" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "15 22 * * 1-5" ] && [ "$(TZ=Europe/London date +%z)" = "+0000" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_scan=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.schedule_guard.outputs.run_scan == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.schedule_guard.outputs.run_scan == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Run prepared investment scans
+        if: steps.schedule_guard.outputs.run_scan == 'true'
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scheduled_investment_scan.py \
+            --exchange "${{ github.event.inputs.exchange || 'all' }}" \
+            --max-symbols "${{ github.event.inputs.max_symbols || '0' }}" \
+            --chunk-size "${{ github.event.inputs.chunk_size || '100' }}" \
+            --min-market-cap-bn 0.5 \
+            --workers 4 \
+            --resume
+
+      - name: Save prepared scans
+        if: steps.schedule_guard.outputs.run_scan == 'true' && always()
+        shell: bash
+        run: |
+          if [ ! -d prepared_scans ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_scans
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Update nightly investment scans"
+          git pull --rebase origin main
+          git push origin HEAD:main

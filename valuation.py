@@ -154,8 +154,8 @@ def _exchange_country(symbol: str, info: dict) -> str:
     return "Other / Unknown"
 
 
-def fundamental_analysis(symbol: str, price: float):
-    t = yf.Ticker(symbol)
+def fundamental_analysis(symbol: str, price: float, ticker=None):
+    t = ticker or yf.Ticker(symbol)
     try:
         info = t.info or {}
     except Exception:

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 import io
+import json
 import math
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -19,6 +23,7 @@ from two_strategy import investment_decision
 st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", layout="wide")
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
+PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1058,106 +1063,98 @@ def deep_score_shortlist(pre: pd.DataFrame, n: int) -> pd.DataFrame:
     return pd.DataFrame(out).sort_values(["Opportunity", "Trade"], ascending=[False, False]).reset_index(drop=True)
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
-def fundamental_market_scan(
-    symbols_tuple: tuple[str, ...],
-    max_symbols: int,
-    min_market_cap: float,
-    directory_market_caps_tuple: tuple[tuple[str, float], ...] = (),
-) -> pd.DataFrame:
-    """Independent 10-years-to-forever investment scan.
+def _fast_info_number(fast, *keys) -> float:
+    for key in keys:
+        try:
+            value = fast[key]
+        except Exception:
+            try:
+                value = getattr(fast, key)
+            except Exception:
+                continue
+        number = safe(value)
+        if not np.isnan(number):
+            return number
+    return np.nan
 
-    This deliberately separates business quality from valuation. Hard-gate
-    failures cannot be rescued by a high weighted score.
-    """
-    universe_symbols = list(symbols_tuple)
-    if max_symbols > 0 and max_symbols < len(universe_symbols):
-        idx = np.linspace(0, len(universe_symbols) - 1, max_symbols, dtype=int)
-        symbols = [universe_symbols[i] for i in idx]
-    else:
-        symbols = universe_symbols
-    directory_market_caps = dict(directory_market_caps_tuple)
-    rows = []
+
+def _batch_latest_prices(symbols: List[str], chunk_size: int = 200) -> tuple[Dict[str, float], int]:
+    prices = {}
     rate_limit_errors = 0
-    other_errors = 0
-    price_failures = 0
-    market_cap_failures = 0
-    below_min_market_cap = 0
-    error_samples = []
+    for start in range(0, len(symbols), chunk_size):
+        chunk = symbols[start:start + chunk_size]
+        try:
+            batch = yf.download(
+                tickers=chunk,
+                period="5d",
+                interval="1d",
+                auto_adjust=False,
+                progress=False,
+                threads=True,
+                group_by="column",
+            )
+            if batch is None or batch.empty:
+                continue
+            if isinstance(batch.columns, pd.MultiIndex) and "Close" in batch.columns.get_level_values(0):
+                closes = batch["Close"]
+                for sym in chunk:
+                    if sym in closes.columns:
+                        series = pd.to_numeric(closes[sym], errors="coerce").dropna()
+                        if not series.empty:
+                            prices[sym] = safe(series.iloc[-1])
+            elif "Close" in batch.columns and len(chunk) == 1:
+                series = pd.to_numeric(batch["Close"], errors="coerce").dropna()
+                if not series.empty:
+                    prices[chunk[0]] = safe(series.iloc[-1])
+        except Exception as exc:
+            if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
+                rate_limit_errors += 1
+    return prices, rate_limit_errors
 
-    batch_prices = {}
-    try:
-        batch = yf.download(
-            tickers=symbols,
-            period="5d",
-            interval="1d",
-            auto_adjust=False,
-            progress=False,
-            threads=False,
-            group_by="column",
-        )
-        if batch is not None and not batch.empty:
-            if isinstance(batch.columns, pd.MultiIndex):
-                if "Close" in batch.columns.get_level_values(0):
-                    closes = batch["Close"]
-                    for sym in symbols:
-                        if sym in closes.columns:
-                            ss = pd.to_numeric(closes[sym], errors="coerce").dropna()
-                            if not ss.empty:
-                                batch_prices[sym] = safe(ss.iloc[-1])
-            elif "Close" in batch.columns and len(symbols) == 1:
-                ss = pd.to_numeric(batch["Close"], errors="coerce").dropna()
-                if not ss.empty:
-                    batch_prices[symbols[0]] = safe(ss.iloc[-1])
-    except Exception as exc:
-        if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
-            rate_limit_errors += 1
 
-    for sym in symbols:
-        stage = "price"
+def _investment_company_result(
+    sym: str,
+    initial_price: float,
+    min_market_cap: float,
+    directory_market_caps: Dict[str, float],
+) -> dict:
+    """Analyse one company with one shared yfinance Ticker object."""
+    stage = "price"
+    for attempt in range(3):
         try:
             ticker = yf.Ticker(sym)
-            price = safe(batch_prices.get(sym))
+            price = safe(initial_price)
             if np.isnan(price) or price <= 0:
                 try:
-                    price = safe(ticker.fast_info.get("last_price"))
+                    price = _fast_info_number(ticker.fast_info, "last_price", "lastPrice")
                 except Exception:
                     pass
             if np.isnan(price) or price <= 0:
-                try:
-                    hist = ticker.history(period="5d", interval="1d", auto_adjust=False)
-                except Exception as exc:
-                    if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
-                        rate_limit_errors += 1
-                    hist = pd.DataFrame()
+                hist = ticker.history(period="5d", interval="1d", auto_adjust=False)
                 if hist is not None and not hist.empty and "Close" in hist.columns:
                     close_s = pd.to_numeric(hist["Close"], errors="coerce").dropna()
                     if not close_s.empty:
                         price = safe(close_s.iloc[-1])
             if np.isnan(price) or price <= 0:
-                price_failures += 1
-                continue
+                return {"status": "price_failure", "symbol": sym}
 
             stage = "company fundamentals"
-            fund = valuation_fundamental_analysis(sym, price)
+            fund = valuation_fundamental_analysis(sym, price, ticker=ticker)
             market_cap = safe(fund.get("market_cap"))
             if np.isnan(market_cap) or market_cap <= 0:
                 market_cap = safe(directory_market_caps.get(sym))
             if np.isnan(market_cap) or market_cap <= 0:
-                market_cap_failures += 1
-                continue
+                return {"status": "market_cap_failure", "symbol": sym}
             if market_cap < min_market_cap:
-                below_min_market_cap += 1
-                continue
+                return {"status": "below_market_cap", "symbol": sym}
             fund["market_cap"] = market_cap
 
             stage = "long-term analysis"
-            lt = long_term_analysis(sym, price, fund)
+            lt = long_term_analysis(sym, price, fund, _ticker=ticker)
             merged = {**fund, **lt, "price": price}
             stage = "decision logic"
             decision = investment_decision(merged)
-
-            rows.append({
+            row = {
                 "Ticker": sym,
                 "Company": fund.get("name") or sym,
                 "Action": decision["action"],
@@ -1195,17 +1192,85 @@ def fundamental_market_scan(
                 "Review flags": lt.get("hard_gate_warnings", ""),
                 "Manual review required": lt.get("qualitative_review_items", ""),
                 "Decision reason": lt.get("action_reason", ""),
-            })
+            }
+            return {"status": "row", "symbol": sym, "row": row}
         except Exception as exc:
-            if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
-                rate_limit_errors += 1
-            else:
-                other_errors += 1
+            rate_limited = "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower()
+            if attempt < 2:
+                time.sleep((attempt + 1) * (4 if rate_limited else 1))
+                continue
+            return {
+                "status": "error",
+                "symbol": sym,
+                "rate_limited": rate_limited,
+                "message": f"{sym} @ {stage}: {exc.__class__.__name__}: {str(exc)[:220]}",
+            }
+    return {"status": "error", "symbol": sym, "rate_limited": False, "message": f"{sym}: unknown error"}
+
+
+def fundamental_market_scan(
+    symbols_tuple: tuple[str, ...],
+    max_symbols: int,
+    min_market_cap: float,
+    directory_market_caps_tuple: tuple[tuple[str, float], ...] = (),
+    progress_callback=None,
+    max_workers: int = 4,
+) -> pd.DataFrame:
+    """Independent 10-years-to-forever investment scan.
+
+    This deliberately separates business quality from valuation. Hard-gate
+    failures cannot be rescued by a high weighted score.
+    """
+    universe_symbols = list(symbols_tuple)
+    if max_symbols > 0 and max_symbols < len(universe_symbols):
+        idx = np.linspace(0, len(universe_symbols) - 1, max_symbols, dtype=int)
+        symbols = [universe_symbols[i] for i in idx]
+    else:
+        symbols = universe_symbols
+    directory_market_caps = dict(directory_market_caps_tuple)
+    rows = []
+    rate_limit_errors = 0
+    other_errors = 0
+    price_failures = 0
+    market_cap_failures = 0
+    below_min_market_cap = 0
+    error_samples = []
+
+    batch_prices, batch_rate_limit_errors = _batch_latest_prices(symbols)
+    rate_limit_errors += batch_rate_limit_errors
+
+    workers = max(1, min(int(max_workers), 6))
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {
+            executor.submit(
+                _investment_company_result,
+                sym,
+                safe(batch_prices.get(sym)),
+                min_market_cap,
+                directory_market_caps,
+            ): sym
+            for sym in symbols
+        }
+        for completed, future in enumerate(as_completed(futures), start=1):
+            result = future.result()
+            status = result.get("status")
+            if status == "row":
+                rows.append(result["row"])
+            elif status == "price_failure":
+                price_failures += 1
+            elif status == "market_cap_failure":
+                market_cap_failures += 1
+            elif status == "below_market_cap":
+                below_min_market_cap += 1
+            elif status == "error":
+                if result.get("rate_limited"):
+                    rate_limit_errors += 1
+                else:
+                    other_errors += 1
                 if len(error_samples) < 5:
-                    error_samples.append(
-                        f"{sym} @ {stage}: {exc.__class__.__name__}: {str(exc)[:220]}"
-                    )
-            continue
+                    error_samples.append(result.get("message", f"{result.get('symbol')}: unknown error"))
+            if progress_callback is not None:
+                progress_callback(completed, len(symbols), len(rows))
 
     if not rows:
         out = pd.DataFrame()
@@ -1239,6 +1304,88 @@ def fundamental_market_scan(
         na_position="last",
     ).drop(columns=["_action_rank"]).reset_index(drop=True)
     return out
+
+
+def prepared_scan_path(kind: str) -> Path:
+    return PREPARED_SCAN_DIR / f"{kind}.csv.gz"
+
+
+def prepared_scan_metadata(kind: str) -> dict:
+    manifest_path = PREPARED_SCAN_DIR / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return manifest.get("exchanges", {}).get(kind, {})
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def load_prepared_investment_scan(kind: str, modified_ns: int) -> pd.DataFrame:
+    path = prepared_scan_path(kind)
+    if not path.exists():
+        return pd.DataFrame()
+    return pd.read_csv(path, compression="gzip")
+
+
+def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
+    """Refresh only prices and price-dependent investment decisions."""
+    if frame.empty or "Ticker" not in frame.columns:
+        return frame, {"updated": 0, "missing": 0, "rate_limit_errors": 0}
+    out = frame.copy()
+    symbols = out["Ticker"].dropna().astype(str).tolist()
+    prices, rate_limit_errors = _batch_latest_prices(symbols)
+    updated = 0
+    missing = 0
+    for idx, row in out.iterrows():
+        symbol = str(row.get("Ticker") or "")
+        price = safe(prices.get(symbol))
+        if np.isnan(price) or price <= 0:
+            missing += 1
+            continue
+        base_value = safe(row.get("Base intrinsic value"))
+        bear_value = safe(row.get("Bear intrinsic value"))
+        required_mos = safe(row.get("Required margin of safety %"))
+        base_mos = np.nan if np.isnan(base_value) or base_value <= 0 else (1 - price / base_value) * 100
+        bear_mos = np.nan if np.isnan(bear_value) or bear_value <= 0 else (1 - price / bear_value) * 100
+        valuation_pass = (
+            not np.isnan(base_mos)
+            and not np.isnan(required_mos)
+            and base_mos >= required_mos
+            and not np.isnan(bear_mos)
+            and bear_mos >= 0
+        )
+        hard_gate_pass = str(row.get("Hard gates") or "").upper() == "PASS"
+        specialist = str(row.get("Sector model") or "Generic") != "Generic"
+        if not hard_gate_pass:
+            action = "PASS"
+            decision_reason = str(row.get("Hard-gate failures") or "one or more hard gates failed")
+        elif specialist:
+            action = "WAIT"
+            decision_reason = "specialist sector review required before a buy decision"
+            valuation_pass = False
+        elif valuation_pass:
+            action = "BUY CANDIDATE"
+            decision_reason = "quantitative hard gates and DCF margin-of-safety gate passed; complete manual review before buying"
+        else:
+            action = "WAIT"
+            decision_reason = "quality may qualify, but valuation / bear-case margin of safety is insufficient"
+        out.at[idx, "Price"] = price
+        out.at[idx, "Base margin of safety %"] = None if np.isnan(base_mos) else round(base_mos, 1)
+        out.at[idx, "Bear margin of safety %"] = None if np.isnan(bear_mos) else round(bear_mos, 1)
+        out.at[idx, "Valuation gate"] = "PASS" if valuation_pass else "WAIT"
+        out.at[idx, "Action"] = action
+        out.at[idx, "Decision reason"] = decision_reason
+        updated += 1
+    action_rank = {"BUY CANDIDATE": 0, "WAIT": 1, "PASS": 2}
+    out["_action_rank"] = out["Action"].map(action_rank).fillna(3)
+    out = out.sort_values(
+        ["_action_rank", "Quality score", "Base margin of safety %"],
+        ascending=[True, False, False],
+        na_position="last",
+    ).drop(columns=["_action_rank"]).reset_index(drop=True)
+    return out, {"updated": updated, "missing": missing, "rate_limit_errors": rate_limit_errors}
 
 
 @st.cache_data(ttl=900, show_spinner=False)
@@ -1575,6 +1722,16 @@ with tab4:
         "valuation is a separate hard gate. Technical setup does not affect the result."
     )
 
+    prepared_available = PREPARED_SCAN_DIR.exists() and any(PREPARED_SCAN_DIR.glob("*.csv.gz"))
+    scan_source = st.radio(
+        "Scan source",
+        ["Prepared nightly scan", "Live full analysis"],
+        index=0 if prepared_available else 1,
+        horizontal=True,
+        help="Prepared scans reuse the nightly financial analysis and refresh only current prices and valuation decisions.",
+    )
+    use_prepared_scan = scan_source == "Prepared nightly scan"
+
     f1, f2, f3, f4 = st.columns(4)
     with f1:
         fundamental_universe_label = st.selectbox(
@@ -1590,6 +1747,8 @@ with tab4:
             index=1,
             format_func=lambda x: f"{x:,}",
             key="fundamental_cap",
+            disabled=use_prepared_scan,
+            help="The nightly scan already analyses the full prepared universe.",
         )
     with f3:
         min_market_cap_bn = st.number_input(
@@ -1632,22 +1791,75 @@ with tab4:
     )
 
     if st.button("Run Investment Search", type="primary", use_container_width=True):
-        with st.spinner("Loading public stock universe…"):
-            fundamental_universe_kind = INVESTMENT_UNIVERSES[fundamental_universe_label]
-            fundamental_universe = get_universe(fundamental_universe_kind)
-            fundamental_market_caps = get_universe_market_caps(fundamental_universe_kind)
-
-        if not fundamental_universe:
-            st.error("The public universe list could not be loaded right now.")
+        fundamental_universe_kind = INVESTMENT_UNIVERSES[fundamental_universe_label]
+        if use_prepared_scan:
+            prepared_path = prepared_scan_path(fundamental_universe_kind)
+            if not prepared_path.exists():
+                fundamental_results = pd.DataFrame()
+                fundamental_results.attrs["scan_diagnostics"] = {
+                    "other_errors": 1,
+                    "error_samples": [f"No completed nightly scan is available yet for {fundamental_universe_label}."],
+                }
+            else:
+                with st.spinner("Loading the nightly analysis and refreshing current prices…"):
+                    fundamental_results = load_prepared_investment_scan(
+                        fundamental_universe_kind,
+                        prepared_path.stat().st_mtime_ns,
+                    )
+                    fundamental_results = fundamental_results[
+                        pd.to_numeric(fundamental_results["Market cap"], errors="coerce")
+                        >= min_market_cap_bn * 1_000_000_000
+                    ].copy()
+                    fundamental_results, refresh_diag = refresh_prepared_investment_prices(fundamental_results)
+                    fundamental_results.attrs["scan_diagnostics"] = {
+                        "requested": len(fundamental_results),
+                        "returned": len(fundamental_results),
+                        "price_failures": refresh_diag["missing"],
+                        "rate_limit_errors": refresh_diag["rate_limit_errors"],
+                        "market_cap_failures": 0,
+                        "below_min_market_cap": 0,
+                        "other_errors": 0,
+                        "error_samples": [],
+                    }
+                metadata = prepared_scan_metadata(fundamental_universe_kind)
+                if metadata.get("completed_at"):
+                    coverage = metadata.get("coverage_pct")
+                    coverage_text = f" Prepared coverage: {coverage:.1f}%." if isinstance(coverage, (int, float)) else ""
+                    st.caption(
+                        f"Prepared fundamentals batch updated {metadata['completed_at']}; "
+                        f"live prices refreshed for {refresh_diag['updated']:,} companies."
+                        f"{coverage_text}"
+                    )
         else:
-            with st.spinner("Running moat, resilience, cash-quality and DCF tests…"):
+            with st.spinner("Loading public stock universe…"):
+                fundamental_universe = get_universe(fundamental_universe_kind)
+                fundamental_market_caps = get_universe_market_caps(fundamental_universe_kind)
+            if not fundamental_universe:
+                fundamental_results = pd.DataFrame()
+                fundamental_results.attrs["scan_diagnostics"] = {
+                    "other_errors": 1,
+                    "error_samples": ["The public universe list could not be loaded right now."],
+                }
+            else:
+                progress_bar = st.progress(0.0, text=f"Analysed 0 of {min(fundamental_cap, len(fundamental_universe)):,}")
+
+                def update_investment_progress(completed, total, qualified):
+                    progress_bar.progress(
+                        completed / max(total, 1),
+                        text=f"Analysed {completed:,} of {total:,} · {qualified:,} returned",
+                    )
+
                 fundamental_results = fundamental_market_scan(
                     tuple(fundamental_universe),
                     fundamental_cap,
                     min_market_cap_bn * 1_000_000_000,
                     tuple(sorted(fundamental_market_caps.items())),
+                    progress_callback=update_investment_progress,
+                    max_workers=4,
                 )
+                progress_bar.empty()
 
+        if fundamental_results is not None:
             if fundamental_results.empty:
                 diag = fundamental_results.attrs.get("scan_diagnostics", {})
                 rate_limited = int(diag.get("rate_limit_errors", 0))

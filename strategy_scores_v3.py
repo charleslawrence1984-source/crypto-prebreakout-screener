@@ -159,7 +159,7 @@ def _score_band(value, bands):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = None) -> dict:
+def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = None, _ticker=None) -> dict:
     """10-years-to-forever investment research model.
 
     The automated layer is deliberately conservative. Yahoo commonly exposes
@@ -167,7 +167,9 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     governance and other qualitative items are surfaced as review items rather
     than invented from missing data.
     """
-    t = yf.Ticker(symbol)
+    # Streamlit ignores underscore-prefixed arguments when building its cache
+    # key, allowing callers to reuse one live Ticker object safely.
+    t = _ticker or yf.Ticker(symbol)
     fund = fund_snapshot or {}
     info = {} if fund_snapshot is not None else None
     if info is None:
