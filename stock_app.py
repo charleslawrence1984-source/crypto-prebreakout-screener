@@ -813,7 +813,7 @@ def yahoo_exchange_symbol(symbol: str, suffix: str) -> str:
 
 def tradingview_company_rows(market: str, exchange: str, include_indexes: bool = False) -> List[dict]:
     """Return all common-stock rows currently published for one exchange."""
-    columns = ["name", "description", "country", "currency"]
+    columns = ["name", "description", "country", "currency", "market_cap_basic"]
     if include_indexes:
         columns.append("indexes")
     payload = {
@@ -848,10 +848,11 @@ def tradingview_company_rows(market: str, exchange: str, include_indexes: bool =
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def london_exchange_universes() -> Dict[str, List[str]]:
-    """Split London common shares into the main market and LSE AIM."""
+def london_exchange_data() -> Dict[str, dict]:
+    """Split London shares and retain their exchange-supplied market caps."""
     rows = tradingview_company_rows("uk", "LSE", include_indexes=True)
     main, aim = [], []
+    market_caps = {"lse": {}, "lse_aim": {}}
     for row in rows:
         # Keep sterling London listings and discard the exchange's international
         # quote lines, which are duplicate listings from other home markets.
@@ -862,19 +863,44 @@ def london_exchange_universes() -> Dict[str, List[str]]:
             continue
         indexes = row.get("indexes") or []
         is_aim = any("AIM" in str(index.get("name", "")).upper() for index in indexes if isinstance(index, dict))
+        kind = "lse_aim" if is_aim else "lse"
         (aim if is_aim else main).append(symbol)
-    return {"lse": sorted(set(main)), "lse_aim": sorted(set(aim))}
+        market_cap = safe(row.get("market_cap_basic"))
+        if not np.isnan(market_cap) and market_cap > 0:
+            market_caps[kind][symbol] = market_cap
+    return {
+        "lse": {"symbols": sorted(set(main)), "market_caps": market_caps["lse"]},
+        "lse_aim": {"symbols": sorted(set(aim)), "market_caps": market_caps["lse_aim"]},
+    }
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def tradingview_exchange_listed(kind: str) -> List[str]:
+def tradingview_exchange_data(kind: str) -> dict:
     market, exchange, suffix = TRADINGVIEW_UNIVERSES[kind]
     rows = tradingview_company_rows(market, exchange)
-    return sorted(set(
-        symbol
-        for symbol in (yahoo_exchange_symbol(row.get("name", ""), suffix) for row in rows)
-        if symbol
-    ))
+    symbols = []
+    market_caps = {}
+    for row in rows:
+        symbol = yahoo_exchange_symbol(row.get("name", ""), suffix)
+        if not symbol:
+            continue
+        symbols.append(symbol)
+        market_cap = safe(row.get("market_cap_basic"))
+        if not np.isnan(market_cap) and market_cap > 0:
+            market_caps[symbol] = market_cap
+    return {"symbols": sorted(set(symbols)), "market_caps": market_caps}
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def us_exchange_market_caps(kind: str) -> Dict[str, float]:
+    rows = tradingview_company_rows("america", kind.upper())
+    market_caps = {}
+    for row in rows:
+        symbol = yahoo_exchange_symbol(row.get("name", ""), "")
+        market_cap = safe(row.get("market_cap_basic"))
+        if symbol and not np.isnan(market_cap) and market_cap > 0:
+            market_caps[symbol] = market_cap
+    return market_caps
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
@@ -882,10 +908,21 @@ def get_universe(kind: str) -> List[str]:
     if kind in {"nyse", "nasdaq"}:
         return us_exchange_listed(kind)
     if kind in {"lse", "lse_aim"}:
-        return london_exchange_universes()[kind]
+        return london_exchange_data()[kind]["symbols"]
     if kind in TRADINGVIEW_UNIVERSES:
-        return tradingview_exchange_listed(kind)
+        return tradingview_exchange_data(kind)["symbols"]
     return []
+
+
+def get_universe_market_caps(kind: str) -> Dict[str, float]:
+    """Return exchange-directory market caps keyed by Yahoo-formatted symbol."""
+    if kind in {"nyse", "nasdaq"}:
+        return us_exchange_market_caps(kind)
+    if kind in {"lse", "lse_aim"}:
+        return london_exchange_data()[kind]["market_caps"]
+    if kind in TRADINGVIEW_UNIVERSES:
+        return tradingview_exchange_data(kind)["market_caps"]
+    return {}
 
 
 def extract_ticker_frame(batch: pd.DataFrame, symbol: str) -> Optional[pd.DataFrame]:
@@ -1026,6 +1063,7 @@ def fundamental_market_scan(
     symbols_tuple: tuple[str, ...],
     max_symbols: int,
     min_market_cap: float,
+    directory_market_caps_tuple: tuple[tuple[str, float], ...] = (),
 ) -> pd.DataFrame:
     """Independent 10-years-to-forever investment scan.
 
@@ -1038,6 +1076,7 @@ def fundamental_market_scan(
         symbols = [universe_symbols[i] for i in idx]
     else:
         symbols = universe_symbols
+    directory_market_caps = dict(directory_market_caps_tuple)
     rows = []
     rate_limit_errors = 0
     other_errors = 0
@@ -1103,11 +1142,14 @@ def fundamental_market_scan(
             fund = valuation_fundamental_analysis(sym, price)
             market_cap = safe(fund.get("market_cap"))
             if np.isnan(market_cap) or market_cap <= 0:
+                market_cap = safe(directory_market_caps.get(sym))
+            if np.isnan(market_cap) or market_cap <= 0:
                 market_cap_failures += 1
                 continue
             if market_cap < min_market_cap:
                 below_min_market_cap += 1
                 continue
+            fund["market_cap"] = market_cap
 
             stage = "long-term analysis"
             lt = long_term_analysis(sym, price, fund)
@@ -1591,7 +1633,9 @@ with tab4:
 
     if st.button("Run Investment Search", type="primary", use_container_width=True):
         with st.spinner("Loading public stock universe…"):
-            fundamental_universe = get_universe(INVESTMENT_UNIVERSES[fundamental_universe_label])
+            fundamental_universe_kind = INVESTMENT_UNIVERSES[fundamental_universe_label]
+            fundamental_universe = get_universe(fundamental_universe_kind)
+            fundamental_market_caps = get_universe_market_caps(fundamental_universe_kind)
 
         if not fundamental_universe:
             st.error("The public universe list could not be loaded right now.")
@@ -1601,6 +1645,7 @@ with tab4:
                     tuple(fundamental_universe),
                     fundamental_cap,
                     min_market_cap_bn * 1_000_000_000,
+                    tuple(sorted(fundamental_market_caps.items())),
                 )
 
             if fundamental_results.empty:
