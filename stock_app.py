@@ -21,25 +21,17 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 PRIORITY_DEFAULT = "FLNC, SPCX"
 
 PUBLIC_UNIVERSES = {
-    "Canada Broad": "canada_broad",
-    "Europe Broad": "europe_broad",
-    "US + UK Broad": "us_uk",
-    "Global Broad (slower)": "global_broad",
-    "US All Listed (slower)": "us_all",
+    "New York Stock Exchange (NYSE), USA": "nyse",
+    "NASDAQ, USA": "nasdaq",
+    "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
+    "London Stock Exchange (LSE), UK": "lse_core",
 }
 
-# Investment Search also supports exchange-led discovery. Keep this separate
-# from PUBLIC_UNIVERSES so Investment and Trade choices can be managed independently.
 INVESTMENT_UNIVERSES = {
     "New York Stock Exchange (NYSE), USA": "nyse",
     "NASDAQ, USA": "nasdaq",
     "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
     "London Stock Exchange (LSE), UK": "lse_core",
-    "Canada Broad": "canada_broad",
-    "Europe Broad": "europe_broad",
-    "US + UK Broad": "us_uk",
-    "Global Broad (slower)": "global_broad",
-    "US All Listed (slower)": "us_all",
 }
 
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
