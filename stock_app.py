@@ -25,6 +25,8 @@ BUY_CANDIDATE_SHORTLIST_DEFAULT = (
     "MGNS.L, G, MONY.L, CA.PA, BTO.TO"
 )
 
+NEW_SHORTLIST_ADDITIONS = {"MGNS.L", "G", "MONY.L", "CA.PA", "BTO.TO"}
+
 PUBLIC_UNIVERSES = {
     "Global Core (recommended)": "global_core",
     "US Large + Mid": "us_core",
@@ -1540,11 +1542,23 @@ with tab4:
                 if unavailable:
                     st.warning("No usable data returned for: " + ", ".join(unavailable))
 
-                styled_shortlist = shortlist_results.style.map(
+                comparison_results = shortlist_results.copy()
+                comparison_results.insert(0, "Rank", range(1, len(comparison_results) + 1))
+                comparison_results.insert(
+                    3,
+                    "Shortlist group",
+                    comparison_results["Ticker"].map(
+                        lambda ticker: "New addition" if ticker in NEW_SHORTLIST_ADDITIONS else "Original shortlist"
+                    ),
+                )
+                styled_shortlist = comparison_results.style.map(
                     action_cell_style,
                     subset=["Action"],
                 )
-                st.caption("Action status: 🟢 BUY CANDIDATE · 🟠 WAIT · 🔴 PASS")
+                st.caption(
+                    "Overall rank compares all 14 together: action status first, then quality score, "
+                    "then base margin of safety. 🟢 BUY CANDIDATE · 🟠 WAIT · 🔴 PASS"
+                )
                 st.dataframe(
                     styled_shortlist,
                     hide_index=True,
