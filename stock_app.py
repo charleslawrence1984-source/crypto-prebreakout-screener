@@ -50,6 +50,18 @@ def safe(v, default=np.nan):
         return default
 
 
+def action_cell_style(value) -> str:
+    """Return the RAG colour for a screener action without changing its value."""
+    action = str(value).strip().upper()
+    if action in {"BUY", "BUY CANDIDATE"}:
+        return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
+    if action in {"WAIT", "WATCH", "HOLD"}:
+        return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
+    if action in {"PASS", "AVOID", "SELL"}:
+        return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+    return ""
+
+
 def pct(v):
     x = safe(v)
     return None if np.isnan(x) else x * 100
@@ -1426,8 +1438,15 @@ with tab4:
                 if filtered_fundamentals.empty:
                     st.info("No company currently meets your selected minimum quality score.")
                 else:
+                    styled_fundamentals = filtered_fundamentals.style.map(
+                        action_cell_style,
+                        subset=["Action"],
+                    )
+                    st.caption(
+                        "Action status: 🟢 BUY CANDIDATE · 🟠 WAIT · 🔴 PASS"
+                    )
                     st.dataframe(
-                        filtered_fundamentals,
+                        styled_fundamentals,
                         hide_index=True,
                         use_container_width=True,
                         column_config={
