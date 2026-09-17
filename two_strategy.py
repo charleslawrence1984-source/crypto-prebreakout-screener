@@ -104,7 +104,6 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
 
     quality_ok = (
         hard_gate_pass
-        and structural_moat == "SUPPORTED"
         and not sector_review_required
         and metadata_complete
     )
@@ -116,7 +115,7 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
     if not metadata_complete:
         reasons.append("company metadata incomplete; sector/industry context must be confirmed")
     if hard_gate_pass and structural_moat != "SUPPORTED":
-        reasons.append("structural moat mechanism still needs verification")
+        reasons.append("structural moat mechanism remains a separate manual check")
     if sector_review_required:
         reasons.append("specialist sector review required")
     if hard_gate_pass and not valuation_gate_pass:
@@ -152,7 +151,7 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
         if not hard_gate_pass:
             action = "PASS"
         elif qualifies:
-            action = "BUY"
+            action = "BUY CANDIDATE"
         else:
             action = "WAIT"
 

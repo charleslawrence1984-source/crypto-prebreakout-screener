@@ -331,7 +331,9 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
 
     # --- Moat evidence ---
     moat_mechanisms = _detect_moat_mechanisms(summary)
-    structural_moat_status = "CANDIDATE" if moat_mechanisms else "UNVERIFIED"
+    # Description matches are displayed for manual review only. They do not
+    # add points, change confidence, or satisfy an automated investment gate.
+    structural_moat_status = "CLUES FOUND" if moat_mechanisms else "UNVERIFIED"
 
     moat_score = 0.0
     if not np.isnan(roic_median):
@@ -346,9 +348,6 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         moat_score += 10 if gross_margin_cv <= 0.08 else 7 if gross_margin_cv <= 0.18 else 3
     elif not np.isnan(gross_margin):
         moat_score += 5
-    if moat_mechanisms:
-        # Description keywords are only supporting clues. They must never prove a moat.
-        moat_score += min(6, 2 + 1.5 * (len(moat_mechanisms) - 1))
     if not np.isnan(roic_trend):
         if roic_trend >= -0.02:
             moat_score += 6
@@ -361,9 +360,9 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         len(adjusted_fcf) if adjusted_fcf is not None else 0,
         len(roic_history),
     )
-    if evidence_years >= 8 and moat_score >= 78 and structural_moat_status == "SUPPORTED":
+    if evidence_years >= 8 and moat_score >= 78:
         moat_confidence = "HIGH"
-    elif moat_score >= 70 and structural_moat_status in ("SUPPORTED", "CANDIDATE"):
+    elif moat_score >= 70:
         moat_confidence = "MEDIUM"
     else:
         moat_confidence = "LOW"
@@ -465,8 +464,6 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
 
     if not specialist_sector and not quantitative_moat_pass:
         hard_gate_failures.append("quantitative moat evidence is not strong enough")
-    if structural_moat_status != "SUPPORTED":
-        hard_gate_warnings.append("structural moat mechanism needs manual verification; description matches are only clues")
 
     if not specialist_sector:
         if not np.isnan(net_debt_to_fcf) and net_debt_to_fcf > 4:
@@ -501,6 +498,7 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
 
     # Items Yahoo cannot safely prove either way.
     qualitative_review_items = [
+        "structural moat mechanism and durability",
         "technology disruption risk",
         "key-person dependency",
         "customer concentration",
@@ -593,8 +591,8 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         preliminary_action = "PASS"
     elif sector_review_required:
         preliminary_action = "WAIT"
-    elif valuation_gate_pass and structural_moat_status == "SUPPORTED":
-        preliminary_action = "BUY"
+    elif valuation_gate_pass:
+        preliminary_action = "BUY CANDIDATE"
     else:
         preliminary_action = "WAIT"
 
@@ -602,12 +600,10 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         action_reason = "; ".join(hard_gate_failures)
     elif sector_review_required:
         action_reason = "specialist sector review required before a buy decision"
-    elif structural_moat_status != "SUPPORTED":
-        action_reason = "quality may qualify, but structural moat mechanism still needs verification"
     elif not valuation_gate_pass:
         action_reason = "quality may qualify, but valuation / bear-case margin of safety is insufficient"
     else:
-        action_reason = "hard gates passed and DCF margin-of-safety requirement met"
+        action_reason = "quantitative hard gates and DCF margin-of-safety gate passed; complete manual review before buying"
 
     if sector_review_required:
         base_value = np.nan
@@ -667,7 +663,7 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         "normalized_fcf_per_share": None if np.isnan(normalized_fcf_per_share) else round(normalized_fcf_per_share, 4),
         "evidence_score": min(10, evidence_years + (2 if not np.isnan(roic) else 0) + (1 if not np.isnan(dilution_cagr) else 0)),
         "evidence_years": evidence_years,
-        "elite_gate_pass": bool(hard_gate_pass and quality_score >= 85 and structural_moat_status == "SUPPORTED"),
+        "elite_gate_pass": bool(hard_gate_pass and quality_score >= 85 and not sector_review_required),
         "score_cap_reason": score_cap_reason,
         "revenue_cagr_pct": None if np.isnan(revenue_cagr) else round(revenue_cagr * 100, 1),
         "earnings_cagr_pct": None if np.isnan(earnings_cagr) else round(earnings_cagr * 100, 1),

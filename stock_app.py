@@ -1030,9 +1030,9 @@ def fundamental_market_scan(
                 "Price": price,
                 "Quality score": lt.get("investment_quality_score", lt.get("long_term_score", np.nan)),
                 "Moat score": lt.get("moat_score", np.nan),
-                "Moat confidence": lt.get("moat_confidence", "LOW"),
-                "Structural moat": lt.get("structural_moat_status", "UNVERIFIED"),
-                "Moat clues": lt.get("moat_mechanisms", "Needs manual verification"),
+                "Quant moat confidence": lt.get("moat_confidence", "LOW"),
+                "Structural moat review": lt.get("structural_moat_status", "UNVERIFIED"),
+                "Description moat clues": lt.get("moat_mechanisms", "Needs manual verification"),
                 "Hard gates": "PASS" if lt.get("hard_gate_pass") else "FAIL",
                 "Hard-gate failures": lt.get("hard_gate_failures", ""),
                 "Base intrinsic value": lt.get("dcf_base"),
@@ -1059,7 +1059,7 @@ def fundamental_market_scan(
                 "Industry": fund.get("industry") or "—",
                 "Market cap": market_cap,
                 "Review flags": lt.get("hard_gate_warnings", ""),
-                "Manual checks": lt.get("qualitative_review_items", ""),
+                "Manual review required": lt.get("qualitative_review_items", ""),
                 "Decision reason": lt.get("action_reason", ""),
             })
         except Exception as exc:
@@ -1093,7 +1093,7 @@ def fundamental_market_scan(
         "price_failures": price_failures,
         "error_samples": error_samples,
     }
-    action_rank = {"BUY": 0, "WAIT": 1, "PASS": 2}
+    action_rank = {"BUY CANDIDATE": 0, "WAIT": 1, "PASS": 2}
     out["_action_rank"] = out["Action"].map(action_rank).fillna(3)
     out = out.sort_values(
         ["_action_rank", "Quality score", "Base margin of safety %"],
@@ -1353,14 +1353,15 @@ with tab4:
         )
 
     st.caption(
-        "BUY requires the measurable hard gates plus the DCF margin-of-safety gate. "
+        "BUY CANDIDATE means the measurable hard gates and DCF margin-of-safety gate passed; "
+        "it still requires the listed manual review before buying. "
         "WAIT means the business may qualify but price, evidence or specialist review is not good enough yet. "
         "PASS means a measurable non-negotiable failed."
     )
-    st.warning(
-        "The broad scan cannot safely prove every qualitative issue from market data alone. "
-        "Technology disruption, key-person risk, customer/supplier/geographic concentration, governance, "
-        "regulatory dependence and market-share trends remain explicit manual checks rather than fabricated scores."
+    st.info(
+        "The numerical Quality and Moat scores now use measurable financial evidence only. "
+        "Structural moat, technology disruption, key-person risk, concentration, governance, regulatory dependence "
+        "and market-share trends are shown separately under Manual review required and do not change the score."
     )
 
     if st.button("Run Investment Search", type="primary", use_container_width=True):
@@ -1402,12 +1403,12 @@ with tab4:
                     fundamental_results["Quality score"] >= min_quality_score
                 ].copy()
 
-                buys = int((filtered_fundamentals["Action"] == "BUY").sum()) if not filtered_fundamentals.empty else 0
+                buy_candidates = int((filtered_fundamentals["Action"] == "BUY CANDIDATE").sum()) if not filtered_fundamentals.empty else 0
                 waits = int((filtered_fundamentals["Action"] == "WAIT").sum()) if not filtered_fundamentals.empty else 0
                 passes = int((filtered_fundamentals["Action"] == "PASS").sum()) if not filtered_fundamentals.empty else 0
 
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("BUY", buys)
+                c1.metric("BUY CANDIDATE", buy_candidates)
                 c2.metric("WAIT", waits)
                 c3.metric("PASS", passes)
                 c4.metric("Analysed", len(fundamental_results))
