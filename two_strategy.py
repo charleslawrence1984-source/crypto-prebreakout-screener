@@ -93,6 +93,7 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
     structural_moat = str(res.get("structural_moat_status") or "UNVERIFIED").upper()
     valuation_gate_pass = bool(res.get("valuation_gate_pass"))
     sector_review_required = bool(res.get("sector_review_required"))
+    metadata_complete = bool(res.get("metadata_complete", True))
 
     base_value = _f(res.get("dcf_base"))
     required_mos = _f(res.get("required_margin_of_safety_pct"))
@@ -101,12 +102,19 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
     failures = str(res.get("hard_gate_failures") or "").strip()
     warnings = str(res.get("hard_gate_warnings") or "").strip()
 
-    quality_ok = hard_gate_pass and structural_moat == "SUPPORTED" and not sector_review_required
+    quality_ok = (
+        hard_gate_pass
+        and structural_moat == "SUPPORTED"
+        and not sector_review_required
+        and metadata_complete
+    )
     qualifies = quality_ok and valuation_gate_pass
 
     reasons = []
     if not hard_gate_pass:
         reasons.append(failures or "one or more non-negotiable investment gates failed")
+    if not metadata_complete:
+        reasons.append("company metadata incomplete; sector/industry context must be confirmed")
     if hard_gate_pass and structural_moat != "SUPPORTED":
         reasons.append("structural moat mechanism still needs verification")
     if sector_review_required:
@@ -126,6 +134,8 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
 
     if owned:
         if not hard_gate_pass:
+            action = "REASSESS"
+        elif not metadata_complete:
             action = "REASSESS"
         elif structural_moat != "SUPPORTED" or sector_review_required:
             action = "REASSESS"
@@ -156,6 +166,7 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
         "quality_ok": quality_ok,
         "entry_ok": valuation_gate_pass,
         "valuation_ok": valuation_gate_pass,
+        "metadata_complete": metadata_complete,
         "reasons": reasons,
         "quality_score": quality,
         "base_intrinsic_value": base_value if base_value > 0 else None,
