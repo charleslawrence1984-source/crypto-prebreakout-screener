@@ -31,6 +31,23 @@ PUBLIC_UNIVERSES = {
     "US All Listed (slower)": "us_all",
 }
 
+# Investment Search also supports exchange-led discovery. Keep this separate
+# from PUBLIC_UNIVERSES so the Trade Search choices are not changed.
+INVESTMENT_UNIVERSES = {
+    "Global Core (recommended)": "global_core",
+    "New York Stock Exchange (NYSE), USA": "nyse",
+    "NASDAQ, USA": "nasdaq",
+    "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
+    "London Stock Exchange (LSE), UK": "lse_core",
+    "US Large + Mid": "us_core",
+    "UK FTSE 350": "uk_350",
+    "Canada Broad": "canada_broad",
+    "Europe Broad": "europe_broad",
+    "US + UK Broad": "us_uk",
+    "Global Broad (slower)": "global_broad",
+    "US All Listed (slower)": "us_all",
+}
+
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
 
 
@@ -728,6 +745,108 @@ def us_all_listed() -> List[str]:
     return sorted(set(s for s in all_syms if s and "$" not in s and len(s) <= 12))
 
 
+def _filter_us_company_symbols(df: pd.DataFrame, symbol_col: str) -> List[str]:
+    """Return operating-company symbols and remove funds/special securities."""
+    if symbol_col not in df.columns:
+        return []
+    if "ETF" in df.columns:
+        df = df[df["ETF"].fillna("N").eq("N")]
+    if "Test Issue" in df.columns:
+        df = df[df["Test Issue"].fillna("N").eq("N")]
+    if "Security Name" in df.columns:
+        bad = df["Security Name"].fillna("").str.contains(
+            "Warrant|Right|Units|Preferred|Depositary Shares|Notes due|Bond|Debenture|ETF|Fund",
+            case=False,
+            regex=True,
+        )
+        df = df[~bad]
+    vals = df[symbol_col].dropna().astype(str)
+    vals = vals[~vals.str.contains("File Creation Time", case=False, regex=False)]
+    return sorted(set(
+        symbol for symbol in (normalise_us_symbol(x) for x in vals)
+        if symbol and "$" not in symbol and len(symbol) <= 12
+    ))
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def us_exchange_listed(exchange: str) -> List[str]:
+    """Load NASDAQ or NYSE company symbols from Nasdaq Trader's daily files."""
+    if exchange == "nasdaq":
+        url = "https://www.nasdaqtrader.com/dynamic/SymDir/nasdaqlisted.txt"
+        symbol_col = "Symbol"
+    elif exchange == "nyse":
+        url = "https://www.nasdaqtrader.com/dynamic/SymDir/otherlisted.txt"
+        symbol_col = "ACT Symbol"
+    else:
+        return []
+
+    r = requests.get(url, headers=HEADERS, timeout=30)
+    r.raise_for_status()
+    df = pd.read_csv(io.StringIO(r.text), sep="|")
+    if exchange == "nyse" and "Exchange" in df.columns:
+        # Nasdaq Trader code N is the New York Stock Exchange. Exclude NYSE
+        # American, NYSE Arca and regional exchanges from this universe.
+        df = df[df["Exchange"].fillna("").eq("N")]
+    return _filter_us_company_symbols(df, symbol_col)
+
+
+def safe_wikipedia_symbols(
+    url: str,
+    ticker_names: tuple[str, ...],
+    suffix: str = "",
+    min_count: int = 10,
+    replace_dot: bool = True,
+) -> List[str]:
+    """Allow a broad exchange universe to load if one component page changes."""
+    try:
+        return wikipedia_symbols(url, ticker_names, suffix, min_count, replace_dot)
+    except Exception:
+        return []
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def lse_core_listed() -> List[str]:
+    """Broad investable LSE company set built from the main FTSE equity indices."""
+    sources = [
+        "https://en.wikipedia.org/wiki/FTSE_100_Index",
+        "https://en.wikipedia.org/wiki/FTSE_250_Index",
+        "https://en.wikipedia.org/wiki/FTSE_SmallCap_Index",
+        "https://en.wikipedia.org/wiki/FTSE_AIM_UK_50_Index",
+    ]
+    groups = [
+        safe_wikipedia_symbols(url, ("Ticker", "EPIC", "Symbol"), ".L")
+        for url in sources
+    ]
+    return sorted(set(symbol for group in groups for symbol in group))
+
+
+@st.cache_data(ttl=86400, show_spinner=False)
+def euronext_core_listed() -> List[str]:
+    """Broad company set across Euronext's seven requested equity venues."""
+    sources = [
+        ("https://en.wikipedia.org/wiki/CAC_40", ".PA"),
+        ("https://en.wikipedia.org/wiki/AEX_index", ".AS"),
+        ("https://en.wikipedia.org/wiki/AMX_index", ".AS"),
+        ("https://en.wikipedia.org/wiki/AScX_index", ".AS"),
+        ("https://en.wikipedia.org/wiki/BEL_20", ".BR"),
+        ("https://en.wikipedia.org/wiki/PSI-20", ".LS"),
+        ("https://en.wikipedia.org/wiki/FTSE_MIB", ".MI"),
+        ("https://en.wikipedia.org/wiki/OBX_Index", ".OL"),
+        ("https://en.wikipedia.org/wiki/ISEQ_20", ".IR"),
+    ]
+    groups = [
+        safe_wikipedia_symbols(
+            url,
+            ("Ticker", "Ticker symbol", "Symbol", "EPIC"),
+            suffix,
+            min_count=5,
+            replace_dot=False,
+        )
+        for url, suffix in sources
+    ]
+    return sorted(set(symbol for group in groups for symbol in group))
+
+
 def interleave_universes(*groups: List[str]) -> List[str]:
     clean = [list(dict.fromkeys(g)) for g in groups if g]
     out = []
@@ -745,6 +864,13 @@ def interleave_universes(*groups: List[str]) -> List[str]:
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_universe(kind: str) -> List[str]:
+    if kind in {"nyse", "nasdaq"}:
+        return us_exchange_listed(kind)
+    if kind == "lse_core":
+        return lse_core_listed()
+    if kind == "euronext_core":
+        return euronext_core_listed()
+
     sp500 = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
         ("Symbol",),
@@ -1477,7 +1603,7 @@ with tab4:
     with f1:
         fundamental_universe_label = st.selectbox(
             "Investment universe",
-            list(PUBLIC_UNIVERSES.keys()),
+            list(INVESTMENT_UNIVERSES.keys()),
             index=0,
             key="fundamental_universe",
         )
@@ -1523,10 +1649,15 @@ with tab4:
         "Larger 500–1,000 company scans remain evenly distributed across the full universe, "
         "but take longer and may return fewer results if Yahoo temporarily rate-limits requests."
     )
+    st.caption(
+        "Exchange choices focus on operating companies rather than ETFs, warrants and other specialist securities. "
+        "The LSE and Euronext choices use a broad, index-covered company core so that ticker formats remain reliable "
+        "for Yahoo's financial and valuation data."
+    )
 
     if st.button("Run Investment Search", type="primary", use_container_width=True):
         with st.spinner("Loading public stock universe…"):
-            fundamental_universe = get_universe(PUBLIC_UNIVERSES[fundamental_universe_label])
+            fundamental_universe = get_universe(INVESTMENT_UNIVERSES[fundamental_universe_label])
 
         if not fundamental_universe:
             st.error("The public universe list could not be loaded right now.")
