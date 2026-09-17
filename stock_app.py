@@ -91,7 +91,7 @@ def allocation_cell_style(value) -> str:
     if np.isnan(weight):
         return ""
     if weight > 25:
-        return "background-color: #ffd6d6; color: #5c171c; font-weight: 700"
+        return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
     if weight > 15:
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
     return "background-color: #d8f3dc; color: #16351c; font-weight: 600"
