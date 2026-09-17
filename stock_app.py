@@ -20,29 +20,27 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 
-PUBLIC_UNIVERSES = {
-    "New York Stock Exchange (NYSE), USA": "nyse",
-    "NASDAQ, USA": "nasdaq",
-    "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
-    "London Stock Exchange (LSE), UK": "lse_core",
-    "Deutsche Börse Xetra, Germany": "xetra_core",
-    "Toronto Stock Exchange (TSX), Canada": "tsx_core",
-    "Tokyo Stock Exchange (TSE), Japan": "tokyo_core",
-    "SIX Swiss Exchange, Switzerland": "six_core",
-    "Bolsa de Madrid, Spain": "madrid_core",
+EXCHANGE_UNIVERSES = {
+    "NASDAQ": "nasdaq",
+    "NYSE": "nyse",
+    "OTC Markets": "otc",
+    "London Stock Exchange": "lse",
+    "Deutsche Börse Xetra": "xetra",
+    "Gettex": "gettex",
+    "LSE AIM": "lse_aim",
+    "Toronto Stock Exchange": "tsx",
+    "Euronext Paris": "euronext_paris",
+    "SIX Swiss Exchange": "six",
+    "Bolsa de Madrid": "madrid",
+    "Euronext Brussels": "euronext_brussels",
+    "Wiener Börse": "vienna",
+    "Euronext Amsterdam": "euronext_amsterdam",
+    "Euronext Lisbon": "euronext_lisbon",
 }
 
-INVESTMENT_UNIVERSES = {
-    "New York Stock Exchange (NYSE), USA": "nyse",
-    "NASDAQ, USA": "nasdaq",
-    "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
-    "London Stock Exchange (LSE), UK": "lse_core",
-    "Deutsche Börse Xetra, Germany": "xetra_core",
-    "Toronto Stock Exchange (TSX), Canada": "tsx_core",
-    "Tokyo Stock Exchange (TSE), Japan": "tokyo_core",
-    "SIX Swiss Exchange, Switzerland": "six_core",
-    "Bolsa de Madrid, Spain": "madrid_core",
-}
+# Both searches intentionally expose the same exact exchange list and order.
+PUBLIC_UNIVERSES = EXCHANGE_UNIVERSES.copy()
+INVESTMENT_UNIVERSES = EXCHANGE_UNIVERSES.copy()
 
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
 
@@ -786,232 +784,108 @@ def us_exchange_listed(exchange: str) -> List[str]:
     return _filter_us_company_symbols(df, symbol_col)
 
 
-def safe_wikipedia_symbols(
-    url: str,
-    ticker_names: tuple[str, ...],
-    suffix: str = "",
-    min_count: int = 10,
-    replace_dot: bool = True,
-) -> List[str]:
-    """Allow a broad exchange universe to load if one component page changes."""
-    try:
-        return wikipedia_symbols(url, ticker_names, suffix, min_count, replace_dot)
-    except Exception:
-        return []
+TRADINGVIEW_UNIVERSES = {
+    "otc": ("america", "OTC", ""),
+    "xetra": ("germany", "XETR", ".DE"),
+    # Gettex is the electronic market of Börse München; Yahoo uses .MU.
+    "gettex": ("germany", "GETTEX", ".MU"),
+    "tsx": ("canada", "TSX", ".TO"),
+    "euronext_paris": ("france", "EURONEXT", ".PA"),
+    "six": ("switzerland", "SIX", ".SW"),
+    "madrid": ("spain", "BME", ".MC"),
+    "euronext_brussels": ("belgium", "EURONEXT", ".BR"),
+    "vienna": ("austria", "VIE", ".VI"),
+    "euronext_amsterdam": ("netherlands", "EURONEXT", ".AS"),
+    "euronext_lisbon": ("portugal", "EURONEXT", ".LS"),
+}
+
+
+def yahoo_exchange_symbol(symbol: str, suffix: str) -> str:
+    """Convert an exchange ticker into the format accepted by Yahoo Finance."""
+    symbol = str(symbol).strip().upper()
+    if not symbol or any(ch in symbol for ch in ("/", " ", ":")):
+        return ""
+    if not suffix:
+        return normalise_us_symbol(symbol)
+    symbol = symbol.replace(".", "-")
+    return symbol if symbol.endswith(suffix) else f"{symbol}{suffix}"
+
+
+def tradingview_company_rows(market: str, exchange: str, include_indexes: bool = False) -> List[dict]:
+    """Return all common-stock rows currently published for one exchange."""
+    columns = ["name", "description", "country", "currency"]
+    if include_indexes:
+        columns.append("indexes")
+    payload = {
+        "filter": [
+            {"left": "exchange", "operation": "equal", "right": exchange},
+            {"left": "type", "operation": "equal", "right": "stock"},
+            {"left": "subtype", "operation": "equal", "right": "common"},
+        ],
+        "options": {"lang": "en"},
+        "markets": [market],
+        "symbols": {"query": {"types": []}, "tickers": []},
+        "columns": columns,
+        "sort": {"sortBy": "name", "sortOrder": "asc"},
+        "range": [0, 50000],
+    }
+    response = requests.post(
+        f"https://scanner.tradingview.com/{market}/scan",
+        json=payload,
+        headers=HEADERS,
+        timeout=45,
+    )
+    response.raise_for_status()
+    rows = []
+    for item in response.json().get("data", []):
+        values = item.get("d", [])
+        if not values:
+            continue
+        row = dict(zip(columns, values))
+        row["provider_symbol"] = item.get("s", "")
+        rows.append(row)
+    return rows
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def lse_core_listed() -> List[str]:
-    """Broad investable LSE company set built from the main FTSE equity indices."""
-    sources = [
-        "https://en.wikipedia.org/wiki/FTSE_100_Index",
-        "https://en.wikipedia.org/wiki/FTSE_250_Index",
-        "https://en.wikipedia.org/wiki/FTSE_SmallCap_Index",
-        "https://en.wikipedia.org/wiki/FTSE_AIM_UK_50_Index",
-    ]
-    groups = [
-        safe_wikipedia_symbols(url, ("Ticker", "EPIC", "Symbol"), ".L")
-        for url in sources
-    ]
-    return sorted(set(symbol for group in groups for symbol in group))
+def london_exchange_universes() -> Dict[str, List[str]]:
+    """Split London common shares into the main market and LSE AIM."""
+    rows = tradingview_company_rows("uk", "LSE", include_indexes=True)
+    main, aim = [], []
+    for row in rows:
+        # Keep sterling London listings and discard the exchange's international
+        # quote lines, which are duplicate listings from other home markets.
+        if row.get("currency") not in {"GBX", "GBP"}:
+            continue
+        symbol = yahoo_exchange_symbol(row.get("name", ""), ".L")
+        if not symbol:
+            continue
+        indexes = row.get("indexes") or []
+        is_aim = any("AIM" in str(index.get("name", "")).upper() for index in indexes if isinstance(index, dict))
+        (aim if is_aim else main).append(symbol)
+    return {"lse": sorted(set(main)), "lse_aim": sorted(set(aim))}
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
-def euronext_core_listed() -> List[str]:
-    """Broad company set across Euronext's seven requested equity venues."""
-    sources = [
-        ("https://en.wikipedia.org/wiki/CAC_40", ".PA"),
-        ("https://en.wikipedia.org/wiki/AEX_index", ".AS"),
-        ("https://en.wikipedia.org/wiki/AMX_index", ".AS"),
-        ("https://en.wikipedia.org/wiki/AScX_index", ".AS"),
-        ("https://en.wikipedia.org/wiki/BEL_20", ".BR"),
-        ("https://en.wikipedia.org/wiki/PSI-20", ".LS"),
-        ("https://en.wikipedia.org/wiki/FTSE_MIB", ".MI"),
-        ("https://en.wikipedia.org/wiki/OBX_Index", ".OL"),
-        ("https://en.wikipedia.org/wiki/ISEQ_20", ".IR"),
-    ]
-    groups = [
-        safe_wikipedia_symbols(
-            url,
-            ("Ticker", "Ticker symbol", "Symbol", "EPIC"),
-            suffix,
-            min_count=5,
-            replace_dot=False,
-        )
-        for url, suffix in sources
-    ]
-    return sorted(set(symbol for group in groups for symbol in group))
-
-
-def interleave_universes(*groups: List[str]) -> List[str]:
-    clean = [list(dict.fromkeys(g)) for g in groups if g]
-    out = []
-    seen = set()
-    max_len = max((len(g) for g in clean), default=0)
-    for i in range(max_len):
-        for group in clean:
-            if i < len(group):
-                sym = group[i]
-                if sym not in seen:
-                    seen.add(sym)
-                    out.append(sym)
-    return out
+def tradingview_exchange_listed(kind: str) -> List[str]:
+    market, exchange, suffix = TRADINGVIEW_UNIVERSES[kind]
+    rows = tradingview_company_rows(market, exchange)
+    return sorted(set(
+        symbol
+        for symbol in (yahoo_exchange_symbol(row.get("name", ""), suffix) for row in rows)
+        if symbol
+    ))
 
 
 @st.cache_data(ttl=86400, show_spinner=False)
 def get_universe(kind: str) -> List[str]:
     if kind in {"nyse", "nasdaq"}:
         return us_exchange_listed(kind)
-    if kind == "lse_core":
-        return lse_core_listed()
-    if kind == "euronext_core":
-        return euronext_core_listed()
-    if kind == "xetra_core":
-        groups = [
-            safe_wikipedia_symbols(
-                "https://en.wikipedia.org/wiki/DAX",
-                ("Ticker", "Ticker symbol", "Symbol"),
-                ".DE",
-            ),
-            safe_wikipedia_symbols(
-                "https://en.wikipedia.org/wiki/MDAX",
-                ("Ticker", "Ticker symbol", "Symbol"),
-                ".DE",
-            ),
-            safe_wikipedia_symbols(
-                "https://en.wikipedia.org/wiki/SDAX",
-                ("Ticker", "Ticker symbol", "Symbol"),
-                ".DE",
-            ),
-            safe_wikipedia_symbols(
-                "https://en.wikipedia.org/wiki/TecDAX",
-                ("Ticker", "Ticker symbol", "Symbol"),
-                ".DE",
-            ),
-        ]
-        return sorted(set(symbol for group in groups for symbol in group))
-    if kind == "tsx_core":
-        return safe_wikipedia_symbols(
-            "https://en.wikipedia.org/wiki/S%26P/TSX_Composite_Index",
-            ("Ticker", "Ticker symbol", "Symbol"),
-            ".TO",
-            min_count=50,
-        )
-    if kind == "tokyo_core":
-        return safe_wikipedia_symbols(
-            "https://de.wikipedia.org/wiki/Nikkei_225",
-            ("Code", "Ticker", "Symbol"),
-            ".T",
-            min_count=100,
-        )
-    if kind == "six_core":
-        return safe_wikipedia_symbols(
-            "https://en.wikipedia.org/wiki/Swiss_Market_Index",
-            ("Ticker", "Ticker symbol", "Symbol"),
-            ".SW",
-            min_count=15,
-            replace_dot=False,
-        )
-    if kind == "madrid_core":
-        return safe_wikipedia_symbols(
-            "https://en.wikipedia.org/wiki/IBEX_35",
-            ("Ticker", "Ticker symbol", "Symbol"),
-            ".MC",
-            min_count=20,
-            replace_dot=False,
-        )
-
-    sp500 = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
-        ("Symbol",),
-    )
-    sp400 = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/List_of_S%26P_400_companies",
-        ("Ticker symbol", "Symbol", "Ticker"),
-    )
-    nasdaq100 = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/Nasdaq-100",
-        ("Ticker", "Ticker symbol", "Symbol"),
-    )
-    ftse100 = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/FTSE_100_Index",
-        ("Ticker", "EPIC", "Symbol"),
-        ".L",
-    )
-    ftse250 = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/FTSE_250_Index",
-        ("Ticker", "EPIC", "Symbol"),
-        ".L",
-    )
-
-    tsx = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/S%26P/TSX_Composite_Index",
-        ("Ticker", "Symbol"),
-        ".TO",
-    )
-    dax = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/DAX",
-        ("Ticker", "Ticker symbol", "Symbol"),
-        ".DE",
-    )
-    cac40 = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/CAC_40",
-        ("Ticker", "Symbol"),
-        ".PA",
-        replace_dot=False,
-    )
-    aex = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/AEX_index",
-        ("Ticker", "Symbol"),
-        ".AS",
-        replace_dot=False,
-    )
-    ibex = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/IBEX_35",
-        ("Ticker", "Symbol"),
-        ".MC",
-        replace_dot=False,
-    )
-    ftse_mib = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/FTSE_MIB",
-        ("Ticker", "Symbol"),
-        ".MI",
-        replace_dot=False,
-    )
-    asx200 = wikipedia_symbols(
-        "https://en.wikipedia.org/wiki/S%26P/ASX_200",
-        ("Code", "Ticker", "Symbol"),
-        ".AX",
-    )
-    nikkei225 = wikipedia_symbols(
-        "https://de.wikipedia.org/wiki/Nikkei_225",
-        ("Code", "Ticker", "Symbol"),
-        ".T",
-    )
-
-    us_core = sorted(set(sp500 + sp400 + nasdaq100))
-    uk350 = sorted(set(ftse100 + ftse250))
-    canada = sorted(set(tsx))
-    europe = sorted(set(dax + cac40 + aex + ibex + ftse_mib))
-    global_core = interleave_universes(us_core, uk350, canada, europe)
-
-    if kind == "global_core":
-        return global_core
-    if kind == "us_core":
-        return us_core
-    if kind == "uk_350":
-        return uk350
-    if kind == "canada_broad":
-        return canada
-    if kind == "europe_broad":
-        return europe
-    if kind == "us_uk":
-        return interleave_universes(us_core, uk350)
-    if kind == "global_broad":
-        return interleave_universes(us_all_listed(), uk350, canada, europe, asx200, nikkei225)
-    if kind == "us_all":
-        return us_all_listed()
-    return global_core
+    if kind in {"lse", "lse_aim"}:
+        return london_exchange_universes()[kind]
+    if kind in TRADINGVIEW_UNIVERSES:
+        return tradingview_exchange_listed(kind)
+    return []
 
 
 def extract_ticker_frame(batch: pd.DataFrame, symbol: str) -> Optional[pd.DataFrame]:
@@ -1701,8 +1575,8 @@ with tab4:
     )
     st.caption(
         "Exchange choices focus on operating companies rather than ETFs, warrants and other specialist securities. "
-        "Non-US exchange choices use index-covered company cores so ticker formats remain reliable "
-        "for Yahoo's financial and valuation data."
+        "Each choice loads its own live exchange-level company directory and converts the symbols "
+        "to Yahoo's format for financial and valuation data."
     )
 
     if st.button("Run Investment Search", type="primary", use_container_width=True):
