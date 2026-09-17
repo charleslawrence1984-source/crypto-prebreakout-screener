@@ -20,6 +20,11 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 
+BUY_CANDIDATE_SHORTLIST_DEFAULT = (
+    "DECK, IT, LULU, CROX, VC, HRB, EEFT, BAH, ACM, "
+    "MGNS.L, G, MONY.L, CA.PA, BTO.TO"
+)
+
 PUBLIC_UNIVERSES = {
     "Global Core (recommended)": "global_core",
     "US Large + Mid": "us_core",
@@ -1472,6 +1477,100 @@ with tab4:
         "Independent long-term investment search. Business quality is tested first; "
         "valuation is a separate hard gate. Technical setup does not affect the result."
     )
+
+    with st.expander("Buy Candidate Shortlist", expanded=True):
+        st.caption(
+            "Your existing nine US candidates plus Morgan Sindall, Genpact, MONY Group, "
+            "Carrefour and B2Gold. The market suffixes ensure Yahoo reviews the intended listings."
+        )
+
+        def clear_shortlist_results():
+            st.session_state.pop("investment_shortlist_results", None)
+
+        shortlist_text = st.text_area(
+            "Shortlisted tickers",
+            value=BUY_CANDIDATE_SHORTLIST_DEFAULT,
+            key="investment_shortlist_tickers",
+            on_change=clear_shortlist_results,
+            help="Comma-separated Yahoo tickers. London listings use .L, Paris uses .PA and Toronto uses .TO.",
+        )
+        shortlist_symbols = list(dict.fromkeys(
+            ticker.strip().upper()
+            for ticker in shortlist_text.replace("\n", ",").split(",")
+            if ticker.strip()
+        ))
+
+        if st.button(
+            f"Review all {len(shortlist_symbols)} shortlist candidates",
+            type="primary",
+            use_container_width=True,
+            disabled=not shortlist_symbols,
+        ):
+            with st.spinner("Refreshing prices, financial evidence, hard gates and DCF values…"):
+                shortlist_results = fundamental_market_scan(
+                    tuple(shortlist_symbols),
+                    0,
+                    0.0,
+                )
+            st.session_state["investment_shortlist_results"] = shortlist_results
+
+        shortlist_results = st.session_state.get("investment_shortlist_results")
+        if isinstance(shortlist_results, pd.DataFrame):
+            if shortlist_results.empty:
+                diagnostics = shortlist_results.attrs.get("scan_diagnostics", {})
+                st.warning(
+                    "The shortlist review returned no usable company data. "
+                    f"Rate-limit errors: {int(diagnostics.get('rate_limit_errors', 0))}; "
+                    f"price-data failures: {int(diagnostics.get('price_failures', 0))}; "
+                    f"other errors: {int(diagnostics.get('other_errors', 0))}."
+                )
+            else:
+                shortlist_buys = int((shortlist_results["Action"] == "BUY CANDIDATE").sum())
+                shortlist_waits = int((shortlist_results["Action"] == "WAIT").sum())
+                shortlist_passes = int((shortlist_results["Action"] == "PASS").sum())
+                reviewed_tickers = set(shortlist_results["Ticker"].astype(str))
+                unavailable = [ticker for ticker in shortlist_symbols if ticker not in reviewed_tickers]
+
+                s1, s2, s3, s4 = st.columns(4)
+                s1.metric("BUY CANDIDATE", shortlist_buys)
+                s2.metric("WAIT", shortlist_waits)
+                s3.metric("PASS", shortlist_passes)
+                s4.metric("Reviewed", f"{len(shortlist_results)}/{len(shortlist_symbols)}")
+
+                if unavailable:
+                    st.warning("No usable data returned for: " + ", ".join(unavailable))
+
+                styled_shortlist = shortlist_results.style.map(
+                    action_cell_style,
+                    subset=["Action"],
+                )
+                st.caption("Action status: 🟢 BUY CANDIDATE · 🟠 WAIT · 🔴 PASS")
+                st.dataframe(
+                    styled_shortlist,
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Moat score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Resilience": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Reinvestment": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Capital allocation": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Cash quality": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "Bear margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "ROIC %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "ROIC trend %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "FCF/share CAGR %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "Positive FCF years %": st.column_config.NumberColumn(format="%.0f%%"),
+                        "Dilution CAGR %": st.column_config.NumberColumn(format="%.2f%%"),
+                        "Market cap": st.column_config.NumberColumn(format="%.0f"),
+                    },
+                )
+
+        st.caption(
+            "A fresh review can change a previous BUY CANDIDATE to WAIT or PASS when price or financial evidence changes."
+        )
 
     f1, f2, f3, f4 = st.columns(4)
     with f1:
