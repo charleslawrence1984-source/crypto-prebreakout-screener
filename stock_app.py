@@ -1042,6 +1042,8 @@ def fundamental_market_scan(
     rate_limit_errors = 0
     other_errors = 0
     price_failures = 0
+    market_cap_failures = 0
+    below_min_market_cap = 0
     error_samples = []
 
     batch_prices = {}
@@ -1100,7 +1102,11 @@ def fundamental_market_scan(
             stage = "company fundamentals"
             fund = valuation_fundamental_analysis(sym, price)
             market_cap = safe(fund.get("market_cap"))
-            if not np.isnan(market_cap) and market_cap < min_market_cap:
+            if np.isnan(market_cap) or market_cap <= 0:
+                market_cap_failures += 1
+                continue
+            if market_cap < min_market_cap:
+                below_min_market_cap += 1
                 continue
 
             stage = "long-term analysis"
@@ -1166,6 +1172,8 @@ def fundamental_market_scan(
             "rate_limit_errors": rate_limit_errors,
             "other_errors": other_errors,
             "price_failures": price_failures,
+            "market_cap_failures": market_cap_failures,
+            "below_min_market_cap": below_min_market_cap,
             "error_samples": error_samples,
         }
         return out
@@ -1177,6 +1185,8 @@ def fundamental_market_scan(
         "rate_limit_errors": rate_limit_errors,
         "other_errors": other_errors,
         "price_failures": price_failures,
+        "market_cap_failures": market_cap_failures,
+        "below_min_market_cap": below_min_market_cap,
         "error_samples": error_samples,
     }
     action_rank = {"BUY CANDIDATE": 0, "WAIT": 1, "PASS": 2}
@@ -1597,26 +1607,39 @@ with tab4:
                 diag = fundamental_results.attrs.get("scan_diagnostics", {})
                 rate_limited = int(diag.get("rate_limit_errors", 0))
                 price_failures = int(diag.get("price_failures", 0))
+                market_cap_failures = int(diag.get("market_cap_failures", 0))
+                below_min_market_cap = int(diag.get("below_min_market_cap", 0))
                 other_errors = int(diag.get("other_errors", 0))
                 error_samples = diag.get("error_samples", [])
                 if rate_limited or price_failures:
                     st.error(
                         f"Investment Search could not retrieve usable Yahoo data for this batch. "
                         f"Rate-limit errors: {rate_limited}; price-data failures: {price_failures}; "
+                        f"market-cap failures: {market_cap_failures}; "
                         f"other company errors: {other_errors}. This is a data-provider problem, not a zero-candidate result."
                     )
                     st.info("Try 25 companies first. If Yahoo is temporarily rate-limiting the Streamlit server, wait a few minutes before running another batch.")
                 else:
                     st.warning(
                         f"No companies returned enough investment data under these filters. "
-                        f"Other company errors: {other_errors}."
+                        f"Missing market cap: {market_cap_failures}; below minimum market cap: "
+                        f"{below_min_market_cap}; other company errors: {other_errors}."
                     )
                 if error_samples:
                     st.code("\n".join(error_samples), language="text")
             else:
+                diag = fundamental_results.attrs.get("scan_diagnostics", {})
+                market_cap_failures = int(diag.get("market_cap_failures", 0))
+                below_min_market_cap = int(diag.get("below_min_market_cap", 0))
                 filtered_fundamentals = fundamental_results[
                     fundamental_results["Quality score"] >= min_quality_score
                 ].copy()
+
+                if market_cap_failures or below_min_market_cap:
+                    st.caption(
+                        f"Market-cap gate excluded {below_min_market_cap} companies below your minimum "
+                        f"and {market_cap_failures} whose market cap could not be verified."
+                    )
 
                 buy_candidates = int((filtered_fundamentals["Action"] == "BUY CANDIDATE").sum()) if not filtered_fundamentals.empty else 0
                 waits = int((filtered_fundamentals["Action"] == "WAIT").sum()) if not filtered_fundamentals.empty else 0
