@@ -1329,8 +1329,9 @@ with tab4:
     with f2:
         fundamental_cap = st.selectbox(
             "Companies to analyse",
-            [25, 50, 100, 250],
+            [25, 50, 100, 250, 500, 750, 1000],
             index=1,
+            format_func=lambda x: f"{x:,}",
             key="fundamental_cap",
         )
     with f3:
@@ -1362,6 +1363,10 @@ with tab4:
         "The numerical Quality and Moat scores now use measurable financial evidence only. "
         "Structural moat, technology disruption, key-person risk, concentration, governance, regulatory dependence "
         "and market-share trends are shown separately under Manual review required and do not change the score."
+    )
+    st.caption(
+        "Larger 500–1,000 company scans remain evenly distributed across the full universe, "
+        "but take longer and may return fewer results if Yahoo temporarily rate-limits requests."
     )
 
     if st.button("Run Investment Search", type="primary", use_container_width=True):
