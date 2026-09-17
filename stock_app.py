@@ -296,7 +296,6 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
 
     score = 0.0
 
-    # Trend / structure: 20
     if price > sma20:
         score += 7
     if sma20 > sma50:
@@ -304,7 +303,6 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     if np.isnan(sma200) or sma50 > sma200:
         score += 6
 
-    # Entry quality: 25
     dist_support = (price / support1 - 1) * 100 if support1 > 0 else 99
     if 0 <= dist_support <= 3:
         score += 12
@@ -323,7 +321,6 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     if not np.isnan(bbu) and not np.isnan(bbl) and bbl <= price <= bbu:
         score += 5
 
-    # Momentum: 15
     if macd_now > macd_prev:
         score += 8
     if macd_now > 0:
@@ -331,14 +328,12 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     if rsi_now > safe(df["RSI"].iloc[-5], rsi_now):
         score += 3
 
-    # Volume: 10
     vr = vol_now / vol20 if vol20 else 1
     if 0.7 <= vr <= 1.8:
         score += 5
     if vr > 1.15 and close.iloc[-1] > close.iloc[-2]:
         score += 5
 
-    # R:R / upside: 20
     rr = max((swing_target-price)/risk, 0)
     if rr >= 2.5:
         score += 12
@@ -354,7 +349,6 @@ def technical_from_df(df: pd.DataFrame) -> Optional[Dict]:
     elif upside >= 5:
         score += 3
 
-    # Avoid chasing: 10
     extension = (price/sma20 - 1)*100 if sma20 else 0
     if extension <= 3:
         score += 10
@@ -699,7 +693,6 @@ def us_all_listed() -> List[str]:
 
 
 def interleave_universes(*groups: List[str]) -> List[str]:
-    """Round-robin markets so truncated global scans stay geographically balanced."""
     clean = [list(dict.fromkeys(g)) for g in groups if g]
     out = []
     seen = set()
@@ -942,7 +935,6 @@ def deep_score_shortlist(pre: pd.DataFrame, n: int) -> pd.DataFrame:
     return pd.DataFrame(out).sort_values(["Opportunity", "Trade"], ascending=[False, False]).reset_index(drop=True)
 
 
-
 @st.cache_data(ttl=1800, show_spinner=False)
 def fundamental_market_scan(
     symbols_tuple: tuple[str, ...],
@@ -954,15 +946,18 @@ def fundamental_market_scan(
     This deliberately separates business quality from valuation. Hard-gate
     failures cannot be rescued by a high weighted score.
     """
-    symbols = list(symbols_tuple)[:max_symbols] if max_symbols > 0 else list(symbols_tuple)
+    universe_symbols = list(symbols_tuple)
+    if max_symbols > 0 and max_symbols < len(universe_symbols):
+        idx = np.linspace(0, len(universe_symbols) - 1, max_symbols, dtype=int)
+        symbols = [universe_symbols[i] for i in idx]
+    else:
+        symbols = universe_symbols
     rows = []
     rate_limit_errors = 0
     other_errors = 0
     price_failures = 0
     error_samples = []
 
-    # One batch price request is much gentler on Yahoo than one history request
-    # per company. Per-ticker history remains only as a fallback.
     batch_prices = {}
     try:
         batch = yf.download(
@@ -1132,33 +1127,13 @@ def chart(result: Dict) -> go.Figure:
         ))
     bb_mid = d["Close"].rolling(20).mean()
     bb_sd = d["Close"].rolling(20).std()
-    fig.add_trace(go.Scatter(
-        x=d.index, y=bb_mid + 2 * bb_sd, mode="lines", name="BB upper",
-        line=dict(dash="dot"),
-    ))
-    fig.add_trace(go.Scatter(
-        x=d.index, y=bb_mid, mode="lines", name="BB mid",
-    ))
-    fig.add_trace(go.Scatter(
-        x=d.index, y=bb_mid - 2 * bb_sd, mode="lines", name="BB lower",
-        line=dict(dash="dot"),
-    ))
+    fig.add_trace(go.Scatter(x=d.index, y=bb_mid + 2 * bb_sd, mode="lines", name="BB upper", line=dict(dash="dot")))
+    fig.add_trace(go.Scatter(x=d.index, y=bb_mid, mode="lines", name="BB mid"))
+    fig.add_trace(go.Scatter(x=d.index, y=bb_mid - 2 * bb_sd, mode="lines", name="BB lower", line=dict(dash="dot")))
     fig.add_trace(go.Scatter(x=d.index, y=d["SMA20"], mode="lines", name="SMA20"))
     fig.add_trace(go.Scatter(x=d.index, y=d["SMA50"], mode="lines", name="SMA50"))
-    fig.add_hrect(
-        y0=result["preferred_low"],
-        y1=result["preferred_high"],
-        opacity=.12,
-        line_width=0,
-        annotation_text="Preferred entry",
-    )
-    fig.add_hrect(
-        y0=result["strong_low"],
-        y1=result["strong_high"],
-        opacity=.08,
-        line_width=0,
-        annotation_text="Strong entry",
-    )
+    fig.add_hrect(y0=result["preferred_low"], y1=result["preferred_high"], opacity=.12, line_width=0, annotation_text="Preferred entry")
+    fig.add_hrect(y0=result["strong_low"], y1=result["strong_high"], opacity=.08, line_width=0, annotation_text="Strong entry")
     fig.add_hline(y=result["invalidation"], line_dash="dot", annotation_text="Reassess / invalidation")
     fig.add_hline(y=result["swing_target"], line_dash="dash", annotation_text="Swing target")
     fig.update_layout(height=520, xaxis_rangeslider_visible=False, margin=dict(l=10, r=10, t=30, b=10))
