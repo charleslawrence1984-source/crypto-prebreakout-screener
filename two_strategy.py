@@ -136,7 +136,7 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
             action = "REASSESS"
         elif not metadata_complete:
             action = "REASSESS"
-        elif structural_moat != "SUPPORTED" or sector_review_required:
+        elif sector_review_required:
             action = "REASSESS"
         elif warnings and "ROIC" in warnings.upper():
             action = "REASSESS"

@@ -62,6 +62,30 @@ def action_cell_style(value) -> str:
     return ""
 
 
+def portfolio_action_cell_style(value) -> str:
+    """Colour owned-position actions by urgency."""
+    action = str(value).strip().upper()
+    if action in {"ADD CANDIDATE", "HOLD"}:
+        return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
+    if action == "REASSESS":
+        return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
+    if action in {"REVIEW FOR SALE", "REDUCE / REBALANCE"}:
+        return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+    return ""
+
+
+def allocation_cell_style(value) -> str:
+    """Highlight position concentration using portfolio weight."""
+    weight = safe(value)
+    if np.isnan(weight):
+        return ""
+    if weight > 25:
+        return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+    if weight > 15:
+        return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
+    return "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+
+
 def pct(v):
     x = safe(v)
     return None if np.isnan(x) else x * 100
@@ -1114,6 +1138,123 @@ def fundamental_market_scan(
     ).drop(columns=["_action_rank"]).reset_index(drop=True)
     return out
 
+
+@st.cache_data(ttl=900, show_spinner=False)
+def latest_portfolio_price(symbol: str) -> float:
+    """Retrieve a recent quoted price for a portfolio holding."""
+    ticker = yf.Ticker(symbol)
+    price = np.nan
+    try:
+        price = safe(ticker.fast_info.get("last_price"))
+    except Exception:
+        pass
+    if np.isnan(price) or price <= 0:
+        history = ticker.history(period="5d", interval="1d", auto_adjust=False)
+        if history is not None and not history.empty and "Close" in history.columns:
+            closes = pd.to_numeric(history["Close"], errors="coerce").dropna()
+            if not closes.empty:
+                price = safe(closes.iloc[-1])
+    return price
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def currency_to_gbp_rate(currency: str) -> float:
+    """Return the approximate GBP value of one unit of a quote currency."""
+    code = str(currency or "").strip()
+    if code in {"GBp", "GBX"}:
+        return 0.01
+    code = code.upper()
+    if code == "GBP":
+        return 1.0
+    if not code:
+        return np.nan
+
+    for pair, invert in ((f"{code}GBP=X", False), (f"GBP{code}=X", True)):
+        try:
+            fx = yf.Ticker(pair)
+            rate = safe(fx.fast_info.get("last_price"))
+            if np.isnan(rate) or rate <= 0:
+                history = fx.history(period="5d", interval="1d", auto_adjust=False)
+                if history is not None and not history.empty and "Close" in history.columns:
+                    closes = pd.to_numeric(history["Close"], errors="coerce").dropna()
+                    if not closes.empty:
+                        rate = safe(closes.iloc[-1])
+            if not np.isnan(rate) and rate > 0:
+                return 1 / rate if invert else rate
+        except Exception:
+            continue
+    return np.nan
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -> dict:
+    """Run the long-term framework for one existing portfolio position."""
+    symbol = str(symbol).strip().upper()
+    price = latest_portfolio_price(symbol)
+    if np.isnan(price) or price <= 0:
+        raise ValueError("current price unavailable")
+
+    fund = valuation_fundamental_analysis(symbol, price)
+    lt = long_term_analysis(symbol, price, fund)
+    merged = {**fund, **lt, "price": price}
+    decision = investment_decision(
+        merged,
+        owned=True,
+        average_buy_price=average_cost if average_cost > 0 else None,
+    )
+
+    if decision["action"] == "SELL":
+        action = "REVIEW FOR SALE"
+    elif decision["action"] == "REASSESS":
+        action = "REASSESS"
+    elif lt.get("valuation_gate_pass"):
+        action = "ADD CANDIDATE"
+    else:
+        action = "HOLD"
+
+    quote_currency = str(fund.get("quote_currency") or "")
+    gbp_rate = currency_to_gbp_rate(quote_currency)
+    native_value = price * shares
+    market_value_gbp = native_value * gbp_rate if not np.isnan(gbp_rate) else np.nan
+    cost_value_gbp = average_cost * shares * gbp_rate if average_cost > 0 and not np.isnan(gbp_rate) else np.nan
+    pnl_gbp = market_value_gbp - cost_value_gbp if not np.isnan(cost_value_gbp) else np.nan
+    return_pct = (price / average_cost - 1) * 100 if average_cost > 0 else np.nan
+
+    reasons = list(decision.get("reasons") or [])
+    if action == "ADD CANDIDATE":
+        reasons.insert(0, "hard gates and the strict DCF add-price gate currently pass")
+    elif action == "HOLD":
+        reasons.insert(0, "measurable thesis gates remain intact, but the current price does not qualify for adding")
+    elif action == "REASSESS" and not reasons:
+        reasons.append("one or more measurable thesis checks needs review")
+
+    return {
+        "Ticker": symbol,
+        "Company": fund.get("name") or symbol,
+        "Action": action,
+        "Shares": shares,
+        "Average cost": average_cost if average_cost > 0 else np.nan,
+        "Price": price,
+        "Return %": return_pct,
+        "Market value £": market_value_gbp,
+        "Cost basis £": cost_value_gbp,
+        "Unrealised P/L £": pnl_gbp,
+        "Quote currency": quote_currency or "Unknown",
+        "Quality score": lt.get("investment_quality_score", lt.get("long_term_score", np.nan)),
+        "Hard gates": "PASS" if lt.get("hard_gate_pass") else "FAIL",
+        "Base intrinsic value": lt.get("dcf_base"),
+        "Bear intrinsic value": lt.get("dcf_bear"),
+        "Base margin of safety %": lt.get("margin_of_safety_base_pct"),
+        "Required margin of safety %": lt.get("required_margin_of_safety_pct"),
+        "Bear margin of safety %": lt.get("margin_of_safety_bear_pct"),
+        "Sector": fund.get("sector") or "Unknown",
+        "Industry": fund.get("industry") or "Unknown",
+        "Country": fund.get("exchange_country") or "Unknown",
+        "Review reason": "; ".join(dict.fromkeys(reason for reason in reasons if reason)),
+        "Manual review required": lt.get("qualitative_review_items", ""),
+    }
+
+
 def chart(result: Dict) -> go.Figure:
     d = result["history"].tail(120)
     fig = go.Figure()
@@ -1178,7 +1319,9 @@ with st.sidebar:
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
 
-tab1, tab2, tab3, tab4 = st.tabs(["Quick analyse", "Watchlist", "Trade Search", "Investment Search"])
+tab1, tab2, tab3, tab4, tab5 = st.tabs(
+    ["Quick analyse", "Watchlist", "Trade Search", "Investment Search", "Portfolio Review"]
+)
 
 with tab1:
     c1, c2 = st.columns([3, 1])
@@ -1467,6 +1610,260 @@ with tab4:
                             "Market cap": st.column_config.NumberColumn(format="%.0f"),
                         },
                     )
+
+
+with tab5:
+    st.subheader("Portfolio Review")
+    st.caption(
+        "Enter one row per holding. Average cost must use the same quoted units as Yahoo "
+        "(for example, pence for a London share quoted in GBp). No broker connection is required."
+    )
+
+    uploaded_portfolio = st.file_uploader(
+        "Import holdings CSV (optional)",
+        type=["csv"],
+        key="portfolio_csv_upload",
+        help="Required columns: Ticker, Shares and Average cost.",
+    )
+    portfolio_seed = pd.DataFrame([
+        {"Ticker": "", "Shares": 0.0, "Average cost": 0.0},
+    ])
+    if uploaded_portfolio is not None:
+        try:
+            imported = pd.read_csv(uploaded_portfolio)
+            aliases = {
+                "ticker": "Ticker",
+                "symbol": "Ticker",
+                "shares": "Shares",
+                "quantity": "Shares",
+                "average cost": "Average cost",
+                "average_cost": "Average cost",
+                "avg cost": "Average cost",
+                "avg_cost": "Average cost",
+            }
+            imported = imported.rename(
+                columns={column: aliases.get(str(column).strip().lower(), column) for column in imported.columns}
+            )
+            missing_columns = {"Ticker", "Shares", "Average cost"} - set(imported.columns)
+            if missing_columns:
+                raise ValueError("missing columns: " + ", ".join(sorted(missing_columns)))
+            portfolio_seed = imported[["Ticker", "Shares", "Average cost"]].copy()
+        except Exception as exc:
+            st.error(f"The portfolio CSV could not be loaded: {exc}")
+
+    def clear_portfolio_results():
+        st.session_state.pop("portfolio_results", None)
+        st.session_state.pop("portfolio_errors", None)
+
+    upload_identity = (
+        f"{uploaded_portfolio.name}_{getattr(uploaded_portfolio, 'size', 0)}"
+        if uploaded_portfolio is not None
+        else "manual"
+    )
+    edited_holdings = st.data_editor(
+        portfolio_seed,
+        num_rows="dynamic",
+        hide_index=True,
+        use_container_width=True,
+        key=f"portfolio_editor_{upload_identity}",
+        on_change=clear_portfolio_results,
+        column_config={
+            "Ticker": st.column_config.TextColumn(
+                "Ticker",
+                help="Use the Yahoo ticker, including suffixes such as .L or .TO.",
+            ),
+            "Shares": st.column_config.NumberColumn("Shares", min_value=0.0, format="%.4f"),
+            "Average cost": st.column_config.NumberColumn(
+                "Average cost",
+                min_value=0.0,
+                format="%.4f",
+                help="Your average price per share in the stock's quoted currency/units.",
+            ),
+        },
+    )
+
+    d1, d2 = st.columns(2)
+    with d1:
+        analyse_portfolio_clicked = st.button(
+            "Review Portfolio",
+            type="primary",
+            use_container_width=True,
+        )
+    with d2:
+        st.download_button(
+            "Download Holdings CSV",
+            data=edited_holdings.to_csv(index=False).encode("utf-8"),
+            file_name="stock_portfolio_holdings.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
+
+    st.info(
+        "Portfolio actions: ADD CANDIDATE means the same strict hard-gate and DCF entry tests pass again; "
+        "HOLD means the measurable thesis remains intact but the price is not cheap enough to add; "
+        "REASSESS flags deterioration or specialist review; REVIEW FOR SALE flags extreme overvaluation for review, not an automatic order."
+    )
+
+    if analyse_portfolio_clicked:
+        clean_holdings = edited_holdings.copy()
+        clean_holdings["Ticker"] = clean_holdings["Ticker"].fillna("").astype(str).str.strip().str.upper()
+        clean_holdings = clean_holdings[clean_holdings["Ticker"] != ""]
+        duplicate_tickers = clean_holdings.loc[
+            clean_holdings["Ticker"].duplicated(keep=False), "Ticker"
+        ].unique().tolist()
+
+        results = []
+        errors = []
+        if clean_holdings.empty:
+            errors.append("Add at least one holding before running the review.")
+        if duplicate_tickers:
+            errors.append("Use one row per ticker. Duplicate rows: " + ", ".join(duplicate_tickers))
+
+        if not errors:
+            progress = st.progress(0)
+            total_rows = len(clean_holdings)
+            with st.spinner("Reviewing current prices, financial evidence and valuation…"):
+                for position, (_, holding) in enumerate(clean_holdings.iterrows(), start=1):
+                    ticker = holding["Ticker"]
+                    shares = safe(holding.get("Shares"), 0.0)
+                    average_cost = safe(holding.get("Average cost"), 0.0)
+                    if shares <= 0:
+                        errors.append(f"{ticker}: shares must be greater than zero")
+                    else:
+                        try:
+                            results.append(analyse_portfolio_holding(ticker, shares, average_cost))
+                        except Exception as exc:
+                            errors.append(f"{ticker}: {exc.__class__.__name__}: {str(exc)[:180]}")
+                    progress.progress(position / total_rows)
+            progress.empty()
+
+        st.session_state["portfolio_results"] = pd.DataFrame(results)
+        st.session_state["portfolio_errors"] = errors
+
+    portfolio_errors = st.session_state.get("portfolio_errors", [])
+    for error in portfolio_errors:
+        st.warning(error)
+
+    portfolio_results = st.session_state.get("portfolio_results")
+    if isinstance(portfolio_results, pd.DataFrame) and not portfolio_results.empty:
+        portfolio_results = portfolio_results.copy()
+        all_values_converted = portfolio_results["Market value £"].notna().all()
+        total_value = portfolio_results["Market value £"].sum() if all_values_converted else np.nan
+        total_cost_known = portfolio_results["Cost basis £"].notna().all()
+        total_cost = portfolio_results["Cost basis £"].sum() if total_cost_known else np.nan
+        total_pnl = total_value - total_cost if not np.isnan(total_value) and not np.isnan(total_cost) else np.nan
+        total_return = total_pnl / total_cost * 100 if not np.isnan(total_pnl) and total_cost > 0 else np.nan
+
+        if not np.isnan(total_value) and total_value > 0:
+            portfolio_results["Weight %"] = portfolio_results["Market value £"] / total_value * 100
+
+            for row_index, row in portfolio_results.iterrows():
+                weight = safe(row.get("Weight %"))
+                current_action = str(row.get("Action") or "")
+                reason = str(row.get("Review reason") or "").strip()
+                concentration_reason = ""
+                if weight > 25:
+                    concentration_reason = (
+                        f"position is {weight:.1f}% of the portfolio; review reducing or rebalancing "
+                        "to control single-stock concentration"
+                    )
+                    if current_action in {"ADD CANDIDATE", "HOLD"}:
+                        portfolio_results.at[row_index, "Action"] = "REDUCE / REBALANCE"
+                elif weight > 15 and current_action == "ADD CANDIDATE":
+                    concentration_reason = (
+                        f"position is already {weight:.1f}% of the portfolio; do not add before "
+                        "reviewing concentration"
+                    )
+                    portfolio_results.at[row_index, "Action"] = "HOLD"
+                if concentration_reason:
+                    portfolio_results.at[row_index, "Review reason"] = "; ".join(
+                        item for item in (concentration_reason, reason) if item
+                    )
+        else:
+            portfolio_results["Weight %"] = np.nan
+
+        add_count = int((portfolio_results["Action"] == "ADD CANDIDATE").sum())
+        review_count = int(
+            portfolio_results["Action"].isin(
+                ["REASSESS", "REVIEW FOR SALE", "REDUCE / REBALANCE"]
+            ).sum()
+        )
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Portfolio value", "—" if np.isnan(total_value) else f"£{total_value:,.2f}")
+        m2.metric(
+            "Unrealised return",
+            "—" if np.isnan(total_return) else f"{total_return:.1f}%",
+            None if np.isnan(total_pnl) else f"£{total_pnl:,.2f}",
+        )
+        m3.metric("Add candidates", add_count)
+        m4.metric("Actions to review", review_count)
+
+        if not all_values_converted:
+            st.warning(
+                "At least one quote currency could not be converted to GBP. Portfolio totals, weights and concentration checks are hidden for safety."
+            )
+
+        display_columns = [
+            "Ticker", "Company", "Action", "Weight %", "Shares", "Average cost", "Price",
+            "Return %", "Market value £", "Unrealised P/L £", "Quote currency", "Quality score",
+            "Hard gates", "Base intrinsic value", "Bear intrinsic value", "Base margin of safety %",
+            "Required margin of safety %", "Bear margin of safety %", "Sector", "Industry", "Country",
+            "Review reason", "Manual review required",
+        ]
+        styled_portfolio = portfolio_results[display_columns].style.map(
+            portfolio_action_cell_style,
+            subset=["Action"],
+        ).map(
+            allocation_cell_style,
+            subset=["Weight %"],
+        )
+        st.caption(
+            "Action status: 🟢 ADD CANDIDATE / HOLD · 🟠 REASSESS · "
+            "🔴 REVIEW FOR SALE / REDUCE / REBALANCE. "
+            "Position weight: 🟢 ≤15% · 🟠 >15% · 🔴 >25%."
+        )
+        st.dataframe(
+            styled_portfolio,
+            hide_index=True,
+            use_container_width=True,
+            column_config={
+                "Weight %": st.column_config.NumberColumn(format="%.1f%%"),
+                "Shares": st.column_config.NumberColumn(format="%.4f"),
+                "Average cost": st.column_config.NumberColumn(format="%.4f"),
+                "Price": st.column_config.NumberColumn(format="%.4f"),
+                "Return %": st.column_config.NumberColumn(format="%.1f%%"),
+                "Market value £": st.column_config.NumberColumn(format="£%.2f"),
+                "Unrealised P/L £": st.column_config.NumberColumn(format="£%.2f"),
+                "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                "Bear margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+            },
+        )
+
+        if all_values_converted and total_value > 0:
+            sector_allocation = (
+                portfolio_results.groupby("Sector", dropna=False)["Market value £"]
+                .sum()
+                .sort_values(ascending=False)
+                .rename("Market value £")
+                .reset_index()
+            )
+            sector_allocation["Weight %"] = sector_allocation["Market value £"] / total_value * 100
+            st.subheader("Sector allocation")
+            st.dataframe(
+                sector_allocation,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Market value £": st.column_config.NumberColumn(format="£%.2f"),
+                    "Weight %": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f%%"),
+                },
+            )
+
+    st.caption(
+        "Holdings remain in the current browser session. Download the CSV after editing so you can restore the portfolio after an app restart or redeployment."
+    )
 
 
 with st.expander("How the scores work"):
