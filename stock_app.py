@@ -21,9 +21,6 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 PRIORITY_DEFAULT = "FLNC, SPCX"
 
 PUBLIC_UNIVERSES = {
-    "Global Core (recommended)": "global_core",
-    "US Large + Mid": "us_core",
-    "UK FTSE 350": "uk_350",
     "Canada Broad": "canada_broad",
     "Europe Broad": "europe_broad",
     "US + UK Broad": "us_uk",
@@ -32,15 +29,12 @@ PUBLIC_UNIVERSES = {
 }
 
 # Investment Search also supports exchange-led discovery. Keep this separate
-# from PUBLIC_UNIVERSES so the Trade Search choices are not changed.
+# from PUBLIC_UNIVERSES so Investment and Trade choices can be managed independently.
 INVESTMENT_UNIVERSES = {
-    "Global Core (recommended)": "global_core",
     "New York Stock Exchange (NYSE), USA": "nyse",
     "NASDAQ, USA": "nasdaq",
     "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
     "London Stock Exchange (LSE), UK": "lse_core",
-    "US Large + Mid": "us_core",
-    "UK FTSE 350": "uk_350",
     "Canada Broad": "canada_broad",
     "Europe Broad": "europe_broad",
     "US + UK Broad": "us_uk",
@@ -97,7 +91,7 @@ def allocation_cell_style(value) -> str:
     if np.isnan(weight):
         return ""
     if weight > 25:
-        return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+        return "background-color: #ffd6d6; color: #5c171c; font-weight: 700"
     if weight > 15:
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
     return "background-color: #d8f3dc; color: #16351c; font-weight: 600"
@@ -1560,7 +1554,7 @@ with tab3:
     with u4:
         st.metric("Search type", "TECHNICAL ONLY")
 
-    st.caption("Recommended starting point: US large + mid, 1,000 symbols and £/$1m+ average daily turnover.")
+    st.caption("Choose the market universe that matches the scan you want; 1,000 symbols and £/$1m+ average daily turnover remains a sensible starting scan size.")
 
     if st.button("Run Trade Search", type="primary", use_container_width=True):
         with st.spinner("Loading public stock universe…"):
