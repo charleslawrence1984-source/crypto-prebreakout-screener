@@ -1,4 +1,5 @@
 import math
+import re
 import numpy as np
 import yfinance as yf
 
@@ -14,6 +15,36 @@ def _safe(v, default=np.nan):
 def _pct(v):
     x = _safe(v)
     return None if np.isnan(x) else x * 100
+
+
+def _search_metadata(symbol: str) -> dict:
+    """Best-effort lightweight metadata fallback when quoteSummary/info is unavailable."""
+    try:
+        search = yf.Search(symbol, max_results=5)
+        quotes = getattr(search, "quotes", None) or []
+    except Exception:
+        return {}
+
+    symbol_u = str(symbol).upper()
+    match = None
+    for q in quotes:
+        if str(q.get("symbol") or "").upper() == symbol_u:
+            match = q
+            break
+    if match is None and quotes:
+        match = quotes[0]
+    if not match:
+        return {}
+
+    return {
+        "longName": match.get("longname") or match.get("longName"),
+        "shortName": match.get("shortname") or match.get("shortName"),
+        "sector": match.get("sectorDisp") or match.get("sector"),
+        "industry": match.get("industryDisp") or match.get("industry"),
+        "exchange": match.get("exchange") or match.get("exchDisp"),
+        "fullExchangeName": match.get("exchDisp") or match.get("exchange"),
+        "quoteType": match.get("quoteType"),
+    }
 
 
 def _exchange_country(symbol: str, info: dict) -> str:
@@ -55,6 +86,11 @@ def _exchange_country(symbol: str, info: dict) -> str:
         return "Australia"
     if "TOKYO" in exchange:
         return "Japan"
+
+    # Yahoo-style symbols for non-US primary listings normally carry a suffix.
+    # A plain symbol from the public universes is therefore most likely US.
+    if re.fullmatch(r"[A-Z0-9-]+", s):
+        return "US"
     return "Other / Unknown"
 
 
@@ -65,7 +101,26 @@ def fundamental_analysis(symbol: str, price: float):
     except Exception:
         info = {}
 
+    # Lightweight fallbacks. These are deliberately best-effort and never
+    # substitute fabricated values when Yahoo does not provide a field.
+    try:
+        fast = t.fast_info
+    except Exception:
+        fast = {}
+
+    if not info.get("longName") and not info.get("shortName"):
+        search_info = _search_metadata(symbol)
+        for k, v in search_info.items():
+            if v not in (None, "") and not info.get(k):
+                info[k] = v
+
     market_cap = _safe(info.get("marketCap"))
+    if np.isnan(market_cap):
+        try:
+            market_cap = _safe(fast.get("market_cap"))
+        except Exception:
+            pass
+
     revenue_growth = _pct(info.get("revenueGrowth"))
     earnings_growth = _pct(info.get("earningsGrowth"))
     margin = _pct(info.get("profitMargins"))
@@ -188,6 +243,23 @@ def fundamental_analysis(symbol: str, price: float):
 
     hold_score = round(min(100, quality + valuation_score), 1)
 
+    quote_currency = info.get("currency") or ""
+    financial_currency = info.get("financialCurrency") or ""
+    exchange = info.get("fullExchangeName") or info.get("exchange") or ""
+    try:
+        if not quote_currency:
+            quote_currency = fast.get("currency") or ""
+        if not exchange:
+            exchange = fast.get("exchange") or ""
+    except Exception:
+        pass
+
+    metadata_complete = bool(
+        (info.get("longName") or info.get("shortName"))
+        and info.get("sector")
+        and info.get("industry")
+    )
+
     return {
         "hold_score": hold_score,
         "quality_score": round(min(80, quality), 1),
@@ -220,8 +292,9 @@ def fundamental_analysis(symbol: str, price: float):
         "return_on_equity": _safe(info.get("returnOnEquity")),
         "return_on_assets": _safe(info.get("returnOnAssets")),
         "current_ratio": _safe(info.get("currentRatio")),
-        "quote_currency": info.get("currency") or "",
-        "financial_currency": info.get("financialCurrency") or "",
-        "exchange": info.get("fullExchangeName") or info.get("exchange"),
-        "exchange_country": _exchange_country(symbol, info),
+        "quote_currency": quote_currency,
+        "financial_currency": financial_currency,
+        "exchange": exchange,
+        "exchange_country": _exchange_country(symbol, {**info, "exchange": exchange}),
+        "metadata_complete": metadata_complete,
     }
