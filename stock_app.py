@@ -25,6 +25,11 @@ PUBLIC_UNIVERSES = {
     "NASDAQ, USA": "nasdaq",
     "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
     "London Stock Exchange (LSE), UK": "lse_core",
+    "Deutsche Börse Xetra, Germany": "xetra_core",
+    "Toronto Stock Exchange (TSX), Canada": "tsx_core",
+    "Tokyo Stock Exchange (TSE), Japan": "tokyo_core",
+    "SIX Swiss Exchange, Switzerland": "six_core",
+    "Bolsa de Madrid, Spain": "madrid_core",
 }
 
 INVESTMENT_UNIVERSES = {
@@ -32,6 +37,11 @@ INVESTMENT_UNIVERSES = {
     "NASDAQ, USA": "nasdaq",
     "Euronext (Amsterdam, Paris, Brussels, Lisbon, Milan, Oslo, Dublin)": "euronext_core",
     "London Stock Exchange (LSE), UK": "lse_core",
+    "Deutsche Börse Xetra, Germany": "xetra_core",
+    "Toronto Stock Exchange (TSX), Canada": "tsx_core",
+    "Tokyo Stock Exchange (TSE), Japan": "tokyo_core",
+    "SIX Swiss Exchange, Switzerland": "six_core",
+    "Bolsa de Madrid, Spain": "madrid_core",
 }
 
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
@@ -856,6 +866,60 @@ def get_universe(kind: str) -> List[str]:
         return lse_core_listed()
     if kind == "euronext_core":
         return euronext_core_listed()
+    if kind == "xetra_core":
+        groups = [
+            safe_wikipedia_symbols(
+                "https://en.wikipedia.org/wiki/DAX",
+                ("Ticker", "Ticker symbol", "Symbol"),
+                ".DE",
+            ),
+            safe_wikipedia_symbols(
+                "https://en.wikipedia.org/wiki/MDAX",
+                ("Ticker", "Ticker symbol", "Symbol"),
+                ".DE",
+            ),
+            safe_wikipedia_symbols(
+                "https://en.wikipedia.org/wiki/SDAX",
+                ("Ticker", "Ticker symbol", "Symbol"),
+                ".DE",
+            ),
+            safe_wikipedia_symbols(
+                "https://en.wikipedia.org/wiki/TecDAX",
+                ("Ticker", "Ticker symbol", "Symbol"),
+                ".DE",
+            ),
+        ]
+        return sorted(set(symbol for group in groups for symbol in group))
+    if kind == "tsx_core":
+        return safe_wikipedia_symbols(
+            "https://en.wikipedia.org/wiki/S%26P/TSX_Composite_Index",
+            ("Ticker", "Ticker symbol", "Symbol"),
+            ".TO",
+            min_count=50,
+        )
+    if kind == "tokyo_core":
+        return safe_wikipedia_symbols(
+            "https://de.wikipedia.org/wiki/Nikkei_225",
+            ("Code", "Ticker", "Symbol"),
+            ".T",
+            min_count=100,
+        )
+    if kind == "six_core":
+        return safe_wikipedia_symbols(
+            "https://en.wikipedia.org/wiki/Swiss_Market_Index",
+            ("Ticker", "Ticker symbol", "Symbol"),
+            ".SW",
+            min_count=15,
+            replace_dot=False,
+        )
+    if kind == "madrid_core":
+        return safe_wikipedia_symbols(
+            "https://en.wikipedia.org/wiki/IBEX_35",
+            ("Ticker", "Ticker symbol", "Symbol"),
+            ".MC",
+            min_count=20,
+            replace_dot=False,
+        )
 
     sp500 = wikipedia_symbols(
         "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
@@ -1637,7 +1701,7 @@ with tab4:
     )
     st.caption(
         "Exchange choices focus on operating companies rather than ETFs, warrants and other specialist securities. "
-        "The LSE and Euronext choices use a broad, index-covered company core so that ticker formats remain reliable "
+        "Non-US exchange choices use index-covered company cores so ticker formats remain reliable "
         "for Yahoo's financial and valuation data."
     )
 
