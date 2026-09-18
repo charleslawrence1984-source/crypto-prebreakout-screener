@@ -101,6 +101,46 @@ class TradeRulesTests(unittest.TestCase):
             result["fundamental_failures"],
         )
 
+    def test_event_gate_can_be_deferred_until_candidate_stage(self):
+        snapshot = FundamentalSnapshot(
+            symbol="TEST",
+            company="Test Company",
+            sector="Technology",
+            industry="Software",
+            currency="GBP",
+            market_cap=2_000_000_000,
+            roic=0.20,
+            roe=0.25,
+            operating_margin=0.20,
+            fcf_margin=0.20,
+            annual_fcf=[200, 180, 160],
+            annual_net_income=[180, 160, 140],
+            net_debt_to_fcf=0.5,
+            interest_coverage=20,
+            no_interest_expense=False,
+            current_ratio=2.0,
+            revenue_growth=0.15,
+            earnings_growth=0.25,
+            operating_growth=0.20,
+            growth_source="TTM",
+            share_change=0.0,
+            distribution_ratio=0.5,
+            earnings_date=None,
+            earnings_source="UNVERIFIED",
+            trailing_pe=20,
+            price_sales=5,
+            missing_hard_inputs=[],
+        )
+        result = score_fundamental_snapshot(
+            snapshot, [snapshot], gbp_rate=1.0, earnings_sessions=None,
+            official_event_verified=False, apply_event_gate=False,
+        )
+        self.assertNotIn("EARNINGS DATE UNVERIFIED", result["fundamental_failures"])
+        self.assertNotIn(
+            "FAIL-SAFE EVENT BLOCK — OFFICIAL CHECK UNVERIFIED",
+            result["fundamental_failures"],
+        )
+
     def test_financial_sector_is_excluded(self):
         snapshot = FundamentalSnapshot(
             symbol="BANK",
@@ -132,6 +172,41 @@ class TradeRulesTests(unittest.TestCase):
             missing_hard_inputs=[],
         )
         result = score_fundamental_snapshot(snapshot, [snapshot], 1.0, 30, True)
+        self.assertIn("EXCLUDED SECTOR", result["fundamental_failures"])
+
+    def test_tradingview_finance_sector_alias_is_excluded(self):
+        snapshot = FundamentalSnapshot(
+            symbol="BANK2",
+            company="Bank 2",
+            sector="Finance",
+            industry="Banks",
+            currency="USD",
+            market_cap=2_000_000_000,
+            roic=0.2,
+            roe=0.25,
+            operating_margin=0.2,
+            fcf_margin=0.2,
+            annual_fcf=[10, 10, 10],
+            annual_net_income=[10, 10, 10],
+            net_debt_to_fcf=0.5,
+            interest_coverage=20,
+            no_interest_expense=False,
+            current_ratio=2,
+            revenue_growth=0.15,
+            earnings_growth=0.25,
+            operating_growth=0.2,
+            growth_source="TRADINGVIEW",
+            share_change=0,
+            distribution_ratio=0.5,
+            earnings_date=pd.Timestamp("2026-10-30"),
+            earnings_source="TRADINGVIEW CALENDAR",
+            trailing_pe=10,
+            price_sales=2,
+            missing_hard_inputs=[],
+        )
+        result = score_fundamental_snapshot(
+            snapshot, [snapshot], 1.0, 30, True, apply_event_gate=False
+        )
         self.assertIn("EXCLUDED SECTOR", result["fundamental_failures"])
 
 
