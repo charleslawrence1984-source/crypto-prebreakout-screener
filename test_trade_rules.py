@@ -141,6 +141,42 @@ class TradeRulesTests(unittest.TestCase):
             result["fundamental_failures"],
         )
 
+    def test_trailing_fcf_is_a_separate_hard_gate(self):
+        snapshot = FundamentalSnapshot(
+            symbol="FCF",
+            company="FCF Test",
+            sector="Technology",
+            industry="Software",
+            currency="GBP",
+            market_cap=2_000_000_000,
+            roic=0.20,
+            roe=0.25,
+            operating_margin=0.20,
+            fcf_margin=-0.01,
+            annual_fcf=[100, 90, 80],
+            annual_net_income=[100, 90, 80],
+            net_debt_to_fcf=np.nan,
+            interest_coverage=20,
+            no_interest_expense=False,
+            current_ratio=2.0,
+            revenue_growth=0.10,
+            earnings_growth=0.10,
+            operating_growth=0.10,
+            growth_source="TTM",
+            share_change=0.0,
+            distribution_ratio=0.5,
+            earnings_date=pd.Timestamp("2026-10-30"),
+            earnings_source="PROVIDER CALENDAR",
+            trailing_pe=20,
+            price_sales=5,
+            missing_hard_inputs=[],
+            trailing_fcf=-10,
+        )
+        result = score_fundamental_snapshot(
+            snapshot, [snapshot], 1.0, 30, True, apply_event_gate=False
+        )
+        self.assertIn("FCF HARD GATE FAILED", result["fundamental_failures"])
+
     def test_financial_sector_is_excluded(self):
         snapshot = FundamentalSnapshot(
             symbol="BANK",
