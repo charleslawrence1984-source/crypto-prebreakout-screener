@@ -71,12 +71,26 @@ def _annual_fcf(cashflow: pd.DataFrame) -> pd.Series:
     return aligned["operating"] + aligned["capex"]
 
 
+def _is_yahoo_rate_limit_error(exc: Exception) -> bool:
+    """Keep provider throttling distinct from genuinely missing company data."""
+    name = type(exc).__name__.lower()
+    message = str(exc).lower()
+    return (
+        "yfratelimiterror" in name
+        or "too many requests" in message
+        or "rate limit" in message
+        or "http 429" in message
+    )
+
+
 def _ticker_mapping(ticker: Any, attribute: str) -> dict[str, Any]:
     """Read a Yahoo mapping without allowing one failed endpoint to abort a scan."""
     try:
         value = getattr(ticker, attribute)
         return value if isinstance(value, dict) else dict(value or {})
-    except Exception:
+    except Exception as exc:
+        if _is_yahoo_rate_limit_error(exc):
+            raise
         return {}
 
 
@@ -91,7 +105,9 @@ def _ticker_statement(
             value = getattr(ticker, attribute)
             if isinstance(value, pd.DataFrame) and not value.empty:
                 return value
-        except Exception:
+        except Exception as exc:
+            if _is_yahoo_rate_limit_error(exc):
+                raise
             continue
     for method_name, kwargs in methods:
         try:
@@ -99,7 +115,9 @@ def _ticker_statement(
             value = method(**kwargs)
             if isinstance(value, pd.DataFrame) and not value.empty:
                 return value
-        except Exception:
+        except Exception as exc:
+            if _is_yahoo_rate_limit_error(exc):
+                raise
             continue
     return pd.DataFrame()
 
@@ -566,7 +584,9 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
         if raw_date is not None:
             earnings_date = pd.Timestamp(raw_date)
             earnings_source_label = "PROVIDER CALENDAR"
-    except Exception:
+    except Exception as exc:
+        if _is_yahoo_rate_limit_error(exc):
+            raise
         pass
     if earnings_date is None:
         try:
@@ -588,7 +608,9 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
                         estimate += pd.Timedelta(days=interval_days)
                     earnings_date = estimate
                     earnings_source_label = "MEDIAN INTERVAL ESTIMATE"
-        except Exception:
+        except Exception as exc:
+            if _is_yahoo_rate_limit_error(exc):
+                raise
             pass
 
     missing: list[str] = []
