@@ -482,6 +482,7 @@ class FundamentalSnapshot:
     trailing_pe: float
     price_sales: float
     missing_hard_inputs: list[str]
+    trailing_fcf: float = np.nan
 
 
 def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
@@ -529,6 +530,7 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
     latest_operating = _latest(operating_income)
     latest_ebit = _latest(ebit)
     latest_fcf = _latest(fcf)
+    trailing_fcf = _number(info.get("freeCashflow"))
     effective_tax = _latest(tax) / _latest(pretax) if _latest(pretax) > 0 else 0.21
     effective_tax = _clip(effective_tax, 0.0, 0.40)
     roic = _number(info.get("returnOnInvestedCapital"))
@@ -540,10 +542,15 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
     operating_margin = _number(info.get("operatingMargins"))
     if not math.isfinite(operating_margin) and latest_revenue > 0:
         operating_margin = latest_operating / latest_revenue
-    fcf_margin = latest_fcf / latest_revenue if latest_revenue > 0 and math.isfinite(latest_fcf) else np.nan
-    net_debt_data_available = math.isfinite(total_debt) and math.isfinite(cash) and math.isfinite(latest_fcf)
+    ttm_revenue = _number(info.get("totalRevenue"))
+    fcf_margin = (
+        trailing_fcf / ttm_revenue
+        if ttm_revenue > 0 and math.isfinite(trailing_fcf)
+        else latest_fcf / latest_revenue if latest_revenue > 0 and math.isfinite(latest_fcf) else np.nan
+    )
+    net_debt_data_available = math.isfinite(total_debt) and math.isfinite(cash) and math.isfinite(trailing_fcf)
     net_debt = max(0.0, total_debt - cash) if math.isfinite(total_debt) and math.isfinite(cash) else np.nan
-    net_debt_to_fcf = net_debt / latest_fcf if math.isfinite(net_debt) and latest_fcf > 0 else np.nan
+    net_debt_to_fcf = net_debt / trailing_fcf if math.isfinite(net_debt) and trailing_fcf > 0 else np.nan
     latest_interest = abs(_latest(interest))
     no_interest = not math.isfinite(latest_interest) or latest_interest <= 0
     interest_coverage = latest_ebit / latest_interest if not no_interest and math.isfinite(latest_ebit) else np.nan
@@ -617,7 +624,7 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
     missing: list[str] = []
     required = {
         "three annual FCF periods": len(fcf) >= 3,
-        "latest positive FCF": math.isfinite(latest_fcf),
+        "trailing FCF": math.isfinite(trailing_fcf),
         "net debt and FCF": net_debt_data_available,
         "two share-count periods": len(shares) >= 2 and math.isfinite(share_change),
         "revenue trend": math.isfinite(revenue_growth),
@@ -656,6 +663,7 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
         trailing_pe=_number(info.get("trailingPE")),
         price_sales=_number(info.get("priceToSalesTrailing12Months")),
         missing_hard_inputs=missing,
+        trailing_fcf=trailing_fcf,
     )
 
 
@@ -711,8 +719,10 @@ def score_fundamental_snapshot(
     if snapshot.missing_hard_inputs:
         failures.append("FUNDAMENTAL DATA INCOMPLETE — " + ", ".join(snapshot.missing_hard_inputs))
     fcf_values = snapshot.annual_fcf[:10]
-    if len(fcf_values) >= 3:
-        if fcf_values[0] <= 0 or sum(value > 0 for value in fcf_values[:3]) < 2:
+    if math.isfinite(snapshot.trailing_fcf) and snapshot.trailing_fcf <= 0:
+        failures.append("FCF HARD GATE FAILED")
+    if len(fcf_values) >= 3 and sum(value > 0 for value in fcf_values[:3]) < 2:
+        if "FCF HARD GATE FAILED" not in failures:
             failures.append("FCF HARD GATE FAILED")
     if math.isfinite(snapshot.net_debt_to_fcf):
         if snapshot.net_debt_to_fcf > 4:
