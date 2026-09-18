@@ -19,6 +19,12 @@ import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis
 from two_strategy import investment_decision
+from trade_rules import (
+    build_fundamental_snapshot,
+    business_sessions_until,
+    evaluate_price_setup,
+    score_fundamental_snapshot,
+)
 
 st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", layout="wide")
 
@@ -69,11 +75,11 @@ def safe(v, default=np.nan):
 def action_cell_style(value) -> str:
     """Return the RAG colour for a screener action without changing its value."""
     action = str(value).strip().upper()
-    if action in {"BUY", "BUY CANDIDATE"}:
+    if action in {"BUY", "BUY CANDIDATE", "PAPER CANDIDATE"}:
         return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
-    if action in {"WAIT", "WATCH", "HOLD"}:
+    if action in {"WAIT", "WATCH", "HOLD", "EARNINGS WAIT"}:
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
-    if action in {"PASS", "AVOID", "SELL"}:
+    if action in {"PASS", "AVOID", "SELL", "BLOCKED"}:
         return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
     return ""
 
@@ -1024,6 +1030,206 @@ def technical_market_scan(symbols_tuple: tuple[str, ...], max_symbols: int, min_
     return pd.DataFrame(rows).sort_values(["Trade", "Upside %"], ascending=[False, False]).reset_index(drop=True)
 
 
+TRADE_MARKET_CONTEXT = {
+    "nasdaq": {"benchmark": "^GSPC", "currency": "USD", "price_scale": 1.0},
+    "nyse": {"benchmark": "^GSPC", "currency": "USD", "price_scale": 1.0},
+    "otc": {"benchmark": "^GSPC", "currency": "USD", "price_scale": 1.0},
+    "lse": {"benchmark": "^FTSE", "currency": "GBP", "price_scale": 0.01},
+    "lse_aim": {"benchmark": "^FTSE", "currency": "GBP", "price_scale": 0.01},
+    "xetra": {"benchmark": "^GDAXI", "currency": "EUR", "price_scale": 1.0},
+    "gettex": {"benchmark": "^GDAXI", "currency": "EUR", "price_scale": 1.0},
+    "tsx": {"benchmark": "^GSPTSE", "currency": "CAD", "price_scale": 1.0},
+    "euronext_paris": {"benchmark": "^FCHI", "currency": "EUR", "price_scale": 1.0},
+    "six": {"benchmark": "^SSMI", "currency": "CHF", "price_scale": 1.0},
+    "madrid": {"benchmark": "^IBEX", "currency": "EUR", "price_scale": 1.0},
+    "euronext_brussels": {"benchmark": "^BFX", "currency": "EUR", "price_scale": 1.0},
+    "vienna": {"benchmark": "^ATX", "currency": "EUR", "price_scale": 1.0},
+    "euronext_amsterdam": {"benchmark": "^AEX", "currency": "EUR", "price_scale": 1.0},
+    "euronext_lisbon": {"benchmark": "PSI20.LS", "currency": "EUR", "price_scale": 1.0},
+}
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def trade_fx_to_gbp() -> Dict[str, float]:
+    """Return quote-currency multipliers for conversion into pounds."""
+    output = {"GBP": 1.0, "GBX": 0.01, "GBPENCE": 0.01}
+    tickers = {"USD": "GBPUSD=X", "EUR": "GBPEUR=X", "CAD": "GBPCAD=X", "CHF": "GBPCHF=X"}
+    try:
+        rates = yf.download(
+            list(tickers.values()), period="5d", interval="1d", auto_adjust=False,
+            group_by="ticker", progress=False, threads=True,
+        )
+        for currency, ticker in tickers.items():
+            frame = extract_ticker_frame(rates, ticker)
+            if frame is not None and not frame.empty:
+                quote_per_gbp = safe(frame["Close"].dropna().iloc[-1])
+                if quote_per_gbp > 0:
+                    output[currency] = 1.0 / quote_per_gbp
+    except Exception:
+        pass
+    return output
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def trade_benchmark_frame(symbol: str) -> pd.DataFrame:
+    try:
+        data = yf.download(symbol, period="3y", interval="1d", auto_adjust=False, progress=False)
+        frame = extract_ticker_frame(data, symbol)
+        return frame if frame is not None else pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def approved_trade_market_scan(
+    symbols_tuple: tuple[str, ...], max_symbols: int, universe_kind: str
+) -> pd.DataFrame:
+    universe_symbols = list(symbols_tuple)
+    if max_symbols > 0 and max_symbols < len(universe_symbols):
+        indexes = np.linspace(0, len(universe_symbols) - 1, max_symbols, dtype=int)
+        symbols = [universe_symbols[index] for index in indexes]
+    else:
+        symbols = universe_symbols
+
+    context = TRADE_MARKET_CONTEXT[universe_kind]
+    fx_rates = trade_fx_to_gbp()
+    quote_to_gbp = fx_rates.get(context["currency"], np.nan)
+    benchmark = trade_benchmark_frame(context["benchmark"])
+    price_rows: List[Dict] = []
+    deep_candidates: List[tuple[str, Dict]] = []
+
+    for start in range(0, len(symbols), 60):
+        chunk = symbols[start:start + 60]
+        try:
+            data = yf.download(
+                tickers=chunk,
+                period="3y",
+                interval="1d",
+                group_by="ticker",
+                auto_adjust=False,
+                threads=True,
+                progress=False,
+            )
+        except Exception:
+            continue
+        for symbol in chunk:
+            try:
+                frame = extract_ticker_frame(data, symbol)
+                if frame is None or len(frame.dropna(subset=["Close", "Volume"])) < 252:
+                    continue
+                raw_turnover = (frame["Close"] * frame["Volume"]).dropna().tail(20).median()
+                turnover_gbp = raw_turnover * context["price_scale"] * quote_to_gbp
+                if not math.isfinite(turnover_gbp) or turnover_gbp < 5_000_000:
+                    continue
+                technical = evaluate_price_setup(frame, benchmark)
+                if technical.get("technical_state") == "WATCH":
+                    price_rows.append({
+                        "Status": "WATCH",
+                        "Ticker": symbol,
+                        "Reason": technical.get("technical_reason"),
+                        "Price": technical.get("price"),
+                        "RSI": technical.get("rsi"),
+                        "Median traded value £m": turnover_gbp / 1_000_000,
+                        "Technical score": np.nan,
+                        "Tier": "—",
+                    })
+                elif technical.get("technical_state") in {"ENTRY READY", "AWAITING NEXT OPEN"}:
+                    exact_turnover_gbp = technical["turnover_median_20"] * context["price_scale"] * quote_to_gbp
+                    if not math.isfinite(exact_turnover_gbp) or exact_turnover_gbp < 5_000_000:
+                        continue
+                    technical["turnover_gbp"] = exact_turnover_gbp
+                    deep_candidates.append((symbol, technical))
+            except Exception:
+                continue
+
+    snapshots = []
+    snapshot_by_symbol = {}
+    for symbol, _technical in deep_candidates:
+        try:
+            snapshot = build_fundamental_snapshot(symbol, yf.Ticker(symbol))
+            snapshots.append(snapshot)
+            snapshot_by_symbol[symbol] = snapshot
+        except Exception:
+            snapshot_by_symbol[symbol] = None
+
+    for symbol, technical in deep_candidates:
+        snapshot = snapshot_by_symbol.get(symbol)
+        if snapshot is None:
+            price_rows.append({
+                "Status": "BLOCKED",
+                "Ticker": symbol,
+                "Reason": "FUNDAMENTAL DATA INCOMPLETE",
+                "Price": technical.get("price"),
+                "RSI": technical.get("rsi"),
+                "Median traded value £m": technical["turnover_gbp"] / 1_000_000,
+                "Technical score": technical.get("technical_score"),
+                "Tier": technical.get("technical_tier"),
+            })
+            continue
+        rate = fx_rates.get(snapshot.currency, np.nan)
+        sessions = business_sessions_until(snapshot.earnings_date)
+        fundamental = score_fundamental_snapshot(
+            snapshot,
+            snapshots,
+            rate,
+            sessions,
+            # A global official-announcement feed is not configured. The approved
+            # rulebook therefore requires the fail-safe block instead of guessing.
+            official_event_verified=False,
+        )
+        failures = fundamental["fundamental_failures"]
+        if failures:
+            status = "BLOCKED"
+            reason = "; ".join(failures)
+        elif technical["technical_state"] == "AWAITING NEXT OPEN":
+            status = "WATCH"
+            reason = "VALID DAILY CLOSE — AWAITING NEXT OPEN"
+        else:
+            status = "PAPER CANDIDATE"
+            reason = "ALL APPROVED GATES PASS"
+        price_rows.append({
+            "Status": status,
+            "Ticker": symbol,
+            "Company": snapshot.company,
+            "Reason": reason,
+            "Warnings": "; ".join(fundamental["fundamental_warnings"]) or "—",
+            "Signal date": pd.Timestamp(technical["signal_date"]).date(),
+            "Entry date": pd.Timestamp(technical["entry_date"]).date() if not pd.isna(technical["entry_date"]) else "NEXT OPEN",
+            "Entry": technical.get("entry"),
+            "Stop": technical.get("stop"),
+            "Target": technical.get("target"),
+            "Target basis": technical.get("target_source"),
+            "Stop distance %": technical.get("stop_distance_pct"),
+            "Upside %": technical.get("upside_pct"),
+            "R:R": technical.get("reward_risk"),
+            "RSI": technical.get("rsi"),
+            "Median traded value £m": technical["turnover_gbp"] / 1_000_000,
+            "Market cap £m": fundamental["market_cap_gbp"] / 1_000_000 if math.isfinite(fundamental["market_cap_gbp"]) else np.nan,
+            "Fundamental score": fundamental["fundamental_score"],
+            "Technical score": technical.get("technical_score"),
+            "Tier": technical.get("technical_tier"),
+            "Market regime": technical.get("market_state"),
+            "RS recovery %": technical.get("relative_strength_pct"),
+            "Volume ratio": technical.get("volume_ratio"),
+            "FCF evidence years": fundamental["fcf_evidence_years"],
+            "Margin benchmark": fundamental["operating_margin_basis"],
+            "FCF benchmark": fundamental["fcf_margin_basis"],
+            "Earnings date": snapshot.earnings_date.date() if snapshot.earnings_date is not None else "UNVERIFIED",
+            "Earnings source": snapshot.earnings_source,
+            "Event check": "UNVERIFIED — FAIL-SAFE BLOCK",
+        })
+
+    if not price_rows:
+        return pd.DataFrame()
+    output = pd.DataFrame(price_rows)
+    order = {"PAPER CANDIDATE": 0, "WATCH": 1, "BLOCKED": 2}
+    output["_status_order"] = output["Status"].map(order).fillna(9)
+    output = output.sort_values(
+        ["_status_order", "Technical score"], ascending=[True, False], na_position="last"
+    ).drop(columns="_status_order")
+    return output.reset_index(drop=True)
+
+
 def deep_score_shortlist(pre: pd.DataFrame, n: int) -> pd.DataFrame:
     if pre.empty:
         return pd.DataFrame()
@@ -1684,23 +1890,45 @@ with tab2:
 
 with tab3:
     st.subheader("Trade Search")
-    st.caption("Searches the selected market universe for technical trade setups only. Fundamental quality is no longer a second mandatory stage of this search.")
+    st.caption(
+        "Approved value-driven swing rulebook. The scanner identifies and ranks paper-trade candidates; "
+        "it does not size positions or place orders."
+    )
 
-    u1, u2, u3, u4 = st.columns(4)
+    u1, u2, u3 = st.columns(3)
     with u1:
         universe_label = st.selectbox("Universe", list(PUBLIC_UNIVERSES.keys()), index=0)
     with u2:
-        cap_choice = st.selectbox("Maximum symbols", [250, 500, 1000, 2000, 0], index=2, format_func=lambda x: "All" if x == 0 else f"{x:,}")
+        cap_choice = st.selectbox(
+            "Maximum symbols", [250, 500, 1000, 2000, 0], index=1,
+            format_func=lambda x: "All" if x == 0 else f"{x:,}",
+        )
     with u3:
-        min_turnover_m = st.number_input("Min avg daily turnover (m)", 0.1, 100.0, 1.0, 0.5)
-    with u4:
-        st.metric("Search type", "TECHNICAL ONLY")
+        st.metric("Mode", "PAPER OBSERVATION")
 
-    st.caption("Choose the market universe that matches the scan you want; 1,000 symbols and £/$1m+ average daily turnover remains a sensible starting scan size.")
+    with st.expander("Active hard gates and ranking model", expanded=False):
+        st.markdown(
+            """
+- **Universe:** excludes Financial Services and Real Estate; market cap ≥ £500m; median 20-session traded value ≥ £5m; at least 252 daily sessions.
+- **Fundamentals:** quality score ≥65, positive-FCF tests, net debt/FCF ≤4×, dilution ≤5%, deterioration and extreme-risk gates.
+- **Setup:** rising SMA180 and SMA200, MA-zone contact, valid sub-30 RSI recovery, current-session confirmed MACD crossover.
+- **Entry/risk:** following open within ±0.5 ATR, no more than 1 ATR above the MA zone, structural stop ≤10% away.
+- **Target:** nearest verified resistance or 52-week-high fallback, buffered by 0.25 ATR; at least 10% upside and 2:1 reward/risk.
+- **Ranking only:** support confluence, 10-session relative strength, MACD location, volume, candle structure and three-state market regime.
+- **Event safety:** earnings inside five sessions block. An incomplete official-announcement check triggers the approved fail-safe block.
+            """
+        )
+
+    st.info(
+        "The official global company-announcement feed is not configured in this app. "
+        "In accordance with the approved rule, otherwise valid setups remain BLOCKED with "
+        "FAIL-SAFE EVENT BLOCK rather than being silently passed."
+    )
 
     if st.button("Run Trade Search", type="primary", use_container_width=True):
         with st.spinner("Loading public stock universe…"):
-            universe = get_universe(PUBLIC_UNIVERSES[universe_label])
+            universe_kind = PUBLIC_UNIVERSES[universe_label]
+            universe = get_universe(universe_kind)
 
         if not universe:
             st.error("The public universe list could not be loaded right now.")
@@ -1708,24 +1936,44 @@ with tab3:
             limit_text = "all" if cap_choice == 0 else f"{min(cap_choice, len(universe)):,}"
             st.info(f"Universe loaded: {len(universe):,} tickers. Scanning {limit_text} symbols.")
 
-            with st.spinner("Scanning price, volume, support, momentum and risk/reward…"):
-                pre = technical_market_scan(tuple(universe), cap_choice, min_turnover_m * 1_000_000)
+            with st.spinner("Running the approved price, liquidity, fundamental, target and event gates…"):
+                pre = approved_trade_market_scan(tuple(universe), cap_choice, universe_kind)
 
             if pre.empty:
-                st.warning("No symbols returned usable technical data under these filters.")
+                st.warning("No current WATCH or confirmed crossover setups met the approved scan conditions.")
             else:
-                st.success(f"Trade Search complete: {len(pre):,} liquid stocks scored technically.")
-                st.subheader("Best technical trade setups")
+                paper_count = int((pre["Status"] == "PAPER CANDIDATE").sum())
+                watch_count = int((pre["Status"] == "WATCH").sum())
+                blocked_count = int((pre["Status"] == "BLOCKED").sum())
+                st.success(
+                    f"Trade Search complete: {paper_count} paper candidates, "
+                    f"{watch_count} watch setups and {blocked_count} blocked setups."
+                )
+                st.subheader("Trade rulebook results")
                 quick_cols = [
-                    "Ticker", "Candle caution", "Last candle", "Channel", "Channel pos %",
-                    "Channel R:R", "Channel quality", "Trade", "Price", "RSI", "R:R",
-                    "Upside %", "Preferred now", "Strong now", "Target"
+                    "Status", "Ticker", "Company", "Reason", "Tier", "Fundamental score",
+                    "Technical score", "Entry", "Stop", "Target", "R:R", "Upside %",
+                    "RSI", "Market regime", "Median traded value £m",
                 ]
-                st.dataframe(pre[quick_cols].head(30), hide_index=True, use_container_width=True)
+                visible_quick = [column for column in quick_cols if column in pre.columns]
+                st.dataframe(
+                    pre[visible_quick].head(50).style.map(action_cell_style, subset=["Status"]),
+                    hide_index=True,
+                    use_container_width=True,
+                )
+                with st.expander("Full rule evidence", expanded=False):
+                    st.dataframe(pre, hide_index=True, use_container_width=True)
+                    st.download_button(
+                        "Download Trade Search evidence (CSV)",
+                        pre.to_csv(index=False).encode("utf-8"),
+                        file_name="trade_search_rulebook_results.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
 
                 st.caption(
-                    "This search intentionally stops at the technical setup. "
-                    "Use Fundamental Search separately when you want to research company quality and valuation."
+                    "WATCH means the trigger or next-open validation is not complete. PAPER CANDIDATE is "
+                    "reserved for a fully validated paper setup. BLOCKED always includes the failed gate in Reason."
                 )
 
 with tab4:
