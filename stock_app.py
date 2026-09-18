@@ -31,7 +31,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.9"
+TRADE_RULEBOOK_BUILD = "2026.09.18.10"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1470,17 +1470,25 @@ def approved_trade_market_scan(
             continue
         rate = fx_rates.get(snapshot.currency, np.nan)
         sessions = business_sessions_until(snapshot.earnings_date)
+        # Score once using the established rule function, then separate numerical
+        # failures from event-only failures. This keeps WATCH setups visible while
+        # deferring event verification until a setup is candidate-ready.
         fundamental = score_fundamental_snapshot(
             snapshot,
             snapshots,
             rate,
             sessions,
-            # Event verification is intentionally deferred until a share has passed
-            # the numerical fundamental gates and reached provisional-candidate stage.
             official_event_verified=False,
-            apply_event_gate=False,
         )
-        failures = fundamental["fundamental_failures"]
+        all_failures = list(fundamental["fundamental_failures"])
+        event_failures = [
+            failure for failure in all_failures
+            if failure == "EARNINGS DATE UNVERIFIED"
+            or failure.startswith("EARNINGS WAIT")
+            or failure.startswith("FAIL-SAFE EVENT BLOCK")
+        ]
+        failures = [failure for failure in all_failures if failure not in event_failures]
+
         if "EXCLUDED SECTOR" in failures:
             status = "BLOCKED"
             reason = "EXCLUDED SECTOR"
@@ -1490,28 +1498,15 @@ def approved_trade_market_scan(
         elif technical["technical_state"] == "WATCH":
             status = "WATCH"
             reason = technical["technical_reason"]
+        elif event_failures:
+            status = "BLOCKED"
+            reason = "; ".join(event_failures)
+        elif technical["technical_state"] == "AWAITING NEXT OPEN":
+            status = "WATCH"
+            reason = "VALID DAILY CLOSE — AWAITING NEXT OPEN"
         else:
-            candidate_check = score_fundamental_snapshot(
-                snapshot,
-                snapshots,
-                rate,
-                sessions,
-                official_event_verified=False,
-                apply_event_gate=True,
-            )
-            event_failures = [
-                failure for failure in candidate_check["fundamental_failures"]
-                if failure not in failures
-            ]
-            if event_failures:
-                status = "BLOCKED"
-                reason = "; ".join(event_failures)
-            elif technical["technical_state"] == "AWAITING NEXT OPEN":
-                status = "WATCH"
-                reason = "VALID DAILY CLOSE — AWAITING NEXT OPEN"
-            else:
-                status = "PAPER CANDIDATE"
-                reason = "ALL APPROVED GATES PASS"
+            status = "PAPER CANDIDATE"
+            reason = "ALL APPROVED GATES PASS"
         price_rows.append({
             "Status": status,
             "Ticker": symbol,
