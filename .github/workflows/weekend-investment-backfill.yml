@@ -1,0 +1,71 @@
+name: Weekend investment fundamentals backfill
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/investment-backfill-kick.txt"
+  schedule:
+    # Staggered from the Trade job to avoid simultaneous writes to main while
+    # both independent pipelines continue throughout the weekend.
+    - cron: "45 */2 * * 5,6,0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-investment-scan
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fill missing Investment fundamentals
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scheduled_investment_scan.py \
+            --exchange all \
+            --max-symbols-per-exchange 50 \
+            --min-market-cap-bn 0.5 \
+            --workers 2 \
+            --gap-fill \
+            --closed-markets-only \
+            --resume
+
+      - name: Save Investment fundamentals backfill
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -d prepared_scans ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_scans
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Backfill prepared Investment fundamentals"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          exit 1
