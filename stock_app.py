@@ -31,7 +31,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.10"
+TRADE_RULEBOOK_BUILD = "2026.09.18.11"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1095,8 +1095,9 @@ def _is_yahoo_rate_limit_error(exc: Exception) -> bool:
 
 
 @st.cache_data(ttl=21600, show_spinner=False)
-def trade_fundamental_snapshot(symbol: str):
-    """Cache only successful Yahoo snapshots; Yahoo is fallback, not the primary batch source."""
+def trade_fundamental_snapshot(symbol: str, model_version: str):
+    """Cache Yahoo fallback data by Trade-rule build so stale snapshots cannot survive a rules update."""
+    _ = model_version
     return build_fundamental_snapshot(symbol, yf.Ticker(symbol))
 
 
@@ -1297,8 +1298,11 @@ def _tv_snapshot(symbol: str, row: Dict) -> FundamentalSnapshot:
 
 
 @st.cache_data(ttl=21600, show_spinner=False)
-def trade_tradingview_snapshots(symbols_tuple: tuple[str, ...], universe_kind: str) -> Dict[str, FundamentalSnapshot]:
-    """Fetch Trade fundamentals in one request instead of one Yahoo request per company."""
+def trade_tradingview_snapshots(
+    symbols_tuple: tuple[str, ...], universe_kind: str, model_version: str
+) -> Dict[str, FundamentalSnapshot]:
+    """Fetch Trade fundamentals in one request; rule build is part of the cache key."""
+    _ = model_version
     source = TRADE_TV_SOURCE.get(universe_kind)
     if not source or not symbols_tuple:
         return {}
@@ -1403,7 +1407,9 @@ def approved_trade_market_scan(
     # symbol. This avoids Yahoo's per-company quote-summary throttling.
     candidate_symbols = tuple(symbol for symbol, _technical in deep_candidates)
     try:
-        tv_snapshots = trade_tradingview_snapshots(candidate_symbols, universe_kind)
+        tv_snapshots = trade_tradingview_snapshots(
+            candidate_symbols, universe_kind, TRADE_RULEBOOK_BUILD
+        )
     except Exception as exc:
         tv_snapshots = {}
         tv_batch_error = type(exc).__name__
@@ -1431,7 +1437,7 @@ def approved_trade_market_scan(
             if delay:
                 time.sleep(delay)
             try:
-                snapshot = trade_fundamental_snapshot(symbol)
+                snapshot = trade_fundamental_snapshot(symbol, TRADE_RULEBOOK_BUILD)
                 snapshots.append(snapshot)
                 snapshot_by_symbol[symbol] = snapshot
                 last_exc = None
