@@ -22,7 +22,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: nightly-trade-fundamentals
+  group: trade-fundamentals-cache
   cancel-in-progress: false
 
 jobs:
