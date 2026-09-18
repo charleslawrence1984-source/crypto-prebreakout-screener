@@ -30,6 +30,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
+TRADE_RULEBOOK_BUILD = "2026.09.18.3"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1082,8 +1083,12 @@ def trade_benchmark_frame(symbol: str) -> pd.DataFrame:
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def approved_trade_market_scan(
-    symbols_tuple: tuple[str, ...], max_symbols: int, universe_kind: str
+    symbols_tuple: tuple[str, ...], max_symbols: int, universe_kind: str,
+    model_version: str,
 ) -> pd.DataFrame:
+    # The explicit version is part of Streamlit's cache key. Bumping it prevents
+    # results produced by an earlier rule ordering from being reused.
+    _ = model_version
     universe_symbols = list(symbols_tuple)
     if max_symbols > 0 and max_symbols < len(universe_symbols):
         indexes = np.linspace(0, len(universe_symbols) - 1, max_symbols, dtype=int)
@@ -1889,6 +1894,7 @@ with tab2:
 
 with tab3:
     st.subheader("Trade Search")
+    st.caption(f"Rulebook build: {TRADE_RULEBOOK_BUILD}")
     st.caption(
         "Approved value-driven swing rulebook. The scanner identifies and ranks paper-trade candidates; "
         "it does not size positions or place orders."
@@ -1936,7 +1942,9 @@ with tab3:
             st.info(f"Universe loaded: {len(universe):,} tickers. Scanning {limit_text} symbols.")
 
             with st.spinner("Running the approved price, liquidity, fundamental, target and event gates…"):
-                pre = approved_trade_market_scan(tuple(universe), cap_choice, universe_kind)
+                pre = approved_trade_market_scan(
+                    tuple(universe), cap_choice, universe_kind, TRADE_RULEBOOK_BUILD
+                )
 
             if pre.empty:
                 st.warning("No current WATCH or confirmed crossover setups met the approved scan conditions.")

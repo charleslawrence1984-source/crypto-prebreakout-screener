@@ -43,7 +43,7 @@ class WatchScanTests(TestCase):
                         if isinstance(node, ast.FunctionDef) and node.name == "approved_trade_market_scan")
         function.decorator_list = []
         exec(compile(ast.Module(body=[function], type_ignores=[]), "stock_app.py", "exec"), namespace)
-        result = namespace["approved_trade_market_scan"](("TEST",), 0, "test")
+        result = namespace["approved_trade_market_scan"](("TEST",), 0, "test", "TEST-BUILD")
         namespace["build_fundamental_snapshot"].assert_called_once()
         return result.iloc[0]
 
