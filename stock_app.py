@@ -31,7 +31,8 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.11"
+TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
+TRADE_RULEBOOK_BUILD = "2026.09.18.12"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1104,12 +1105,12 @@ def trade_fundamental_snapshot(symbol: str, model_version: str):
 TRADE_TV_SOURCE = {
     "nasdaq": ("america", "NASDAQ"),
     "nyse": ("america", "NYSE"),
-    "otc": ("america", "OTC"),
     "lse": ("uk", "LSE"),
     "lse_aim": ("uk", "LSE"),
-    "tsx": ("canada", "TSX"),
-    "xetra": ("germany", "XETR"),
-    "gettex": ("germany", "GETTEX"),
+    **{
+        kind: (market, exchange)
+        for kind, (market, exchange, _suffix) in TRADINGVIEW_UNIVERSES.items()
+    },
 }
 
 TRADE_TV_COLUMNS = [
@@ -1140,7 +1141,7 @@ TRADE_TV_COLUMNS = [
 def _tv_symbol(symbol: str, exchange: str) -> str:
     """Translate Yahoo-style tickers into TradingView's exchange:symbol notation."""
     value = str(symbol).strip().upper()
-    suffixes = (".L", ".TO", ".PA", ".DE", ".SW", ".MC", ".BR", ".VI", ".AS", ".LS")
+    suffixes = (".L", ".TO", ".PA", ".DE", ".MU", ".SW", ".MC", ".BR", ".VI", ".AS", ".LS")
     for suffix in suffixes:
         if value.endswith(suffix):
             value = value[:-len(suffix)]
@@ -1341,6 +1342,163 @@ def trade_tradingview_snapshots(
     return output
 
 
+def trade_snapshot_to_record(snapshot: FundamentalSnapshot) -> Dict:
+    """Serialize one Trade fundamental snapshot for the nightly prepared cache."""
+    earnings_date = ""
+    if snapshot.earnings_date is not None and not pd.isna(snapshot.earnings_date):
+        earnings_date = pd.Timestamp(snapshot.earnings_date).isoformat()
+    return {
+        "Ticker": snapshot.symbol,
+        "Company": snapshot.company,
+        "Sector": snapshot.sector,
+        "Industry": snapshot.industry,
+        "Currency": snapshot.currency,
+        "Market cap": snapshot.market_cap,
+        "ROIC": snapshot.roic,
+        "ROE": snapshot.roe,
+        "Operating margin": snapshot.operating_margin,
+        "FCF margin": snapshot.fcf_margin,
+        "Annual FCF": json.dumps(snapshot.annual_fcf),
+        "Annual net income": json.dumps(snapshot.annual_net_income),
+        "Net debt / FCF": snapshot.net_debt_to_fcf,
+        "Interest coverage": snapshot.interest_coverage,
+        "No interest expense": bool(snapshot.no_interest_expense),
+        "Current ratio": snapshot.current_ratio,
+        "Revenue growth": snapshot.revenue_growth,
+        "Earnings growth": snapshot.earnings_growth,
+        "Operating growth": snapshot.operating_growth,
+        "Growth source": snapshot.growth_source,
+        "Share change": snapshot.share_change,
+        "Distribution ratio": snapshot.distribution_ratio,
+        "Earnings date": earnings_date,
+        "Earnings source": snapshot.earnings_source,
+        "Trailing PE": snapshot.trailing_pe,
+        "Price sales": snapshot.price_sales,
+        "Missing hard inputs": json.dumps(snapshot.missing_hard_inputs),
+        "Trailing FCF": snapshot.trailing_fcf,
+    }
+
+
+def _prepared_json_list(value) -> list:
+    if isinstance(value, list):
+        return value
+    if value is None:
+        return []
+    try:
+        if pd.isna(value):
+            return []
+    except Exception:
+        pass
+    try:
+        parsed = json.loads(str(value))
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
+def _prepared_text(value, default: str) -> str:
+    if value is None:
+        return default
+    try:
+        if pd.isna(value):
+            return default
+    except Exception:
+        pass
+    text_value = str(value).strip()
+    return text_value or default
+
+
+def trade_snapshot_from_record(row: Dict) -> FundamentalSnapshot:
+    """Rehydrate a nightly Trade fundamental snapshot."""
+    symbol = _prepared_text(row.get("Ticker"), "")
+    earnings_raw = row.get("Earnings date")
+    earnings_date = None
+    try:
+        parsed = pd.to_datetime(earnings_raw, errors="coerce")
+        if not pd.isna(parsed):
+            earnings_date = pd.Timestamp(parsed)
+    except Exception:
+        earnings_date = None
+
+    no_interest_raw = row.get("No interest expense")
+    no_interest = str(no_interest_raw).strip().lower() in {"true", "1", "yes"}
+
+    return FundamentalSnapshot(
+        symbol=symbol,
+        company=_prepared_text(row.get("Company"), symbol),
+        sector=_prepared_text(row.get("Sector"), "UNAVAILABLE"),
+        industry=_prepared_text(row.get("Industry"), "UNAVAILABLE"),
+        currency=_prepared_text(row.get("Currency"), "UNAVAILABLE").upper(),
+        market_cap=safe(row.get("Market cap")),
+        roic=safe(row.get("ROIC")),
+        roe=safe(row.get("ROE")),
+        operating_margin=safe(row.get("Operating margin")),
+        fcf_margin=safe(row.get("FCF margin")),
+        annual_fcf=[safe(value) for value in _prepared_json_list(row.get("Annual FCF")) if math.isfinite(safe(value))],
+        annual_net_income=[
+            safe(value) for value in _prepared_json_list(row.get("Annual net income"))
+            if math.isfinite(safe(value))
+        ],
+        net_debt_to_fcf=safe(row.get("Net debt / FCF")),
+        interest_coverage=safe(row.get("Interest coverage")),
+        no_interest_expense=no_interest,
+        current_ratio=safe(row.get("Current ratio")),
+        revenue_growth=safe(row.get("Revenue growth")),
+        earnings_growth=safe(row.get("Earnings growth")),
+        operating_growth=safe(row.get("Operating growth")),
+        growth_source=_prepared_text(row.get("Growth source"), "PREPARED"),
+        share_change=safe(row.get("Share change")),
+        distribution_ratio=safe(row.get("Distribution ratio")),
+        earnings_date=earnings_date,
+        earnings_source=_prepared_text(row.get("Earnings source"), "UNVERIFIED"),
+        trailing_pe=safe(row.get("Trailing PE")),
+        price_sales=safe(row.get("Price sales")),
+        missing_hard_inputs=[
+            str(value) for value in _prepared_json_list(row.get("Missing hard inputs"))
+        ],
+        trailing_fcf=safe(row.get("Trailing FCF")),
+    )
+
+
+def prepared_trade_path(kind: str) -> Path:
+    return TRADE_PREPARED_DIR / f"{kind}.csv.gz"
+
+
+def prepared_trade_metadata(kind: str) -> dict:
+    manifest_path = TRADE_PREPARED_DIR / "manifest.json"
+    if not manifest_path.exists():
+        return {}
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        return manifest.get("exchanges", {}).get(kind, {})
+    except Exception:
+        return {}
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def load_prepared_trade_snapshots(
+    kind: str, modified_ns: int, model_version: str
+) -> Dict[str, FundamentalSnapshot]:
+    """Load the nightly Trade fundamentals; file timestamp and rule build invalidate cache."""
+    _ = (modified_ns, model_version)
+    path = prepared_trade_path(kind)
+    if not path.exists():
+        return {}
+    try:
+        frame = pd.read_csv(path, compression="gzip")
+    except Exception:
+        return {}
+    output: Dict[str, FundamentalSnapshot] = {}
+    for row in frame.to_dict(orient="records"):
+        try:
+            snapshot = trade_snapshot_from_record(row)
+            if snapshot.symbol:
+                output[snapshot.symbol] = snapshot
+        except Exception:
+            continue
+    return output
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def approved_trade_market_scan(
     symbols_tuple: tuple[str, ...], max_symbols: int, universe_kind: str,
@@ -1403,24 +1561,44 @@ def approved_trade_market_scan(
     snapshot_by_symbol = {}
     snapshot_error_by_symbol = {}
 
-    # Primary source: one TradingView batch request for every technically eligible
-    # symbol. This avoids Yahoo's per-company quote-summary throttling.
     candidate_symbols = tuple(symbol for symbol, _technical in deep_candidates)
-    try:
-        tv_snapshots = trade_tradingview_snapshots(
-            candidate_symbols, universe_kind, TRADE_RULEBOOK_BUILD
+
+    # Fast path: use fundamentals prepared by the 22:15 UK nightly job. Keep the
+    # complete prepared exchange in the peer set so margin scoring has broad peers.
+    prepared_all: Dict[str, FundamentalSnapshot] = {}
+    prepared_path = prepared_trade_path(universe_kind)
+    if prepared_path.exists():
+        prepared_all = load_prepared_trade_snapshots(
+            universe_kind,
+            prepared_path.stat().st_mtime_ns,
+            TRADE_RULEBOOK_BUILD,
         )
-    except Exception as exc:
-        tv_snapshots = {}
-        tv_batch_error = type(exc).__name__
+    snapshots.extend(prepared_all.values())
+    for symbol in candidate_symbols:
+        snapshot = prepared_all.get(symbol)
+        if snapshot is not None:
+            snapshot_by_symbol[symbol] = snapshot
+
+    # Live TradingView is now only a fallback for candidates absent from the nightly
+    # cache, so the normal Trade Search avoids repeating slow fundamentals work.
+    live_needed = tuple(symbol for symbol in candidate_symbols if symbol not in snapshot_by_symbol)
+    if live_needed:
+        try:
+            tv_snapshots = trade_tradingview_snapshots(
+                live_needed, universe_kind, TRADE_RULEBOOK_BUILD
+            )
+        except Exception as exc:
+            tv_snapshots = {}
+            tv_batch_error = type(exc).__name__
+        else:
+            tv_batch_error = None
+        snapshots.extend(tv_snapshots.values())
+        snapshot_by_symbol.update(tv_snapshots)
     else:
         tv_batch_error = None
 
-    snapshots.extend(tv_snapshots.values())
-    snapshot_by_symbol.update(tv_snapshots)
-
-    # Yahoo remains a fallback only for symbols TradingView did not return or markets
-    # not yet covered by the batch source.
+    # Yahoo remains the last fallback only for symbols neither the nightly cache nor
+    # TradingView returned.
     provider_cooldown = False
     missing_symbols = [symbol for symbol in candidate_symbols if symbol not in snapshot_by_symbol]
     for fallback_index, symbol in enumerate(missing_symbols):
@@ -2236,6 +2414,20 @@ with tab3:
         )
     with u3:
         st.metric("Mode", "PAPER OBSERVATION")
+
+    selected_trade_kind = PUBLIC_UNIVERSES[universe_label]
+    trade_cache_meta = prepared_trade_metadata(selected_trade_kind)
+    if trade_cache_meta.get("completed_at"):
+        coverage = trade_cache_meta.get("coverage_pct")
+        coverage_text = (
+            f" Coverage: {coverage:.1f}%."
+            if isinstance(coverage, (int, float))
+            else ""
+        )
+        st.caption(
+            f"Nightly Trade fundamentals updated {trade_cache_meta['completed_at']}."
+            f"{coverage_text} Current technical data is still refreshed when you run the scan."
+        )
 
     with st.expander("Active hard gates and ranking model", expanded=False):
         st.markdown(
