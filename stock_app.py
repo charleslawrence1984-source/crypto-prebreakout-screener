@@ -20,6 +20,7 @@ from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis
 from two_strategy import investment_decision
 from trade_rules import (
+    FundamentalSnapshot,
     build_fundamental_snapshot,
     business_sessions_until,
     evaluate_price_setup,
@@ -30,7 +31,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.6"
+TRADE_RULEBOOK_BUILD = "2026.09.18.7"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1095,8 +1096,225 @@ def _is_yahoo_rate_limit_error(exc: Exception) -> bool:
 
 @st.cache_data(ttl=21600, show_spinner=False)
 def trade_fundamental_snapshot(symbol: str):
-    """Cache only successful fundamental snapshots so reruns do not hammer Yahoo."""
+    """Cache only successful Yahoo snapshots; Yahoo is fallback, not the primary batch source."""
     return build_fundamental_snapshot(symbol, yf.Ticker(symbol))
+
+
+TRADE_TV_SOURCE = {
+    "nasdaq": ("america", "NASDAQ"),
+    "nyse": ("america", "NYSE"),
+    "otc": ("america", "OTC"),
+    "lse": ("uk", "LSE"),
+    "lse_aim": ("uk", "LSE"),
+    "tsx": ("canada", "TSX"),
+    "xetra": ("germany", "XETR"),
+    "gettex": ("germany", "GETTEX"),
+}
+
+TRADE_TV_COLUMNS = [
+    "name",
+    "sector",
+    "industry",
+    "fundamental_currency_code",
+    "market_cap_basic",
+    "return_of_invested_capital_percent_ttm",
+    "return_on_equity",
+    "operating_margin_ttm",
+    "free_cash_flow_ttm",
+    "net_debt",
+    "current_ratio_fq",
+    "total_revenue_ttm",
+    "total_revenue_fy_h",
+    "net_income_fy_h",
+    "free_cash_flow_fy_h",
+    "earnings_per_share_basic_fy_h",
+    "ebitda_fy_h",
+    "earnings_release_next_calendar_date",
+    "price_earnings_current",
+    "price_sales_current",
+]
+
+
+def _tv_symbol(symbol: str, exchange: str) -> str:
+    """Translate Yahoo-style tickers into TradingView's exchange:symbol notation."""
+    value = str(symbol).strip().upper()
+    suffixes = (".L", ".TO", ".PA", ".DE", ".SW", ".MC", ".BR", ".VI", ".AS", ".LS")
+    for suffix in suffixes:
+        if value.endswith(suffix):
+            value = value[:-len(suffix)]
+            break
+    # US class shares commonly use '-' in Yahoo and '.' in TradingView.
+    if exchange in {"NASDAQ", "NYSE"}:
+        value = value.replace("-", ".")
+    return f"{exchange}:{value}"
+
+
+def _tv_numeric_history(value) -> list[float]:
+    """Flatten TradingView num_slice fields while preserving their reported order."""
+    output: list[float] = []
+
+    def visit(item):
+        if item is None:
+            return
+        if isinstance(item, bool):
+            return
+        if isinstance(item, (int, float, np.number)):
+            number = safe(item)
+            if math.isfinite(number):
+                output.append(float(number))
+            return
+        if isinstance(item, dict):
+            # num_slice payloads can be nested; values are the useful portion.
+            for child in item.values():
+                visit(child)
+            return
+        if isinstance(item, (list, tuple)):
+            for child in item:
+                visit(child)
+
+    visit(value)
+    return output
+
+
+def _tv_growth(values: list[float]) -> float:
+    if len(values) < 2:
+        return np.nan
+    latest, previous = values[0], values[1]
+    if not math.isfinite(latest) or not math.isfinite(previous) or previous <= 0:
+        return np.nan
+    return latest / previous - 1.0
+
+
+def _tv_timestamp(value):
+    if value is None:
+        return None
+    try:
+        if isinstance(value, (int, float, np.number)) and math.isfinite(float(value)):
+            raw = float(value)
+            unit = "ms" if abs(raw) > 10_000_000_000 else "s"
+            ts = pd.to_datetime(raw, unit=unit, utc=True, errors="coerce")
+        else:
+            ts = pd.to_datetime(value, utc=True, errors="coerce")
+        if pd.isna(ts):
+            return None
+        return pd.Timestamp(ts).tz_localize(None)
+    except Exception:
+        return None
+
+
+def _tv_snapshot(symbol: str, row: Dict) -> FundamentalSnapshot:
+    revenue_history = _tv_numeric_history(row.get("total_revenue_fy_h"))
+    income_history = _tv_numeric_history(row.get("net_income_fy_h"))
+    fcf_history = _tv_numeric_history(row.get("free_cash_flow_fy_h"))
+    eps_history = _tv_numeric_history(row.get("earnings_per_share_basic_fy_h"))
+    ebitda_history = _tv_numeric_history(row.get("ebitda_fy_h"))
+
+    fcf_ttm = safe(row.get("free_cash_flow_ttm"))
+    revenue_ttm = safe(row.get("total_revenue_ttm"))
+    net_debt = safe(row.get("net_debt"))
+    fcf_margin = fcf_ttm / revenue_ttm if revenue_ttm > 0 and math.isfinite(fcf_ttm) else np.nan
+    net_debt_to_fcf = max(0.0, net_debt) / fcf_ttm if math.isfinite(net_debt) and fcf_ttm > 0 else np.nan
+
+    implied_shares = []
+    for income, eps in zip(income_history, eps_history):
+        if math.isfinite(income) and math.isfinite(eps) and abs(eps) > 1e-12 and income * eps > 0:
+            implied = income / eps
+            if math.isfinite(implied) and implied > 0:
+                implied_shares.append(implied)
+    share_change = _tv_growth(implied_shares)
+
+    revenue_growth = _tv_growth(revenue_history)
+    earnings_growth = _tv_growth(income_history)
+    # TradingView exposes multi-year EBITDA history but not operating-income history.
+    # EBITDA trend is used only as the operating-profit trend proxy for the existing
+    # deterioration hard gate; the source label makes that fallback explicit.
+    operating_growth = _tv_growth(ebitda_history)
+
+    missing: list[str] = []
+    required = {
+        "three annual FCF periods": len(fcf_history) >= 3,
+        "latest positive FCF": math.isfinite(fcf_ttm),
+        "net debt and FCF": math.isfinite(net_debt_to_fcf),
+        "two share-count periods": len(implied_shares) >= 2 and math.isfinite(share_change),
+        "revenue trend": math.isfinite(revenue_growth),
+        "earnings trend": math.isfinite(earnings_growth),
+        "operating-profit trend": math.isfinite(operating_growth),
+    }
+    for label, available in required.items():
+        if not available:
+            missing.append(label)
+
+    earnings_date = _tv_timestamp(row.get("earnings_release_next_calendar_date"))
+    return FundamentalSnapshot(
+        symbol=symbol,
+        company=str(row.get("name") or symbol),
+        sector=str(row.get("sector") or "UNAVAILABLE"),
+        industry=str(row.get("industry") or "UNAVAILABLE"),
+        currency=str(row.get("fundamental_currency_code") or "UNAVAILABLE").upper(),
+        market_cap=safe(row.get("market_cap_basic")),
+        roic=safe(row.get("return_of_invested_capital_percent_ttm")) / 100.0,
+        roe=safe(row.get("return_on_equity")) / 100.0,
+        operating_margin=safe(row.get("operating_margin_ttm")) / 100.0,
+        fcf_margin=fcf_margin,
+        annual_fcf=fcf_history[:10],
+        annual_net_income=income_history[:3],
+        net_debt_to_fcf=net_debt_to_fcf,
+        interest_coverage=np.nan,
+        no_interest_expense=False,
+        current_ratio=safe(row.get("current_ratio_fq")),
+        revenue_growth=revenue_growth,
+        earnings_growth=earnings_growth,
+        operating_growth=operating_growth,
+        growth_source="TRADINGVIEW FY / EBITDA OPERATING-PROFIT PROXY",
+        share_change=share_change,
+        distribution_ratio=np.nan,
+        earnings_date=earnings_date,
+        earnings_source="TRADINGVIEW CALENDAR" if earnings_date is not None else "UNVERIFIED",
+        trailing_pe=safe(row.get("price_earnings_current")),
+        price_sales=safe(row.get("price_sales_current")),
+        missing_hard_inputs=missing,
+    )
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def trade_tradingview_snapshots(symbols_tuple: tuple[str, ...], universe_kind: str) -> Dict[str, FundamentalSnapshot]:
+    """Fetch Trade fundamentals in one request instead of one Yahoo request per company."""
+    source = TRADE_TV_SOURCE.get(universe_kind)
+    if not source or not symbols_tuple:
+        return {}
+
+    market, exchange = source
+    tv_to_yahoo = {_tv_symbol(symbol, exchange): symbol for symbol in symbols_tuple}
+    payload = {
+        "symbols": {"tickers": list(tv_to_yahoo.keys()), "query": {"types": []}},
+        "columns": TRADE_TV_COLUMNS,
+        "options": {"lang": "en"},
+        "range": [0, max(len(tv_to_yahoo), 1)],
+    }
+    response = requests.post(
+        f"https://scanner.tradingview.com/{market}/scan",
+        json=payload,
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+            "User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0",
+            "Origin": "https://www.tradingview.com",
+            "Referer": "https://www.tradingview.com/",
+        },
+        timeout=20,
+    )
+    response.raise_for_status()
+    body = response.json()
+    output: Dict[str, FundamentalSnapshot] = {}
+    for item in body.get("data", []):
+        tv_name = str(item.get("s") or "").upper()
+        symbol = tv_to_yahoo.get(tv_name)
+        values = item.get("d") or []
+        if symbol is None or not isinstance(values, list):
+            continue
+        row = dict(zip(TRADE_TV_COLUMNS, values))
+        output[symbol] = _tv_snapshot(symbol, row)
+    return output
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -1160,21 +1378,36 @@ def approved_trade_market_scan(
     snapshots = []
     snapshot_by_symbol = {}
     snapshot_error_by_symbol = {}
+
+    # Primary source: one TradingView batch request for every technically eligible
+    # symbol. This avoids Yahoo's per-company quote-summary throttling.
+    candidate_symbols = tuple(symbol for symbol, _technical in deep_candidates)
+    try:
+        tv_snapshots = trade_tradingview_snapshots(candidate_symbols, universe_kind)
+    except Exception as exc:
+        tv_snapshots = {}
+        tv_batch_error = type(exc).__name__
+    else:
+        tv_batch_error = None
+
+    snapshots.extend(tv_snapshots.values())
+    snapshot_by_symbol.update(tv_snapshots)
+
+    # Yahoo remains a fallback only for symbols TradingView did not return or markets
+    # not yet covered by the batch source.
     provider_cooldown = False
-    for candidate_index, (symbol, _technical) in enumerate(deep_candidates):
+    missing_symbols = [symbol for symbol in candidate_symbols if symbol not in snapshot_by_symbol]
+    for fallback_index, symbol in enumerate(missing_symbols):
         if provider_cooldown:
             snapshot_by_symbol[symbol] = None
             snapshot_error_by_symbol[symbol] = "YAHOO RATE LIMIT — RETRY LATER"
             continue
 
-        # Avoid a burst of quote-summary/statement requests immediately after the
-        # batched price-history downloads. Cached snapshots return quickly; uncached
-        # symbols are deliberately paced.
-        if candidate_index:
-            time.sleep(0.35)
+        if fallback_index:
+            time.sleep(0.50)
 
         last_exc = None
-        for attempt, delay in enumerate((0.0, 2.0)):
+        for delay in (0.0, 2.0):
             if delay:
                 time.sleep(delay)
             try:
@@ -1192,12 +1425,12 @@ def approved_trade_market_scan(
             snapshot_by_symbol[symbol] = None
             if _is_yahoo_rate_limit_error(last_exc):
                 snapshot_error_by_symbol[symbol] = type(last_exc).__name__
-                # A second immediate 429 means Yahoo is throttling this app/session.
-                # Stop firing more fundamental requests; leave later candidates
-                # retryable instead of turning a provider outage into false rejects.
                 provider_cooldown = True
             else:
-                snapshot_error_by_symbol[symbol] = type(last_exc).__name__
+                detail = type(last_exc).__name__
+                if tv_batch_error:
+                    detail = f"TRADINGVIEW {tv_batch_error}; YAHOO {detail}"
+                snapshot_error_by_symbol[symbol] = detail
 
     for symbol, technical in deep_candidates:
         snapshot = snapshot_by_symbol.get(symbol)
