@@ -1,0 +1,86 @@
+name: Nightly trade fundamentals
+
+on:
+  workflow_dispatch:
+    inputs:
+      exchange:
+        description: Exchange key or all
+        required: true
+        default: all
+      batch_size:
+        description: TradingView symbols per provider batch
+        required: true
+        default: "500"
+  schedule:
+    # Mirror the existing Investment updater: 22:15 UK on market weekdays.
+    # Both UTC times are triggered; the timezone guard keeps only 22:15 UK
+    # across GMT and BST.
+    - cron: "15 21 * * 1-5"
+    - cron: "15 22 * * 1-5"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nightly-trade-fundamentals
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check UK schedule
+        id: schedule_guard
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "15 21 * * 1-5" ] && [ "$(TZ=Europe/London date +%z)" = "+0100" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "15 22 * * 1-5" ] && [ "$(TZ=Europe/London date +%z)" = "+0000" ]; then
+            echo "run_scan=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_scan=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.schedule_guard.outputs.run_scan == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.schedule_guard.outputs.run_scan == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Refresh Trade fundamentals
+        if: steps.schedule_guard.outputs.run_scan == 'true'
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scheduled_trade_fundamentals.py \
+            --exchange "${{ github.event.inputs.exchange || 'all' }}" \
+            --batch-size "${{ github.event.inputs.batch_size || '500' }}" \
+            --resume
+
+      - name: Save prepared Trade fundamentals
+        if: steps.schedule_guard.outputs.run_scan == 'true' && always()
+        shell: bash
+        run: |
+          if [ ! -d prepared_trade_fundamentals ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_trade_fundamentals
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Update nightly Trade fundamentals"
+          git pull --rebase origin main
+          git push origin HEAD:main
