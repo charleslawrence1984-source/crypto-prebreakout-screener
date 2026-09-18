@@ -24,6 +24,22 @@ def main() -> int:
     parser.add_argument("--exchange", default="all", help="Universe key or 'all'.")
     parser.add_argument("--max-symbols", type=int, default=0, help="0 analyses the full exchange universe.")
     parser.add_argument("--chunk-size", type=int, default=0, help="Rolling symbols per exchange; 0 disables chunking.")
+    parser.add_argument(
+        "--max-symbols-per-exchange",
+        type=int,
+        default=0,
+        help="In gap-fill mode, analyse at most this many missing symbols per exchange; 0 means all gaps.",
+    )
+    parser.add_argument(
+        "--gap-fill",
+        action="store_true",
+        help="Analyse only symbols that are missing from the prepared exchange file.",
+    )
+    parser.add_argument(
+        "--closed-markets-only",
+        action="store_true",
+        help="Defer North America until its regular cash session has closed.",
+    )
     parser.add_argument("--min-market-cap-bn", type=float, default=0.5)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--output-dir", default="prepared_scans")
@@ -50,9 +66,21 @@ def main() -> int:
     london_now = datetime.now(ZoneInfo("Europe/London"))
     run_date = london_now.date().isoformat()
     failures = 0
+    north_america = {"nasdaq", "nyse", "otc", "tsx"}
     for position, kind in enumerate(kinds, start=1):
         previous = manifest["exchanges"].get(kind, {})
-        if args.resume and str(previous.get("completed_at", "")).startswith(run_date):
+        if args.closed_markets_only and kind in north_america:
+            if london_now.weekday() < 5 and (
+                london_now.hour < 21
+                or (london_now.hour == 21 and london_now.minute < 15)
+            ):
+                print(f"[{position}/{len(kinds)}] {kind}: market still open; deferred", flush=True)
+                continue
+        if (
+            args.resume
+            and not args.gap_fill
+            and str(previous.get("completed_at", "")).startswith(run_date)
+        ):
             print(f"[{position}/{len(kinds)}] {kind}: already completed today; skipping", flush=True)
             continue
         started = datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds")
@@ -68,8 +96,26 @@ def main() -> int:
             ]
             if not eligible:
                 raise RuntimeError("no symbols passed the exchange market-cap prefilter")
+            target = output_dir / f"{kind}.csv.gz"
+            existing = pd.DataFrame()
+            if target.exists():
+                try:
+                    existing = pd.read_csv(target, compression="gzip")
+                except Exception:
+                    existing = pd.DataFrame()
+            existing_symbols = set()
+            if not existing.empty and "Ticker" in existing.columns:
+                existing_symbols = set(existing["Ticker"].dropna().astype(str))
+
             cursor = int(previous.get("next_cursor", 0) or 0) % len(eligible)
-            if args.chunk_size > 0:
+            if args.gap_fill:
+                missing_symbols = [symbol for symbol in eligible if symbol not in existing_symbols]
+                if args.max_symbols_per_exchange > 0:
+                    scan_symbols = missing_symbols[: args.max_symbols_per_exchange]
+                else:
+                    scan_symbols = missing_symbols
+                next_cursor = 0
+            elif args.chunk_size > 0:
                 scan_symbols = eligible[cursor:cursor + args.chunk_size]
                 next_cursor = cursor + len(scan_symbols)
                 if next_cursor >= len(eligible):
@@ -77,6 +123,26 @@ def main() -> int:
             else:
                 scan_symbols = eligible
                 next_cursor = 0
+
+            if not scan_symbols:
+                completed_at = datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds")
+                coverage_count = len(existing_symbols.intersection(set(eligible)))
+                manifest["exchanges"][kind] = {
+                    **previous,
+                    "label": labels_by_kind[kind],
+                    "status": "complete",
+                    "completed_at": completed_at,
+                    "universe_symbols": len(universe),
+                    "eligible_symbols": len(eligible),
+                    "coverage_symbols": coverage_count,
+                    "coverage_pct": round(coverage_count / len(eligible) * 100, 1),
+                    "remaining_symbols": 0,
+                    "minimum_market_cap_bn": args.min_market_cap_bn,
+                }
+                manifest["updated_at"] = completed_at
+                save_manifest(manifest_path, manifest)
+                print(f"[{position}/{len(kinds)}] {kind}: no gaps remain; complete", flush=True)
+                continue
 
             def report(completed, total, returned):
                 if completed == total or completed % 25 == 0:
@@ -96,20 +162,24 @@ def main() -> int:
             if results.empty:
                 diagnostics = results.attrs.get("scan_diagnostics", {})
                 raise RuntimeError(f"scan returned no results: {diagnostics}")
-            target = output_dir / f"{kind}.csv.gz"
-            if target.exists() and args.chunk_size > 0:
-                try:
-                    existing = pd.read_csv(target, compression="gzip")
-                except Exception:
-                    existing = pd.DataFrame()
-                if not existing.empty and "Ticker" in existing.columns:
-                    existing = existing[~existing["Ticker"].astype(str).isin(scan_symbols)]
-                    results = pd.concat([existing, results], ignore_index=True)
+            diagnostics = results.attrs.get("scan_diagnostics", {})
+            if not existing.empty and "Ticker" in existing.columns:
+                refreshed_symbols = set(results["Ticker"].dropna().astype(str))
+                existing = existing[~existing["Ticker"].astype(str).isin(refreshed_symbols)]
+                results = pd.concat([existing, results], ignore_index=True)
+            if "Ticker" in results.columns:
+                eligible_set = set(eligible)
+                results = results[
+                    results["Ticker"].astype(str).isin(eligible_set)
+                ].drop_duplicates(subset=["Ticker"], keep="last")
             results.to_csv(target, index=False, compression="gzip")
             completed_at = datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds")
+            coverage_count = int(results["Ticker"].nunique())
+            remaining_symbols = max(len(eligible) - coverage_count, 0)
+            status = "complete" if remaining_symbols == 0 else "partial"
             manifest["exchanges"][kind] = {
                 "label": labels_by_kind[kind],
-                "status": "complete",
+                "status": status,
                 "started_at": started,
                 "completed_at": completed_at,
                 "universe_symbols": len(universe),
@@ -117,17 +187,24 @@ def main() -> int:
                 "chunk_start": cursor,
                 "chunk_symbols": len(scan_symbols),
                 "next_cursor": next_cursor,
-                "coverage_symbols": int(results["Ticker"].nunique()),
-                "coverage_pct": round(results["Ticker"].nunique() / len(eligible) * 100, 1),
+                "coverage_symbols": coverage_count,
+                "coverage_pct": round(coverage_count / len(eligible) * 100, 1),
+                "remaining_symbols": remaining_symbols,
+                "requested_this_run": len(scan_symbols),
+                "returned_this_run": int(diagnostics.get("returned", 0) or 0),
                 "analysed_limit": args.max_symbols,
                 "result_rows": len(results),
                 "minimum_market_cap_bn": args.min_market_cap_bn,
-                "diagnostics": results.attrs.get("scan_diagnostics", {}),
+                "diagnostics": diagnostics,
             }
             manifest["last_completed_exchange"] = kind
             manifest["updated_at"] = completed_at
             save_manifest(manifest_path, manifest)
-            print(f"[{position}/{len(kinds)}] {kind}: saved {len(results)} rows", flush=True)
+            print(
+                f"[{position}/{len(kinds)}] {kind}: {status.upper()}; "
+                f"stored {coverage_count}/{len(eligible)}, {remaining_symbols} gaps remain",
+                flush=True,
+            )
         except Exception as exc:
             failures += 1
             manifest["exchanges"][kind] = {
