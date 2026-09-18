@@ -30,7 +30,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.5"
+TRADE_RULEBOOK_BUILD = "2026.09.18.6"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
