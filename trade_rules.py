@@ -71,6 +71,39 @@ def _annual_fcf(cashflow: pd.DataFrame) -> pd.Series:
     return aligned["operating"] + aligned["capex"]
 
 
+def _ticker_mapping(ticker: Any, attribute: str) -> dict[str, Any]:
+    """Read a Yahoo mapping without allowing one failed endpoint to abort a scan."""
+    try:
+        value = getattr(ticker, attribute)
+        return value if isinstance(value, dict) else dict(value or {})
+    except Exception:
+        return {}
+
+
+def _ticker_statement(
+    ticker: Any,
+    attributes: Iterable[str],
+    methods: Iterable[tuple[str, dict[str, Any]]],
+) -> pd.DataFrame:
+    """Try yfinance's equivalent statement endpoints in a stable order."""
+    for attribute in attributes:
+        try:
+            value = getattr(ticker, attribute)
+            if isinstance(value, pd.DataFrame) and not value.empty:
+                return value
+        except Exception:
+            continue
+    for method_name, kwargs in methods:
+        try:
+            method = getattr(ticker, method_name)
+            value = method(**kwargs)
+            if isinstance(value, pd.DataFrame) and not value.empty:
+                return value
+        except Exception:
+            continue
+    return pd.DataFrame()
+
+
 def _growth(latest: float, previous: float) -> float:
     if not math.isfinite(latest) or not math.isfinite(previous) or previous <= 0:
         return np.nan
@@ -434,11 +467,28 @@ class FundamentalSnapshot:
 
 
 def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
-    info = ticker.info or {}
-    annual_income = ticker.financials
-    quarterly_income = ticker.quarterly_financials
-    annual_cash = ticker.cashflow
-    annual_balance = ticker.balance_sheet
+    info = _ticker_mapping(ticker, "info")
+    fast_info = _ticker_mapping(ticker, "fast_info")
+    annual_income = _ticker_statement(
+        ticker,
+        ["financials", "income_stmt"],
+        [("get_income_stmt", {"freq": "yearly"})],
+    )
+    quarterly_income = _ticker_statement(
+        ticker,
+        ["quarterly_financials", "quarterly_income_stmt"],
+        [("get_income_stmt", {"freq": "quarterly"})],
+    )
+    annual_cash = _ticker_statement(
+        ticker,
+        ["cashflow", "cash_flow"],
+        [("get_cash_flow", {"freq": "yearly"})],
+    )
+    annual_balance = _ticker_statement(
+        ticker,
+        ["balance_sheet"],
+        [("get_balance_sheet", {"freq": "yearly"})],
+    )
 
     revenue = _series(annual_income, ["Total Revenue", "Operating Revenue"])
     net_income = _series(annual_income, ["Net Income", "Net Income Common Stockholders"])
@@ -560,8 +610,8 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
         company=str(info.get("shortName") or info.get("longName") or symbol),
         sector=str(info.get("sector") or "UNAVAILABLE"),
         industry=str(info.get("industry") or "UNAVAILABLE"),
-        currency=str(info.get("currency") or "UNAVAILABLE").upper(),
-        market_cap=_number(info.get("marketCap")),
+        currency=str(info.get("currency") or fast_info.get("currency") or "UNAVAILABLE").upper(),
+        market_cap=_number(info.get("marketCap", fast_info.get("market_cap"))),
         roic=roic,
         roe=roe if equity > 0 else np.nan,
         operating_margin=operating_margin,

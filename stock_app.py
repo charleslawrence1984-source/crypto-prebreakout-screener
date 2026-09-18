@@ -30,7 +30,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.3"
+TRADE_RULEBOOK_BUILD = "2026.09.18.4"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1141,13 +1141,15 @@ def approved_trade_market_scan(
 
     snapshots = []
     snapshot_by_symbol = {}
+    snapshot_error_by_symbol = {}
     for symbol, _technical in deep_candidates:
         try:
             snapshot = build_fundamental_snapshot(symbol, yf.Ticker(symbol))
             snapshots.append(snapshot)
             snapshot_by_symbol[symbol] = snapshot
-        except Exception:
+        except Exception as exc:
             snapshot_by_symbol[symbol] = None
+            snapshot_error_by_symbol[symbol] = type(exc).__name__
 
     for symbol, technical in deep_candidates:
         snapshot = snapshot_by_symbol.get(symbol)
@@ -1155,7 +1157,8 @@ def approved_trade_market_scan(
             price_rows.append({
                 "Status": "BLOCKED",
                 "Ticker": symbol,
-                "Reason": "FUNDAMENTAL DATA INCOMPLETE",
+                "Reason": "FUNDAMENTAL DATA INCOMPLETE — PROVIDER ERROR "
+                          f"({snapshot_error_by_symbol.get(symbol, 'UNKNOWN')})",
                 "Price": technical.get("price"),
                 "RSI": technical.get("rsi"),
                 "Median traded value £m": technical["turnover_gbp"] / 1_000_000,

@@ -5,6 +5,7 @@ import pandas as pd
 
 from trade_rules import (
     FundamentalSnapshot,
+    build_fundamental_snapshot,
     business_sessions_until,
     evaluate_price_setup,
     market_regime_score,
@@ -13,6 +14,23 @@ from trade_rules import (
 
 
 class TradeRulesTests(unittest.TestCase):
+    def test_snapshot_survives_individual_provider_endpoint_failures(self):
+        class PartialTicker:
+            fast_info = {"currency": "GBP", "market_cap": 2_000_000_000}
+
+            def __getattr__(self, _name):
+                raise RuntimeError("provider endpoint unavailable")
+
+            @property
+            def info(self):
+                raise RuntimeError("quote metadata unavailable")
+
+        snapshot = build_fundamental_snapshot("TEST.L", PartialTicker())
+        self.assertEqual(snapshot.currency, "GBP")
+        self.assertEqual(snapshot.market_cap, 2_000_000_000)
+        self.assertEqual(snapshot.sector, "UNAVAILABLE")
+        self.assertIn("three annual FCF periods", snapshot.missing_hard_inputs)
+
     def test_price_history_requires_252_sessions(self):
         index = pd.bdate_range("2025-01-01", periods=251)
         frame = pd.DataFrame(
