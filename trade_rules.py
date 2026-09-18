@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 
-EXCLUDED_SECTORS = {"financial services", "financials", "real estate"}
+EXCLUDED_SECTORS = {"financial services", "financials", "finance", "real estate"}
 
 
 def _number(value: Any, default: float = np.nan) -> float:
@@ -541,6 +541,7 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
     if not math.isfinite(operating_margin) and latest_revenue > 0:
         operating_margin = latest_operating / latest_revenue
     fcf_margin = latest_fcf / latest_revenue if latest_revenue > 0 and math.isfinite(latest_fcf) else np.nan
+    net_debt_data_available = math.isfinite(total_debt) and math.isfinite(cash) and math.isfinite(latest_fcf)
     net_debt = max(0.0, total_debt - cash) if math.isfinite(total_debt) and math.isfinite(cash) else np.nan
     net_debt_to_fcf = net_debt / latest_fcf if math.isfinite(net_debt) and latest_fcf > 0 else np.nan
     latest_interest = abs(_latest(interest))
@@ -617,7 +618,7 @@ def build_fundamental_snapshot(symbol: str, ticker: Any) -> FundamentalSnapshot:
     required = {
         "three annual FCF periods": len(fcf) >= 3,
         "latest positive FCF": math.isfinite(latest_fcf),
-        "net debt and FCF": math.isfinite(net_debt_to_fcf),
+        "net debt and FCF": net_debt_data_available,
         "two share-count periods": len(shares) >= 2 and math.isfinite(share_change),
         "revenue trend": math.isfinite(revenue_growth),
         "earnings trend": math.isfinite(earnings_growth),
@@ -693,6 +694,7 @@ def score_fundamental_snapshot(
     gbp_rate: float,
     earnings_sessions: int | None,
     official_event_verified: bool = False,
+    apply_event_gate: bool = True,
 ) -> dict[str, Any]:
     failures: list[str] = []
     warnings: list[str] = []
@@ -778,12 +780,13 @@ def score_fundamental_snapshot(
         failures.append("FUNDAMENTAL DATA INCOMPLETE — QUALITY SCORE")
     elif score < 65:
         failures.append("FUNDAMENTAL QUALITY SCORE BELOW 65")
-    if earnings_sessions is None or earnings_sessions < 0:
-        failures.append("EARNINGS DATE UNVERIFIED")
-    elif 0 <= earnings_sessions <= 5:
-        failures.append("EARNINGS WAIT — RESULTS WITHIN FIVE SESSIONS")
-    if not official_event_verified:
-        failures.append("FAIL-SAFE EVENT BLOCK — OFFICIAL CHECK UNVERIFIED")
+    if apply_event_gate:
+        if earnings_sessions is None or earnings_sessions < 0:
+            failures.append("EARNINGS DATE UNVERIFIED")
+        elif 0 <= earnings_sessions <= 5:
+            failures.append("EARNINGS WAIT — RESULTS WITHIN FIVE SESSIONS")
+        if not official_event_verified:
+            failures.append("FAIL-SAFE EVENT BLOCK — OFFICIAL CHECK UNVERIFIED")
 
     return {
         "fundamental_score": round(score, 2),
