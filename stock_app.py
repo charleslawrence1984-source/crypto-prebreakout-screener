@@ -31,7 +31,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.7"
+TRADE_RULEBOOK_BUILD = "2026.09.18.8"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1113,6 +1113,7 @@ TRADE_TV_SOURCE = {
 
 TRADE_TV_COLUMNS = [
     "name",
+    "description",
     "sector",
     "industry",
     "fundamental_currency_code",
@@ -1185,6 +1186,21 @@ def _tv_growth(values: list[float]) -> float:
     return latest / previous - 1.0
 
 
+def _tv_profit_growth(values: list[float]) -> float:
+    """Measure deterioration without treating an improving loss as positive growth."""
+    if len(values) < 2:
+        return np.nan
+    latest, previous = values[0], values[1]
+    if not math.isfinite(latest) or not math.isfinite(previous):
+        return np.nan
+    if previous > 0:
+        return latest / previous - 1.0
+    if latest >= previous:
+        return 0.0
+    denominator = max(abs(previous), 1e-12)
+    return (latest - previous) / denominator
+
+
 def _tv_timestamp(value):
     if value is None:
         return None
@@ -1212,6 +1228,7 @@ def _tv_snapshot(symbol: str, row: Dict) -> FundamentalSnapshot:
     fcf_ttm = safe(row.get("free_cash_flow_ttm"))
     revenue_ttm = safe(row.get("total_revenue_ttm"))
     net_debt = safe(row.get("net_debt"))
+    net_debt_data_available = math.isfinite(net_debt) and math.isfinite(fcf_ttm)
     fcf_margin = fcf_ttm / revenue_ttm if revenue_ttm > 0 and math.isfinite(fcf_ttm) else np.nan
     net_debt_to_fcf = max(0.0, net_debt) / fcf_ttm if math.isfinite(net_debt) and fcf_ttm > 0 else np.nan
 
@@ -1224,17 +1241,17 @@ def _tv_snapshot(symbol: str, row: Dict) -> FundamentalSnapshot:
     share_change = _tv_growth(implied_shares)
 
     revenue_growth = _tv_growth(revenue_history)
-    earnings_growth = _tv_growth(income_history)
+    earnings_growth = _tv_profit_growth(income_history)
     # TradingView exposes multi-year EBITDA history but not operating-income history.
     # EBITDA trend is used only as the operating-profit trend proxy for the existing
     # deterioration hard gate; the source label makes that fallback explicit.
-    operating_growth = _tv_growth(ebitda_history)
+    operating_growth = _tv_profit_growth(ebitda_history)
 
     missing: list[str] = []
     required = {
         "three annual FCF periods": len(fcf_history) >= 3,
         "latest positive FCF": math.isfinite(fcf_ttm),
-        "net debt and FCF": math.isfinite(net_debt_to_fcf),
+        "net debt and FCF": net_debt_data_available,
         "two share-count periods": len(implied_shares) >= 2 and math.isfinite(share_change),
         "revenue trend": math.isfinite(revenue_growth),
         "earnings trend": math.isfinite(earnings_growth),
@@ -1245,10 +1262,12 @@ def _tv_snapshot(symbol: str, row: Dict) -> FundamentalSnapshot:
             missing.append(label)
 
     earnings_date = _tv_timestamp(row.get("earnings_release_next_calendar_date"))
+    raw_sector = str(row.get("sector") or "UNAVAILABLE")
+    normalized_sector = "Financial Services" if raw_sector.strip().lower() == "finance" else raw_sector
     return FundamentalSnapshot(
         symbol=symbol,
-        company=str(row.get("name") or symbol),
-        sector=str(row.get("sector") or "UNAVAILABLE"),
+        company=str(row.get("description") or row.get("name") or symbol),
+        sector=normalized_sector,
         industry=str(row.get("industry") or "UNAVAILABLE"),
         currency=str(row.get("fundamental_currency_code") or "UNAVAILABLE").upper(),
         market_cap=safe(row.get("market_cap_basic")),
@@ -1455,23 +1474,43 @@ def approved_trade_market_scan(
             snapshots,
             rate,
             sessions,
-            # A global official-announcement feed is not configured. The approved
-            # rulebook therefore requires the fail-safe block instead of guessing.
+            # Event verification is intentionally deferred until a share has passed
+            # the numerical fundamental gates and reached provisional-candidate stage.
             official_event_verified=False,
+            apply_event_gate=False,
         )
         failures = fundamental["fundamental_failures"]
-        if failures:
+        if "EXCLUDED SECTOR" in failures:
+            status = "BLOCKED"
+            reason = "EXCLUDED SECTOR"
+        elif failures:
             status = "BLOCKED"
             reason = "; ".join(failures)
         elif technical["technical_state"] == "WATCH":
             status = "WATCH"
             reason = technical["technical_reason"]
-        elif technical["technical_state"] == "AWAITING NEXT OPEN":
-            status = "WATCH"
-            reason = "VALID DAILY CLOSE — AWAITING NEXT OPEN"
         else:
-            status = "PAPER CANDIDATE"
-            reason = "ALL APPROVED GATES PASS"
+            candidate_check = score_fundamental_snapshot(
+                snapshot,
+                snapshots,
+                rate,
+                sessions,
+                official_event_verified=False,
+                apply_event_gate=True,
+            )
+            event_failures = [
+                failure for failure in candidate_check["fundamental_failures"]
+                if failure not in failures
+            ]
+            if event_failures:
+                status = "BLOCKED"
+                reason = "; ".join(event_failures)
+            elif technical["technical_state"] == "AWAITING NEXT OPEN":
+                status = "WATCH"
+                reason = "VALID DAILY CLOSE — AWAITING NEXT OPEN"
+            else:
+                status = "PAPER CANDIDATE"
+                reason = "ALL APPROVED GATES PASS"
         price_rows.append({
             "Status": status,
             "Ticker": symbol,
@@ -2211,8 +2250,9 @@ with tab3:
 
     st.info(
         "The official global company-announcement feed is not configured in this app. "
-        "In accordance with the approved rule, otherwise valid setups remain BLOCKED with "
-        "FAIL-SAFE EVENT BLOCK rather than being silently passed."
+        "Event verification is therefore deferred until a share first passes the numerical "
+        "Trade gates; only provisional candidates are then fail-safe blocked if the official "
+        "check cannot be completed."
     )
 
     if st.button("Run Trade Search", type="primary", use_container_width=True):
