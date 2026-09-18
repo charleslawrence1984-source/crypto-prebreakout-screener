@@ -31,7 +31,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.8"
+TRADE_RULEBOOK_BUILD = "2026.09.18.9"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1250,7 +1250,7 @@ def _tv_snapshot(symbol: str, row: Dict) -> FundamentalSnapshot:
     missing: list[str] = []
     required = {
         "three annual FCF periods": len(fcf_history) >= 3,
-        "latest positive FCF": math.isfinite(fcf_ttm),
+        "trailing FCF": math.isfinite(fcf_ttm),
         "net debt and FCF": net_debt_data_available,
         "two share-count periods": len(implied_shares) >= 2 and math.isfinite(share_change),
         "revenue trend": math.isfinite(revenue_growth),
@@ -1292,6 +1292,7 @@ def _tv_snapshot(symbol: str, row: Dict) -> FundamentalSnapshot:
         trailing_pe=safe(row.get("price_earnings_current")),
         price_sales=safe(row.get("price_sales_current")),
         missing_hard_inputs=missing,
+        trailing_fcf=fcf_ttm,
     )
 
 
