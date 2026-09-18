@@ -30,7 +30,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
-TRADE_RULEBOOK_BUILD = "2026.09.18.4"
+TRADE_RULEBOOK_BUILD = "2026.09.18.5"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -78,7 +78,7 @@ def action_cell_style(value) -> str:
     action = str(value).strip().upper()
     if action in {"BUY", "BUY CANDIDATE", "PAPER CANDIDATE"}:
         return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
-    if action in {"WAIT", "WATCH", "HOLD", "EARNINGS WAIT"}:
+    if action in {"WAIT", "WATCH", "HOLD", "EARNINGS WAIT", "RETRY"}:
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
     if action in {"PASS", "AVOID", "SELL", "BLOCKED"}:
         return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
@@ -1081,7 +1081,25 @@ def trade_benchmark_frame(symbol: str) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
+def _is_yahoo_rate_limit_error(exc: Exception) -> bool:
+    """Recognise Yahoo/yfinance throttling without depending on one yfinance version."""
+    name = type(exc).__name__.lower()
+    message = str(exc).lower()
+    return (
+        "yfratelimiterror" in name
+        or "too many requests" in message
+        or "rate limit" in message
+        or "http 429" in message
+    )
+
+
+@st.cache_data(ttl=21600, show_spinner=False)
+def trade_fundamental_snapshot(symbol: str):
+    """Cache only successful fundamental snapshots so reruns do not hammer Yahoo."""
+    return build_fundamental_snapshot(symbol, yf.Ticker(symbol))
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def approved_trade_market_scan(
     symbols_tuple: tuple[str, ...], max_symbols: int, universe_kind: str,
     model_version: str,
@@ -1142,23 +1160,54 @@ def approved_trade_market_scan(
     snapshots = []
     snapshot_by_symbol = {}
     snapshot_error_by_symbol = {}
-    for symbol, _technical in deep_candidates:
-        try:
-            snapshot = build_fundamental_snapshot(symbol, yf.Ticker(symbol))
-            snapshots.append(snapshot)
-            snapshot_by_symbol[symbol] = snapshot
-        except Exception as exc:
+    provider_cooldown = False
+    for candidate_index, (symbol, _technical) in enumerate(deep_candidates):
+        if provider_cooldown:
             snapshot_by_symbol[symbol] = None
-            snapshot_error_by_symbol[symbol] = type(exc).__name__
+            snapshot_error_by_symbol[symbol] = "YAHOO RATE LIMIT — RETRY LATER"
+            continue
+
+        # Avoid a burst of quote-summary/statement requests immediately after the
+        # batched price-history downloads. Cached snapshots return quickly; uncached
+        # symbols are deliberately paced.
+        if candidate_index:
+            time.sleep(0.35)
+
+        last_exc = None
+        for attempt, delay in enumerate((0.0, 2.0)):
+            if delay:
+                time.sleep(delay)
+            try:
+                snapshot = trade_fundamental_snapshot(symbol)
+                snapshots.append(snapshot)
+                snapshot_by_symbol[symbol] = snapshot
+                last_exc = None
+                break
+            except Exception as exc:
+                last_exc = exc
+                if not _is_yahoo_rate_limit_error(exc):
+                    break
+
+        if last_exc is not None:
+            snapshot_by_symbol[symbol] = None
+            if _is_yahoo_rate_limit_error(last_exc):
+                snapshot_error_by_symbol[symbol] = type(last_exc).__name__
+                # A second immediate 429 means Yahoo is throttling this app/session.
+                # Stop firing more fundamental requests; leave later candidates
+                # retryable instead of turning a provider outage into false rejects.
+                provider_cooldown = True
+            else:
+                snapshot_error_by_symbol[symbol] = type(last_exc).__name__
 
     for symbol, technical in deep_candidates:
         snapshot = snapshot_by_symbol.get(symbol)
         if snapshot is None:
+            provider_error = snapshot_error_by_symbol.get(symbol, "UNKNOWN")
             price_rows.append({
-                "Status": "BLOCKED",
+                "Status": "RETRY",
                 "Ticker": symbol,
-                "Reason": "FUNDAMENTAL DATA INCOMPLETE — PROVIDER ERROR "
-                          f"({snapshot_error_by_symbol.get(symbol, 'UNKNOWN')})",
+                "Reason": "TEMPORARY FUNDAMENTAL DATA PROVIDER ERROR — RETRY "
+                          f"({provider_error})",
                 "Price": technical.get("price"),
                 "RSI": technical.get("rsi"),
                 "Median traded value £m": technical["turnover_gbp"] / 1_000_000,
@@ -1955,10 +2004,18 @@ with tab3:
                 paper_count = int((pre["Status"] == "PAPER CANDIDATE").sum())
                 watch_count = int((pre["Status"] == "WATCH").sum())
                 blocked_count = int((pre["Status"] == "BLOCKED").sum())
+                retry_count = int((pre["Status"] == "RETRY").sum())
                 st.success(
                     f"Trade Search complete: {paper_count} paper candidates, "
-                    f"{watch_count} watch setups and {blocked_count} blocked setups."
+                    f"{watch_count} watch setups, {blocked_count} blocked setups "
+                    f"and {retry_count} provider retries."
                 )
+                if retry_count:
+                    st.warning(
+                        "Some technically eligible shares could not complete the fundamental "
+                        "check because the data provider throttled requests. RETRY rows are not "
+                        "trade rejects; rerun the scan after the provider cooldown."
+                    )
                 st.subheader("Trade rulebook results")
                 quick_cols = [
                     "Status", "Ticker", "Company", "Sector", "Reason", "Score status", "Tier", "Fundamental score",
