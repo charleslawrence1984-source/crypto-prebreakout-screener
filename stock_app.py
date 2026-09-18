@@ -1139,7 +1139,15 @@ def _investment_company_result(
                 return {"status": "price_failure", "symbol": sym}
 
             stage = "company fundamentals"
-            fund = valuation_fundamental_analysis(sym, price, ticker=ticker)
+            try:
+                fund = valuation_fundamental_analysis(sym, price, ticker=ticker)
+            except TypeError as exc:
+                # Streamlit can briefly retain the previous imported module
+                # during a hot deployment. Keep scans working until its module
+                # cache is refreshed, then use the shared Ticker path normally.
+                if "unexpected keyword argument 'ticker'" not in str(exc):
+                    raise
+                fund = valuation_fundamental_analysis(sym, price)
             market_cap = safe(fund.get("market_cap"))
             if np.isnan(market_cap) or market_cap <= 0:
                 market_cap = safe(directory_market_caps.get(sym))
@@ -1150,7 +1158,12 @@ def _investment_company_result(
             fund["market_cap"] = market_cap
 
             stage = "long-term analysis"
-            lt = long_term_analysis(sym, price, fund, _ticker=ticker)
+            try:
+                lt = long_term_analysis(sym, price, fund, _ticker=ticker)
+            except TypeError as exc:
+                if "unexpected keyword argument '_ticker'" not in str(exc):
+                    raise
+                lt = long_term_analysis(sym, price, fund)
             merged = {**fund, **lt, "price": price}
             stage = "decision logic"
             decision = investment_decision(merged)
