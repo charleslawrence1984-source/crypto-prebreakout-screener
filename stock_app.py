@@ -1123,16 +1123,8 @@ def approved_trade_market_scan(
                     continue
                 technical = evaluate_price_setup(frame, benchmark)
                 if technical.get("technical_state") == "WATCH":
-                    price_rows.append({
-                        "Status": "WATCH",
-                        "Ticker": symbol,
-                        "Reason": technical.get("technical_reason"),
-                        "Price": technical.get("price"),
-                        "RSI": technical.get("rsi"),
-                        "Median traded value £m": turnover_gbp / 1_000_000,
-                        "Technical score": np.nan,
-                        "Tier": "—",
-                    })
+                    technical["turnover_gbp"] = turnover_gbp
+                    deep_candidates.append((symbol, technical))
                 elif technical.get("technical_state") in {"ENTRY READY", "AWAITING NEXT OPEN"}:
                     exact_turnover_gbp = technical["turnover_median_20"] * context["price_scale"] * quote_to_gbp
                     if not math.isfinite(exact_turnover_gbp) or exact_turnover_gbp < 5_000_000:
@@ -1181,6 +1173,9 @@ def approved_trade_market_scan(
         if failures:
             status = "BLOCKED"
             reason = "; ".join(failures)
+        elif technical["technical_state"] == "WATCH":
+            status = "WATCH"
+            reason = technical["technical_reason"]
         elif technical["technical_state"] == "AWAITING NEXT OPEN":
             status = "WATCH"
             reason = "VALID DAILY CLOSE — AWAITING NEXT OPEN"
@@ -1191,10 +1186,14 @@ def approved_trade_market_scan(
             "Status": status,
             "Ticker": symbol,
             "Company": snapshot.company,
+            "Sector": snapshot.sector,
+            "Industry": snapshot.industry,
             "Reason": reason,
+            "Setup stage": technical["technical_reason"],
+            "Score status": "PENDING CROSSOVER" if technical["technical_state"] == "WATCH" else "CALCULATED",
             "Warnings": "; ".join(fundamental["fundamental_warnings"]) or "—",
-            "Signal date": pd.Timestamp(technical["signal_date"]).date(),
-            "Entry date": pd.Timestamp(technical["entry_date"]).date() if not pd.isna(technical["entry_date"]) else "NEXT OPEN",
+            "Signal date": pd.Timestamp(technical["signal_date"]).date() if technical.get("signal_date") is not None else "PENDING",
+            "Entry date": pd.Timestamp(technical["entry_date"]).date() if pd.notna(technical.get("entry_date")) else "PENDING",
             "Entry": technical.get("entry"),
             "Stop": technical.get("stop"),
             "Target": technical.get("target"),
@@ -1951,7 +1950,7 @@ with tab3:
                 )
                 st.subheader("Trade rulebook results")
                 quick_cols = [
-                    "Status", "Ticker", "Company", "Reason", "Tier", "Fundamental score",
+                    "Status", "Ticker", "Company", "Sector", "Reason", "Score status", "Tier", "Fundamental score",
                     "Technical score", "Entry", "Stop", "Target", "R:R", "Upside %",
                     "RSI", "Market regime", "Median traded value £m",
                 ]

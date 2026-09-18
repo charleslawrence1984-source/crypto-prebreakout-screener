@@ -213,6 +213,18 @@ def evaluate_price_setup(
     latest_sub30 = recent_rsi[recent_rsi < 30]
     if signal_index is None:
         if latest_rsi < 35 or len(latest_sub30):
+            # WATCH is a trend/pullback setup, not an unrestricted oversold list.
+            slopes = [float(latest[column] / data[column].iloc[-21] - 1)
+                      for column in ("SMA180", "SMA200")]
+            if any(not math.isfinite(slope) or slope < 0.005 for slope in slopes):
+                result["technical_reason"] = "SMA180 AND SMA200 ARE NOT BOTH RISING BY 0.5%"
+                return result
+            recent = data.iloc[-10:]
+            contact = ((recent["Low"] <= recent["ZONE_HIGH"])
+                       & (recent["High"] >= recent["ZONE_LOW"])).any()
+            if not contact:
+                result["technical_reason"] = "NO PRICE CONTACT WITH THE MA SUPPORT ZONE"
+                return result
             result.update(
                 {
                     "technical_state": "WATCH",
@@ -613,7 +625,9 @@ def score_fundamental_snapshot(
     failures: list[str] = []
     warnings: list[str] = []
     sector = snapshot.sector.strip().lower()
-    if sector in EXCLUDED_SECTORS:
+    if sector in {"", "unavailable", "unknown"}:
+        failures.append("FUNDAMENTAL DATA INCOMPLETE — SECTOR")
+    elif sector in EXCLUDED_SECTORS:
         failures.append("EXCLUDED SECTOR")
     market_cap_gbp = snapshot.market_cap * gbp_rate if math.isfinite(snapshot.market_cap) else np.nan
     if not math.isfinite(market_cap_gbp):
@@ -688,9 +702,11 @@ def score_fundamental_snapshot(
             distribution_points,
         ]
     )
-    if score < 65:
+    if not math.isfinite(score):
+        failures.append("FUNDAMENTAL DATA INCOMPLETE — QUALITY SCORE")
+    elif score < 65:
         failures.append("FUNDAMENTAL QUALITY SCORE BELOW 65")
-    if earnings_sessions is None:
+    if earnings_sessions is None or earnings_sessions < 0:
         failures.append("EARNINGS DATE UNVERIFIED")
     elif 0 <= earnings_sessions <= 5:
         failures.append("EARNINGS WAIT — RESULTS WITHIN FIVE SESSIONS")
