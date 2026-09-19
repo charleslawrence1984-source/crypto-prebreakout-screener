@@ -1,5 +1,3 @@
-Trade fundamentals weekend backfill kick.
-Requested: 2026-09-18
-Rulebook: 2026.09.18.12
-Pass: 10
-Reason: continue incomplete Gettex coverage after successful pass 9; North America not yet present in prepared manifest.
+Trade fundamentals missing-only retry.
+Requested: 2026-09-19T14:08:42+01:00
+Reason: Trade workflow idle; coverage remains partial with 181 unresolved provider gaps. Retain existing safe batching and market-session safeguards. Do not reclassify missing fundamentals as complete.
