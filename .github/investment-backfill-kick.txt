@@ -1,4 +1,3 @@
-Investment fundamentals weekend backfill kick.
-Requested: 2026-09-19T11:27:23+01:00
-Pass: 4
-Reason: continue incomplete Investment coverage while no backfill is queued or running; use existing missing-only batches, market-session checks and independent lock.
+Investment fundamentals backfill kick.
+Reason: start tested fair-retry batches of 200 per exchange; retain two workers, fundamental checks and market-session safeguards.
+Implementation: a2a413f7195ce9d31d65bf7d3d82d5d5ee6605bc
