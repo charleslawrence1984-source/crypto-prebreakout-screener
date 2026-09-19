@@ -1,4 +1,4 @@
 Investment fundamentals weekend backfill kick.
-Requested: 2026-09-19
-Pass: 3
-Reason: resume the safe missing-only backfill after a transient NASDAQ connection reset; retain documented provider gaps for LSE and Madrid.
+Requested: 2026-09-19T11:27:23+01:00
+Pass: 4
+Reason: continue incomplete Investment coverage while no backfill is queued or running; use existing missing-only batches, market-session checks and independent lock.
