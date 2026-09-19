@@ -1,0 +1,66 @@
+name: Weekend trade technical backfill
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/trade-technical-backfill-kick.txt"
+  schedule:
+    # Offset from both fundamental jobs. Only fundamental hard-gate passers are processed.
+    - cron: "5 1-23/2 * * 5,6,0"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trade-technical-cache
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fill missing Trade technicals
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scheduled_trade_technicals.py \
+            --exchange all \
+            --max-symbols-per-exchange 100 \
+            --resume
+
+      - name: Save Trade technical backfill
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -d prepared_trade_technicals ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_trade_technicals
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Backfill prepared Trade technicals"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          exit 1
