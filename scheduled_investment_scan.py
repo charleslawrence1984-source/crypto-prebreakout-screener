@@ -104,7 +104,11 @@ def main() -> int:
                 except Exception:
                     existing = pd.DataFrame()
             existing_symbols = set()
+            eligible_set = set(eligible)
             if not existing.empty and "Ticker" in existing.columns:
+                # Remove companies that have left the current eligible universe so a
+                # completed manifest and its prepared file describe the same snapshot.
+                existing = existing[existing["Ticker"].astype(str).isin(eligible_set)]
                 existing_symbols = set(existing["Ticker"].dropna().astype(str))
 
             cursor = int(previous.get("next_cursor", 0) or 0) % len(eligible)
@@ -134,8 +138,11 @@ def main() -> int:
                 next_cursor = 0
 
             if not scan_symbols:
+                # Persist the trimmed snapshot even when there is no provider work.
+                if not existing.empty:
+                    existing.to_csv(target, index=False, compression="gzip")
                 completed_at = datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds")
-                coverage_count = len(existing_symbols.intersection(set(eligible)))
+                coverage_count = len(existing_symbols)
                 manifest["exchanges"][kind] = {
                     **previous,
                     "label": labels_by_kind[kind],
