@@ -1,2 +1,3 @@
-User requested another Investment fundamental batch after the 82.3 percent update.
-No active or queued workflow at inspection. Resume existing missing-only 200-per-exchange batches with two workers, the shared Investment lock, and market-session safeguards.
+User requested continuous safe progress overnight.
+Previous Investment fundamental run 35470360756 completed; start the bounded consecutive-batch workflow now.
+Retain 200 per exchange, two workers, independent technical lock, checkpoint each batch, and stop on no progress or provider limits.
