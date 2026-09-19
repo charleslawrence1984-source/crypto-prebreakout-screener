@@ -1,3 +1,3 @@
 trade fundamentals missing-only retry.
-Requested: 2026-09-19T19:04:31+01:00
-Reason: coverage remains partial and no workflow is queued or running. Continue existing safe batches, independent lock, and market-session checks.
+Requested: 2026-09-19T20:25:32+01:00
+No queued or running fundamental workflow at inspection; preserve existing batch and market-session safeguards.
