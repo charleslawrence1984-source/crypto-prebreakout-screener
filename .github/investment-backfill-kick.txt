@@ -1,3 +1,3 @@
-Investment fundamentals backfill kick.
-Reason: start tested fair-retry batches of 200 per exchange; retain two workers, fundamental checks and market-session safeguards.
-Implementation: a2a413f7195ce9d31d65bf7d3d82d5d5ee6605bc
+Investment fundamentals missing-only backfill kick.
+Requested: 2026-09-19T15:29:00+01:00
+Reason: coverage reached 6,728/12,517 and no run is queued or active; continue fair-retry batches of 200 with two workers and unchanged eligibility checks.
