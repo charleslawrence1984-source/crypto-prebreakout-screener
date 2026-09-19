@@ -2010,23 +2010,10 @@
         "YSNG.VI": 0
       },
       "eligible_symbols": 177,
-      "errors": [
-        {
-          "error": "No usable technical price history",
-          "symbol": "ETN.VI"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "FTNT.VI"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "IBKR.VI"
-        }
-      ],
+      "errors": [],
       "remaining_symbols": 82,
-      "requested_this_run": 50,
-      "returned_this_run": 47,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T20:31:24+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
@@ -2112,27 +2099,10 @@
         "SWG.DE": 0
       },
       "eligible_symbols": 168,
-      "errors": [
-        {
-          "error": "No usable technical price history",
-          "symbol": "C7N.DE"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "CFZ.DE"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "D6I.DE"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "ET9.DE"
-        }
-      ],
+      "errors": [],
       "remaining_symbols": 76,
-      "requested_this_run": 50,
-      "returned_this_run": 46,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T20:29:56+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
@@ -2140,5 +2110,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-19T19:32:18.547793+00:00"
+  "updated_at": "2026-09-19T19:32:20.169736+00:00"
 }
