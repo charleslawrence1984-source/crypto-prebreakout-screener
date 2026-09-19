@@ -110,6 +110,15 @@ def main() -> int:
             cursor = int(previous.get("next_cursor", 0) or 0) % len(eligible)
             if args.gap_fill:
                 missing_symbols = [symbol for symbol in eligible if symbol not in existing_symbols]
+                # Persist dispatch counts separately from healthy completed retries.
+                # Untouched companies go first; failed requests cannot monopolise
+                # the front of the universe. Never infer provider unavailability
+                # or technical eligibility from these scheduling counts.
+                attempts = {
+                    symbol: previous.get("gap_fill_dispatch_counts", {}).get(symbol, 0)
+                    for symbol in missing_symbols
+                }
+                missing_symbols.sort(key=lambda symbol: attempts[symbol])
                 if args.max_symbols_per_exchange > 0:
                     scan_symbols = missing_symbols[: args.max_symbols_per_exchange]
                 else:
@@ -151,6 +160,17 @@ def main() -> int:
                         flush=True,
                     )
 
+            if args.gap_fill:
+                for symbol in scan_symbols:
+                    attempts[symbol] += 1
+                previous = {
+                    **previous,
+                    "gap_fill_dispatch_counts": attempts,
+                    "gap_fill_last_dispatched_at": started,
+                }
+                manifest["exchanges"][kind] = previous
+                save_manifest(manifest_path, manifest)
+
             results = stock_app.fundamental_market_scan(
                 tuple(scan_symbols),
                 args.max_symbols,
@@ -177,7 +197,14 @@ def main() -> int:
             coverage_count = int(results["Ticker"].nunique())
             remaining_symbols = max(len(eligible) - coverage_count, 0)
             status = "complete" if remaining_symbols == 0 else "partial"
+            stored_symbols = set(results["Ticker"].astype(str))
             manifest["exchanges"][kind] = {
+                "gap_fill_dispatch_counts": {
+                    symbol: count
+                    for symbol, count in previous.get("gap_fill_dispatch_counts", {}).items()
+                    if symbol in eligible and symbol not in stored_symbols
+                },
+                "gap_fill_last_dispatched_at": previous.get("gap_fill_last_dispatched_at"),
                 "label": labels_by_kind[kind],
                 "status": status,
                 "started_at": started,
