@@ -6,13 +6,13 @@
       "eligible_symbols": 8,
       "label": "Euronext Amsterdam",
       "remaining_symbols": 0,
-      "requested_this_run": 8,
-      "returned_this_run": 8,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:35:29+01:00"
+      "updated_at": "2026-09-19T04:20:43+01:00"
     },
     "euronext_brussels": {
       "coverage_pct": 100.0,
@@ -20,13 +20,13 @@
       "eligible_symbols": 4,
       "label": "Euronext Brussels",
       "remaining_symbols": 0,
-      "requested_this_run": 4,
-      "returned_this_run": 4,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:35:23+01:00"
+      "updated_at": "2026-09-19T04:20:41+01:00"
     },
     "euronext_lisbon": {
       "coverage_pct": 100.0,
@@ -40,7 +40,7 @@
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:35:30+01:00"
+      "updated_at": "2026-09-19T04:20:44+01:00"
     },
     "euronext_paris": {
       "coverage_pct": 100.0,
@@ -48,27 +48,27 @@
       "eligible_symbols": 8,
       "label": "Euronext Paris",
       "remaining_symbols": 0,
-      "requested_this_run": 8,
-      "returned_this_run": 8,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:35:20+01:00"
+      "updated_at": "2026-09-19T04:20:39+01:00"
     },
     "gettex": {
-      "coverage_pct": 22.4,
-      "coverage_symbols": 100,
+      "coverage_pct": 44.8,
+      "coverage_symbols": 200,
       "eligible_symbols": 446,
       "label": "Gettex",
-      "remaining_symbols": 346,
+      "remaining_symbols": 246,
       "requested_this_run": 100,
       "returned_this_run": 100,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "partial",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:35:14+01:00"
+      "updated_at": "2026-09-19T04:20:37+01:00"
     },
     "lse": {
       "coverage_pct": 100.0,
@@ -76,13 +76,13 @@
       "eligible_symbols": 33,
       "label": "London Stock Exchange",
       "remaining_symbols": 0,
-      "requested_this_run": 33,
-      "returned_this_run": 33,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 16,
-      "updated_at": "2026-09-19T03:34:42+01:00"
+      "updated_at": "2026-09-19T04:20:01+01:00"
     },
     "lse_aim": {
       "coverage_pct": 100.0,
@@ -90,13 +90,13 @@
       "eligible_symbols": 2,
       "label": "LSE AIM",
       "remaining_symbols": 0,
-      "requested_this_run": 2,
-      "returned_this_run": 2,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 1,
-      "updated_at": "2026-09-19T03:35:14+01:00"
+      "updated_at": "2026-09-19T04:20:37+01:00"
     },
     "madrid": {
       "coverage_pct": 100.0,
@@ -104,55 +104,55 @@
       "eligible_symbols": 6,
       "label": "Bolsa de Madrid",
       "remaining_symbols": 0,
-      "requested_this_run": 6,
-      "returned_this_run": 6,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 1,
-      "updated_at": "2026-09-19T03:35:22+01:00"
+      "updated_at": "2026-09-19T04:20:40+01:00"
     },
     "nasdaq": {
-      "coverage_pct": 68.5,
-      "coverage_symbols": 100,
+      "coverage_pct": 100.0,
+      "coverage_symbols": 146,
       "eligible_symbols": 146,
       "label": "NASDAQ",
-      "remaining_symbols": 46,
-      "requested_this_run": 100,
-      "returned_this_run": 100,
+      "remaining_symbols": 0,
+      "requested_this_run": 46,
+      "returned_this_run": 46,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
-      "status": "partial",
+      "status": "complete",
       "unresolved_fundamental_symbols": 1,
-      "updated_at": "2026-09-19T03:34:14+01:00"
+      "updated_at": "2026-09-19T04:19:33+01:00"
     },
     "nyse": {
-      "coverage_pct": 74.1,
-      "coverage_symbols": 100,
+      "coverage_pct": 100.0,
+      "coverage_symbols": 135,
       "eligible_symbols": 135,
       "label": "NYSE",
-      "remaining_symbols": 35,
-      "requested_this_run": 100,
-      "returned_this_run": 100,
+      "remaining_symbols": 0,
+      "requested_this_run": 35,
+      "returned_this_run": 35,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
-      "status": "partial",
+      "status": "complete",
       "unresolved_fundamental_symbols": 5,
-      "updated_at": "2026-09-19T03:34:22+01:00"
+      "updated_at": "2026-09-19T04:19:39+01:00"
     },
     "otc": {
-      "coverage_pct": 54.9,
-      "coverage_symbols": 100,
+      "coverage_pct": 100.0,
+      "coverage_symbols": 182,
       "eligible_symbols": 182,
       "label": "OTC Markets",
-      "remaining_symbols": 82,
-      "requested_this_run": 100,
-      "returned_this_run": 100,
+      "remaining_symbols": 0,
+      "requested_this_run": 82,
+      "returned_this_run": 82,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
-      "status": "partial",
+      "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:34:39+01:00"
+      "updated_at": "2026-09-19T04:20:00+01:00"
     },
     "six": {
       "coverage_pct": 100.0,
@@ -160,13 +160,13 @@
       "eligible_symbols": 35,
       "label": "SIX Swiss Exchange",
       "remaining_symbols": 0,
-      "requested_this_run": 35,
-      "returned_this_run": 35,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 69,
-      "updated_at": "2026-09-19T03:35:21+01:00"
+      "updated_at": "2026-09-19T04:20:40+01:00"
     },
     "tsx": {
       "coverage_pct": 100.0,
@@ -174,46 +174,46 @@
       "eligible_symbols": 29,
       "label": "Toronto Stock Exchange",
       "remaining_symbols": 0,
-      "requested_this_run": 29,
-      "returned_this_run": 29,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 88,
-      "updated_at": "2026-09-19T03:35:17+01:00"
+      "updated_at": "2026-09-19T04:20:38+01:00"
     },
     "vienna": {
-      "coverage_pct": 96.2,
-      "coverage_symbols": 100,
+      "coverage_pct": 100.0,
+      "coverage_symbols": 104,
       "eligible_symbols": 104,
       "label": "Wiener B\u00f6rse",
-      "remaining_symbols": 4,
-      "requested_this_run": 100,
-      "returned_this_run": 100,
+      "remaining_symbols": 0,
+      "requested_this_run": 4,
+      "returned_this_run": 4,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
-      "status": "partial",
+      "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:35:29+01:00"
+      "updated_at": "2026-09-19T04:20:43+01:00"
     },
     "xetra": {
-      "coverage_pct": 80.0,
-      "coverage_symbols": 100,
+      "coverage_pct": 100.0,
+      "coverage_symbols": 125,
       "eligible_symbols": 125,
       "label": "Deutsche B\u00f6rse Xetra",
-      "remaining_symbols": 25,
-      "requested_this_run": 100,
-      "returned_this_run": 100,
+      "remaining_symbols": 0,
+      "requested_this_run": 25,
+      "returned_this_run": 25,
       "rulebook_build": "2026.09.18.12",
       "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
-      "status": "partial",
+      "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-09-19T03:34:49+01:00"
+      "updated_at": "2026-09-19T04:20:05+01:00"
     }
   },
   "fundamental_coverage_mode": "practical-complete-with-explicit-provider-gaps",
   "rulebook_build": "2026.09.18.12",
   "schema_version": 1,
   "source_fundamentals_updated_at": "2026-09-19T03:23:39+01:00",
-  "updated_at": "2026-09-19T03:35:30+01:00"
+  "updated_at": "2026-09-19T04:20:44+01:00"
 }
