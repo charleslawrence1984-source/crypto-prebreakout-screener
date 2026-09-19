@@ -8,7 +8,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:51:01+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:58:41+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -20,7 +20,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:51:01+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:58:41+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -32,7 +32,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:51:01+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:58:42+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -44,7 +44,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:50:53+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:58:23+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -466,14 +466,47 @@
         "LCLA.MU": 0,
         "LCM.MU": 0,
         "LG72.MU": 0,
-        "LHL.MU": 0
+        "LHL.MU": 0,
+        "LHU.MU": 0,
+        "LHV.MU": 0,
+        "LIV.MU": 0,
+        "LL6.MU": 0,
+        "LLP.MU": 0,
+        "LMF.MU": 0,
+        "LNE.MU": 0,
+        "LNLB.MU": 0,
+        "LOM.MU": 0,
+        "LOR.MU": 0,
+        "LRC.MU": 0,
+        "LTEC.MU": 0,
+        "M1Z.MU": 0,
+        "M3D.MU": 0,
+        "M4I.MU": 0,
+        "M5M1.MU": 0,
+        "M6Q.MU": 0,
+        "MBB.MU": 0,
+        "MCK.MU": 0,
+        "MDD.MU": 0,
+        "MEX.MU": 0,
+        "MGYB.MU": 0,
+        "MHT.MU": 0,
+        "MJ4.MU": 0,
+        "MJ8.MU": 0,
+        "MKL.MU": 0,
+        "MLB1.MU": 0,
+        "MLT0.MU": 0,
+        "MOB.MU": 0,
+        "MOH.MU": 0,
+        "MOI.MU": 0,
+        "MOV.MU": 0,
+        "MPV.MU": 0
       },
-      "eligible_symbols": 416,
+      "eligible_symbols": 449,
       "errors": [],
-      "remaining_symbols": 416,
+      "remaining_symbols": 449,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:50:52+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:58:21+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -607,7 +640,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:50:52+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:58:21+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -2041,55 +2074,153 @@
     "vienna": {
       "coverage_symbols": 168,
       "dispatch_counts": {
-        "BLCK.VI": 7,
-        "CATL.VI": 7,
-        "ETN.VI": 7,
-        "FTNT.VI": 7,
-        "IBKR.VI": 7,
-        "KKRO.VI": 7,
-        "MCK.VI": 7,
-        "MPWR.VI": 7,
-        "TTEC.VI": 6
+        "BLCK.VI": 8,
+        "CATL.VI": 8,
+        "ETN.VI": 8,
+        "FTNT.VI": 8,
+        "IBKR.VI": 8,
+        "KKRO.VI": 8,
+        "MCK.VI": 8,
+        "MPWR.VI": 8,
+        "TTEC.VI": 7
       },
       "eligible_symbols": 177,
-      "errors": [],
+      "errors": [
+        {
+          "error": "No usable technical price history",
+          "symbol": "TTEC.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "BLCK.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "CATL.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "ETN.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "FTNT.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "IBKR.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "KKRO.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "MCK.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "MPWR.VI"
+        }
+      ],
       "remaining_symbols": 9,
-      "requested_this_run": 0,
+      "requested_this_run": 9,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:51:01+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:58:41+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
     "xetra": {
       "coverage_symbols": 153,
       "dispatch_counts": {
-        "3SM.DE": 7,
-        "6RV.DE": 7,
-        "AP4N.DE": 7,
-        "AT4.DE": 7,
-        "C7N.DE": 7,
-        "CFZ.DE": 7,
-        "D6I.DE": 7,
-        "ET9.DE": 7,
-        "H3V.DE": 7,
-        "HFF.DE": 7,
-        "JYS1.DE": 7,
-        "LGI.DE": 7,
-        "R902.DE": 7,
-        "SMP0.DE": 6,
-        "STD.DE": 6
+        "3SM.DE": 8,
+        "6RV.DE": 8,
+        "AP4N.DE": 8,
+        "AT4.DE": 8,
+        "C7N.DE": 8,
+        "CFZ.DE": 8,
+        "D6I.DE": 8,
+        "ET9.DE": 8,
+        "H3V.DE": 8,
+        "HFF.DE": 8,
+        "JYS1.DE": 8,
+        "LGI.DE": 8,
+        "R902.DE": 8,
+        "SMP0.DE": 7,
+        "STD.DE": 7
       },
       "eligible_symbols": 168,
-      "errors": [],
+      "errors": [
+        {
+          "error": "No usable technical price history",
+          "symbol": "SMP0.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "STD.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "3SM.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "6RV.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "AP4N.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "AT4.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "C7N.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "CFZ.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "D6I.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "ET9.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "H3V.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "HFF.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "JYS1.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "LGI.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "R902.DE"
+        }
+      ],
       "remaining_symbols": 15,
-      "requested_this_run": 0,
+      "requested_this_run": 15,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-19T21:49:30+01:00",
+      "source_fundamentals_updated_at": "2026-09-19T21:56:24+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-19T20:56:13.795401+00:00"
+  "updated_at": "2026-09-19T20:59:30.169796+00:00"
 }
