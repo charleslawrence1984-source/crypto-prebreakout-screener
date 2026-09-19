@@ -23,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -37,14 +38,7 @@ jobs:
         env:
           PYTHONUNBUFFERED: "1"
         run: |
-          python scheduled_investment_scan.py \
-            --exchange all \
-            --max-symbols-per-exchange 200 \
-            --min-market-cap-bn 0.5 \
-            --workers 2 \
-            --gap-fill \
-            --closed-markets-only \
-            --resume
+          python continuous_investment_backfill.py
 
       - name: Save Investment fundamentals backfill
         if: always()
