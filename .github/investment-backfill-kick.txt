@@ -1,4 +1,4 @@
 Investment fundamentals weekend backfill kick.
 Requested: 2026-09-19
-Pass: 2
-Reason: retry the safe missing-only backfill after Madrid's final provider-unavailable symbol caused a non-material partial-run failure.
+Pass: 3
+Reason: resume the safe missing-only backfill after a transient NASDAQ connection reset; retain documented provider gaps for LSE and Madrid.
