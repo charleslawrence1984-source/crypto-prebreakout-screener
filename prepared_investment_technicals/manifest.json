@@ -2002,23 +2002,10 @@
         "YSNG.VI": 0
       },
       "eligible_symbols": 177,
-      "errors": [
-        {
-          "error": "No usable technical price history",
-          "symbol": "KKRO.VI"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "MCK.VI"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "MPWR.VI"
-        }
-      ],
+      "errors": [],
       "remaining_symbols": 35,
-      "requested_this_run": 50,
-      "returned_this_run": 47,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T20:52:20+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
@@ -2059,31 +2046,10 @@
         "SWG.DE": 0
       },
       "eligible_symbols": 168,
-      "errors": [
-        {
-          "error": "No usable technical price history",
-          "symbol": "H3V.DE"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "HFF.DE"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "JYS1.DE"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "LGI.DE"
-        },
-        {
-          "error": "No usable technical price history",
-          "symbol": "R902.DE"
-        }
-      ],
+      "errors": [],
       "remaining_symbols": 31,
-      "requested_this_run": 50,
-      "returned_this_run": 45,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T20:49:43+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
@@ -2091,5 +2057,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-19T19:53:21.074289+00:00"
+  "updated_at": "2026-09-19T19:53:23.147172+00:00"
 }
