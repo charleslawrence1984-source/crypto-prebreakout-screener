@@ -2918,7 +2918,7 @@ with st.sidebar:
     st.write("**Investment Search:** 10-years-to-forever quality gates, resilience and DCF valuation.")
     st.divider()
     saved_watchlist = load_browser_watchlist()
-    st.caption(f"Watchlist: **{len(saved_watchlist)}** compan${'y' if len(saved_watchlist) == 1 else 'ies'}")
+    st.caption(f"Watchlist: **{len(saved_watchlist)}** compan{'y' if len(saved_watchlist) == 1 else 'ies'}")
     with st.expander("Add to watchlist manually", expanded=False):
         manual_watch_key = f"manual_watch_{_query_param_text('wl')[:12]}"
         manual_watch_text = st.text_area(
@@ -2940,7 +2940,7 @@ with st.sidebar:
                 if symbol and symbol not in canonical:
                     canonical.append(symbol)
             save_browser_watchlist(canonical)
-            st.success(f"Saved {len(canonical)} watchlist compan${'y' if len(canonical) == 1 else 'ies'}.")
+            st.success(f"Saved {len(canonical)} watchlist compan{'y' if len(canonical) == 1 else 'ies'}.")
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
 
