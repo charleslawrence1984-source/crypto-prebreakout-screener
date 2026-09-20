@@ -15,6 +15,29 @@ import stock_app
 BUILD = "investment-technicals-2026.09.19.1"
 
 
+def recovery_analysis(symbol):
+    """Retry the same listing; never substitute another exchange or currency."""
+    ticker = stock_app.yf.Ticker(symbol)
+    counts = []
+    for period in ("1y", "2y"):
+        history = ticker.history(period=period, interval="1d", auto_adjust=False)
+        if history is None or history.empty:
+            counts.append(f"{period}: empty history")
+            continue
+        # A wider request can recover provider range failures. Keep the original
+        # one-year calculation window and reject stale last prices.
+        dates = pd.to_datetime(history.index, utc=True)
+        now = pd.Timestamp.now(tz="UTC")
+        history = history.loc[dates >= now - pd.Timedelta(days=366)].copy()
+        if history.empty or pd.to_datetime(history.index, utc=True).max() < now - pd.Timedelta(days=14):
+            raise ValueError("No recent price history for this listing")
+        result = stock_app.technical_from_df(history)
+        if result:
+            return {**result, "History request period": period, "History source ticker": symbol}
+        counts.append(f"{period}: {len(history)} rows, insufficient usable history/indicators")
+    raise ValueError("; ".join(counts))
+
+
 def eligible_rows(frame):
     required = {"Ticker", "Action", "Hard gates", "Price"}
     if not required.issubset(frame.columns):
@@ -84,7 +107,10 @@ def prepare(source_dir, output_dir, limit, analyse, build):
             attempts = manifest["exchanges"].get(kind, {}).get("dispatch_counts", {})
             missing = sorted(set(fingerprints) - covered, key=lambda s: (attempts.get(s, 0), s))
             selected = missing[:limit] if ready else []
+            previous_meta = manifest["exchanges"].get(kind, {})
             rows, errors = [], []
+            if limit == 0:
+                errors = [e for e in previous_meta.get("errors", []) if e.get("symbol") in missing]
             for symbol in selected:
                 attempts[symbol] = attempts.get(symbol, 0) + 1
                 try:
@@ -100,6 +126,9 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                     })
                 except Exception as exc:
                     errors.append({"symbol": symbol, "error": str(exc)[:200]})
+                    if "ratelimit" in type(exc).__name__.lower() or "too many requests" in str(exc).lower():
+                        # Stop this batch when the provider explicitly throttles.
+                        break
             combined = pd.concat([cached, pd.DataFrame(rows)], ignore_index=True)
             if not combined.empty:
                 combined.to_csv(target, index=False, compression="gzip")
@@ -110,8 +139,8 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                 "eligible_symbols": len(fingerprints),
                 "coverage_symbols": coverage,
                 "remaining_symbols": remaining,
-                "requested_this_run": len(selected),
-                "returned_this_run": len(rows),
+                "requested_this_run": previous_meta.get("requested_this_run", 0) if limit == 0 else len(rows) + len(errors),
+                "returned_this_run": previous_meta.get("returned_this_run", 0) if limit == 0 else len(rows),
                 "errors": errors,
                 "source_fundamentals_updated_at": timestamp,
                 "technical_build": build,
@@ -143,7 +172,7 @@ def main():
     app_hash = hashlib.sha256(Path(stock_app.__file__).read_bytes()).hexdigest()[:16]
     return prepare(Path(args.fundamentals_dir), Path(args.output_dir),
                    0 if args.reconcile_only else args.max_symbols_per_exchange,
-                   stock_app.technical_analysis, BUILD + "-" + app_hash)
+                   recovery_analysis, BUILD + "-" + app_hash)
 
 
 if __name__ == "__main__":
