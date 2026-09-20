@@ -8,7 +8,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T15:53:52+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:52:09+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -20,7 +20,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T15:53:52+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:52:08+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -32,7 +32,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T15:53:52+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:52:09+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -44,7 +44,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T15:53:38+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:51:54+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -859,7 +859,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T15:53:36+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:51:52+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -2293,15 +2293,15 @@
     "vienna": {
       "coverage_symbols": 168,
       "dispatch_counts": {
-        "BLCK.VI": 54,
-        "CATL.VI": 54,
-        "ETN.VI": 54,
-        "FTNT.VI": 54,
-        "IBKR.VI": 54,
-        "KKRO.VI": 54,
-        "MCK.VI": 54,
-        "MPWR.VI": 54,
-        "TTEC.VI": 53
+        "BLCK.VI": 55,
+        "CATL.VI": 55,
+        "ETN.VI": 55,
+        "FTNT.VI": 55,
+        "IBKR.VI": 55,
+        "KKRO.VI": 55,
+        "MCK.VI": 55,
+        "MPWR.VI": 55,
+        "TTEC.VI": 54
       },
       "eligible_symbols": 177,
       "errors": [
@@ -2345,28 +2345,28 @@
       "remaining_symbols": 9,
       "requested_this_run": 9,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T15:53:52+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:52:08+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
     "xetra": {
       "coverage_symbols": 153,
       "dispatch_counts": {
-        "3SM.DE": 54,
-        "6RV.DE": 54,
-        "AP4N.DE": 54,
-        "AT4.DE": 54,
-        "C7N.DE": 54,
-        "CFZ.DE": 54,
-        "D6I.DE": 54,
-        "ET9.DE": 54,
-        "H3V.DE": 54,
-        "HFF.DE": 54,
-        "JYS1.DE": 54,
-        "LGI.DE": 54,
-        "R902.DE": 54,
-        "SMP0.DE": 53,
-        "STD.DE": 53
+        "3SM.DE": 55,
+        "6RV.DE": 55,
+        "AP4N.DE": 55,
+        "AT4.DE": 55,
+        "C7N.DE": 55,
+        "CFZ.DE": 55,
+        "D6I.DE": 55,
+        "ET9.DE": 55,
+        "H3V.DE": 55,
+        "HFF.DE": 55,
+        "JYS1.DE": 55,
+        "LGI.DE": 55,
+        "R902.DE": 55,
+        "SMP0.DE": 54,
+        "STD.DE": 54
       },
       "eligible_symbols": 168,
       "errors": [
@@ -2434,12 +2434,12 @@
       "remaining_symbols": 15,
       "requested_this_run": 15,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T15:50:08+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:49:56+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-20T15:36:32.167847+00:00"
+  "updated_at": "2026-09-20T15:53:03.084039+00:00"
 }
