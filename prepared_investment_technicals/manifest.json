@@ -10,7 +10,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-20T17:54:44+01:00",
       "status": "complete",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "euronext_brussels": {
       "coverage_symbols": 0,
@@ -22,7 +22,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-20T17:54:43+01:00",
       "status": "complete",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "euronext_lisbon": {
       "coverage_symbols": 0,
@@ -34,7 +34,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-20T17:54:44+01:00",
       "status": "complete",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "euronext_paris": {
       "coverage_symbols": 17,
@@ -42,11 +42,11 @@
       "eligible_symbols": 17,
       "errors": [],
       "remaining_symbols": 0,
-      "requested_this_run": 0,
-      "returned_this_run": 0,
+      "requested_this_run": 17,
+      "returned_this_run": 17,
       "source_fundamentals_updated_at": "2026-09-20T17:54:30+01:00",
       "status": "complete",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "gettex": {
       "coverage_symbols": 0,
@@ -727,7 +727,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-20T03:13:39+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "lse": {
       "coverage_symbols": 0,
@@ -849,7 +849,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T05:52:41+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "lse_aim": {
       "coverage_symbols": 0,
@@ -861,7 +861,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-20T17:54:16+01:00",
       "status": "complete",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "madrid": {
       "coverage_symbols": 0,
@@ -896,7 +896,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T01:59:26+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "nasdaq": {
       "coverage_symbols": 0,
@@ -1288,7 +1288,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T15:51:01+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "nyse": {
       "coverage_symbols": 0,
@@ -1769,7 +1769,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T16:47:28+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "otc": {
       "coverage_symbols": 0,
@@ -2147,7 +2147,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T20:29:52+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "six": {
       "coverage_symbols": 0,
@@ -2238,7 +2238,7 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T23:58:30+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "tsx": {
       "coverage_symbols": 0,
@@ -2288,158 +2288,281 @@
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-19T11:31:38+01:00",
       "status": "deferred_fundamentals",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "vienna": {
-      "coverage_symbols": 168,
+      "coverage_symbols": 50,
       "dispatch_counts": {
         "BLCK.VI": 58,
         "CATL.VI": 58,
+        "DLGI.VI": 0,
+        "DOC.VI": 0,
+        "DSY2.VI": 0,
+        "DWS.VI": 0,
+        "EBS.VI": 0,
+        "EDEN.VI": 0,
+        "EK7.VI": 0,
+        "EMSN.VI": 0,
+        "ENX.VI": 0,
+        "EOGR.VI": 0,
         "ETN.VI": 58,
+        "ETSY.VI": 0,
+        "EUZG.VI": 0,
+        "EVD.VI": 0,
+        "EWLS.VI": 0,
+        "EXO.VI": 0,
+        "EXPE.VI": 0,
+        "FAST.VI": 0,
+        "FBK.VI": 0,
+        "FDJ.VI": 0,
+        "FIE.VI": 0,
+        "FLU.VI": 0,
+        "FNTN.VI": 0,
+        "FPE.VI": 0,
+        "FQT.VI": 0,
+        "FRGR.VI": 0,
+        "FTK.VI": 0,
         "FTNT.VI": 58,
+        "G1A.VI": 0,
+        "G24.VI": 0,
+        "GALE.VI": 0,
+        "GBF.VI": 0,
+        "GE.VI": 0,
+        "GEDY.VI": 0,
+        "GFC.VI": 0,
+        "GILD.VI": 0,
+        "GLE.VI": 0,
+        "GMAB.VI": 0,
+        "GOOA.VI": 0,
+        "GOOC.VI": 0,
+        "GS.VI": 0,
+        "GWW.VI": 0,
+        "HAL.VI": 0,
+        "HAV2.VI": 0,
+        "HBAN.VI": 0,
         "IBKR.VI": 58,
+        "ICEI.VI": 0,
+        "ICK.VI": 0,
+        "IDXX.VI": 0,
+        "INGA.VI": 0,
+        "INTU.VI": 0,
+        "IOS.VI": 0,
+        "IPN.VI": 0,
+        "ISP.VI": 0,
+        "ISRG.VI": 0,
+        "ITW.VI": 0,
+        "ITX.VI": 0,
+        "JAT.VI": 0,
+        "JNJ.VI": 0,
+        "JPM.VI": 0,
+        "JYSK.VI": 0,
+        "KBC.VI": 0,
+        "KBCA.VI": 0,
+        "KBX.VI": 0,
+        "KEY.VI": 0,
         "KKRO.VI": 58,
+        "KLAC.VI": 0,
+        "KLAR.VI": 0,
+        "KLEP.VI": 0,
+        "KRKG.VI": 0,
+        "KRN.VI": 0,
+        "KSBG.VI": 0,
+        "MARA.VI": 0,
+        "MAST.VI": 0,
+        "MB.VI": 0,
+        "MBBG.VI": 0,
+        "MC.VI": 0,
         "MCK.VI": 58,
+        "MELI.VI": 0,
+        "MERL.VI": 0,
+        "META.VI": 0,
+        "METL.VI": 0,
+        "MLP.VI": 0,
+        "MMCO.VI": 0,
+        "MNST.VI": 0,
+        "MOCO.VI": 0,
+        "MONC.VI": 0,
+        "MOSI.VI": 0,
         "MPWR.VI": 58,
-        "TTEC.VI": 57
+        "MSCI.VI": 0,
+        "MSFT.VI": 0,
+        "THAL.VI": 0,
+        "TIMA.VI": 0,
+        "TJXC.VI": 0,
+        "TLX.VI": 0,
+        "TRE.VI": 0,
+        "TROW.VI": 0,
+        "TRV.VI": 0,
+        "TRYG.VI": 0,
+        "TTEC.VI": 57,
+        "UCG.VI": 0,
+        "UMG.VI": 0,
+        "UNBA.VI": 0,
+        "UNI.VI": 0,
+        "UQA.VI": 0,
+        "USBC.VI": 0,
+        "VACN.VI": 0,
+        "VEEV.VI": 0,
+        "VH2.VI": 0,
+        "VID.VI": 0,
+        "VIE.VI": 0,
+        "VIG.VI": 0,
+        "VIS.VI": 0,
+        "VISA.VI": 0,
+        "VK.VI": 0,
+        "VRSK.VI": 0,
+        "VZN.VI": 0,
+        "WDP.VI": 0,
+        "WFC.VI": 0,
+        "WI4.VI": 0,
+        "WKL.VI": 0,
+        "WMT.VI": 0,
+        "WUW.VI": 0,
+        "YELP.VI": 0,
+        "YSNG.VI": 0
       },
       "eligible_symbols": 177,
-      "errors": [
-        {
-          "error": "1y: 3 rows, insufficient usable history/indicators; 2y: 3 rows, insufficient usable history/indicators",
-          "symbol": "TTEC.VI"
-        },
-        {
-          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
-          "symbol": "BLCK.VI"
-        },
-        {
-          "error": "1y: 3 rows, insufficient usable history/indicators; 2y: 3 rows, insufficient usable history/indicators",
-          "symbol": "CATL.VI"
-        },
-        {
-          "error": "1y: 3 rows, insufficient usable history/indicators; 2y: 3 rows, insufficient usable history/indicators",
-          "symbol": "ETN.VI"
-        },
-        {
-          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
-          "symbol": "FTNT.VI"
-        },
-        {
-          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
-          "symbol": "IBKR.VI"
-        },
-        {
-          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
-          "symbol": "KKRO.VI"
-        },
-        {
-          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
-          "symbol": "MCK.VI"
-        },
-        {
-          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
-          "symbol": "MPWR.VI"
-        }
-      ],
-      "remaining_symbols": 9,
-      "requested_this_run": 9,
-      "returned_this_run": 0,
+      "errors": [],
+      "remaining_symbols": 127,
+      "requested_this_run": 50,
+      "returned_this_run": 50,
       "source_fundamentals_updated_at": "2026-09-20T17:54:44+01:00",
       "status": "partial",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     },
     "xetra": {
-      "coverage_symbols": 153,
+      "coverage_symbols": 50,
       "dispatch_counts": {
         "3SM.DE": 58,
         "6RV.DE": 58,
         "AP4N.DE": 58,
         "AT4.DE": 58,
         "C7N.DE": 58,
+        "CAR.DE": 0,
+        "CBK.DE": 0,
+        "CDS.DE": 0,
         "CFZ.DE": 58,
+        "CGM.DE": 0,
+        "CIT.DE": 0,
+        "CMC.DE": 0,
+        "COY.DE": 0,
+        "COZ.DE": 0,
+        "CPA.DE": 0,
+        "CRIN.DE": 0,
+        "CTO.DE": 0,
+        "CWC.DE": 0,
+        "CXU.DE": 0,
         "D6I.DE": 58,
+        "DB1.DE": 0,
+        "DBK.DE": 0,
+        "DIO.DE": 0,
+        "DO2.DE": 0,
+        "DWD.DE": 0,
+        "DWS.DE": 0,
+        "E3X1.DE": 0,
+        "EBO.DE": 0,
+        "EO5.DE": 0,
         "ET9.DE": 58,
+        "EUZ.DE": 0,
+        "EVD.DE": 0,
+        "EWL.DE": 0,
+        "EYX.DE": 0,
+        "FAS.DE": 0,
+        "FB2A.DE": 0,
+        "FIE.DE": 0,
+        "FNTN.DE": 0,
+        "FO4N.DE": 0,
+        "FO5.DE": 0,
+        "FPE.DE": 0,
+        "FQT.DE": 0,
+        "FTE.DE": 0,
+        "FTK.DE": 0,
+        "G1A.DE": 0,
+        "G24.DE": 0,
+        "GBF.DE": 0,
+        "GBRA.DE": 0,
+        "GCP.DE": 0,
+        "GE9.DE": 0,
+        "GIS.DE": 0,
+        "GOB.DE": 0,
+        "GOS.DE": 0,
+        "GS71.DE": 0,
+        "GU81.DE": 0,
+        "H1W.DE": 0,
         "H3V.DE": 58,
+        "HAL.DE": 0,
+        "HBC1.DE": 0,
         "HFF.DE": 58,
+        "HMI.DE": 0,
+        "HNR1.DE": 0,
+        "HOT.DE": 0,
+        "HU3.DE": 0,
+        "IC2.DE": 0,
+        "IES.DE": 0,
+        "ILT.DE": 0,
+        "INN1.DE": 0,
+        "INR.DE": 0,
+        "IOS.DE": 0,
+        "ITB.DE": 0,
+        "ITU.DE": 0,
+        "IUI1.DE": 0,
+        "IX1.DE": 0,
+        "IXD1.DE": 0,
+        "JNJ.DE": 0,
         "JYS1.DE": 58,
+        "KBX.DE": 0,
+        "KEY.DE": 0,
+        "KLA.DE": 0,
+        "KRN.DE": 0,
+        "KSB.DE": 0,
+        "LAR0.DE": 0,
         "LGI.DE": 58,
+        "LIV.DE": 0,
+        "LLD.DE": 0,
+        "LOM.DE": 0,
+        "LOR.DE": 0,
+        "LRC.DE": 0,
+        "LS4C.DE": 0,
+        "LTEC.DE": 0,
+        "PNP.DE": 0,
+        "PRG.DE": 0,
+        "PRL.DE": 0,
+        "PRU.DE": 0,
+        "PTX.DE": 0,
+        "QCI.DE": 0,
+        "QS51.DE": 0,
         "R902.DE": 58,
+        "RAA.DE": 0,
+        "RAW.DE": 0,
+        "RDEB.DE": 0,
+        "RHM.DE": 0,
+        "RHO.DE": 0,
+        "RN7.DE": 0,
+        "RSO.DE": 0,
+        "RWL.DE": 0,
+        "RY4C.DE": 0,
+        "RYSD.DE": 0,
+        "SDRC.DE": 0,
+        "SFE.DE": 0,
+        "SGE.DE": 0,
         "SMP0.DE": 57,
-        "STD.DE": 57
+        "SND.DE": 0,
+        "SPG.DE": 0,
+        "SQU.DE": 0,
+        "STD.DE": 57,
+        "SWG.DE": 0
       },
       "eligible_symbols": 168,
-      "errors": [
-        {
-          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
-          "symbol": "SMP0.DE"
-        },
-        {
-          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
-          "symbol": "STD.DE"
-        },
-        {
-          "error": "1y: 74 rows, insufficient usable history/indicators; 2y: 74 rows, insufficient usable history/indicators",
-          "symbol": "3SM.DE"
-        },
-        {
-          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
-          "symbol": "6RV.DE"
-        },
-        {
-          "error": "1y: 76 rows, insufficient usable history/indicators; 2y: 76 rows, insufficient usable history/indicators",
-          "symbol": "AP4N.DE"
-        },
-        {
-          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
-          "symbol": "AT4.DE"
-        },
-        {
-          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
-          "symbol": "C7N.DE"
-        },
-        {
-          "error": "1y: 75 rows, insufficient usable history/indicators; 2y: 75 rows, insufficient usable history/indicators",
-          "symbol": "CFZ.DE"
-        },
-        {
-          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
-          "symbol": "D6I.DE"
-        },
-        {
-          "error": "1y: 20 rows, insufficient usable history/indicators; 2y: 20 rows, insufficient usable history/indicators",
-          "symbol": "ET9.DE"
-        },
-        {
-          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
-          "symbol": "H3V.DE"
-        },
-        {
-          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
-          "symbol": "HFF.DE"
-        },
-        {
-          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
-          "symbol": "JYS1.DE"
-        },
-        {
-          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
-          "symbol": "LGI.DE"
-        },
-        {
-          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
-          "symbol": "R902.DE"
-        }
-      ],
-      "remaining_symbols": 15,
-      "requested_this_run": 15,
-      "returned_this_run": 0,
+      "errors": [],
+      "remaining_symbols": 118,
+      "requested_this_run": 50,
+      "returned_this_run": 50,
       "source_fundamentals_updated_at": "2026-09-20T17:50:58+01:00",
       "status": "partial",
-      "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
+      "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
-  "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-20T16:55:37.603326+00:00"
+  "technical_build": "investment-technicals-2026.09.19.1-13c15b2fdb035d30",
+  "updated_at": "2026-09-20T17:35:26.988133+00:00"
 }
