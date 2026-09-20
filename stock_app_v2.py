@@ -6,12 +6,18 @@ st.set_page_config(
     layout="wide",
 )
 
+home = st.Page(
+    "platform_home.py",
+    title="Home",
+    icon="🏠",
+    url_path="home",
+    default=True,
+)
 stocks = st.Page(
     "stocks_page.py",
     title="Stocks",
     icon="📈",
     url_path="stocks",
-    default=True,
 )
 crypto = st.Page(
     "app.py",
@@ -27,7 +33,7 @@ memes = st.Page(
 )
 
 page = st.navigation(
-    [stocks, crypto, memes],
+    [home, stocks, crypto, memes],
     position="top",
 )
 page.run()
