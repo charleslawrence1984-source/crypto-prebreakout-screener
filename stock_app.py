@@ -3360,25 +3360,6 @@ with tab2:
             key="refresh_watchlist_top",
         )
 
-        st.markdown("#### Manage watchlist")
-        st.caption("Remove any company here without running a new analysis.")
-        for watch_index, watch_symbol in enumerate(watch_entries):
-            company_name = watchlist_company_name(watch_symbol)
-            name_col, remove_col = st.columns([5, 1])
-            with name_col:
-                st.write(f"**{company_name} ({watch_symbol})**")
-            with remove_col:
-                if st.button(
-                    "Remove",
-                    key=f"remove_watch_{watch_symbol}_{watch_index}",
-                    use_container_width=True,
-                ):
-                    remove_browser_watchlist_symbol(watch_symbol)
-                    st.toast(f"{company_name} ({watch_symbol}) removed from watchlist")
-                    st.rerun()
-
-        st.divider()
-
     if watch_entries and refresh_watchlist:
         rows = []
         failed = []
@@ -3564,6 +3545,24 @@ with tab2:
 
         if not rows:
             st.warning("No watchlist companies returned enough data for analysis.")
+
+    if watch_entries:
+        st.markdown("#### Manage watchlist")
+        st.caption("Remove any company here without running a new analysis.")
+        for watch_index, watch_symbol in enumerate(watch_entries):
+            company_name = watchlist_company_name(watch_symbol)
+            name_col, remove_col = st.columns([5, 1])
+            with name_col:
+                st.write(f"**{company_name} ({watch_symbol})**")
+            with remove_col:
+                if st.button(
+                    "Remove",
+                    key=f"remove_watch_{watch_symbol}_{watch_index}",
+                    use_container_width=True,
+                ):
+                    remove_browser_watchlist_symbol(watch_symbol)
+                    st.toast(f"{company_name} ({watch_symbol}) removed from watchlist")
+                    st.rerun()
 
 with tab3:
     st.subheader("Advanced Trade Search")
