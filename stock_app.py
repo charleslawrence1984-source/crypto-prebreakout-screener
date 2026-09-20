@@ -32,6 +32,7 @@ st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", la
 PRIORITY_DEFAULT = "FLNC, SPCX"
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
+TRADE_TECHNICAL_DIR = Path(__file__).resolve().parent / "prepared_trade_technicals"
 TRADE_RULEBOOK_BUILD = "2026.09.18.12"
 
 EXCHANGE_UNIVERSES = {
@@ -2579,6 +2580,119 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+@st.cache_data(ttl=300, show_spinner=False)
+def load_all_trade_opportunities() -> pd.DataFrame:
+    """Combine prepared Trade technicals across exchanges for a simple user-facing opportunity feed."""
+    frames = []
+    labels_by_kind = {kind: label for label, kind in EXCHANGE_UNIVERSES.items()}
+    for kind, label in labels_by_kind.items():
+        technical_path = TRADE_TECHNICAL_DIR / f"{kind}.csv.gz"
+        fundamental_path = TRADE_PREPARED_DIR / f"{kind}.csv.gz"
+        if not technical_path.exists():
+            continue
+        try:
+            technical = pd.read_csv(technical_path, compression="gzip")
+        except Exception:
+            continue
+        if technical.empty or "Ticker" not in technical.columns or "Technical state" not in technical.columns:
+            continue
+
+        technical = technical[
+            technical["Technical state"].isin(["WATCH", "AWAITING NEXT OPEN", "ENTRY READY"])
+        ].copy()
+        if technical.empty:
+            continue
+
+        technical["Exchange"] = label
+        technical["Status"] = technical["Technical state"].map(
+            {
+                "WATCH": "WATCH",
+                "AWAITING NEXT OPEN": "READY TO VERIFY",
+                "ENTRY READY": "READY TO VERIFY",
+            }
+        ).fillna("WATCH")
+
+        if fundamental_path.exists():
+            try:
+                fundamentals = pd.read_csv(fundamental_path, compression="gzip")
+                keep = [
+                    column for column in
+                    ["Ticker", "Company", "Sector", "Industry", "Currency"]
+                    if column in fundamentals.columns
+                ]
+                if "Ticker" in keep:
+                    fundamentals = fundamentals[keep].drop_duplicates("Ticker", keep="last")
+                    technical = technical.merge(fundamentals, on="Ticker", how="left")
+            except Exception:
+                pass
+
+        frames.append(technical)
+
+    if not frames:
+        return pd.DataFrame()
+
+    output = pd.concat(frames, ignore_index=True)
+    output["Company"] = output.get("Company", output["Ticker"]).fillna(output["Ticker"])
+    output["Sector"] = output.get("Sector", pd.Series("—", index=output.index)).fillna("—")
+    output["Technical score"] = pd.to_numeric(output.get("Technical score"), errors="coerce")
+    output["Fundamental score"] = pd.to_numeric(output.get("Fundamental score"), errors="coerce")
+    output["_status_order"] = output["Status"].map({"READY TO VERIFY": 0, "WATCH": 1}).fillna(9)
+    output = output.sort_values(
+        ["_status_order", "Technical score", "Fundamental score"],
+        ascending=[True, False, False],
+        na_position="last",
+    ).drop(columns="_status_order")
+    return output.reset_index(drop=True)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def load_all_investment_opportunities() -> pd.DataFrame:
+    """Combine prepared Investment results across exchanges into a simple opportunity feed."""
+    frames = []
+    labels_by_kind = {kind: label for label, kind in EXCHANGE_UNIVERSES.items()}
+    for kind, label in labels_by_kind.items():
+        path = PREPARED_SCAN_DIR / f"{kind}.csv.gz"
+        if not path.exists():
+            continue
+        try:
+            frame = pd.read_csv(path, compression="gzip")
+        except Exception:
+            continue
+        if frame.empty or "Action" not in frame.columns:
+            continue
+
+        frame = frame[
+            frame["Action"].isin(["BUY CANDIDATE", "WAIT"])
+            & frame.get("Hard gates", pd.Series("", index=frame.index)).eq("PASS")
+        ].copy()
+        if frame.empty:
+            continue
+        frame["Exchange"] = label
+        frames.append(frame)
+
+    if not frames:
+        return pd.DataFrame()
+
+    output = pd.concat(frames, ignore_index=True)
+    output["Quality score"] = pd.to_numeric(output.get("Quality score"), errors="coerce")
+    output["Base margin of safety %"] = pd.to_numeric(
+        output.get("Base margin of safety %"), errors="coerce"
+    )
+    output["Required margin of safety %"] = pd.to_numeric(
+        output.get("Required margin of safety %"), errors="coerce"
+    )
+    output["MOS gap %"] = (
+        output["Required margin of safety %"] - output["Base margin of safety %"]
+    )
+    output["_action_order"] = output["Action"].map({"BUY CANDIDATE": 0, "WAIT": 1}).fillna(9)
+    output = output.sort_values(
+        ["_action_order", "MOS gap %", "Quality score"],
+        ascending=[True, True, False],
+        na_position="last",
+    ).drop(columns="_action_order")
+    return output.reset_index(drop=True)
+
+
 with st.sidebar:
     st.header("Stock Screener")
     st.write("**Trade Search:** technical setups, entries, targets and risk/reward.")
@@ -2592,8 +2706,15 @@ with st.sidebar:
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
 
-tab1, tab2, tab3, tab4, tab5 = st.tabs(
-    ["Quick analyse", "Watchlist", "Trade Search", "Investment Search", "Portfolio Review"]
+tab1, tab_opportunities, tab2, tab3, tab4, tab5 = st.tabs(
+    [
+        "Quick Analysis",
+        "Opportunities",
+        "Watchlist",
+        "Advanced Trade Search",
+        "Advanced Investment Search",
+        "Portfolio Review",
+    ]
 )
 
 with tab1:
@@ -2784,6 +2905,140 @@ with tab1:
             else:
                 st.error("I couldn't retrieve enough market history for that company.")
 
+with tab_opportunities:
+    st.subheader("Opportunities")
+    st.caption(
+        "The screener brings the prepared markets together for you. "
+        "You do not need to choose an exchange unless you want to use the advanced searches."
+    )
+
+    trade_feed_tab, investment_feed_tab = st.tabs(
+        ["Trade opportunities", "Investment opportunities"]
+    )
+
+    with trade_feed_tab:
+        trade_opportunities = load_all_trade_opportunities()
+        if trade_opportunities.empty:
+            st.info(
+                "No prepared Trade WATCH or ready-to-verify setups are available right now. "
+                "That means the current rules are not finding a developing setup across the prepared markets."
+            )
+        else:
+            ready_count = int((trade_opportunities["Status"] == "READY TO VERIFY").sum())
+            watch_count = int((trade_opportunities["Status"] == "WATCH").sum())
+            market_count = int(trade_opportunities["Exchange"].nunique())
+
+            t1, t2, t3 = st.columns(3)
+            t1.metric("Ready to verify", ready_count)
+            t2.metric("WATCH", watch_count)
+            t3.metric("Markets represented", market_count)
+
+            st.caption(
+                "READY TO VERIFY means the prepared technical setup has reached the confirmation stage. "
+                "Run Quick Analysis or Advanced Trade Search before acting so current price and event gates are checked. "
+                "WATCH means the setup is developing but is not ready yet."
+            )
+
+            trade_status_filter = st.radio(
+                "Show",
+                ["Best opportunities", "Ready to verify", "WATCH", "All"],
+                horizontal=True,
+                key="opportunity_trade_filter",
+            )
+            shown_trade = trade_opportunities.copy()
+            if trade_status_filter == "Ready to verify":
+                shown_trade = shown_trade[shown_trade["Status"] == "READY TO VERIFY"]
+            elif trade_status_filter == "WATCH":
+                shown_trade = shown_trade[shown_trade["Status"] == "WATCH"]
+            elif trade_status_filter == "Best opportunities":
+                shown_trade = shown_trade.head(25)
+
+            trade_cols = [
+                "Status", "Ticker", "Company", "Exchange", "Sector",
+                "Technical reason", "Fundamental score", "Technical score",
+                "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
+            ]
+            visible_trade_cols = [col for col in trade_cols if col in shown_trade.columns]
+            st.dataframe(
+                shown_trade[visible_trade_cols].style.map(
+                    action_cell_style,
+                    subset=["Status"],
+                ),
+                hide_index=True,
+                use_container_width=True,
+            )
+            st.caption(
+                "For a specific company, use Quick Analysis from the first tab for the clearest current explanation."
+            )
+
+    with investment_feed_tab:
+        investment_opportunities = load_all_investment_opportunities()
+        if investment_opportunities.empty:
+            st.info(
+                "No prepared Investment BUY or WAIT opportunities with passing hard quality gates are available yet."
+            )
+        else:
+            buy_count = int((investment_opportunities["Action"] == "BUY CANDIDATE").sum())
+            wait_count = int((investment_opportunities["Action"] == "WAIT").sum())
+            investment_market_count = int(investment_opportunities["Exchange"].nunique())
+
+            i1, i2, i3 = st.columns(3)
+            i1.metric("BUY CANDIDATE", buy_count)
+            i2.metric("WAIT", wait_count)
+            i3.metric("Markets represented", investment_market_count)
+
+            st.caption(
+                "BUY CANDIDATE means the measurable quality and valuation gates pass, but the required manual review still applies. "
+                "WAIT usually means the business quality passes but the price or evidence is not good enough yet."
+            )
+
+            investment_filter = st.radio(
+                "Show",
+                ["Best opportunities", "BUY CANDIDATE", "WAIT", "All"],
+                horizontal=True,
+                key="opportunity_investment_filter",
+            )
+            shown_investment = investment_opportunities.copy()
+            if investment_filter == "BUY CANDIDATE":
+                shown_investment = shown_investment[shown_investment["Action"] == "BUY CANDIDATE"]
+            elif investment_filter == "WAIT":
+                shown_investment = shown_investment[shown_investment["Action"] == "WAIT"]
+            elif investment_filter == "Best opportunities":
+                shown_investment = shown_investment.head(25)
+
+            investment_cols = [
+                "Action", "Ticker", "Company", "Exchange", "Sector",
+                "Price", "Quality score", "Moat score",
+                "Base margin of safety %", "Required margin of safety %",
+                "MOS gap %", "Valuation gate", "Decision reason",
+            ]
+            visible_investment_cols = [
+                col for col in investment_cols if col in shown_investment.columns
+            ]
+            st.dataframe(
+                shown_investment[visible_investment_cols].style.map(
+                    action_cell_style,
+                    subset=["Action"],
+                ),
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Quality score": st.column_config.ProgressColumn(
+                        min_value=0, max_value=100, format="%.1f"
+                    ),
+                    "Moat score": st.column_config.ProgressColumn(
+                        min_value=0, max_value=100, format="%.1f"
+                    ),
+                    "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "MOS gap %": st.column_config.NumberColumn(format="%.1f%%"),
+                },
+            )
+            st.caption(
+                "Prepared Investment results are a market-wide shortlist. Use Quick Analysis before making a decision so the company is refreshed individually."
+            )
+
+
 with tab2:
     symbols = [x.strip().upper() for x in watch_text.replace("\n", ",").split(",") if x.strip()]
     if st.button("Scan watchlist", type="primary"):
@@ -2824,7 +3079,7 @@ with tab2:
             st.warning("No watchlist symbols returned enough data.")
 
 with tab3:
-    st.subheader("Trade Search")
+    st.subheader("Advanced Trade Search")
     st.caption(f"Rulebook build: {TRADE_RULEBOOK_BUILD}")
     st.caption(
         "Approved value-driven swing rulebook. The scanner identifies and ranks paper-trade candidates; "
@@ -2989,7 +3244,7 @@ with tab3:
                 )
 
 with tab4:
-    st.subheader("Investment Search — 10 Years to Forever")
+    st.subheader("Advanced Investment Search — 10 Years to Forever")
     st.caption(
         "Independent long-term investment search. Business quality is tested first; "
         "valuation is a separate hard gate. Technical setup does not affect the result."
