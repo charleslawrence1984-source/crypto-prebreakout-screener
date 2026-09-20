@@ -12,7 +12,10 @@ import pandas as pd
 logging.getLogger("streamlit").setLevel(logging.CRITICAL)
 import stock_app
 
-BUILD = "investment-technicals-2026.09.19.1"
+BUILD = "investment-technicals-2026.09.20.2"
+# This build identifier is intentionally manual. UI/UX-only edits in stock_app.py
+# must not invalidate prepared technical rows. Bump BUILD only when the investment
+# technical calculation or its interpretation changes.
 
 
 def recovery_analysis(symbol):
@@ -168,11 +171,11 @@ def main():
     args = parser.parse_args()
     if args.max_symbols_per_exchange < 1:
         parser.error("batch size must be positive")
-    # Bind results to the exact calculation code, as well as the cache schema.
-    app_hash = hashlib.sha256(Path(stock_app.__file__).read_bytes()).hexdigest()[:16]
+    # UI changes in stock_app.py are deliberately excluded from cache identity.
+    # BUILD is bumped manually whenever the investment technical calculation changes.
     return prepare(Path(args.fundamentals_dir), Path(args.output_dir),
                    0 if args.reconcile_only else args.max_symbols_per_exchange,
-                   recovery_analysis, BUILD + "-" + app_hash)
+                   recovery_analysis, BUILD)
 
 
 if __name__ == "__main__":
