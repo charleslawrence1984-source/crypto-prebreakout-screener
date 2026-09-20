@@ -34,6 +34,6 @@ memes = st.Page(
 
 page = st.navigation(
     [home, stocks, crypto, memes],
-    position="top",
+    position="hidden",
 )
 page.run()
