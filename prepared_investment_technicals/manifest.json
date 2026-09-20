@@ -8,7 +8,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T16:52:09+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:57:18+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -20,7 +20,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T16:52:08+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:57:18+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -32,7 +32,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T16:52:09+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:57:18+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -44,7 +44,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T16:51:54+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:55:36+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -859,7 +859,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T16:51:52+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:55:34+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -2293,15 +2293,15 @@
     "vienna": {
       "coverage_symbols": 168,
       "dispatch_counts": {
-        "BLCK.VI": 55,
-        "CATL.VI": 55,
-        "ETN.VI": 55,
-        "FTNT.VI": 55,
-        "IBKR.VI": 55,
-        "KKRO.VI": 55,
-        "MCK.VI": 55,
-        "MPWR.VI": 55,
-        "TTEC.VI": 54
+        "BLCK.VI": 56,
+        "CATL.VI": 56,
+        "ETN.VI": 56,
+        "FTNT.VI": 56,
+        "IBKR.VI": 56,
+        "KKRO.VI": 56,
+        "MCK.VI": 56,
+        "MPWR.VI": 56,
+        "TTEC.VI": 55
       },
       "eligible_symbols": 177,
       "errors": [
@@ -2345,28 +2345,28 @@
       "remaining_symbols": 9,
       "requested_this_run": 9,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T16:52:08+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:57:18+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
     "xetra": {
       "coverage_symbols": 153,
       "dispatch_counts": {
-        "3SM.DE": 55,
-        "6RV.DE": 55,
-        "AP4N.DE": 55,
-        "AT4.DE": 55,
-        "C7N.DE": 55,
-        "CFZ.DE": 55,
-        "D6I.DE": 55,
-        "ET9.DE": 55,
-        "H3V.DE": 55,
-        "HFF.DE": 55,
-        "JYS1.DE": 55,
-        "LGI.DE": 55,
-        "R902.DE": 55,
-        "SMP0.DE": 54,
-        "STD.DE": 54
+        "3SM.DE": 56,
+        "6RV.DE": 56,
+        "AP4N.DE": 56,
+        "AT4.DE": 56,
+        "C7N.DE": 56,
+        "CFZ.DE": 56,
+        "D6I.DE": 56,
+        "ET9.DE": 56,
+        "H3V.DE": 56,
+        "HFF.DE": 56,
+        "JYS1.DE": 56,
+        "LGI.DE": 56,
+        "R902.DE": 56,
+        "SMP0.DE": 55,
+        "STD.DE": 55
       },
       "eligible_symbols": 168,
       "errors": [
@@ -2415,7 +2415,7 @@
           "symbol": "H3V.DE"
         },
         {
-          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
+          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
           "symbol": "HFF.DE"
         },
         {
@@ -2434,12 +2434,12 @@
       "remaining_symbols": 15,
       "requested_this_run": 15,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T16:49:56+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T16:53:14+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-20T15:53:05.255002+00:00"
+  "updated_at": "2026-09-20T15:58:07.024606+00:00"
 }
