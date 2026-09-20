@@ -2881,9 +2881,193 @@ def apply_ta_context_overlay(df: pd.DataFrame, macro_now: Dict) -> pd.DataFrame:
     return pd.concat([df.reset_index(drop=True), overlay.reset_index(drop=True)], axis=1)
 
 
+def load_crypto_watchlist() -> List[str]:
+    try:
+        raw = st.query_params.get("cwl", "")
+    except Exception:
+        raw = ""
+    if isinstance(raw, list):
+        raw = raw[-1] if raw else ""
+    return [
+        item.strip().upper()
+        for item in str(raw or "").split(",")
+        if item.strip()
+    ][:40]
+
+
+def save_crypto_watchlist(symbols: List[str]) -> None:
+    clean = []
+    for symbol in symbols[:40]:
+        value = str(symbol or "").strip().upper()
+        if value and value not in clean:
+            clean.append(value)
+    try:
+        if clean:
+            st.query_params["cwl"] = ",".join(clean)
+        elif "cwl" in st.query_params:
+            del st.query_params["cwl"]
+    except Exception:
+        pass
+
+
+def set_crypto_watchlist_symbol(symbol: str, enabled: bool) -> None:
+    ticker = str(symbol or "").strip().upper()
+    current = load_crypto_watchlist()
+    current_set = set(current)
+    if enabled:
+        current_set.add(ticker)
+    else:
+        current_set.discard(ticker)
+    ordered = [item for item in current if item in current_set]
+    if enabled and ticker not in ordered:
+        ordered.append(ticker)
+    save_crypto_watchlist(ordered)
+
+
+def crypto_trade_decision(result: Dict, macro_now: Dict) -> Dict:
+    if not result or "score" not in result:
+        return {"action": "UNAVAILABLE", "reason": "Not enough market data to score this coin."}
+
+    symbol = str(result.get("symbol") or result.get("Symbol") or "")
+    base = symbol.split("/")[0].upper()
+    overlay = assess_ta_limitations(
+        pd.Series({
+            "Coin": base,
+            "Candle caution": "CAUTION" if result.get("candle_caution") else "CLEAR",
+            "RS vs BTC %": result.get("rs_vs_btc_pct", np.nan),
+            "Coin trend": result.get("coin_trend", "UNAVAILABLE"),
+            "Market trend": result.get("market_trend", "UNAVAILABLE"),
+            "SMA regime": result.get("sma_regime", "UNAVAILABLE"),
+            "4h Channel": result.get("channel_4h_direction", "UNAVAILABLE"),
+            "RSI": result.get("rsi", np.nan),
+            "BB 4h regime": result.get("bb_4h_regime", "UNAVAILABLE"),
+            "BB 4h position %": result.get("bb_4h_position_pct", np.nan),
+            "Pattern": result.get("triangle_label", "NO TRIANGLE"),
+            "Catalyst status": result.get("catalyst_status", "NOT CONNECTED"),
+            "Catalyst days": result.get("catalyst_days", np.nan),
+            "Tokenomics gate": result.get("tokenomics_gate", "UNKNOWN"),
+            "Major CEX gate": result.get("major_cex_gate", "UNKNOWN"),
+            "Category leader": result.get("category_leader", "UNKNOWN"),
+        }),
+        macro_now,
+    )
+    rs_pass = base == "BTC" or _safe_float(result.get("rs_vs_btc_pct"), -999) > 0
+    if (
+        result.get("eligible")
+        and rs_pass
+        and result.get("tokenomics_gate") == "PASS"
+        and result.get("major_cex_gate") == "PASS"
+        and not result.get("candle_caution")
+        and overlay.get("Context confidence") != "LOW"
+        and overlay.get("Known event risk") != "HIGH"
+        and macro_now.get("allows_new_swing_risk", True)
+    ):
+        return {
+            "action": "BUY",
+            "reason": "The pre-breakout setup, relative strength, tokenomics, exchange breadth, context and macro gates currently pass.",
+        }
+
+    if result.get("eligible"):
+        reasons = []
+        if not rs_pass:
+            reasons.append("not beating BTC")
+        if result.get("tokenomics_gate") != "PASS":
+            reasons.append("tokenomics gate not passed")
+        if result.get("major_cex_gate") != "PASS":
+            reasons.append("major-exchange breadth not passed")
+        if result.get("candle_caution"):
+            reasons.append("4h candle rejection caution")
+        if overlay.get("Context confidence") == "LOW" or overlay.get("Known event risk") == "HIGH":
+            reasons.append("context/event-risk gate")
+        if not macro_now.get("allows_new_swing_risk", True):
+            reasons.append("macro liquidity")
+        return {
+            "action": "WAIT",
+            "reason": "The technical setup is developing, but " + ", ".join(reasons or ["one or more confirmation gates"]) + " still needs to improve.",
+        }
+
+    return {
+        "action": "PASS",
+        "reason": result.get("reason", "The current pre-breakout shape does not meet the approved setup rules."),
+    }
+
+
+def render_crypto_decision_card(title: str, action: str, reason: str) -> None:
+    action_upper = str(action or "UNAVAILABLE").upper()
+    if action_upper in {"BUY", "ACCUMULATE"}:
+        border, background, text_colour, icon = "#2e7d32", "#eef8f0", "#1b5e20", "🟢"
+    elif action_upper in {"WAIT", "WATCH"}:
+        border, background, text_colour, icon = "#d48a00", "#fff8e1", "#7a4d00", "🟠"
+    elif action_upper == "PASS":
+        border, background, text_colour, icon = "#c62828", "#fff0f0", "#8e1b1b", "🔴"
+    else:
+        border, background, text_colour, icon = "#6b7280", "#f5f5f5", "#374151", "⚪"
+    st.markdown(
+        f"""
+        <div style="
+            border: 2px solid {border};
+            background: {background};
+            border-radius: 14px;
+            padding: 18px 20px;
+            min-height: 180px;
+            margin-bottom: 8px;
+        ">
+            <div style="font-size:0.95rem;font-weight:700;opacity:.78;margin-bottom:4px;">{title}</div>
+            <div style="font-size:2.4rem;line-height:1.05;font-weight:900;color:{text_colour};margin:6px 0 12px 0;">
+                {icon} {action_upper}
+            </div>
+            <div style="font-size:1.02rem;line-height:1.45;color:#313131;">{reason}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def crypto_dashboard_summary(frame: pd.DataFrame, cfg: ScreenerConfig, macro_now: Dict) -> Dict:
+    summary = {
+        "scanned": 0,
+        "swing_buy": 0,
+        "accumulation": 0,
+        "best_score": np.nan,
+        "btc_trend": "UNAVAILABLE",
+    }
+    if frame is None or frame.empty:
+        return summary
+    try:
+        df = apply_ta_context_overlay(frame.copy(), macro_now)
+        summary["scanned"] = len(df)
+        summary["best_score"] = pd.to_numeric(df.get("Score"), errors="coerce").max()
+        if "Market trend" in df.columns and not df["Market trend"].dropna().empty:
+            summary["btc_trend"] = str(df["Market trend"].dropna().iloc[0])
+
+        technical = df[
+            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+            & (pd.to_numeric(df["Score"], errors="coerce") >= cfg.score_threshold)
+        ].copy()
+        if not technical.empty:
+            rs_pass = (technical["Coin"] == "BTC") | (pd.to_numeric(technical["RS vs BTC %"], errors="coerce") > 0)
+            final = technical[
+                rs_pass
+                & technical["Tokenomics gate"].eq("PASS")
+                & technical["Major CEX gate"].eq("PASS")
+                & technical["Candle caution"].ne("CAUTION")
+                & technical["Context confidence"].ne("LOW")
+                & technical["Known event risk"].ne("HIGH")
+            ]
+            if macro_now.get("allows_new_swing_risk", True):
+                summary["swing_buy"] = len(final)
+
+        summary["accumulation"] = int(
+            (df["Accumulation verdict"] == "ACCUMULATION READY").sum()
+        )
+    except Exception:
+        pass
+    return summary
+
+
 # ---------------- UI ----------------
-st.title("⚡ Pre-Breakout Crypto Screener")
-st.caption("Built to find compression before expansion — and reject coins that have already run.")
+st.title("⚡ Crypto Opportunity Screener")
+st.caption("Find pre-breakout swing entries and accumulation setups without digging through all the market data yourself.")
 
 st.markdown("""
 <style>
@@ -2945,6 +3129,158 @@ if "last_scan" not in st.session_state:
 
 macro = macro_liquidity_regime()
 st.session_state.macro_liquidity = macro
+
+st.markdown("### Your crypto dashboard")
+st.caption("Start with a coin, see what the screener is finding, or track the coins you want to revisit.")
+
+crypto_summary = crypto_dashboard_summary(st.session_state.scan_df, cfg, macro)
+crypto_watchlist = load_crypto_watchlist()
+
+d1, d2, d3, d4, d5, d6 = st.columns(6)
+d1.metric("Swing BUY", crypto_summary["swing_buy"])
+d2.metric("Accumulation", crypto_summary["accumulation"])
+d3.metric(
+    "Best swing score",
+    "—" if not math.isfinite(_safe_float(crypto_summary["best_score"])) else f"{crypto_summary['best_score']:.1f}/100",
+)
+d4.metric("BTC trend", crypto_summary["btc_trend"])
+d5.metric("Macro regime", macro.get("regime", "DATA LIMITED"))
+d6.metric("Watchlist", len(crypto_watchlist))
+
+home_a, home_b, home_c = st.columns(3)
+with home_a:
+    with st.container(border=True):
+        st.markdown("#### 🔎 Analyse a coin")
+        st.write("Search by coin name or ticker and get the current swing and accumulation decision first.")
+        crypto_home_query = st.text_input(
+            "Coin",
+            value="",
+            placeholder="e.g. Solana, SOL, SOL/USDT",
+            key="crypto_home_query",
+            label_visibility="collapsed",
+        )
+        crypto_home_analyse = st.button(
+            "Analyse coin",
+            type="primary",
+            use_container_width=True,
+            key="crypto_home_analyse",
+        )
+
+with home_b:
+    with st.container(border=True):
+        st.markdown("#### 🎯 Find opportunities")
+        if crypto_summary["swing_buy"]:
+            st.success(
+                f"{crypto_summary['swing_buy']} swing BUY setup"
+                f"{'s' if crypto_summary['swing_buy'] != 1 else ''}"
+            )
+        else:
+            st.info("No swing BUY setup is ready right now.")
+        if crypto_summary["accumulation"]:
+            st.success(
+                f"{crypto_summary['accumulation']} accumulation setup"
+                f"{'s' if crypto_summary['accumulation'] != 1 else ''}"
+            )
+        st.caption("Run or refresh the screener below to update the opportunity set.")
+
+with home_c:
+    with st.container(border=True):
+        st.markdown("#### ⭐ My watchlist")
+        if crypto_watchlist:
+            st.write(
+                f"You are following **{len(crypto_watchlist)}** coin"
+                f"{'s' if len(crypto_watchlist) != 1 else ''}."
+            )
+            st.caption(", ".join(crypto_watchlist[:6]) + ("…" if len(crypto_watchlist) > 6 else ""))
+        else:
+            st.write("Your crypto watchlist is empty.")
+            st.caption("Analyse a coin below and tick **Watch** to start tracking it.")
+        st.caption("Full watchlist management and automatic status alerts are the next Crypto UX step.")
+
+if crypto_home_analyse and crypto_home_query:
+    with st.spinner(f"Analysing {crypto_home_query.strip()}…"):
+        try:
+            home_symbol, home_result, _home_raw = asyncio.run(
+                analyse_individual_coin(cfg, crypto_home_query)
+            )
+            home_result = dict(home_result or {})
+            home_result["symbol"] = home_symbol
+        except Exception as exc:
+            home_symbol, home_result = "", {}
+            st.error(f"{type(exc).__name__}: {exc}")
+
+    if home_symbol and home_result:
+        st.markdown("---")
+        title_col, watch_col = st.columns([5, 1])
+        with title_col:
+            st.markdown(f"### {home_symbol.split('/')[0]} on {exchange_name}")
+            if "price" in home_result:
+                st.caption(f"Current price: {fmt_price(home_result['price'])}")
+        with watch_col:
+            watched_now = home_symbol.split("/")[0].upper() in set(crypto_watchlist)
+            watch_now = st.checkbox(
+                "Watch",
+                value=watched_now,
+                key=f"crypto_home_watch_{home_symbol.split('/')[0]}",
+            )
+            if watch_now != watched_now:
+                set_crypto_watchlist_symbol(home_symbol.split("/")[0], watch_now)
+                st.toast("Added to crypto watchlist" if watch_now else "Removed from crypto watchlist")
+
+        trade_decision = crypto_trade_decision(home_result, macro)
+        accumulation_verdict = str(
+            home_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
+        )
+        if accumulation_verdict == "ACCUMULATION READY":
+            accumulation_action = "ACCUMULATE"
+            accumulation_reason = "The confirmed daily base and accumulation score currently meet the model rules."
+        elif accumulation_verdict.startswith("WATCH"):
+            accumulation_action = "WAIT"
+            accumulation_reason = "The longer-term base is developing but is not ready yet."
+        else:
+            accumulation_action = "PASS"
+            accumulation_reason = "The current daily base does not meet the accumulation rules."
+
+        dc1, dc2 = st.columns(2)
+        with dc1:
+            render_crypto_decision_card(
+                "SWING DECISION",
+                trade_decision["action"],
+                trade_decision["reason"],
+            )
+        with dc2:
+            render_crypto_decision_card(
+                "ACCUMULATION DECISION",
+                accumulation_action,
+                accumulation_reason,
+            )
+
+        if "score" in home_result:
+            hm1, hm2, hm3, hm4 = st.columns(4)
+            hm1.metric("Swing score", f"{home_result.get('score', 0):.1f}/100")
+            hm2.metric("RS vs BTC", f"{home_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
+            hm3.metric("RSI", f"{home_result.get('rsi', np.nan):.1f}")
+            hm4.metric(
+                "Potential ROI",
+                "—" if not math.isfinite(_safe_float(home_result.get("target_upside_pct"))) else f"{home_result.get('target_upside_pct'):.1f}%",
+            )
+        st.caption("The detailed crypto scanner below contains the full evidence, charts and advanced filters.")
+
+st.markdown("### How it works")
+hw1, hw2, hw3 = st.columns(3)
+with hw1:
+    st.markdown("**1 · Search a coin**")
+    st.caption("Use a coin name or ticker. The screener resolves the active market for you.")
+with hw2:
+    st.markdown("**2 · See the decision**")
+    st.caption("Swing and accumulation decisions come first; the detailed evidence remains available below.")
+with hw3:
+    st.markdown("**3 · Watch what matters**")
+    st.caption("If the setup is not ready, add it to your crypto watchlist rather than chasing the price.")
+
+st.divider()
+st.markdown("### Advanced crypto screener")
+st.caption("The full pre-breakout engine, macro analysis, category rotation, detailed evidence and scan controls remain below.")
 
 st.subheader("Macro liquidity regime")
 if macro.get("available"):
