@@ -14,12 +14,55 @@ st.markdown(
         gap:20px;
         margin:16px 0 40px 0;
     }
-    .cl-logo-svg {
-        width:104px;
-        height:104px;
-        flex:0 0 104px;
+    .cl-logo-css {
+        width:110px;
+        height:110px;
+        flex:0 0 110px;
+        position:relative;
         filter:drop-shadow(0 12px 22px rgba(20,70,160,.18));
     }
+    .cl-c-ring {
+        position:absolute;
+        left:3px;
+        top:8px;
+        width:78px;
+        height:78px;
+        border:14px solid #0b2d72;
+        border-right-color:transparent;
+        border-radius:50%;
+        transform:rotate(-4deg);
+        box-sizing:border-box;
+        background:transparent;
+    }
+    .cl-l-vert {
+        position:absolute;
+        left:61px;
+        top:8px;
+        width:18px;
+        height:86px;
+        border-radius:9px 9px 6px 6px;
+        background:linear-gradient(180deg,#2496ff 0%,#0f55bf 56%,#0a2b70 100%);
+    }
+    .cl-l-foot {
+        position:absolute;
+        left:61px;
+        top:76px;
+        width:47px;
+        height:18px;
+        border-radius:5px 11px 11px 5px;
+        background:linear-gradient(90deg,#0a2b70 0%,#0f55bf 55%,#2496ff 100%);
+    }
+    .cl-signal-bar {
+        position:absolute;
+        bottom:25px;
+        width:10px;
+        border-radius:6px 6px 2px 2px;
+        background:linear-gradient(180deg,#35a7ff 0%,#1464db 100%);
+        box-shadow:0 1px 3px rgba(15,85,190,.18);
+    }
+    .cl-signal-bar.one { left:27px; height:20px; }
+    .cl-signal-bar.two { left:41px; height:33px; }
+    .cl-signal-bar.three { left:55px; height:48px; }
     .cl-title {
         color:#08152f;
         font-size:3rem;
@@ -188,48 +231,14 @@ st.markdown(
 st.markdown(
     """
     <div class="cl-wordmark">
-        <svg class="cl-logo-svg" viewBox="0 0 120 120" aria-label="CL Signal logo" role="img">
-            <defs>
-                <linearGradient id="clGrad" x1="0" y1="1" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#07183e"/>
-                    <stop offset="55%" stop-color="#0f4aa3"/>
-                    <stop offset="100%" stop-color="#1f8cff"/>
-                </linearGradient>
-                <linearGradient id="barGrad" x1="0" y1="1" x2="0" y2="0">
-                    <stop offset="0%" stop-color="#0f5bd3"/>
-                    <stop offset="100%" stop-color="#32a1ff"/>
-                </linearGradient>
-            </defs>
-
-            <!-- C ring -->
-            <path d="M61 14
-                     A46 46 0 1 0 61 106
-                     L61 91
-                     A31 31 0 1 1 61 29
-                     Z"
-                  fill="url(#clGrad)"/>
-
-            <!-- L -->
-            <path d="M66 16
-                     Q66 12 71 12
-                     H82
-                     Q87 12 87 17
-                     V85
-                     H108
-                     Q113 85 113 90
-                     V102
-                     Q113 107 108 107
-                     H72
-                     Q66 107 66 101
-                     Z"
-                  fill="url(#clGrad)"/>
-
-            <!-- signal bars -->
-            <rect x="29" y="69" width="9" height="18" rx="4.5" fill="url(#barGrad)"/>
-            <rect x="42" y="57" width="9" height="30" rx="4.5" fill="url(#barGrad)"/>
-            <rect x="55" y="42" width="9" height="45" rx="4.5" fill="url(#barGrad)"/>
-        </svg>
-
+        <div class="cl-logo-css" aria-label="CL Signal logo">
+            <div class="cl-c-ring"></div>
+            <div class="cl-l-vert"></div>
+            <div class="cl-l-foot"></div>
+            <div class="cl-signal-bar one"></div>
+            <div class="cl-signal-bar two"></div>
+            <div class="cl-signal-bar three"></div>
+        </div>
         <div>
             <div class="cl-title">CL Signal</div>
             <div class="cl-subtitle">Market intelligence made simple.</div>
