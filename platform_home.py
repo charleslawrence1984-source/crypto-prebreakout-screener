@@ -5,14 +5,14 @@ st.markdown(
     <style>
     .block-container {
         max-width: 1240px;
-        padding-top: 1.5rem;
+        padding-top: 3.6rem;
         padding-bottom: 3rem;
     }
     .cl-wordmark {
         display:flex;
         align-items:center;
         gap:14px;
-        margin:4px 0 34px 0;
+        margin:10px 0 34px 0;
     }
     .cl-mark {
         width:58px;
