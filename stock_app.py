@@ -3212,7 +3212,7 @@ with tab_opportunities:
             visible_trade_cols = [col for col in trade_cols if col in shown_trade.columns]
             render_watchlist_selector(
                 shown_trade[visible_trade_cols],
-                key=f"trade_opportunity_watch_{trade_status_filter}",
+                key=f"trade_opportunity_watch_{trade_status_filter}_{_query_param_text('wl')[:8]}",
             )
             st.caption(
                 "For a specific company, use Quick Analysis from the first tab for the clearest current explanation."
@@ -3264,7 +3264,7 @@ with tab_opportunities:
             ]
             render_watchlist_selector(
                 shown_investment[visible_investment_cols],
-                key=f"investment_opportunity_watch_{investment_filter}",
+                key=f"investment_opportunity_watch_{investment_filter}_{_query_param_text('wl')[:8]}",
                 column_config={
                     "Quality score": st.column_config.ProgressColumn(
                         min_value=0, max_value=100, format="%.1f"
@@ -3626,7 +3626,7 @@ with tab3:
                 visible_quick = [column for column in quick_cols if column in pre.columns]
                 render_watchlist_selector(
                     pre[visible_quick].head(50),
-                    key=f"advanced_trade_watch_{universe_kind}_{cap_choice}",
+                    key=f"advanced_trade_watch_{universe_kind}_{cap_choice}_{_query_param_text('wl')[:8]}",
                 )
                 with st.expander("Full rule evidence", expanded=False):
                     st.dataframe(pre, hide_index=True, use_container_width=True)
@@ -3849,7 +3849,7 @@ with tab4:
                     )
                     render_watchlist_selector(
                         filtered_fundamentals,
-                        key=f"advanced_investment_watch_{fundamental_universe_kind}_{scan_source}",
+                        key=f"advanced_investment_watch_{fundamental_universe_kind}_{scan_source}_{_query_param_text('wl')[:8]}",
                         column_config={
                             "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
                             "Moat score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
