@@ -1,2 +1,2 @@
-Requested 2026-09-20T01:42:10+01:00.
-Relevant fundamental workflow is idle with incomplete coverage. Investment last stopped about 50 minutes ago with provider rate limits; resume using existing consecutive-batch backoff and checkpoint safeguards. Preserve missing-only processing, eligibility checks, locks and market-session rules.
+Requested 2026-09-20T03:08:32+01:00.
+Coverage reached 11,855/12,517 and Gettex 4,189/4,787 before rate limits paused the last run. More than one hour has elapsed; resume bounded missing-only batches with checkpoint and rate-limit stopping safeguards.
