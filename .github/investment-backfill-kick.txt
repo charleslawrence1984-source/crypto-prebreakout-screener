@@ -1,3 +1,2 @@
-User requested continuous safe progress overnight.
-Previous Investment fundamental run 35470360756 completed; start the bounded consecutive-batch workflow now.
-Retain 200 per exchange, two workers, independent technical lock, checkpoint each batch, and stop on no progress or provider limits.
+Requested 2026-09-20T01:42:10+01:00.
+Relevant fundamental workflow is idle with incomplete coverage. Investment last stopped about 50 minutes ago with provider rate limits; resume using existing consecutive-batch backoff and checkpoint safeguards. Preserve missing-only processing, eligibility checks, locks and market-session rules.
