@@ -1,2 +1,2 @@
-User requested focus on unfinished Investment technicals on 2026-09-20.
-Retry the 24 outstanding qualifying companies on completed Vienna and Xetra exchanges using the existing independent lock and resumable batches. Preserve fundamental hard-gate eligibility, cache reconciliation and completed-exchange validation; keep incomplete exchanges deferred.
+Requested 2026-09-20T13:26:00+01:00.
+Resume existing safe missing-only batches while idle. Preserve provider cooldown, independent writer locks, eligibility checks and explicit partial coverage. Investment diagnostics now retain per-symbol outcomes; technical retries use the same listing and unchanged indicator rules.
