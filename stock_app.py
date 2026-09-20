@@ -1720,7 +1720,7 @@ def load_prepared_trade_snapshots(
 @st.cache_data(ttl=300, show_spinner=False)
 def approved_trade_market_scan(
     symbols_tuple: tuple[str, ...], max_symbols: int, universe_kind: str,
-    model_version: str,
+    model_version: str, _progress_callback=None,
 ) -> pd.DataFrame:
     # The explicit version is part of Streamlit's cache key. Bumping it prevents
     # results produced by an earlier rule ordering from being reused.
@@ -1739,8 +1739,54 @@ def approved_trade_market_scan(
     price_rows: List[Dict] = []
     deep_candidates: List[tuple[str, Dict]] = []
 
-    for start in range(0, len(symbols), 60):
-        chunk = symbols[start:start + 60]
+    # Use the completed Trade fundamental backfill as the first gate. Previously
+    # Trade Search downloaded three years of prices for the entire exchange and
+    # only then applied fundamentals, which made an "All" scan unnecessarily slow.
+    prepared_all: Dict[str, FundamentalSnapshot] = {}
+    prepared_path = prepared_trade_path(universe_kind)
+    if prepared_path.exists():
+        prepared_all = load_prepared_trade_snapshots(
+            universe_kind,
+            prepared_path.stat().st_mtime_ns,
+            TRADE_RULEBOOK_BUILD,
+        )
+
+    scan_symbols = symbols
+    if prepared_all:
+        peer_snapshots = list(prepared_all.values())
+        selected_set = set(symbols)
+        fundamentally_eligible: List[str] = []
+        for snapshot in peer_snapshots:
+            if snapshot.symbol not in selected_set:
+                continue
+            rate = fx_rates.get(snapshot.currency, np.nan)
+            if not math.isfinite(rate):
+                continue
+            fundamental = score_fundamental_snapshot(
+                snapshot,
+                peer_snapshots,
+                rate,
+                earnings_sessions=None,
+                official_event_verified=False,
+                apply_event_gate=False,
+            )
+            failures = list(fundamental.get("fundamental_failures", []))
+            if not failures and float(fundamental.get("fundamental_score", 0) or 0) >= 65:
+                fundamentally_eligible.append(snapshot.symbol)
+        scan_symbols = fundamentally_eligible
+        if _progress_callback:
+            _progress_callback(
+                0,
+                max(len(scan_symbols), 1),
+                0,
+                f"Prepared fundamentals: {len(scan_symbols):,} of {len(symbols):,} selected shares passed · starting technical scan",
+            )
+
+    total_scan_symbols = len(scan_symbols)
+    completed_scan_symbols = 0
+
+    for start in range(0, len(scan_symbols), 60):
+        chunk = scan_symbols[start:start + 60]
         try:
             data = yf.download(
                 tickers=chunk,
@@ -1775,22 +1821,22 @@ def approved_trade_market_scan(
             except Exception:
                 continue
 
+        completed_scan_symbols += len(chunk)
+        if _progress_callback:
+            _progress_callback(
+                completed_scan_symbols,
+                max(total_scan_symbols, 1),
+                len(deep_candidates),
+                f"Technical scan: {completed_scan_symbols:,} of {total_scan_symbols:,} · {len(deep_candidates):,} current setups found",
+            )
+
     snapshots = []
     snapshot_by_symbol = {}
     snapshot_error_by_symbol = {}
 
     candidate_symbols = tuple(symbol for symbol, _technical in deep_candidates)
 
-    # Fast path: use fundamentals prepared by the 22:15 UK nightly job. Keep the
-    # complete prepared exchange in the peer set so margin scoring has broad peers.
-    prepared_all: Dict[str, FundamentalSnapshot] = {}
-    prepared_path = prepared_trade_path(universe_kind)
-    if prepared_path.exists():
-        prepared_all = load_prepared_trade_snapshots(
-            universe_kind,
-            prepared_path.stat().st_mtime_ns,
-            TRADE_RULEBOOK_BUILD,
-        )
+    # Reuse the prepared exchange fundamentals as the peer set and candidate source.
     snapshots.extend(prepared_all.values())
     for symbol in candidate_symbols:
         snapshot = prepared_all.get(symbol)
@@ -2774,7 +2820,7 @@ with tab3:
         )
         st.caption(
             f"Nightly Trade fundamentals updated {trade_cache_meta['completed_at']}."
-            f"{coverage_text} Current technical data is still refreshed when you run the scan."
+            f"{coverage_text} Backfilled fundamentals are applied first, so live technical checks run only on shares that pass the Trade quality gates."
         )
 
     with st.expander("Active hard gates and ranking model", expanded=False):
@@ -2808,10 +2854,28 @@ with tab3:
             limit_text = "all" if cap_choice == 0 else f"{min(cap_choice, len(universe)):,}"
             st.info(f"Universe loaded: {len(universe):,} tickers. Scanning {limit_text} symbols.")
 
-            with st.spinner("Running the approved price, liquidity, fundamental, target and event gates…"):
-                pre = approved_trade_market_scan(
-                    tuple(universe), cap_choice, universe_kind, TRADE_RULEBOOK_BUILD
+            trade_progress = st.progress(
+                0.0,
+                text="Preparing Trade Search from backfilled fundamentals…",
+            )
+
+            def update_trade_progress(completed, total, qualified, message):
+                trade_progress.progress(
+                    min(completed / max(total, 1), 1.0),
+                    text=message,
                 )
+
+            pre = approved_trade_market_scan(
+                tuple(universe),
+                cap_choice,
+                universe_kind,
+                TRADE_RULEBOOK_BUILD,
+                _progress_callback=update_trade_progress,
+            )
+            trade_progress.progress(
+                1.0,
+                text=f"Trade Search complete · {len(pre):,} current setups returned",
+            )
 
             if pre.empty:
                 st.warning("No current WATCH or confirmed crossover setups met the approved scan conditions.")
