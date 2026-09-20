@@ -3184,7 +3184,7 @@ with tab2:
     st.subheader("Watchlist")
     st.caption(
         "Track companies you care about in plain English. The watchlist shows the current decision, "
-        "what price or signal you are waiting for, and whether the status changed since your previous scan in this session."
+        "what price or signal you are waiting for, and whether the status changed since your previous saved refresh."
     )
 
     watch_entries = [
@@ -3204,7 +3204,7 @@ with tab2:
         save_browser_watchlist(watch_entries)
         previous_snapshot = load_browser_watch_status()
         previous_events = load_browser_watch_events()
-        current_snapshot = {}
+        current_snapshot = dict(previous_snapshot)
         new_alerts = []
 
         for index, raw_entry in enumerate(watch_entries, start=1):
