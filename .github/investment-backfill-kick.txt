@@ -1,2 +1,2 @@
-Requested 2026-09-20T16:48:13+01:00 after the provider cooldown.
-Resume the bounded missing-only Investment fundamentals batch with checkpointing and rate-limit stopping. Preserve all eligibility gates, partial labels and existing prepared results.
+Requested 2026-09-20 after the Quick Analysis redesign was deployed.
+Resume the bounded missing-only Investment fundamentals batch with checkpointing and rate-limit stopping. Preserve all eligibility gates, partial labels and existing prepared results. Continue from the current 638 unresolved eligible fundamentals; do not rescan completed rows.
