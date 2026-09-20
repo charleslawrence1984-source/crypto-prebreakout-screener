@@ -2781,6 +2781,20 @@ def set_browser_watchlist_symbol(symbol: str, enabled: bool) -> bool:
     return True
 
 
+def remove_browser_watchlist_symbol(symbol: str) -> bool:
+    """Remove one ticker and clear its saved status snapshot; keep historical alert events."""
+    ticker = str(symbol or "").strip().upper()
+    if not ticker:
+        return False
+    changed = set_browser_watchlist_symbol(ticker, False)
+    snapshot = load_browser_watch_status()
+    if ticker in snapshot:
+        snapshot.pop(ticker, None)
+        save_browser_watch_status(snapshot)
+        changed = True
+    return changed
+
+
 def render_watchlist_selector(
     frame: pd.DataFrame,
     key: str,
@@ -3305,8 +3319,27 @@ with tab2:
     watch_entries = load_browser_watchlist()
 
     if not watch_entries:
-        st.info("Add a company name or ticker in the Priority watchlist box on the left.")
-    elif st.button("Refresh watchlist", type="primary", use_container_width=True):
+        st.info("Your watchlist is empty. Add a company by ticking **Watch** beside it anywhere in the screener.")
+    else:
+        st.markdown("#### Manage watchlist")
+        st.caption("Remove any company here without running a new analysis.")
+        for watch_index, watch_symbol in enumerate(watch_entries):
+            name_col, remove_col = st.columns([5, 1])
+            with name_col:
+                st.write(f"**{watch_symbol}**")
+            with remove_col:
+                if st.button(
+                    "Remove",
+                    key=f"remove_watch_{watch_symbol}_{watch_index}",
+                    use_container_width=True,
+                ):
+                    remove_browser_watchlist_symbol(watch_symbol)
+                    st.toast(f"{watch_symbol} removed from watchlist")
+                    st.rerun()
+
+        st.divider()
+
+    if watch_entries and st.button("Refresh watchlist", type="primary", use_container_width=True):
         rows = []
         failed = []
         total = len(watch_entries)
