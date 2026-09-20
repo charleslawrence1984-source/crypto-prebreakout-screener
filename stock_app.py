@@ -31,7 +31,7 @@ from trade_rules import (
 
 st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", layout="wide")
 
-PRIORITY_DEFAULT = "FLNC, SPCX"
+PRIORITY_DEFAULT = ""
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
 TRADE_TECHNICAL_DIR = Path(__file__).resolve().parent / "prepared_trade_technicals"
@@ -2730,11 +2730,22 @@ def load_browser_watchlist() -> List[str]:
     value = _decode_browser_state(_query_param_text("wl"), [])
     if not isinstance(value, list):
         return []
-    return [str(item).strip() for item in value if str(item).strip()][:40]
+    clean = [str(item).strip() for item in value if str(item).strip()][:40]
+    legacy = {item.upper() for item in clean}
+    if legacy == {"FLNC", "SPCX"} and len(clean) == 2:
+        return []
+    return clean
 
 
 def save_browser_watchlist(entries: List[str]) -> None:
-    token = _encode_browser_state(entries[:40])
+    clean = [str(item).strip() for item in entries[:40] if str(item).strip()]
+    if not clean:
+        try:
+            del st.query_params["wl"]
+        except Exception:
+            pass
+        return
+    token = _encode_browser_state(clean)
     if token:
         st.query_params["wl"] = token
 
@@ -2918,6 +2929,8 @@ with st.sidebar:
     st.write("**Investment Search:** 10-years-to-forever quality gates, resilience and DCF valuation.")
     st.divider()
     saved_watchlist = load_browser_watchlist()
+    if not saved_watchlist and _query_param_text("wl"):
+        save_browser_watchlist([])
     st.caption(f"Watchlist: **{len(saved_watchlist)}** compan{'y' if len(saved_watchlist) == 1 else 'ies'}")
     with st.expander("Add to watchlist manually", expanded=False):
         manual_watch_key = f"manual_watch_{_query_param_text('wl')[:12]}"
