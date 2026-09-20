@@ -1717,11 +1717,13 @@ def load_prepared_trade_snapshots(
     return output
 
 
-@st.cache_data(ttl=300, show_spinner=False)
 def approved_trade_market_scan(
     symbols_tuple: tuple[str, ...], max_symbols: int, universe_kind: str,
     model_version: str, _progress_callback=None,
 ) -> pd.DataFrame:
+    # Intentionally not cached: this function drives a live Streamlit progress
+    # callback and refreshes current technical data on every Trade Search run.
+    # Caching a function that invokes a UI closure can raise CacheReplayClosureError.
     # The explicit version is part of Streamlit's cache key. Bumping it prevents
     # results produced by an earlier rule ordering from being reused.
     _ = model_version
