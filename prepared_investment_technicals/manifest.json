@@ -8,7 +8,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T07:57:04+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T08:53:23+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -20,7 +20,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T07:57:04+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T08:53:23+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -32,7 +32,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T07:57:04+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T08:53:23+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -44,7 +44,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T07:54:42+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T08:52:41+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -859,7 +859,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T07:54:41+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T08:52:40+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
@@ -2293,55 +2293,153 @@
     "vienna": {
       "coverage_symbols": 168,
       "dispatch_counts": {
-        "BLCK.VI": 34,
-        "CATL.VI": 34,
-        "ETN.VI": 34,
-        "FTNT.VI": 34,
-        "IBKR.VI": 34,
-        "KKRO.VI": 34,
-        "MCK.VI": 34,
-        "MPWR.VI": 34,
-        "TTEC.VI": 33
+        "BLCK.VI": 35,
+        "CATL.VI": 35,
+        "ETN.VI": 35,
+        "FTNT.VI": 35,
+        "IBKR.VI": 35,
+        "KKRO.VI": 35,
+        "MCK.VI": 35,
+        "MPWR.VI": 35,
+        "TTEC.VI": 34
       },
       "eligible_symbols": 177,
-      "errors": [],
+      "errors": [
+        {
+          "error": "No usable technical price history",
+          "symbol": "TTEC.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "BLCK.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "CATL.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "ETN.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "FTNT.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "IBKR.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "KKRO.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "MCK.VI"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "MPWR.VI"
+        }
+      ],
       "remaining_symbols": 9,
-      "requested_this_run": 0,
+      "requested_this_run": 9,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T07:57:04+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T08:53:23+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     },
     "xetra": {
       "coverage_symbols": 153,
       "dispatch_counts": {
-        "3SM.DE": 34,
-        "6RV.DE": 34,
-        "AP4N.DE": 34,
-        "AT4.DE": 34,
-        "C7N.DE": 34,
-        "CFZ.DE": 34,
-        "D6I.DE": 34,
-        "ET9.DE": 34,
-        "H3V.DE": 34,
-        "HFF.DE": 34,
-        "JYS1.DE": 34,
-        "LGI.DE": 34,
-        "R902.DE": 34,
-        "SMP0.DE": 33,
-        "STD.DE": 33
+        "3SM.DE": 35,
+        "6RV.DE": 35,
+        "AP4N.DE": 35,
+        "AT4.DE": 35,
+        "C7N.DE": 35,
+        "CFZ.DE": 35,
+        "D6I.DE": 35,
+        "ET9.DE": 35,
+        "H3V.DE": 35,
+        "HFF.DE": 35,
+        "JYS1.DE": 35,
+        "LGI.DE": 35,
+        "R902.DE": 35,
+        "SMP0.DE": 34,
+        "STD.DE": 34
       },
       "eligible_symbols": 168,
-      "errors": [],
+      "errors": [
+        {
+          "error": "No usable technical price history",
+          "symbol": "SMP0.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "STD.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "3SM.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "6RV.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "AP4N.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "AT4.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "C7N.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "CFZ.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "D6I.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "ET9.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "H3V.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "HFF.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "JYS1.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "LGI.DE"
+        },
+        {
+          "error": "No usable technical price history",
+          "symbol": "R902.DE"
+        }
+      ],
       "remaining_symbols": 15,
-      "requested_this_run": 0,
+      "requested_this_run": 15,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T07:53:57+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T08:49:57+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-20T07:35:55.120328+00:00"
+  "updated_at": "2026-09-20T07:54:11.095043+00:00"
 }
