@@ -81,7 +81,7 @@ def action_cell_style(value) -> str:
     action = str(value).strip().upper()
     if action in {"BUY", "BUY CANDIDATE", "PAPER CANDIDATE"}:
         return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
-    if action in {"WAIT", "WATCH", "HOLD", "EARNINGS WAIT", "RETRY"}:
+    if action in {"WAIT", "WATCH", "READY TO VERIFY", "HOLD", "EARNINGS WAIT", "RETRY"}:
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
     if action in {"PASS", "AVOID", "SELL", "BLOCKED"}:
         return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
