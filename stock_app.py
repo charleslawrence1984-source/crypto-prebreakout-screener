@@ -3035,14 +3035,19 @@ with tab_home:
         int((home_investment["Action"] == "BUY CANDIDATE").sum())
         if not home_investment.empty and "Action" in home_investment.columns else 0
     )
+    investment_wait_count = (
+        int((home_investment["Action"] == "WAIT").sum())
+        if not home_investment.empty and "Action" in home_investment.columns else 0
+    )
     recent_alert_count = len(home_events)
 
-    m1, m2, m3, m4, m5 = st.columns(5)
+    m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Trade ready", ready_count)
     m2.metric("Trade WATCH", trade_watch_count)
     m3.metric("Investment BUY", investment_buy_count)
-    m4.metric("Watchlist", len(home_watchlist))
-    m5.metric("Recent alerts", recent_alert_count)
+    m4.metric("Investment WAIT", investment_wait_count)
+    m5.metric("Watchlist", len(home_watchlist))
+    m6.metric("Recent alerts", recent_alert_count)
 
     action1, action2, action3 = st.columns(3)
     with action1:
@@ -3073,6 +3078,8 @@ with tab_home:
                 st.info(f"{trade_watch_count} Trade setup{'s' if trade_watch_count != 1 else ''} developing on WATCH")
             else:
                 st.info("No Trade setup is ready right now.")
+            if investment_buy_count:
+                st.success(f"{investment_buy_count} Investment BUY candidate{'s' if investment_buy_count != 1 else ''}")
             st.caption("Open **Opportunities** above to see the full shortlist.")
 
     with action3:
