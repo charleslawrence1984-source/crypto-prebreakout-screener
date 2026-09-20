@@ -2293,15 +2293,15 @@
     "vienna": {
       "coverage_symbols": 168,
       "dispatch_counts": {
-        "BLCK.VI": 48,
-        "CATL.VI": 48,
-        "ETN.VI": 48,
-        "FTNT.VI": 48,
-        "IBKR.VI": 48,
-        "KKRO.VI": 48,
-        "MCK.VI": 48,
-        "MPWR.VI": 48,
-        "TTEC.VI": 47
+        "BLCK.VI": 49,
+        "CATL.VI": 49,
+        "ETN.VI": 49,
+        "FTNT.VI": 49,
+        "IBKR.VI": 49,
+        "KKRO.VI": 49,
+        "MCK.VI": 49,
+        "MPWR.VI": 49,
+        "TTEC.VI": 48
       },
       "eligible_symbols": 177,
       "errors": [
@@ -2352,21 +2352,21 @@
     "xetra": {
       "coverage_symbols": 153,
       "dispatch_counts": {
-        "3SM.DE": 48,
-        "6RV.DE": 48,
-        "AP4N.DE": 48,
-        "AT4.DE": 48,
-        "C7N.DE": 48,
-        "CFZ.DE": 48,
-        "D6I.DE": 48,
-        "ET9.DE": 48,
-        "H3V.DE": 48,
-        "HFF.DE": 48,
-        "JYS1.DE": 48,
-        "LGI.DE": 48,
-        "R902.DE": 48,
-        "SMP0.DE": 47,
-        "STD.DE": 47
+        "3SM.DE": 49,
+        "6RV.DE": 49,
+        "AP4N.DE": 49,
+        "AT4.DE": 49,
+        "C7N.DE": 49,
+        "CFZ.DE": 49,
+        "D6I.DE": 49,
+        "ET9.DE": 49,
+        "H3V.DE": 49,
+        "HFF.DE": 49,
+        "JYS1.DE": 49,
+        "LGI.DE": 49,
+        "R902.DE": 49,
+        "SMP0.DE": 48,
+        "STD.DE": 48
       },
       "eligible_symbols": 168,
       "errors": [
@@ -2415,7 +2415,7 @@
           "symbol": "H3V.DE"
         },
         {
-          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
+          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
           "symbol": "HFF.DE"
         },
         {
@@ -2441,5 +2441,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-2d1b63a0e5cff7f7",
-  "updated_at": "2026-09-20T12:57:32.880611+00:00"
+  "updated_at": "2026-09-20T13:35:33.868790+00:00"
 }
