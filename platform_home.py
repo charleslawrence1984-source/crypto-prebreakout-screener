@@ -11,34 +11,26 @@ st.markdown(
     .cl-wordmark {
         display:flex;
         align-items:center;
-        gap:14px;
-        margin:10px 0 34px 0;
+        gap:20px;
+        margin:16px 0 40px 0;
     }
-    .cl-mark {
-        width:58px;
-        height:58px;
-        border-radius:17px;
-        background:linear-gradient(145deg,#0a1735,#1557b8);
-        color:white;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        font-weight:900;
-        font-size:1.35rem;
-        letter-spacing:-.08em;
-        box-shadow:0 10px 24px rgba(25,80,175,.18);
+    .cl-logo-svg {
+        width:104px;
+        height:104px;
+        flex:0 0 104px;
+        filter:drop-shadow(0 12px 22px rgba(20,70,160,.18));
     }
     .cl-title {
         color:#08152f;
-        font-size:2rem;
+        font-size:3rem;
         font-weight:900;
-        line-height:1;
-        letter-spacing:-.03em;
+        line-height:.98;
+        letter-spacing:-.045em;
     }
     .cl-subtitle {
         color:#6b7f99;
-        font-size:.95rem;
-        margin-top:6px;
+        font-size:1.08rem;
+        margin-top:9px;
     }
     .eyebrow {
         color:#2f7bf2;
@@ -196,7 +188,48 @@ st.markdown(
 st.markdown(
     """
     <div class="cl-wordmark">
-        <div class="cl-mark">CL</div>
+        <svg class="cl-logo-svg" viewBox="0 0 120 120" aria-label="CL Signal logo" role="img">
+            <defs>
+                <linearGradient id="clGrad" x1="0" y1="1" x2="1" y2="0">
+                    <stop offset="0%" stop-color="#07183e"/>
+                    <stop offset="55%" stop-color="#0f4aa3"/>
+                    <stop offset="100%" stop-color="#1f8cff"/>
+                </linearGradient>
+                <linearGradient id="barGrad" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#0f5bd3"/>
+                    <stop offset="100%" stop-color="#32a1ff"/>
+                </linearGradient>
+            </defs>
+
+            <!-- C ring -->
+            <path d="M61 14
+                     A46 46 0 1 0 61 106
+                     L61 91
+                     A31 31 0 1 1 61 29
+                     Z"
+                  fill="url(#clGrad)"/>
+
+            <!-- L -->
+            <path d="M66 16
+                     Q66 12 71 12
+                     H82
+                     Q87 12 87 17
+                     V85
+                     H108
+                     Q113 85 113 90
+                     V102
+                     Q113 107 108 107
+                     H72
+                     Q66 107 66 101
+                     Z"
+                  fill="url(#clGrad)"/>
+
+            <!-- signal bars -->
+            <rect x="29" y="69" width="9" height="18" rx="4.5" fill="url(#barGrad)"/>
+            <rect x="42" y="57" width="9" height="30" rx="4.5" fill="url(#barGrad)"/>
+            <rect x="55" y="42" width="9" height="45" rx="4.5" fill="url(#barGrad)"/>
+        </svg>
+
         <div>
             <div class="cl-title">CL Signal</div>
             <div class="cl-subtitle">Market intelligence made simple.</div>
