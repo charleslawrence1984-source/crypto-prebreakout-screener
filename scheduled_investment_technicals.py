@@ -12,8 +12,8 @@ import pandas as pd
 logging.getLogger("streamlit").setLevel(logging.CRITICAL)
 import stock_app
 
-BUILD = "investment-technicals-2026.09.20.2"
-# This build identifier is intentionally manual. UI/UX-only edits in stock_app.py
+BUILD = "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
+# This build identifier is now intentionally stable. UI/UX-only edits in stock_app.py
 # must not invalidate prepared technical rows. Bump BUILD only when the investment
 # technical calculation or its interpretation changes.
 
