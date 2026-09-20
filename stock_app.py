@@ -2693,6 +2693,64 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     return output.reset_index(drop=True)
 
 
+def investment_watch_buy_price(row: Dict | None) -> float:
+    """Highest simple valuation price that satisfies the base MOS and non-negative bear-case gates."""
+    if not row or str(row.get("Hard gates") or "").upper() != "PASS":
+        return np.nan
+    base_value = safe(row.get("Base intrinsic value"))
+    bear_value = safe(row.get("Bear intrinsic value"))
+    required_mos = safe(row.get("Required margin of safety %"))
+    if np.isnan(base_value) or np.isnan(required_mos):
+        return np.nan
+    base_limit = base_value * (1 - required_mos / 100)
+    limits = [base_limit]
+    if math.isfinite(bear_value) and bear_value > 0:
+        limits.append(bear_value)
+    valid = [value for value in limits if math.isfinite(value) and value > 0]
+    return min(valid) if valid else np.nan
+
+
+def watchlist_next_step(
+    trade_result: Dict,
+    trade_decision: Dict,
+    investment_row: Dict | None,
+    investment_summary: Dict,
+) -> str:
+    """Plain-English next action for a watchlist row."""
+    notes = []
+    trade_action = str(trade_decision.get("action") or "UNAVAILABLE").upper()
+    if trade_action == "BUY":
+        notes.append("Trade: setup is in a buy zone now")
+    elif trade_action == "WAIT":
+        classification = str(trade_result.get("classification") or "")
+        if classification in {"Swing-to-hold", "Swing only"}:
+            notes.append(
+                f"Trade: wait for price {fmt_price(trade_result.get('preferred_low'))}–"
+                f"{fmt_price(trade_result.get('preferred_high'))}"
+            )
+        elif classification == "Developing":
+            notes.append("Trade: wait for the technical setup to strengthen")
+        elif classification == "Core opportunity":
+            notes.append("Trade: wait for a better entry signal")
+        else:
+            notes.append("Trade: no approved entry yet")
+
+    investment_action = str(investment_summary.get("action") or "UNAVAILABLE").upper()
+    if investment_action == "BUY CANDIDATE":
+        notes.append("Investment: valuation gates pass; complete manual review")
+    elif investment_action == "WAIT":
+        buy_price = investment_watch_buy_price(investment_row)
+        valuation_gate = str((investment_row or {}).get("Valuation gate") or "").upper()
+        if valuation_gate != "PASS" and math.isfinite(buy_price):
+            notes.append(f"Investment: wait for price at or below {fmt_price(buy_price)}")
+        else:
+            notes.append("Investment: further evidence/review required")
+    elif investment_action == "PASS":
+        notes.append("Investment: hard quality gate failed")
+
+    return " · ".join(notes) or "No current action"
+
+
 with st.sidebar:
     st.header("Stock Screener")
     st.write("**Trade Search:** technical setups, entries, targets and risk/reward.")
@@ -2701,7 +2759,7 @@ with st.sidebar:
     watch_text = st.text_area(
         "Priority watchlist",
         value=PRIORITY_DEFAULT,
-        help="Comma-separated Yahoo-style tickers. Add anything here without changing the code.",
+        help="Enter company names or tickers, separated by commas or new lines. Examples: Apple, AAPL, Rolls-Royce, RR.L.",
     )
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
@@ -3040,43 +3098,164 @@ with tab_opportunities:
 
 
 with tab2:
-    symbols = [x.strip().upper() for x in watch_text.replace("\n", ",").split(",") if x.strip()]
-    if st.button("Scan watchlist", type="primary"):
-        output = []
-        prog = st.progress(0)
-        for i, s in enumerate(symbols):
-            try:
-                r = analyse_symbol(s)
-                if r:
-                    output.append(r)
-            except Exception:
-                pass
-            prog.progress((i + 1) / max(len(symbols), 1))
-        prog.empty()
+    st.subheader("Watchlist")
+    st.caption(
+        "Track companies you care about in plain English. The watchlist shows the current decision, "
+        "what price or signal you are waiting for, and whether the status changed since your previous scan in this session."
+    )
 
-        if output:
-            rows = pd.DataFrame([{
-                "Ticker": r["symbol"],
-                "Company": r["name"],
-                "Trade": r["trade_score"],
-                "Hold": r["hold_score"],
-                "Opportunity": r["opportunity_score"],
-                "Type": r["classification"],
-                "Price": r["price"],
-                "Preferred entry": f"{fmt_price(r['preferred_low'])}–{fmt_price(r['preferred_high'])}",
-                "Target": r["swing_target"],
-                "Upside %": r["upside_pct"],
-                "Preferred now": r["in_preferred_zone"],
-                "Candle caution": "CAUTION" if r.get("candle_caution") else "CLEAR",
-                "Last candle": r.get("candle_pattern", "UNAVAILABLE"),
-                "Channel": r.get("channel_direction", "UNAVAILABLE"),
-                "Channel pos %": r.get("channel_position_pct", np.nan),
-                "Channel R:R": r.get("channel_rr", np.nan),
-                "Channel quality": r.get("channel_quality", "LOW"),
-            } for r in output]).sort_values("Opportunity", ascending=False)
-            st.dataframe(rows, hide_index=True, use_container_width=True)
-        else:
-            st.warning("No watchlist symbols returned enough data.")
+    watch_entries = [
+        value.strip()
+        for value in watch_text.replace("\n", ",").split(",")
+        if value.strip()
+    ]
+
+    if not watch_entries:
+        st.info("Add a company name or ticker in the Priority watchlist box on the left.")
+    elif st.button("Refresh watchlist", type="primary", use_container_width=True):
+        rows = []
+        failed = []
+        total = len(watch_entries)
+        prog = st.progress(0.0, text=f"Checking 0 of {total:,}")
+
+        previous_snapshot = st.session_state.get("watchlist_status_snapshot", {})
+        current_snapshot = {}
+
+        for index, raw_entry in enumerate(watch_entries, start=1):
+            try:
+                resolved = resolve_company_query(raw_entry)
+                symbol = str(resolved.get("symbol") or "").strip().upper()
+                if not symbol:
+                    failed.append(raw_entry)
+                    prog.progress(index / max(total, 1), text=f"Checking {index:,} of {total:,}")
+                    continue
+
+                trade_result = analyse_symbol(symbol)
+                if not trade_result:
+                    failed.append(raw_entry)
+                    prog.progress(index / max(total, 1), text=f"Checking {index:,} of {total:,}")
+                    continue
+
+                trade_summary = quick_trade_decision(trade_result)
+                investment_result = _investment_company_result(
+                    symbol,
+                    float(trade_result["price"]),
+                    0.0,
+                    {},
+                )
+                investment_row = (
+                    investment_result.get("row")
+                    if investment_result.get("status") == "row"
+                    else None
+                )
+                investment_summary = quick_investment_decision(investment_row)
+
+                trade_action = str(trade_summary.get("action") or "UNAVAILABLE").upper()
+                investment_action = str(investment_summary.get("action") or "UNAVAILABLE").upper()
+                current_state = {
+                    "trade": trade_action,
+                    "investment": investment_action,
+                }
+                current_snapshot[symbol] = current_state
+
+                prior = previous_snapshot.get(symbol)
+                if prior is None:
+                    change = "NEW"
+                elif prior != current_state:
+                    change = (
+                        f"{prior.get('trade', '—')}/{prior.get('investment', '—')} → "
+                        f"{trade_action}/{investment_action}"
+                    )
+                else:
+                    change = "No change"
+
+                currency = str(trade_result.get("currency") or "")
+                investment_buy_price = investment_watch_buy_price(investment_row)
+
+                rows.append({
+                    "Change": change,
+                    "Company": trade_result.get("name") or resolved.get("name") or symbol,
+                    "Ticker": symbol,
+                    "Trade": trade_action,
+                    "Investment": investment_action,
+                    "Current price": fmt_price_with_currency(trade_result.get("price"), currency),
+                    "Trade buy zone": (
+                        f"{fmt_price_with_currency(trade_result.get('preferred_low'), currency)}–"
+                        f"{fmt_price_with_currency(trade_result.get('preferred_high'), currency)}"
+                    ),
+                    "Trade target": fmt_price_with_currency(trade_result.get("swing_target"), currency),
+                    "Reassess below": fmt_price_with_currency(trade_result.get("invalidation"), currency),
+                    "Investment buy price": (
+                        "—"
+                        if not math.isfinite(investment_buy_price)
+                        else fmt_price_with_currency(investment_buy_price, currency)
+                    ),
+                    "What are we waiting for?": watchlist_next_step(
+                        trade_result,
+                        trade_summary,
+                        investment_row,
+                        investment_summary,
+                    ),
+                })
+            except Exception:
+                failed.append(raw_entry)
+
+            prog.progress(
+                index / max(total, 1),
+                text=f"Checking {index:,} of {total:,}",
+            )
+
+        prog.empty()
+        st.session_state["watchlist_status_snapshot"] = current_snapshot
+
+        if rows:
+            watch_frame = pd.DataFrame(rows)
+            trade_buy_count = int((watch_frame["Trade"] == "BUY").sum())
+            investment_buy_count = int((watch_frame["Investment"] == "BUY CANDIDATE").sum())
+            changed_count = int(
+                watch_frame["Change"].astype(str).str.contains("→", regex=False).sum()
+            )
+
+            w1, w2, w3, w4 = st.columns(4)
+            w1.metric("Watching", len(watch_frame))
+            w2.metric("Trade BUY", trade_buy_count)
+            w3.metric("Investment BUY", investment_buy_count)
+            w4.metric("Changed", changed_count)
+
+            st.dataframe(
+                watch_frame.style
+                    .map(action_cell_style, subset=["Trade", "Investment"])
+                    .map(
+                        lambda value: (
+                            "background-color: #e7f5ff; font-weight: 700"
+                            if str(value) not in {"No change", "NEW"} and "→" in str(value)
+                            else ""
+                        ),
+                        subset=["Change"],
+                    ),
+                hide_index=True,
+                use_container_width=True,
+            )
+
+            with st.expander("How to read the watchlist", expanded=False):
+                st.write(
+                    "**Trade buy zone** is the preferred entry range. **Reassess below** is the level where the current trade idea should be reviewed rather than held blindly."
+                )
+                st.write(
+                    "**Investment buy price** is the highest simple price that satisfies the current base margin-of-safety requirement and non-negative bear-case valuation gate. Other quality/manual-review gates still apply."
+                )
+                st.write(
+                    "**Changed** compares the current Trade/Investment statuses with the previous watchlist refresh in this browser session."
+                )
+
+        if failed:
+            st.warning(
+                "I couldn't complete the following watchlist entries: "
+                + ", ".join(failed)
+            )
+
+        if not rows:
+            st.warning("No watchlist companies returned enough data for analysis.")
 
 with tab3:
     st.subheader("Advanced Trade Search")
