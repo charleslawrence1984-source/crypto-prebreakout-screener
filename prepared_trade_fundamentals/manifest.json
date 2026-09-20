@@ -88,7 +88,7 @@
     "lse": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-20T15:22:25+01:00",
+      "completed_at": "2026-09-20T17:23:55+01:00",
       "coverage_pct": 97.2,
       "coverage_symbols": 555,
       "fresh_coverage_pct": 0.0,
@@ -98,14 +98,14 @@
       "remaining_symbols": 16,
       "requested_this_run": 16,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-20T15:22:25+01:00",
+      "started_at": "2026-09-20T17:23:55+01:00",
       "status": "partial",
       "universe_symbols": 571
     },
     "lse_aim": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-20T15:22:25+01:00",
+      "completed_at": "2026-09-20T17:23:55+01:00",
       "coverage_pct": 99.8,
       "coverage_symbols": 520,
       "fresh_coverage_pct": 0.0,
@@ -115,14 +115,14 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-20T15:22:25+01:00",
+      "started_at": "2026-09-20T17:23:55+01:00",
       "status": "partial",
       "universe_symbols": 521
     },
     "madrid": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-20T15:22:26+01:00",
+      "completed_at": "2026-09-20T17:23:56+01:00",
       "coverage_pct": 99.7,
       "coverage_symbols": 296,
       "fresh_coverage_pct": 0.0,
@@ -132,14 +132,14 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-20T15:22:26+01:00",
+      "started_at": "2026-09-20T17:23:56+01:00",
       "status": "partial",
       "universe_symbols": 297
     },
     "nasdaq": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-20T15:22:24+01:00",
+      "completed_at": "2026-09-20T17:23:54+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 3328,
       "fresh_coverage_pct": 0.0,
@@ -149,14 +149,14 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-20T15:22:23+01:00",
+      "started_at": "2026-09-20T17:23:54+01:00",
       "status": "partial",
       "universe_symbols": 3329
     },
     "nyse": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-20T15:22:25+01:00",
+      "completed_at": "2026-09-20T17:23:55+01:00",
       "coverage_pct": 99.7,
       "coverage_symbols": 1867,
       "fresh_coverage_pct": 0.0,
@@ -166,7 +166,7 @@
       "remaining_symbols": 5,
       "requested_this_run": 5,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-20T15:22:24+01:00",
+      "started_at": "2026-09-20T17:23:54+01:00",
       "status": "partial",
       "universe_symbols": 1872
     },
@@ -190,7 +190,7 @@
     "six": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-20T15:22:26+01:00",
+      "completed_at": "2026-09-20T17:23:56+01:00",
       "coverage_pct": 81.8,
       "coverage_symbols": 310,
       "fresh_coverage_pct": 0.0,
@@ -200,14 +200,14 @@
       "remaining_symbols": 69,
       "requested_this_run": 69,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-20T15:22:25+01:00",
+      "started_at": "2026-09-20T17:23:56+01:00",
       "status": "partial",
       "universe_symbols": 379
     },
     "tsx": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-20T15:22:25+01:00",
+      "completed_at": "2026-09-20T17:23:56+01:00",
       "coverage_pct": 87.1,
       "coverage_symbols": 592,
       "fresh_coverage_pct": 0.0,
@@ -217,7 +217,7 @@
       "remaining_symbols": 88,
       "requested_this_run": 88,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-20T15:22:25+01:00",
+      "started_at": "2026-09-20T17:23:55+01:00",
       "status": "partial",
       "universe_symbols": 680
     },
@@ -259,5 +259,5 @@
   "last_completed_exchange": "madrid",
   "rulebook_build": "2026.09.18.12",
   "schema_version": 1,
-  "updated_at": "2026-09-20T15:22:26+01:00"
+  "updated_at": "2026-09-20T17:23:56+01:00"
 }
