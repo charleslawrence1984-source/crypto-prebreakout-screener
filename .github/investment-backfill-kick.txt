@@ -1,2 +1,2 @@
-Requested 2026-09-20T03:08:32+01:00.
-Coverage reached 11,855/12,517 and Gettex 4,189/4,787 before rate limits paused the last run. More than one hour has elapsed; resume bounded missing-only batches with checkpoint and rate-limit stopping safeguards.
+Requested 2026-09-20T13:26:00+01:00.
+Resume existing safe missing-only batches while idle. Preserve provider cooldown, independent writer locks, eligibility checks and explicit partial coverage. Investment diagnostics now retain per-symbol outcomes; technical retries use the same listing and unchanged indicator rules.
