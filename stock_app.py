@@ -2739,6 +2739,89 @@ def save_browser_watchlist(entries: List[str]) -> None:
         st.query_params["wl"] = token
 
 
+def browser_watchlist_symbol_set() -> set[str]:
+    return {
+        str(item).strip().upper()
+        for item in load_browser_watchlist()
+        if str(item).strip()
+    }
+
+
+def set_browser_watchlist_symbol(symbol: str, enabled: bool) -> bool:
+    """Add/remove one canonical ticker while preserving the rest of the saved watchlist."""
+    ticker = str(symbol or "").strip().upper()
+    if not ticker:
+        return False
+    current = load_browser_watchlist()
+    current_by_upper = {str(item).strip().upper(): str(item).strip() for item in current if str(item).strip()}
+    before = set(current_by_upper)
+    if enabled:
+        current_by_upper[ticker] = ticker
+    else:
+        current_by_upper.pop(ticker, None)
+    after = set(current_by_upper)
+    if before == after:
+        return False
+    ordered = [str(item).strip() for item in current if str(item).strip().upper() in current_by_upper]
+    if enabled and ticker not in {item.upper() for item in ordered}:
+        ordered.append(ticker)
+    ordered = [item for item in ordered if item.upper() in current_by_upper]
+    save_browser_watchlist(ordered)
+    return True
+
+
+def render_watchlist_selector(
+    frame: pd.DataFrame,
+    key: str,
+    column_config: Dict | None = None,
+) -> pd.DataFrame:
+    """Render a result table with an editable Watch checkbox and persist changes immediately."""
+    if frame is None or frame.empty or "Ticker" not in frame.columns:
+        st.dataframe(frame, hide_index=True, use_container_width=True)
+        return frame
+
+    shown = frame.copy().reset_index(drop=True)
+    watched = browser_watchlist_symbol_set()
+    shown.insert(
+        0,
+        "Watch",
+        shown["Ticker"].astype(str).str.upper().isin(watched),
+    )
+    config = {
+        "Watch": st.column_config.CheckboxColumn(
+            "Watch",
+            help="Tick to add this company to your watchlist; untick to remove it.",
+            default=False,
+        )
+    }
+    if column_config:
+        config.update(column_config)
+
+    edited = st.data_editor(
+        shown,
+        hide_index=True,
+        use_container_width=True,
+        disabled=[column for column in shown.columns if column != "Watch"],
+        column_config=config,
+        key=key,
+        num_rows="fixed",
+    )
+
+    changed = False
+    for _, row in edited.iterrows():
+        ticker = str(row.get("Ticker") or "").strip().upper()
+        desired = bool(row.get("Watch"))
+        if ticker and ((ticker in watched) != desired):
+            changed = set_browser_watchlist_symbol(ticker, desired) or changed
+            if desired:
+                watched.add(ticker)
+            else:
+                watched.discard(ticker)
+    if changed:
+        st.toast("Watchlist updated")
+    return edited
+
+
 def load_browser_watch_status() -> Dict:
     value = _decode_browser_state(_query_param_text("wls"), {})
     return value if isinstance(value, dict) else {}
@@ -2834,16 +2917,30 @@ with st.sidebar:
     st.write("**Trade Search:** technical setups, entries, targets and risk/reward.")
     st.write("**Investment Search:** 10-years-to-forever quality gates, resilience and DCF valuation.")
     st.divider()
-    if "watch_text_input" not in st.session_state:
-        saved_watchlist = load_browser_watchlist()
-        st.session_state["watch_text_input"] = (
-            ", ".join(saved_watchlist) if saved_watchlist else PRIORITY_DEFAULT
+    saved_watchlist = load_browser_watchlist()
+    st.caption(f"Watchlist: **{len(saved_watchlist)}** compan${'y' if len(saved_watchlist) == 1 else 'ies'}")
+    with st.expander("Add to watchlist manually", expanded=False):
+        manual_watch_key = f"manual_watch_{_query_param_text('wl')[:12]}"
+        manual_watch_text = st.text_area(
+            "Company names or tickers",
+            value=", ".join(saved_watchlist),
+            key=manual_watch_key,
+            help="Checkboxes beside companies are the easiest way to build the watchlist. This box is a fallback for manual entry.",
         )
-    watch_text = st.text_area(
-        "Priority watchlist",
-        key="watch_text_input",
-        help="Enter company names or tickers, separated by commas or new lines. Examples: Apple, AAPL, Rolls-Royce, RR.L.",
-    )
+        if st.button("Save manual watchlist", key="save_manual_watchlist", use_container_width=True):
+            raw_entries = [
+                value.strip()
+                for value in manual_watch_text.replace("\n", ",").split(",")
+                if value.strip()
+            ]
+            canonical = []
+            for entry in raw_entries[:40]:
+                resolved = resolve_company_query(entry)
+                symbol = str(resolved.get("symbol") or entry).strip().upper()
+                if symbol and symbol not in canonical:
+                    canonical.append(symbol)
+            save_browser_watchlist(canonical)
+            st.success(f"Saved {len(canonical)} watchlist compan${'y' if len(canonical) == 1 else 'ies'}.")
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
 
@@ -2903,10 +3000,23 @@ with tab1:
                 company_name = res.get("name") or resolved_name or symbol
                 exchange_suffix = f" · {resolved_exchange}" if resolved_exchange else ""
 
-                st.subheader(f"{company_name} ({symbol})")
-                st.caption(
-                    f"Current price: {fmt_price_with_currency(res['price'], currency)}{exchange_suffix}"
-                )
+                company_col, watch_col = st.columns([5, 1])
+                with company_col:
+                    st.subheader(f"{company_name} ({symbol})")
+                    st.caption(
+                        f"Current price: {fmt_price_with_currency(res['price'], currency)}{exchange_suffix}"
+                    )
+                with watch_col:
+                    current_watch = symbol in browser_watchlist_symbol_set()
+                    quick_watch = st.checkbox(
+                        "Watch",
+                        value=current_watch,
+                        key=f"quick_watch_{symbol}_{_query_param_text('wl')[:8]}",
+                        help="Add or remove this company from your watchlist.",
+                    )
+                    if quick_watch != current_watch:
+                        set_browser_watchlist_symbol(symbol, quick_watch)
+                        st.toast("Added to watchlist" if quick_watch else "Removed from watchlist")
 
                 trade_decision = quick_trade_decision(res)
                 investment_decision_summary = quick_investment_decision(investment_row)
@@ -3100,13 +3210,9 @@ with tab_opportunities:
                 "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
             ]
             visible_trade_cols = [col for col in trade_cols if col in shown_trade.columns]
-            st.dataframe(
-                shown_trade[visible_trade_cols].style.map(
-                    action_cell_style,
-                    subset=["Status"],
-                ),
-                hide_index=True,
-                use_container_width=True,
+            render_watchlist_selector(
+                shown_trade[visible_trade_cols],
+                key=f"trade_opportunity_watch_{trade_status_filter}",
             )
             st.caption(
                 "For a specific company, use Quick Analysis from the first tab for the clearest current explanation."
@@ -3156,13 +3262,9 @@ with tab_opportunities:
             visible_investment_cols = [
                 col for col in investment_cols if col in shown_investment.columns
             ]
-            st.dataframe(
-                shown_investment[visible_investment_cols].style.map(
-                    action_cell_style,
-                    subset=["Action"],
-                ),
-                hide_index=True,
-                use_container_width=True,
+            render_watchlist_selector(
+                shown_investment[visible_investment_cols],
+                key=f"investment_opportunity_watch_{investment_filter}",
                 column_config={
                     "Quality score": st.column_config.ProgressColumn(
                         min_value=0, max_value=100, format="%.1f"
@@ -3187,11 +3289,7 @@ with tab2:
         "what price or signal you are waiting for, and whether the status changed since your previous saved refresh."
     )
 
-    watch_entries = [
-        value.strip()
-        for value in watch_text.replace("\n", ",").split(",")
-        if value.strip()
-    ]
+    watch_entries = load_browser_watchlist()
 
     if not watch_entries:
         st.info("Add a company name or ticker in the Priority watchlist box on the left.")
@@ -3526,10 +3624,9 @@ with tab3:
                     "RSI", "Market regime", "Median traded value £m",
                 ]
                 visible_quick = [column for column in quick_cols if column in pre.columns]
-                st.dataframe(
-                    pre[visible_quick].head(50).style.map(action_cell_style, subset=["Status"]),
-                    hide_index=True,
-                    use_container_width=True,
+                render_watchlist_selector(
+                    pre[visible_quick].head(50),
+                    key=f"advanced_trade_watch_{universe_kind}_{cap_choice}",
                 )
                 with st.expander("Full rule evidence", expanded=False):
                     st.dataframe(pre, hide_index=True, use_container_width=True)
@@ -3747,17 +3844,12 @@ with tab4:
                 if filtered_fundamentals.empty:
                     st.info("No company currently meets your selected minimum quality score.")
                 else:
-                    styled_fundamentals = filtered_fundamentals.style.map(
-                        action_cell_style,
-                        subset=["Action"],
-                    )
                     st.caption(
                         "Action status: 🟢 BUY CANDIDATE · 🟠 WAIT · 🔴 PASS"
                     )
-                    st.dataframe(
-                        styled_fundamentals,
-                        hide_index=True,
-                        use_container_width=True,
+                    render_watchlist_selector(
+                        filtered_fundamentals,
+                        key=f"advanced_investment_watch_{fundamental_universe_kind}_{scan_source}",
                         column_config={
                             "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
                             "Moat score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
