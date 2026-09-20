@@ -2570,7 +2570,7 @@ def chart(result: Dict) -> go.Figure:
 
 
 st.title("📈 Stock Opportunity Screener")
-st.caption("Swing-trade entries + fundamental hold quality. No broker connection or brokerage credentials required.")
+st.caption("Find better entry points for trades and long-term investments without digging through all the data yourself.")
 
 st.markdown("""
 <style>
@@ -3002,26 +3002,174 @@ with st.sidebar:
     st.success("Broker-independent mode: ON")
     st.caption("No Trading 212 credentials are used or stored.")
 
-tab1, tab_opportunities, tab2, tab3, tab4, tab5 = st.tabs(
+tab_home, tab1, tab_opportunities, tab2, tab5, tab3, tab4 = st.tabs(
     [
+        "Home",
         "Quick Analysis",
         "Opportunities",
         "Watchlist",
-        "Advanced Trade Search",
-        "Advanced Investment Search",
-        "Portfolio Review",
+        "Portfolio",
+        "Advanced Trade",
+        "Advanced Investment",
     ]
 )
 
+with tab_home:
+    st.markdown("### Your stock dashboard")
+    st.caption("Start with a company, browse what the screener is finding, or check the companies you are already watching.")
+
+    home_trade = load_all_trade_opportunities()
+    home_investment = load_all_investment_opportunities()
+    home_watchlist = load_browser_watchlist()
+    home_events = load_browser_watch_events()
+
+    ready_count = (
+        int((home_trade["Status"] == "READY TO VERIFY").sum())
+        if not home_trade.empty and "Status" in home_trade.columns else 0
+    )
+    trade_watch_count = (
+        int((home_trade["Status"] == "WATCH").sum())
+        if not home_trade.empty and "Status" in home_trade.columns else 0
+    )
+    investment_buy_count = (
+        int((home_investment["Action"] == "BUY CANDIDATE").sum())
+        if not home_investment.empty and "Action" in home_investment.columns else 0
+    )
+    recent_alert_count = len(home_events)
+
+    m1, m2, m3, m4, m5 = st.columns(5)
+    m1.metric("Trade ready", ready_count)
+    m2.metric("Trade WATCH", trade_watch_count)
+    m3.metric("Investment BUY", investment_buy_count)
+    m4.metric("Watchlist", len(home_watchlist))
+    m5.metric("Recent alerts", recent_alert_count)
+
+    action1, action2, action3 = st.columns(3)
+    with action1:
+        with st.container(border=True):
+            st.markdown("#### 🔎 Analyse a company")
+            st.write("Search by company name or ticker and get the Trade and Investment decision first.")
+            home_query = st.text_input(
+                "Company",
+                value="",
+                placeholder="e.g. Apple, AAPL, Rolls-Royce",
+                key="home_company_search",
+                label_visibility="collapsed",
+            )
+            home_analyse = st.button(
+                "Analyse company",
+                type="primary",
+                use_container_width=True,
+                key="home_analyse_button",
+            )
+
+    with action2:
+        with st.container(border=True):
+            st.markdown("#### 🎯 Find opportunities")
+            st.write("The screener combines prepared markets so you do not need to search one exchange at a time.")
+            if ready_count:
+                st.success(f"{ready_count} Trade setup{'s' if ready_count != 1 else ''} ready to verify")
+            elif trade_watch_count:
+                st.info(f"{trade_watch_count} Trade setup{'s' if trade_watch_count != 1 else ''} developing on WATCH")
+            else:
+                st.info("No Trade setup is ready right now.")
+            st.caption("Open **Opportunities** above to see the full shortlist.")
+
+    with action3:
+        with st.container(border=True):
+            st.markdown("#### ⭐ My watchlist")
+            if home_watchlist:
+                st.write(f"You are following **{len(home_watchlist)}** compan{'y' if len(home_watchlist) == 1 else 'ies'}.")
+                if recent_alert_count:
+                    st.warning(f"{recent_alert_count} recent watchlist change{'s' if recent_alert_count != 1 else ''} saved.")
+                else:
+                    st.info("No saved status changes yet.")
+            else:
+                st.write("Your watchlist is empty.")
+                st.caption("Tick **Watch** beside any company in the screener to start tracking it.")
+            st.caption("Open **Watchlist** above to refresh statuses and manage companies.")
+
+    if home_analyse and home_query:
+        resolved = resolve_company_query(home_query)
+        home_symbol = str(resolved.get("symbol") or "").strip().upper()
+        if not home_symbol:
+            st.error("I couldn't match that company. Try a more specific company name or ticker.")
+        else:
+            home_name = str(resolved.get("name") or home_symbol)
+            with st.spinner(f"Analysing {home_name} ({home_symbol})…"):
+                home_res = analyse_symbol(home_symbol)
+                home_inv_result = None
+                home_inv_row = None
+                if home_res:
+                    home_inv_result = _investment_company_result(
+                        home_symbol,
+                        float(home_res["price"]),
+                        0.0,
+                        {},
+                    )
+                    if home_inv_result.get("status") == "row":
+                        home_inv_row = home_inv_result.get("row")
+
+            if home_res:
+                st.markdown("---")
+                title_col, watch_col = st.columns([5, 1])
+                with title_col:
+                    st.markdown(f"### {home_res.get('name') or home_name} ({home_symbol})")
+                    st.caption(
+                        f"Current price: {fmt_price_with_currency(home_res.get('price'), home_res.get('currency'))}"
+                    )
+                with watch_col:
+                    home_is_watched = home_symbol in browser_watchlist_symbol_set()
+                    home_watch = st.checkbox(
+                        "Watch",
+                        value=home_is_watched,
+                        key=f"home_watch_{home_symbol}_{_query_param_text('wl')[:8]}",
+                    )
+                    if home_watch != home_is_watched:
+                        set_browser_watchlist_symbol(home_symbol, home_watch)
+                        st.toast("Added to watchlist" if home_watch else "Removed from watchlist")
+
+                home_trade_decision = quick_trade_decision(home_res)
+                home_investment_decision = quick_investment_decision(home_inv_row)
+                d1, d2 = st.columns(2)
+                with d1:
+                    render_decision_card(
+                        "TRADE DECISION",
+                        home_trade_decision["action"],
+                        home_trade_decision["reason"],
+                    )
+                with d2:
+                    render_decision_card(
+                        "INVESTMENT DECISION",
+                        home_investment_decision["action"],
+                        home_investment_decision["reason"],
+                    )
+                st.caption("Use **Quick Analysis** above if you want the full trade plan, valuation and detailed evidence.")
+            else:
+                st.error("I couldn't retrieve enough market data for that company.")
+
+    st.markdown("### How it works")
+    h1, h2, h3 = st.columns(3)
+    with h1:
+        st.markdown("**1 · Search a company**")
+        st.caption("Use a company name or ticker. You do not need to know market codes.")
+    with h2:
+        st.markdown("**2 · See the decision**")
+        st.caption("Trade and Investment decisions appear first; detailed evidence stays underneath.")
+    with h3:
+        st.markdown("**3 · Watch what matters**")
+        st.caption("If it is not ready, add it to your watchlist and track what needs to change.")
+
+
 with tab1:
     st.markdown("### Quick Analysis")
-    st.caption("Search by company name or ticker. The decision comes first; deeper analysis is available only if you want it.")
+    st.caption("Full company analysis. Search by company name or ticker; the decision comes first and deeper evidence stays expandable.")
 
     c1, c2 = st.columns([4, 1])
     with c1:
         manual = st.text_input(
             "Search a company",
-            value="FLNC",
+            value="",
             placeholder="e.g. Apple, AAPL, Rolls-Royce, RR.L",
             help="You can type either the company name or its ticker.",
         )
