@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import base64
 import io
 import json
 import math
 import time
+import zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from dataclasses import dataclass
@@ -2693,6 +2695,82 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     return output.reset_index(drop=True)
 
 
+def _query_param_text(name: str) -> str:
+    try:
+        value = st.query_params.get(name, "")
+    except Exception:
+        return ""
+    if isinstance(value, list):
+        value = value[-1] if value else ""
+    return str(value or "")
+
+
+def _encode_browser_state(value) -> str:
+    """Compact small watchlist state into the page URL so it survives reruns/redeploys."""
+    try:
+        raw = json.dumps(value, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        compressed = zlib.compress(raw, 9)
+        return base64.urlsafe_b64encode(compressed).decode("ascii").rstrip("=")
+    except Exception:
+        return ""
+
+
+def _decode_browser_state(value: str, default):
+    if not value:
+        return default
+    try:
+        padded = value + "=" * (-len(value) % 4)
+        raw = zlib.decompress(base64.urlsafe_b64decode(padded.encode("ascii")))
+        return json.loads(raw.decode("utf-8"))
+    except Exception:
+        return default
+
+
+def load_browser_watchlist() -> List[str]:
+    value = _decode_browser_state(_query_param_text("wl"), [])
+    if not isinstance(value, list):
+        return []
+    return [str(item).strip() for item in value if str(item).strip()][:40]
+
+
+def save_browser_watchlist(entries: List[str]) -> None:
+    token = _encode_browser_state(entries[:40])
+    if token:
+        st.query_params["wl"] = token
+
+
+def load_browser_watch_status() -> Dict:
+    value = _decode_browser_state(_query_param_text("wls"), {})
+    return value if isinstance(value, dict) else {}
+
+
+def save_browser_watch_status(snapshot: Dict) -> None:
+    compact = {
+        str(symbol): {
+            "trade": str(state.get("trade") or ""),
+            "investment": str(state.get("investment") or ""),
+        }
+        for symbol, state in list(snapshot.items())[:40]
+        if isinstance(state, dict)
+    }
+    token = _encode_browser_state(compact)
+    if token:
+        st.query_params["wls"] = token
+
+
+def load_browser_watch_events() -> List[Dict]:
+    value = _decode_browser_state(_query_param_text("wle"), [])
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, dict)][-15:]
+
+
+def save_browser_watch_events(events: List[Dict]) -> None:
+    token = _encode_browser_state(events[-15:])
+    if token:
+        st.query_params["wle"] = token
+
+
 def investment_watch_buy_price(row: Dict | None) -> float:
     """Highest simple valuation price that satisfies the base MOS and non-negative bear-case gates."""
     if not row or str(row.get("Hard gates") or "").upper() != "PASS":
@@ -2756,9 +2834,14 @@ with st.sidebar:
     st.write("**Trade Search:** technical setups, entries, targets and risk/reward.")
     st.write("**Investment Search:** 10-years-to-forever quality gates, resilience and DCF valuation.")
     st.divider()
+    if "watch_text_input" not in st.session_state:
+        saved_watchlist = load_browser_watchlist()
+        st.session_state["watch_text_input"] = (
+            ", ".join(saved_watchlist) if saved_watchlist else PRIORITY_DEFAULT
+        )
     watch_text = st.text_area(
         "Priority watchlist",
-        value=PRIORITY_DEFAULT,
+        key="watch_text_input",
         help="Enter company names or tickers, separated by commas or new lines. Examples: Apple, AAPL, Rolls-Royce, RR.L.",
     )
     st.success("Broker-independent mode: ON")
@@ -3118,8 +3201,11 @@ with tab2:
         total = len(watch_entries)
         prog = st.progress(0.0, text=f"Checking 0 of {total:,}")
 
-        previous_snapshot = st.session_state.get("watchlist_status_snapshot", {})
+        save_browser_watchlist(watch_entries)
+        previous_snapshot = load_browser_watch_status()
+        previous_events = load_browser_watch_events()
         current_snapshot = {}
+        new_alerts = []
 
         for index, raw_entry in enumerate(watch_entries, start=1):
             try:
@@ -3169,6 +3255,22 @@ with tab2:
                 else:
                     change = "No change"
 
+                if prior is not None:
+                    if str(prior.get("trade") or "") != trade_action:
+                        new_alerts.append({
+                            "time": pd.Timestamp.now(tz="Europe/London").strftime("%d %b %H:%M"),
+                            "ticker": symbol,
+                            "type": "TRADE",
+                            "message": f"{symbol} Trade changed {prior.get('trade', '—')} → {trade_action}",
+                        })
+                    if str(prior.get("investment") or "") != investment_action:
+                        new_alerts.append({
+                            "time": pd.Timestamp.now(tz="Europe/London").strftime("%d %b %H:%M"),
+                            "ticker": symbol,
+                            "type": "INVESTMENT",
+                            "message": f"{symbol} Investment changed {prior.get('investment', '—')} → {investment_action}",
+                        })
+
                 currency = str(trade_result.get("currency") or "")
                 investment_buy_price = investment_watch_buy_price(investment_row)
 
@@ -3206,7 +3308,9 @@ with tab2:
             )
 
         prog.empty()
-        st.session_state["watchlist_status_snapshot"] = current_snapshot
+        save_browser_watch_status(current_snapshot)
+        if new_alerts:
+            save_browser_watch_events(previous_events + new_alerts)
 
         if rows:
             watch_frame = pd.DataFrame(rows)
@@ -3220,7 +3324,24 @@ with tab2:
             w1.metric("Watching", len(watch_frame))
             w2.metric("Trade BUY", trade_buy_count)
             w3.metric("Investment BUY", investment_buy_count)
-            w4.metric("Changed", changed_count)
+            w4.metric("New alerts", len(new_alerts))
+
+            if new_alerts:
+                st.success(
+                    f"{len(new_alerts)} watchlist status change{'s' if len(new_alerts) != 1 else ''} detected."
+                )
+                with st.expander("New alerts", expanded=True):
+                    for alert in new_alerts:
+                        st.write(f"**{alert['time']} · {alert['type']}** — {alert['message']}")
+
+            recent_events = load_browser_watch_events()
+            if recent_events:
+                with st.expander("Recent watchlist history", expanded=False):
+                    for event in reversed(recent_events):
+                        st.write(
+                            f"**{event.get('time', '—')} · {event.get('type', 'STATUS')}** — "
+                            f"{event.get('message', '')}"
+                        )
 
             st.dataframe(
                 watch_frame.style
@@ -3245,7 +3366,10 @@ with tab2:
                     "**Investment buy price** is the highest simple price that satisfies the current base margin-of-safety requirement and non-negative bear-case valuation gate. Other quality/manual-review gates still apply."
                 )
                 st.write(
-                    "**Changed** compares the current Trade/Investment statuses with the previous watchlist refresh in this browser session."
+                    "**Change** compares the current Trade/Investment statuses with your previous saved refresh. Recent changes are kept in the browser-linked watchlist history."
+                )
+                st.write(
+                    "This MVP saves the watchlist state in the page link rather than a user account. Keep using/bookmarking the current app URL to retain it. Account sync will replace this when login is added."
                 )
 
         if failed:
