@@ -1,3 +1,2 @@
-Requested 2026-09-19T21:54:23+01:00.
-Latest relevant workflow completed; no queued or running duplicate at inspection.
-Resume existing safe batches and eligibility rules. Preserve partial status for unresolved symbols and market-session safeguards.
+Requested 2026-09-20T01:42:10+01:00.
+Relevant fundamental workflow is idle with incomplete coverage. Investment last stopped about 50 minutes ago with provider rate limits; resume using existing consecutive-batch backoff and checkpoint safeguards. Preserve missing-only processing, eligibility checks, locks and market-session rules.
