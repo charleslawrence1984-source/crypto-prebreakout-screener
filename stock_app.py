@@ -1738,6 +1738,11 @@ def approved_trade_market_scan(
     benchmark = trade_benchmark_frame(context["benchmark"])
     price_rows: List[Dict] = []
     deep_candidates: List[tuple[str, Dict]] = []
+    technical_reason_counts: Dict[str, int] = {}
+    technical_state_counts: Dict[str, int] = {}
+    price_history_failures = 0
+    liquidity_failures = 0
+    fundamental_pass_count = 0
 
     # Use the completed Trade fundamental backfill as the first gate. Previously
     # Trade Search downloaded three years of prices for the entire exchange and
@@ -1774,6 +1779,7 @@ def approved_trade_market_scan(
             if not failures and float(fundamental.get("fundamental_score", 0) or 0) >= 65:
                 fundamentally_eligible.append(snapshot.symbol)
         scan_symbols = fundamentally_eligible
+        fundamental_pass_count = len(fundamentally_eligible)
         if _progress_callback:
             _progress_callback(
                 0,
@@ -1781,6 +1787,9 @@ def approved_trade_market_scan(
                 0,
                 f"Prepared fundamentals: {len(scan_symbols):,} of {len(symbols):,} selected shares passed · starting technical scan",
             )
+
+    if not prepared_all:
+        fundamental_pass_count = len(scan_symbols)
 
     total_scan_symbols = len(scan_symbols)
     completed_scan_symbols = 0
@@ -1803,12 +1812,18 @@ def approved_trade_market_scan(
             try:
                 frame = extract_ticker_frame(data, symbol)
                 if frame is None or len(frame.dropna(subset=["Close", "Volume"])) < 252:
+                    price_history_failures += 1
                     continue
                 raw_turnover = (frame["Close"] * frame["Volume"]).dropna().tail(20).median()
                 turnover_gbp = raw_turnover * context["price_scale"] * quote_to_gbp
                 if not math.isfinite(turnover_gbp) or turnover_gbp < 5_000_000:
+                    liquidity_failures += 1
                     continue
                 technical = evaluate_price_setup(frame, benchmark)
+                technical_state = str(technical.get("technical_state") or "BLOCKED")
+                technical_reason = str(technical.get("technical_reason") or "UNAVAILABLE")
+                technical_state_counts[technical_state] = technical_state_counts.get(technical_state, 0) + 1
+                technical_reason_counts[technical_reason] = technical_reason_counts.get(technical_reason, 0) + 1
                 if technical.get("technical_state") == "WATCH":
                     technical["turnover_gbp"] = turnover_gbp
                     deep_candidates.append((symbol, technical))
@@ -1991,15 +2006,31 @@ def approved_trade_market_scan(
             "Event check": "UNVERIFIED — FAIL-SAFE BLOCK",
         })
 
+    scan_diagnostics = {
+        "selected_symbols": len(symbols),
+        "fundamental_pass": fundamental_pass_count,
+        "technical_scan_target": total_scan_symbols,
+        "technical_evaluated": int(sum(technical_state_counts.values())),
+        "technical_state_counts": technical_state_counts,
+        "technical_reason_counts": technical_reason_counts,
+        "price_history_failures": price_history_failures,
+        "liquidity_failures": liquidity_failures,
+        "current_setups": len(deep_candidates),
+    }
+
     if not price_rows:
-        return pd.DataFrame()
+        empty = pd.DataFrame()
+        empty.attrs["scan_diagnostics"] = scan_diagnostics
+        return empty
     output = pd.DataFrame(price_rows)
     order = {"PAPER CANDIDATE": 0, "WATCH": 1, "BLOCKED": 2}
     output["_status_order"] = output["Status"].map(order).fillna(9)
     output = output.sort_values(
         ["_status_order", "Technical score"], ascending=[True, False], na_position="last"
     ).drop(columns="_status_order")
-    return output.reset_index(drop=True)
+    output = output.reset_index(drop=True)
+    output.attrs["scan_diagnostics"] = scan_diagnostics
+    return output
 
 
 def deep_score_shortlist(pre: pd.DataFrame, n: int) -> pd.DataFrame:
@@ -2878,7 +2909,40 @@ with tab3:
             )
 
             if pre.empty:
-                st.warning("No current WATCH or confirmed crossover setups met the approved scan conditions.")
+                diag = pre.attrs.get("scan_diagnostics", {})
+                selected = int(diag.get("selected_symbols", 0))
+                fundamental_pass = int(diag.get("fundamental_pass", 0))
+                technical_evaluated = int(diag.get("technical_evaluated", 0))
+                price_history_failures = int(diag.get("price_history_failures", 0))
+                liquidity_failures = int(diag.get("liquidity_failures", 0))
+                state_counts = diag.get("technical_state_counts", {}) or {}
+                watch_states = int(state_counts.get("WATCH", 0))
+                ready_states = int(state_counts.get("ENTRY READY", 0)) + int(state_counts.get("AWAITING NEXT OPEN", 0))
+
+                st.warning(
+                    "No current WATCH or confirmed crossover setups met the approved Trade rules."
+                )
+                st.info(
+                    f"This was a completed scan, not a failed search: "
+                    f"{fundamental_pass:,} of {selected:,} selected shares passed the prepared fundamental gates; "
+                    f"{technical_evaluated:,} had usable liquid price history and were technically evaluated; "
+                    f"{watch_states:,} reached WATCH and {ready_states:,} reached an entry-ready/next-open state."
+                )
+
+                reason_counts = diag.get("technical_reason_counts", {}) or {}
+                if reason_counts:
+                    top_reasons = sorted(
+                        reason_counts.items(),
+                        key=lambda item: item[1],
+                        reverse=True,
+                    )[:5]
+                    with st.expander("Why nothing qualified", expanded=False):
+                        for reason, count in top_reasons:
+                            st.write(f"**{count:,}** — {reason}")
+                        if price_history_failures:
+                            st.write(f"**{price_history_failures:,}** — insufficient usable price history")
+                        if liquidity_failures:
+                            st.write(f"**{liquidity_failures:,}** — below the £5m median traded-value gate")
             else:
                 paper_count = int((pre["Status"] == "PAPER CANDIDATE").sum())
                 watch_count = int((pre["Status"] == "WATCH").sum())
