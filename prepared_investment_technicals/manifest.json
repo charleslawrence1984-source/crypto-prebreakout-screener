@@ -8,7 +8,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T19:54:36+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T20:52:52+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -20,7 +20,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T19:54:36+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T20:52:51+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -32,7 +32,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T19:54:36+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T20:52:52+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -44,7 +44,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T19:54:22+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T20:52:30+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -859,7 +859,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-09-20T19:54:08+01:00",
+      "source_fundamentals_updated_at": "2026-09-20T20:52:28+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -2291,78 +2291,155 @@
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "vienna": {
-      "coverage_symbols": 150,
+      "coverage_symbols": 168,
       "dispatch_counts": {
-        "BLCK.VI": 58,
-        "CATL.VI": 58,
-        "ETN.VI": 58,
-        "FTNT.VI": 58,
-        "IBKR.VI": 58,
-        "KKRO.VI": 58,
-        "MCK.VI": 58,
-        "MPWR.VI": 58,
-        "TTEC.VI": 57,
-        "VEEV.VI": 0,
-        "VH2.VI": 0,
-        "VID.VI": 0,
-        "VIE.VI": 0,
-        "VIG.VI": 0,
-        "VIS.VI": 0,
-        "VISA.VI": 0,
-        "VK.VI": 0,
-        "VRSK.VI": 0,
-        "VZN.VI": 0,
-        "WDP.VI": 0,
-        "WFC.VI": 0,
-        "WI4.VI": 0,
-        "WKL.VI": 0,
-        "WMT.VI": 0,
-        "WUW.VI": 0,
-        "YELP.VI": 0,
-        "YSNG.VI": 0
+        "BLCK.VI": 59,
+        "CATL.VI": 59,
+        "ETN.VI": 59,
+        "FTNT.VI": 59,
+        "IBKR.VI": 59,
+        "KKRO.VI": 59,
+        "MCK.VI": 59,
+        "MPWR.VI": 59,
+        "TTEC.VI": 58
       },
       "eligible_symbols": 177,
-      "errors": [],
-      "remaining_symbols": 27,
-      "requested_this_run": 50,
-      "returned_this_run": 50,
-      "source_fundamentals_updated_at": "2026-09-20T19:54:36+01:00",
+      "errors": [
+        {
+          "error": "1y: 3 rows, insufficient usable history/indicators; 2y: 3 rows, insufficient usable history/indicators",
+          "symbol": "TTEC.VI"
+        },
+        {
+          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
+          "symbol": "BLCK.VI"
+        },
+        {
+          "error": "1y: 3 rows, insufficient usable history/indicators; 2y: 3 rows, insufficient usable history/indicators",
+          "symbol": "CATL.VI"
+        },
+        {
+          "error": "1y: 3 rows, insufficient usable history/indicators; 2y: 3 rows, insufficient usable history/indicators",
+          "symbol": "ETN.VI"
+        },
+        {
+          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
+          "symbol": "FTNT.VI"
+        },
+        {
+          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
+          "symbol": "IBKR.VI"
+        },
+        {
+          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
+          "symbol": "KKRO.VI"
+        },
+        {
+          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
+          "symbol": "MCK.VI"
+        },
+        {
+          "error": "1y: 6 rows, insufficient usable history/indicators; 2y: 6 rows, insufficient usable history/indicators",
+          "symbol": "MPWR.VI"
+        }
+      ],
+      "remaining_symbols": 9,
+      "requested_this_run": 27,
+      "returned_this_run": 18,
+      "source_fundamentals_updated_at": "2026-09-20T20:52:52+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "xetra": {
-      "coverage_symbols": 150,
+      "coverage_symbols": 153,
       "dispatch_counts": {
-        "3SM.DE": 58,
-        "6RV.DE": 58,
-        "AP4N.DE": 58,
-        "AT4.DE": 58,
-        "C7N.DE": 58,
-        "CFZ.DE": 58,
-        "D6I.DE": 58,
-        "ET9.DE": 58,
-        "H3V.DE": 58,
-        "HFF.DE": 58,
-        "JYS1.DE": 58,
-        "LGI.DE": 58,
-        "R902.DE": 58,
-        "SMP0.DE": 57,
-        "SPG.DE": 0,
-        "SQU.DE": 0,
-        "STD.DE": 57,
-        "SWG.DE": 0
+        "3SM.DE": 59,
+        "6RV.DE": 59,
+        "AP4N.DE": 59,
+        "AT4.DE": 59,
+        "C7N.DE": 59,
+        "CFZ.DE": 59,
+        "D6I.DE": 59,
+        "ET9.DE": 59,
+        "H3V.DE": 59,
+        "HFF.DE": 59,
+        "JYS1.DE": 59,
+        "LGI.DE": 59,
+        "R902.DE": 59,
+        "SMP0.DE": 58,
+        "STD.DE": 58
       },
       "eligible_symbols": 168,
-      "errors": [],
-      "remaining_symbols": 18,
-      "requested_this_run": 50,
-      "returned_this_run": 50,
-      "source_fundamentals_updated_at": "2026-09-20T19:50:49+01:00",
+      "errors": [
+        {
+          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
+          "symbol": "SMP0.DE"
+        },
+        {
+          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
+          "symbol": "STD.DE"
+        },
+        {
+          "error": "1y: 74 rows, insufficient usable history/indicators; 2y: 74 rows, insufficient usable history/indicators",
+          "symbol": "3SM.DE"
+        },
+        {
+          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
+          "symbol": "6RV.DE"
+        },
+        {
+          "error": "1y: 76 rows, insufficient usable history/indicators; 2y: 76 rows, insufficient usable history/indicators",
+          "symbol": "AP4N.DE"
+        },
+        {
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "symbol": "AT4.DE"
+        },
+        {
+          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
+          "symbol": "C7N.DE"
+        },
+        {
+          "error": "1y: 75 rows, insufficient usable history/indicators; 2y: 75 rows, insufficient usable history/indicators",
+          "symbol": "CFZ.DE"
+        },
+        {
+          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
+          "symbol": "D6I.DE"
+        },
+        {
+          "error": "1y: 20 rows, insufficient usable history/indicators; 2y: 20 rows, insufficient usable history/indicators",
+          "symbol": "ET9.DE"
+        },
+        {
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "symbol": "H3V.DE"
+        },
+        {
+          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
+          "symbol": "HFF.DE"
+        },
+        {
+          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
+          "symbol": "JYS1.DE"
+        },
+        {
+          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
+          "symbol": "LGI.DE"
+        },
+        {
+          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
+          "symbol": "R902.DE"
+        }
+      ],
+      "remaining_symbols": 15,
+      "requested_this_run": 18,
+      "returned_this_run": 3,
+      "source_fundamentals_updated_at": "2026-09-20T20:49:38+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-20T19:34:07.636686+00:00"
+  "updated_at": "2026-09-20T19:54:20.361914+00:00"
 }
