@@ -2781,6 +2781,37 @@ def set_browser_watchlist_symbol(symbol: str, enabled: bool) -> bool:
     return True
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def watchlist_company_name(symbol: str) -> str:
+    """Best-effort company name for a saved ticker, preferring prepared data before live lookup."""
+    ticker = str(symbol or "").strip().upper()
+    if not ticker:
+        return ""
+
+    for directory in (TRADE_PREPARED_DIR, PREPARED_SCAN_DIR):
+        try:
+            for path in directory.glob("*.csv.gz"):
+                frame = pd.read_csv(path, compression="gzip", usecols=lambda col: col in {"Ticker", "Company"})
+                if frame.empty or "Ticker" not in frame.columns:
+                    continue
+                match = frame[frame["Ticker"].astype(str).str.upper().eq(ticker)]
+                if not match.empty and "Company" in match.columns:
+                    name = str(match.iloc[-1].get("Company") or "").strip()
+                    if name and name.lower() != "nan":
+                        return name
+        except Exception:
+            continue
+
+    try:
+        resolved = resolve_company_query(ticker)
+        name = str(resolved.get("name") or "").strip()
+        if name:
+            return name
+    except Exception:
+        pass
+    return ticker
+
+
 def remove_browser_watchlist_symbol(symbol: str) -> bool:
     """Remove one ticker and clear its saved status snapshot; keep historical alert events."""
     ticker = str(symbol or "").strip().upper()
@@ -3318,15 +3349,24 @@ with tab2:
 
     watch_entries = load_browser_watchlist()
 
+    refresh_watchlist = False
     if not watch_entries:
         st.info("Your watchlist is empty. Add a company by ticking **Watch** beside it anywhere in the screener.")
     else:
+        refresh_watchlist = st.button(
+            "Refresh watchlist",
+            type="primary",
+            use_container_width=True,
+            key="refresh_watchlist_top",
+        )
+
         st.markdown("#### Manage watchlist")
         st.caption("Remove any company here without running a new analysis.")
         for watch_index, watch_symbol in enumerate(watch_entries):
+            company_name = watchlist_company_name(watch_symbol)
             name_col, remove_col = st.columns([5, 1])
             with name_col:
-                st.write(f"**{watch_symbol}**")
+                st.write(f"**{company_name} ({watch_symbol})**")
             with remove_col:
                 if st.button(
                     "Remove",
@@ -3334,12 +3374,12 @@ with tab2:
                     use_container_width=True,
                 ):
                     remove_browser_watchlist_symbol(watch_symbol)
-                    st.toast(f"{watch_symbol} removed from watchlist")
+                    st.toast(f"{company_name} ({watch_symbol}) removed from watchlist")
                     st.rerun()
 
         st.divider()
 
-    if watch_entries and st.button("Refresh watchlist", type="primary", use_container_width=True):
+    if watch_entries and refresh_watchlist:
         rows = []
         failed = []
         total = len(watch_entries)
