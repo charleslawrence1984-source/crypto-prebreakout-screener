@@ -127,6 +127,93 @@ def fmt_price(v):
     return f"{x:.4f}"
 
 
+def fmt_price_with_currency(v, currency: str | None = None):
+    value = fmt_price(v)
+    if value == "—":
+        return value
+    raw_currency = str(currency or "").strip()
+    if raw_currency in {"GBp", "GBX"}:
+        return f"{value}p"
+    code = raw_currency.upper()
+    if code == "USD":
+        return f"${value}"
+    if code == "GBP":
+        return f"£{value}"
+    if code == "EUR":
+        return f"€{value}"
+    if code == "CAD":
+        return f"C${value}"
+    if code == "CHF":
+        return f"CHF {value}"
+    return f"{value} {raw_currency}".strip()
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def resolve_company_query(query: str) -> Dict:
+    """Resolve either a ticker or a plain-English company name to a Yahoo symbol."""
+    q = str(query or "").strip()
+    if not q:
+        return {"symbol": "", "name": "", "exchange": ""}
+
+    try:
+        search = yf.Search(q, max_results=10)
+        quotes = getattr(search, "quotes", None) or []
+    except Exception:
+        quotes = []
+
+    equity_quotes = []
+    for quote in quotes:
+        quote_type = str(quote.get("quoteType") or "").upper()
+        symbol = str(quote.get("symbol") or "").strip()
+        if not symbol:
+            continue
+        if quote_type in {"EQUITY", ""}:
+            equity_quotes.append(quote)
+
+    q_lower = q.lower()
+    q_upper = q.upper()
+
+    def _rank(quote):
+        symbol = str(quote.get("symbol") or "").upper()
+        long_name = str(quote.get("longname") or quote.get("longName") or "").strip()
+        short_name = str(quote.get("shortname") or quote.get("shortName") or "").strip()
+        names = [long_name.lower(), short_name.lower()]
+        if symbol == q_upper:
+            return (0, 0)
+        if q_lower in names:
+            return (1, 0)
+        if any(name.startswith(q_lower) for name in names if name):
+            return (2, min((len(name) for name in names if name), default=999))
+        if any(q_lower in name for name in names if name):
+            return (3, min((len(name) for name in names if name), default=999))
+        return (4, 999)
+
+    if equity_quotes:
+        equity_quotes = sorted(equity_quotes, key=_rank)
+        match = equity_quotes[0]
+        return {
+            "symbol": str(match.get("symbol") or q_upper).strip().upper(),
+            "name": (
+                match.get("longname")
+                or match.get("longName")
+                or match.get("shortname")
+                or match.get("shortName")
+                or q
+            ),
+            "exchange": match.get("exchDisp") or match.get("exchange") or "",
+        }
+
+    looks_like_ticker = (
+        len(q) <= 15
+        and " " not in q
+        and q.replace(".", "").replace("-", "").isalnum()
+    )
+    if looks_like_ticker:
+        return {"symbol": q_upper, "name": q_upper, "exchange": ""}
+
+    return {"symbol": "", "name": q, "exchange": ""}
+
+
 def rsi(close: pd.Series, n: int = 14) -> pd.Series:
     d = close.diff()
     gain = d.clip(lower=0).ewm(alpha=1/n, adjust=False).mean()
@@ -581,6 +668,7 @@ def fundamental_analysis(symbol: str, price: float) -> Dict:
     return {
         "hold_score": round(min(score, 100), 1),
         "name": info.get("longName") or info.get("shortName") or symbol,
+        "currency": info.get("currency") or "",
         "market_cap": market_cap,
         "revenue_growth": revenue_growth,
         "earnings_growth": earnings_growth,
@@ -627,6 +715,136 @@ def analyse_symbol(symbol: str) -> Optional[Dict]:
         "opportunity_score": sc.opportunity,
         "classification": sc.classification,
     }
+
+
+def quick_trade_decision(res: Dict) -> Dict:
+    """Translate the existing Quick Analyse scores into a simple UX decision."""
+    classification = str(res.get("classification") or "Watch / wait")
+    in_zone = bool(res.get("in_preferred_zone") or res.get("in_strong_zone"))
+    trade_score = safe(res.get("trade_score"))
+    hold_score = safe(res.get("hold_score"))
+    rr = safe(res.get("rr"))
+    upside = safe(res.get("upside_pct"))
+
+    buy_classification = classification in {"Swing-to-hold", "Swing only"}
+    if buy_classification and in_zone:
+        return {
+            "action": "BUY",
+            "reason": "The setup is strong enough and the price is inside one of our entry zones.",
+        }
+
+    if buy_classification and not in_zone:
+        return {
+            "action": "WAIT",
+            "reason": "The setup is strong enough, but the price is outside our entry zones. Do not chase it.",
+        }
+    if classification == "Core opportunity":
+        return {
+            "action": "WAIT",
+            "reason": "The longer-term quality is stronger than the current technical setup. Wait for a better entry signal.",
+        }
+    if classification == "Developing":
+        return {
+            "action": "WAIT",
+            "reason": "The setup is developing, but it has not reached the strength required for an entry yet.",
+        }
+
+    details = []
+    if math.isfinite(trade_score):
+        details.append(f"technical score {trade_score:.0f}/100")
+    if math.isfinite(hold_score):
+        details.append(f"hold quality {hold_score:.0f}/100")
+    if math.isfinite(rr):
+        details.append(f"risk/reward {rr:.2f}:1")
+    if math.isfinite(upside):
+        details.append(f"modelled upside {upside:.1f}%")
+    suffix = " · ".join(details)
+    return {
+        "action": "WAIT",
+        "reason": "The current trade setup is not strong enough yet." + (f" {suffix}." if suffix else ""),
+    }
+
+
+def quick_investment_decision(row: Dict | None) -> Dict:
+    if not row:
+        return {
+            "action": "UNAVAILABLE",
+            "reason": "Investment analysis could not be completed from the available market data.",
+        }
+
+    action = str(row.get("Action") or "UNAVAILABLE").upper()
+    valuation_gate = str(row.get("Valuation gate") or "").upper()
+    hard_gates = str(row.get("Hard gates") or "").upper()
+    manual_review = str(row.get("Manual review required") or "").strip()
+
+    if action == "BUY CANDIDATE":
+        reason = (
+            "The measurable long-term quality gates and valuation margin-of-safety gate pass. "
+            "Complete the manual review before buying."
+        )
+    elif action == "PASS":
+        failures = str(row.get("Hard-gate failures") or "").strip()
+        reason = "One or more non-negotiable long-term quality gates failed."
+        if failures:
+            reason += f" {failures}"
+    elif action == "WAIT" and valuation_gate != "PASS":
+        reason = (
+            "The price does not meet our valuation requirements. "
+            "The margin of safety is below the level we require."
+        )
+    elif action == "WAIT" and hard_gates == "PASS":
+        reason = (
+            "The measurable quality gates pass, but more evidence or specialist review is required before buying."
+        )
+        if manual_review:
+            reason += " Open the investment detail below to see the outstanding checks."
+    else:
+        reason = str(row.get("Decision reason") or "").strip() or "The investment case needs more evidence before a decision."
+
+    return {"action": action, "reason": reason}
+
+
+def render_decision_card(title: str, action: str, reason: str):
+    action_upper = str(action or "UNAVAILABLE").upper()
+    if action_upper in {"BUY", "BUY CANDIDATE"}:
+        border, background, text_colour, icon = "#2e7d32", "#eef8f0", "#1b5e20", "🟢"
+    elif action_upper in {"WAIT", "WATCH", "HOLD"}:
+        border, background, text_colour, icon = "#d48a00", "#fff8e1", "#7a4d00", "🟠"
+    elif action_upper in {"PASS", "AVOID", "SELL", "BLOCKED"}:
+        border, background, text_colour, icon = "#c62828", "#fff0f0", "#8e1b1b", "🔴"
+    else:
+        border, background, text_colour, icon = "#6b7280", "#f5f5f5", "#374151", "⚪"
+
+    st.markdown(
+        f"""
+        <div style="
+            border: 2px solid {border};
+            background: {background};
+            border-radius: 14px;
+            padding: 18px 20px;
+            min-height: 190px;
+            margin-bottom: 8px;
+        ">
+            <div style="font-size: 0.95rem; font-weight: 700; opacity: 0.78; margin-bottom: 4px;">
+                {title}
+            </div>
+            <div style="
+                font-size: 2.7rem;
+                line-height: 1.05;
+                font-weight: 900;
+                color: {text_colour};
+                margin: 6px 0 12px 0;
+                letter-spacing: -0.03em;
+            ">
+                {icon} {action_upper}
+            </div>
+            <div style="font-size: 1.02rem; line-height: 1.45; color: #313131;">
+                {reason}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def normalise_us_symbol(s: str) -> str:
@@ -2300,62 +2518,192 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs(
 )
 
 with tab1:
-    c1, c2 = st.columns([3, 1])
+    st.markdown("### Quick Analysis")
+    st.caption("Search by company name or ticker. The decision comes first; deeper analysis is available only if you want it.")
+
+    c1, c2 = st.columns([4, 1])
     with c1:
-        manual = st.text_input("Ticker", value="FLNC", placeholder="e.g. FLNC, AAPL, RR.L")
+        manual = st.text_input(
+            "Search a company",
+            value="FLNC",
+            placeholder="e.g. Apple, AAPL, Rolls-Royce, RR.L",
+            help="You can type either the company name or its ticker.",
+        )
     with c2:
         st.write("")
         st.write("")
         analyse_clicked = st.button("Analyse", type="primary", use_container_width=True)
 
     if analyse_clicked and manual:
-        with st.spinner(f"Analysing {manual.upper()}…"):
-            res = analyse_symbol(manual)
+        resolved = resolve_company_query(manual)
+        symbol = str(resolved.get("symbol") or "").strip().upper()
 
-        if res:
-            a, b, c, d = st.columns(4)
-            a.metric("Trade Setup", f"{res['trade_score']:.0f}/100")
-            b.metric("Hold Quality", f"{res['hold_score']:.0f}/100")
-            c.metric("Opportunity", f"{res['opportunity_score']:.0f}/100")
-            d.metric("Classification", res["classification"])
-
-            st.subheader(f"{res['name']} ({res['symbol']})")
-            p1, p2, p3, p4 = st.columns(4)
-            p1.metric("Current", fmt_price(res["price"]))
-            p2.metric("Preferred entry", f"{fmt_price(res['preferred_low'])}–{fmt_price(res['preferred_high'])}")
-            p3.metric("Strong entry", f"{fmt_price(res['strong_low'])}–{fmt_price(res['strong_high'])}")
-            p4.metric("Swing target", fmt_price(res["swing_target"]), f"{res['upside_pct']:.1f}%")
-
-            if res["in_preferred_zone"]:
-                st.success("Current price is inside the preferred entry zone.")
-            elif res["in_strong_zone"]:
-                st.success("Current price is inside the strong entry zone.")
-
-            st.plotly_chart(chart(res), use_container_width=True)
-
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("RSI", res["rsi"])
-            m2.metric("Risk / reward", f"{res['rr']:.2f}:1")
-            m3.metric("Reassess below", fmt_price(res["invalidation"]))
-            if not np.isnan(safe(res["analyst_target"])):
-                m4.metric("Analyst mean target", fmt_price(res["analyst_target"]), f"{res['analyst_upside']:.1f}%")
-            else:
-                m4.metric("Analyst mean target", "—")
-
-            with st.expander("Fundamental detail"):
-                rows = {
-                    "Market cap": "—" if np.isnan(safe(res["market_cap"])) else f"{res['market_cap']/1e9:.1f}bn",
-                    "Revenue growth": "—" if res["revenue_growth"] is None else f"{res['revenue_growth']:.1f}%",
-                    "EPS growth": "—" if res["earnings_growth"] is None else f"{res['earnings_growth']:.1f}%",
-                    "Profit margin": "—" if res["profit_margin"] is None else f"{res['profit_margin']:.1f}%",
-                    "Debt / equity": "—" if np.isnan(safe(res["debt_equity"])) else f"{res['debt_equity']:.1f}%",
-                    "Free cash flow": "—" if np.isnan(safe(res["free_cash_flow"])) else f"{res['free_cash_flow']/1e6:.1f}m",
-                    "Dividend yield": "—" if res["dividend_yield"] is None else f"{res['dividend_yield']:.2f}%",
-                    "Analysts": res["analyst_count"],
-                }
-                st.dataframe(pd.DataFrame({"Metric": rows.keys(), "Value": rows.values()}), hide_index=True, use_container_width=True)
+        if not symbol:
+            st.error("I couldn't match that company name to a listed share. Try a more specific company name or its ticker.")
         else:
-            st.error("I couldn't retrieve enough market history for that ticker.")
+            resolved_name = str(resolved.get("name") or symbol)
+            resolved_exchange = str(resolved.get("exchange") or "")
+            with st.spinner(f"Analysing {resolved_name} ({symbol})…"):
+                res = analyse_symbol(symbol)
+                investment_result = None
+                investment_row = None
+                if res:
+                    investment_result = _investment_company_result(
+                        symbol,
+                        float(res["price"]),
+                        0.0,
+                        {},
+                    )
+                    if investment_result.get("status") == "row":
+                        investment_row = investment_result.get("row")
+
+            if res:
+                currency = res.get("currency") or ""
+                company_name = res.get("name") or resolved_name or symbol
+                exchange_suffix = f" · {resolved_exchange}" if resolved_exchange else ""
+
+                st.subheader(f"{company_name} ({symbol})")
+                st.caption(
+                    f"Current price: {fmt_price_with_currency(res['price'], currency)}{exchange_suffix}"
+                )
+
+                trade_decision = quick_trade_decision(res)
+                investment_decision_summary = quick_investment_decision(investment_row)
+
+                left, right = st.columns(2)
+                with left:
+                    render_decision_card(
+                        "TRADE DECISION",
+                        trade_decision["action"],
+                        trade_decision["reason"],
+                    )
+                with right:
+                    render_decision_card(
+                        "INVESTMENT DECISION",
+                        investment_decision_summary["action"],
+                        investment_decision_summary["reason"],
+                    )
+
+                st.markdown("#### Trade plan")
+                p1, p2, p3 = st.columns(3)
+                p1.metric(
+                    "Entry zone",
+                    f"{fmt_price_with_currency(res['preferred_low'], currency)}–{fmt_price_with_currency(res['preferred_high'], currency)}",
+                    help="The preferred price range for opening the trade.",
+                )
+                p2.metric(
+                    "Profit target",
+                    fmt_price_with_currency(res["swing_target"], currency),
+                    f"{res['upside_pct']:.1f}% from current price",
+                    help="The current modelled swing target.",
+                )
+                p3.metric(
+                    "Downside / reassess",
+                    fmt_price_with_currency(res["invalidation"], currency),
+                    help="If price falls through this level, the current trade setup should be reassessed rather than held blindly.",
+                )
+
+                if res["in_preferred_zone"]:
+                    st.success("Price is currently inside the preferred entry zone.")
+                elif res["in_strong_zone"]:
+                    st.success("Price is currently inside the deeper / strong entry zone.")
+
+                if investment_row:
+                    st.markdown("#### Investment valuation")
+                    i1, i2, i3, i4 = st.columns(4)
+                    i1.metric(
+                        "Current price",
+                        fmt_price_with_currency(investment_row.get("Price"), currency),
+                    )
+                    i2.metric(
+                        "Base intrinsic value",
+                        fmt_price_with_currency(investment_row.get("Base intrinsic value"), currency),
+                    )
+                    base_mos = safe(investment_row.get("Base margin of safety %"))
+                    required_mos = safe(investment_row.get("Required margin of safety %"))
+                    i3.metric(
+                        "Current margin of safety",
+                        "—" if np.isnan(base_mos) else f"{base_mos:.1f}%",
+                    )
+                    i4.metric(
+                        "Required margin of safety",
+                        "—" if np.isnan(required_mos) else f"{required_mos:.1f}%",
+                    )
+                elif investment_result:
+                    status = str(investment_result.get("status") or "unavailable").replace("_", " ")
+                    st.info(f"Investment analysis unavailable for this lookup ({status}). Trade analysis is still shown below.")
+
+                with st.expander("Explore the trade analysis"):
+                    a, b, c, d = st.columns(4)
+                    a.metric("Trade setup", f"{res['trade_score']:.0f}/100")
+                    b.metric("Hold quality", f"{res['hold_score']:.0f}/100")
+                    c.metric("Opportunity", f"{res['opportunity_score']:.0f}/100")
+                    d.metric("Classification", res["classification"])
+
+                    e1, e2, e3, e4 = st.columns(4)
+                    e1.metric(
+                        "Deeper / strong entry",
+                        f"{fmt_price_with_currency(res['strong_low'], currency)}–{fmt_price_with_currency(res['strong_high'], currency)}",
+                    )
+                    e2.metric("RSI", res["rsi"])
+                    e3.metric("Risk / reward", f"{res['rr']:.2f}:1")
+                    if not np.isnan(safe(res["analyst_target"])):
+                        e4.metric(
+                            "Analyst mean target",
+                            fmt_price_with_currency(res["analyst_target"], currency),
+                            f"{res['analyst_upside']:.1f}%",
+                        )
+                    else:
+                        e4.metric("Analyst mean target", "—")
+
+                    st.plotly_chart(chart(res), use_container_width=True)
+
+                    rows = {
+                        "Market cap": "—" if np.isnan(safe(res["market_cap"])) else f"{res['market_cap']/1e9:.1f}bn",
+                        "Revenue growth": "—" if res["revenue_growth"] is None else f"{res['revenue_growth']:.1f}%",
+                        "EPS growth": "—" if res["earnings_growth"] is None else f"{res['earnings_growth']:.1f}%",
+                        "Profit margin": "—" if res["profit_margin"] is None else f"{res['profit_margin']:.1f}%",
+                        "Debt / equity": "—" if np.isnan(safe(res["debt_equity"])) else f"{res['debt_equity']:.1f}%",
+                        "Free cash flow": "—" if np.isnan(safe(res["free_cash_flow"])) else f"{res['free_cash_flow']/1e6:.1f}m",
+                        "Dividend yield": "—" if res["dividend_yield"] is None else f"{res['dividend_yield']:.2f}%",
+                        "Analysts": res["analyst_count"],
+                    }
+                    st.dataframe(
+                        pd.DataFrame({"Metric": rows.keys(), "Value": rows.values()}),
+                        hide_index=True,
+                        use_container_width=True,
+                    )
+
+                if investment_row:
+                    with st.expander("Explore the investment analysis"):
+                        q1, q2, q3, q4 = st.columns(4)
+                        quality_score = safe(investment_row.get("Quality score"))
+                        moat_score = safe(investment_row.get("Moat score"))
+                        q1.metric("Quality score", "—" if np.isnan(quality_score) else f"{quality_score:.0f}/100")
+                        q2.metric("Hard gates", investment_row.get("Hard gates") or "—")
+                        q3.metric("Valuation gate", investment_row.get("Valuation gate") or "—")
+                        q4.metric("Quant moat confidence", investment_row.get("Quant moat confidence") or "—")
+
+                        inv_rows = {
+                            "Base intrinsic value": fmt_price_with_currency(investment_row.get("Base intrinsic value"), currency),
+                            "Bear intrinsic value": fmt_price_with_currency(investment_row.get("Bear intrinsic value"), currency),
+                            "Bull intrinsic value": fmt_price_with_currency(investment_row.get("Bull intrinsic value"), currency),
+                            "Base margin of safety": "—" if np.isnan(safe(investment_row.get("Base margin of safety %"))) else f"{safe(investment_row.get('Base margin of safety %')):.1f}%",
+                            "Required margin of safety": "—" if np.isnan(safe(investment_row.get("Required margin of safety %"))) else f"{safe(investment_row.get('Required margin of safety %')):.1f}%",
+                            "Bear margin of safety": "—" if np.isnan(safe(investment_row.get("Bear margin of safety %"))) else f"{safe(investment_row.get('Bear margin of safety %')):.1f}%",
+                            "ROIC": "—" if np.isnan(safe(investment_row.get("ROIC %"))) else f"{safe(investment_row.get('ROIC %')):.1f}%",
+                            "FCF/share CAGR": "—" if np.isnan(safe(investment_row.get("FCF/share CAGR %"))) else f"{safe(investment_row.get('FCF/share CAGR %')):.1f}%",
+                            "Hard-gate failures": investment_row.get("Hard-gate failures") or "None",
+                            "Review flags": investment_row.get("Review flags") or "None",
+                            "Manual review required": investment_row.get("Manual review required") or "None",
+                        }
+                        st.dataframe(
+                            pd.DataFrame({"Metric": inv_rows.keys(), "Value": inv_rows.values()}),
+                            hide_index=True,
+                            use_container_width=True,
+                        )
+            else:
+                st.error("I couldn't retrieve enough market history for that company.")
 
 with tab2:
     symbols = [x.strip().upper() for x in watch_text.replace("\n", ",").split(",") if x.strip()]
