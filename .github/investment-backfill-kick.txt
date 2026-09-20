@@ -1,2 +1,2 @@
-Requested 2026-09-20T13:26:00+01:00.
-Resume existing safe missing-only batches while idle. Preserve provider cooldown, independent writer locks, eligibility checks and explicit partial coverage. Investment diagnostics now retain per-symbol outcomes; technical retries use the same listing and unchanged indicator rules.
+Requested 2026-09-20T14:07:23Z following user instruction to continue recovery.
+Resume bounded missing-only fundamentals with existing checkpointing and provider-limit stopping rules. Preserve all eligibility gates and market ordering.
