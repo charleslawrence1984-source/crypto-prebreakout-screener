@@ -15,6 +15,23 @@ logging.getLogger("streamlit.runtime").setLevel(logging.CRITICAL)
 import stock_app
 
 
+def scan_with_outcomes(*args, **kwargs):
+    """Keep per-company provider outcomes without changing calculation code."""
+    original = stock_app._investment_company_result
+    outcomes = {}
+    def capture(*company_args, **company_kwargs):
+        result = original(*company_args, **company_kwargs)
+        outcomes[result["symbol"]] = {k: v for k, v in result.items() if k not in ("row", "symbol")}
+        return result
+    stock_app._investment_company_result = capture
+    try:
+        results = stock_app.fundamental_market_scan(*args, **kwargs)
+        results.attrs.setdefault("scan_diagnostics", {})["symbol_outcomes"] = outcomes
+        return results
+    finally:
+        stock_app._investment_company_result = original
+
+
 def save_manifest(path: Path, manifest: dict) -> None:
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -178,7 +195,7 @@ def main() -> int:
                 manifest["exchanges"][kind] = previous
                 save_manifest(manifest_path, manifest)
 
-            results = stock_app.fundamental_market_scan(
+            results = scan_with_outcomes(
                 tuple(scan_symbols),
                 args.max_symbols,
                 args.min_market_cap_bn * 1_000_000_000,
@@ -186,10 +203,16 @@ def main() -> int:
                 progress_callback=report,
                 max_workers=args.workers,
             )
-            if results.empty:
-                diagnostics = results.attrs.get("scan_diagnostics", {})
-                raise RuntimeError(f"scan returned no results: {diagnostics}")
             diagnostics = results.attrs.get("scan_diagnostics", {})
+            # Preserve structured evidence even when a batch returned zero rows.
+            previous = {**previous, "diagnostics": diagnostics,
+                        "requested_this_run": len(scan_symbols),
+                        "returned_this_run": int(diagnostics.get("returned", 0) or 0)}
+            manifest["exchanges"][kind] = previous
+            save_manifest(manifest_path, manifest)
+            if results.empty:
+                summary = {k: v for k, v in diagnostics.items() if k != "symbol_outcomes"}
+                raise RuntimeError(f"scan returned no results: {summary}")
             if not existing.empty and "Ticker" in existing.columns:
                 refreshed_symbols = set(results["Ticker"].dropna().astype(str))
                 existing = existing[~existing["Ticker"].astype(str).isin(refreshed_symbols)]
