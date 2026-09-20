@@ -1724,8 +1724,8 @@ def approved_trade_market_scan(
     # Intentionally not cached: this function drives a live Streamlit progress
     # callback and refreshes current technical data on every Trade Search run.
     # Caching a function that invokes a UI closure can raise CacheReplayClosureError.
-    # The explicit version is part of Streamlit's cache key. Bumping it prevents
-    # results produced by an earlier rule ordering from being reused.
+    # Keep the model version in the call signature so scheduled and interactive
+    # Trade paths remain tied to the same rulebook build.
     _ = model_version
     universe_symbols = list(symbols_tuple)
     if max_symbols > 0 and max_symbols < len(universe_symbols):
