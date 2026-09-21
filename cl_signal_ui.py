@@ -189,14 +189,18 @@ def apply_cl_signal_styles():
         }
 
         /* Destructive actions remain red */
-        div[class*="st-key-remove_watch_"] button {
+        div[class*="st-key-remove_watch_"] button,
+        div[class*="st-key-remove_crypto_watch_"] button,
+        div[class*="st-key-remove_meme_watch_"] button {
             background:#fff7f7 !important;
             border:1px solid #e59a9a !important;
             color:#b42318 !important;
             box-shadow:none !important;
         }
 
-        div[class*="st-key-remove_watch_"] button:hover {
+        div[class*="st-key-remove_watch_"] button:hover,
+        div[class*="st-key-remove_crypto_watch_"] button:hover,
+        div[class*="st-key-remove_meme_watch_"] button:hover {
             background:#fff0f0 !important;
             border-color:#d65f5f !important;
             color:#8f1d14 !important;
