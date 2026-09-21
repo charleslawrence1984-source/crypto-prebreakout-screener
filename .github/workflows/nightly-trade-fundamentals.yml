@@ -1,4 +1,4 @@
-name: Nightly trade fundamentals
+name: Nightly stock freshness
 
 on:
   workflow_dispatch:
@@ -28,7 +28,7 @@ concurrency:
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,29 +58,64 @@ jobs:
         if: steps.schedule_guard.outputs.run_scan == 'true'
         run: pip install -r requirements.txt
 
-      - name: Refresh Trade fundamentals
+      - name: Refresh shared Trade fundamentals and detect financial changes
+        id: trade_fundamentals
         if: steps.schedule_guard.outputs.run_scan == 'true'
         env:
           PYTHONUNBUFFERED: "1"
         run: |
           python scheduled_trade_fundamentals.py \
             --exchange "${{ github.event.inputs.exchange || 'all' }}" \
-            --batch-size "${{ github.event.inputs.batch_size || '500' }}" \
-            --resume
+            --batch-size "${{ github.event.inputs.batch_size || '500' }}"
 
-      - name: Save prepared Trade fundamentals
-        if: steps.schedule_guard.outputs.run_scan == 'true' && always()
+      - name: Refresh Investment fundamentals only where financial inputs changed
+        id: investment_changes
+        if: always() && steps.schedule_guard.outputs.run_scan == 'true'
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          if [ -f prepared_trade_fundamentals/fundamental_changes.json ]; then
+            python scheduled_investment_scan.py \
+              --exchange all \
+              --symbols-json prepared_trade_fundamentals/fundamental_changes.json \
+              --min-market-cap-bn 0.5 \
+              --workers 4
+          fi
+
+      - name: Recalculate all eligible Trade technicals after the close
+        id: trade_technicals
+        if: always() && steps.schedule_guard.outputs.run_scan == 'true'
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scheduled_trade_technicals.py \
+            --exchange all \
+            --max-symbols-per-exchange 0 \
+            --refresh-existing
+
+      - name: Refresh Investment closing prices and valuation decisions
+        id: investment_prices
+        if: always() && steps.schedule_guard.outputs.run_scan == 'true'
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python scheduled_investment_price_refresh.py
+
+      - name: Save nightly stock freshness state
+        if: always() && steps.schedule_guard.outputs.run_scan == 'true'
         shell: bash
         run: |
-          if [ ! -d prepared_trade_fundamentals ]; then
-            exit 0
-          fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add prepared_trade_fundamentals
+          git add prepared_trade_fundamentals prepared_trade_technicals prepared_scans
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "Update nightly Trade fundamentals"
-          git pull --rebase origin main
-          git push origin HEAD:main
+          git commit -m "Update nightly stock freshness"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          exit 1
