@@ -17,6 +17,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from cl_signal_ui import render_module_header
 import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis
@@ -31,11 +32,6 @@ from trade_rules import (
 
 st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", layout="wide")
 
-st.page_link(
-    "platform_home.py",
-    label="← Back to CL Signal Home",
-    use_container_width=False,
-)
 
 
 PRIORITY_DEFAULT = ""
@@ -2576,8 +2572,11 @@ def chart(result: Dict) -> go.Figure:
     return fig
 
 
-st.title("📈 Stock Opportunity Screener")
-st.caption("Find better entry points for trades and long-term investments without digging through all the data yourself.")
+render_module_header(
+    "Stocks",
+    "📈",
+    "Find better entry points for trades and long-term investments without digging through all the data yourself.",
+)
 
 st.markdown("""
 <style>
