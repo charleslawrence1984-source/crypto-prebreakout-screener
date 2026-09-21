@@ -218,17 +218,69 @@ def apply_cl_signal_styles():
 
         @media(max-width:800px) {
             .block-container {
-                padding-top:2.3rem;
-                padding-left:.8rem;
-                padding-right:.8rem;
+                padding-top:2.2rem;
+                padding-left:.75rem;
+                padding-right:.75rem;
+            }
+
+            .cl-module-brand {
+                gap:10px;
+                margin-bottom:4px;
+            }
+
+            .cl-module-logo {
+                width:50px;
+                height:50px;
+                flex-basis:50px;
+                transform:scale(.86);
+                transform-origin:left center;
+            }
+
+            .cl-module-wordmark {
+                font-size:1.45rem;
+            }
+
+            .cl-module-tagline {
+                font-size:.76rem;
+            }
+
+            .cl-module-kicker {
+                margin-top:20px;
+                font-size:.70rem;
             }
 
             .cl-module-title {
-                font-size:2.05rem;
+                font-size:2rem;
             }
 
             .cl-module-copy {
-                font-size:.98rem;
+                font-size:.96rem;
+                line-height:1.5;
+                margin-bottom:16px;
+            }
+
+            div[data-baseweb="tab-list"] {
+                overflow-x:auto;
+                flex-wrap:nowrap !important;
+                scrollbar-width:none;
+            }
+
+            div[data-baseweb="tab-list"]::-webkit-scrollbar {
+                display:none;
+            }
+
+            button[data-baseweb="tab"] {
+                min-width:max-content;
+                padding-left:.75rem !important;
+                padding-right:.75rem !important;
+            }
+
+            div[data-testid="stMetricValue"] {
+                font-size:1.25rem !important;
+            }
+
+            div[data-testid="stDataFrame"] {
+                font-size:.82rem;
             }
         }
         </style>
@@ -327,3 +379,52 @@ def render_signal_decision_card(title: str, action: str, reason: str):
         """,
         unsafe_allow_html=True,
     )
+    render_decision_guidance(action_upper, reason)
+
+
+
+def render_decision_guidance(action: str, reason: str = ""):
+    action_upper = str(action or "UNAVAILABLE").upper()
+    clean_reason = str(reason or "").strip()
+
+    if action_upper in {
+        "BUY", "BUY CANDIDATE", "ACCUMULATE", "HIGH PRIORITY", "SHORTLIST"
+    }:
+        label = "What does this mean?"
+        summary = (
+            "The current model conditions are strong enough to pass the relevant "
+            "screening rules right now. It is still a research signal, not a guarantee."
+        )
+        next_step = (
+            "Review the entry/risk plan and the deeper evidence before acting, and "
+            "reassess if the underlying setup changes."
+        )
+    elif action_upper in {"WAIT", "WATCH", "HOLD"}:
+        label = "What needs to change?"
+        summary = (
+            "This is potentially interesting, but one or more conditions are not ready yet. "
+            "The idea is to monitor it rather than chase it."
+        )
+        next_step = (
+            "Revisit it when the blocker improves or the setup reaches the required confirmation."
+        )
+    elif action_upper in {"PASS", "AVOID", "SELL", "BLOCKED", "FAIL"}:
+        label = "Why is this a pass?"
+        summary = (
+            "The current setup fails, or does not meet enough of, the relevant model rules."
+        )
+        next_step = (
+            "Do not force the setup. Reassess only if the underlying conditions materially change."
+        )
+    else:
+        label = "What does this mean?"
+        summary = (
+            "There is not enough confirmed information for a clear model decision right now."
+        )
+        next_step = "Check the detailed evidence or try again when more data is available."
+
+    with st.expander(label, expanded=False):
+        st.write(summary)
+        if clean_reason:
+            st.markdown(f"**Current reason:** {clean_reason}")
+        st.markdown(f"**Next step:** {next_step}")
