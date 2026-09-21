@@ -12,12 +12,7 @@ import ccxt.async_support as ccxt
 import numpy as np
 import pandas as pd
 
-
-STABLE_BASES = {
-    "USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "PYUSD", "EURC", "USD1",
-    "BUSD", "USDP", "GUSD", "LUSD", "FRAX", "EUR", "GBP",
-}
-LEVERAGED_SUFFIXES = ("UP", "DOWN", "BULL", "BEAR", "2L", "2S", "3L", "3S", "5L", "5S")
+from crypto_universe_rules import crypto_universe_exclusion_reason
 EXCHANGES = {
     "binance": "Binance",
     "okx": "OKX",
@@ -63,14 +58,6 @@ def make_exchange(exchange_id: str):
     return exchange
 
 
-def is_leveraged(base: str) -> bool:
-    base = str(base or "").upper()
-    return any(
-        base.endswith(suffix) and len(base) > len(suffix) + 2
-        for suffix in LEVERAGED_SUFFIXES
-    )
-
-
 def quote_volume(ticker: dict) -> float:
     qv = safe(ticker.get("quoteVolume"))
     if math.isfinite(qv):
@@ -109,6 +96,8 @@ async def load_exchange_snapshot(
             "quote_matched": 0,
             "stablecoin_excluded": 0,
             "leveraged_excluded": 0,
+            "tokenized_security_excluded": 0,
+            "invalid_symbol_excluded": 0,
             "volume_unavailable": 0,
             "below_liquidity": 0,
             "eligible": 0,
@@ -123,11 +112,18 @@ async def load_exchange_snapshot(
             counts["quote_matched"] += 1
 
             base = str(market.get("base") or "").upper()
-            if base in STABLE_BASES:
+            exclusion = crypto_universe_exclusion_reason(base, exchange_id)
+            if exclusion == "stable_or_cash":
                 counts["stablecoin_excluded"] += 1
                 continue
-            if is_leveraged(base):
+            if exclusion == "leveraged_token":
                 counts["leveraged_excluded"] += 1
+                continue
+            if exclusion == "tokenized_security":
+                counts["tokenized_security_excluded"] += 1
+                continue
+            if exclusion:
+                counts["invalid_symbol_excluded"] += 1
                 continue
 
             ticker = tickers.get(symbol) or {}
