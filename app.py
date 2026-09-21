@@ -3986,8 +3986,8 @@ def live_scan():
 live_scan()
 
 st.divider()
-st.subheader("Quick analyse")
-st.caption("Search any active coin on the selected exchange, even if it did not appear in the main scan.")
+st.subheader("Quick Analysis")
+st.caption("Search any active coin on the selected exchange. The decision comes first; detailed evidence follows underneath.")
 
 if "quick_analysis" not in st.session_state:
     st.session_state.quick_analysis = None
@@ -4002,7 +4002,7 @@ with qa_input_col:
 with qa_button_col:
     st.write("")
     st.write("")
-    run_quick_analysis = st.button("Analyse", type="primary", use_container_width=True)
+    run_quick_analysis = st.button("Analyse coin", type="primary", use_container_width=True)
 
 if run_quick_analysis:
     if not quick_query.strip():
@@ -4052,86 +4052,43 @@ if qa:
             }),
             macro_now,
         )
-        tokenomics_gate = qa_result.get("tokenomics_gate", "UNKNOWN")
-        cex_gate = qa_result.get("major_cex_gate", "UNKNOWN")
-        candle_caution = bool(qa_result.get("candle_caution", False))
-        qa_is_btc = qa_symbol.split("/")[0].upper() == "BTC"
-        qa_rs_pass = qa_is_btc or qa_result.get("rs_vs_btc_pct", -999) > 0
-        if (
-            qa_result.get("eligible")
-            and qa_rs_pass
-            and tokenomics_gate == "PASS"
-            and cex_gate == "PASS"
-            and not candle_caution
-            and qa_overlay["Context confidence"] != "LOW"
-            and qa_overlay["Known event risk"] != "HIGH"
-            and macro_now.get("allows_new_swing_risk", True)
-        ):
-            st.success(
-                "TRADE QUALIFIES: technical pre-breakout rules pass, the altcoin is beating "
-                "BTC, circulating supply meets the 25% rule, major-exchange breadth passes, "
-                "and macro liquidity allows new swing risk."
-            )
-        elif qa_result.get("eligible") and not qa_rs_pass:
-            st.warning(
-                "TECHNICAL QUALIFIER — RELATIVE-STRENGTH WAIT: the altcoin is not "
-                "currently beating BTC over the 48-hour window."
-            )
-        elif qa_result.get("eligible") and tokenomics_gate != "PASS":
-            st.warning(
-                "TECHNICAL QUALIFIER — TOKENOMICS WAIT: "
-                + (
-                    "circulating supply is below 25% of total/max supply."
-                    if tokenomics_gate == "FAIL"
-                    else "circulating versus total/max supply could not be verified."
-                )
-            )
-        elif qa_result.get("eligible") and cex_gate != "PASS":
-            st.warning(
-                "TECHNICAL QUALIFIER — EXCHANGE-LISTING WAIT: "
-                f"{qa_result.get('major_cex_count', 0)} verified major CEX listing(s) "
-                "found; at least 2 are required for BUY."
-            )
-        elif qa_result.get("eligible") and candle_caution:
-            st.warning(
-                "TECHNICAL QUALIFIER — CANDLE CAUTION: the latest completed 4h candle "
-                "is a red shooting star. Wait for confirmation rather than entering into "
-                "fresh rejection near resistance."
-            )
-        elif (
-            qa_result.get("eligible")
-            and (
-                qa_overlay["Context confidence"] == "LOW"
-                or qa_overlay["Known event risk"] == "HIGH"
-            )
-        ):
-            st.warning(
-                "TECHNICAL QUALIFIER — CONTEXT WAIT: the chart setup qualifies, but the "
-                f"TA limitation overlay is {qa_overlay['Context confidence']} confidence "
-                f"with known event risk {qa_overlay['Known event risk']}. "
-                + (
-                    "Conflicts: " + qa_overlay["Conflicts"]
-                    if qa_overlay["Conflicts"] else ""
-                )
-            )
-        elif qa_result.get("eligible"):
-            st.warning(
-                "TECHNICAL QUALIFIER — MACRO WAIT: the setup passes the pre-breakout "
-                f"rules, tokenomics, major-CEX, candle and context gates, but macro liquidity is "
-                f"{macro_now.get('regime', 'DATA LIMITED')} "
-                f"({macro_now.get('score', np.nan):.1f}/100)."
-            )
-        elif qa_result.get("shape_eligible"):
-            st.warning("TRADE PASS: the pre-breakout shape is present, but no credible 30% gross-profit target was found.")
-        else:
-            st.warning("TRADE PASS: " + qa_result.get("reason", "Shape filter not met"))
-        accumulation_verdict = qa_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
+        trade_decision = crypto_trade_decision(qa_result, macro_now)
+        accumulation_verdict = str(
+            qa_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
+        )
         if accumulation_verdict == "ACCUMULATION READY":
-            st.success("LONG-TERM: " + accumulation_verdict)
+            accumulation_action = "ACCUMULATE"
+            accumulation_reason = (
+                "The confirmed daily base and accumulation score currently meet the model rules."
+            )
         elif accumulation_verdict.startswith("WATCH"):
-            st.info("LONG-TERM: " + accumulation_verdict)
+            accumulation_action = "WAIT"
+            accumulation_reason = (
+                "The longer-term base is developing but is not ready yet."
+            )
         else:
-            st.caption("LONG-TERM: " + accumulation_verdict)
+            accumulation_action = "PASS"
+            accumulation_reason = (
+                "The current daily base does not meet the accumulation rules."
+            )
+
+        decision_left, decision_right = st.columns(2)
+        with decision_left:
+            render_crypto_decision_card(
+                "SWING DECISION",
+                trade_decision["action"],
+                trade_decision["reason"],
+            )
+        with decision_right:
+            render_crypto_decision_card(
+                "ACCUMULATION DECISION",
+                accumulation_action,
+                accumulation_reason,
+            )
+
+        st.caption(
+            "Decision first. The metrics and detailed technical evidence below explain why."
+        )
 
         q1, q2, q3, q4 = st.columns(4)
         q1.metric("Trade setup score", f"{qa_result['score']:.1f}/100")
