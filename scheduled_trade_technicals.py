@@ -86,6 +86,7 @@ def main() -> int:
     parser.add_argument("--output-dir", default="prepared_trade_technicals")
     parser.add_argument("--fundamentals-dir", default="prepared_trade_fundamentals")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--refresh-existing", action="store_true", help="Recalculate every currently eligible technical row, not only missing rows.")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -176,7 +177,12 @@ def main() -> int:
         existing = reconcile_cached(existing, eligible_set)
         existing_symbols = set(existing["Ticker"].astype(str)) if not existing.empty else set()
         missing = [symbol for symbol in eligible if symbol not in existing_symbols]
-        scan_symbols = missing[: args.max_symbols_per_exchange] if args.max_symbols_per_exchange > 0 else missing
+        candidates = eligible if args.refresh_existing else missing
+        scan_symbols = (
+            candidates[: args.max_symbols_per_exchange]
+            if args.max_symbols_per_exchange > 0
+            else candidates
+        )
 
         benchmark = stock_app.trade_benchmark_frame(stock_app.TRADE_MARKET_CONTEXT[kind]["benchmark"])
         context = stock_app.TRADE_MARKET_CONTEXT[kind]
@@ -236,6 +242,7 @@ def main() -> int:
             "coverage_pct": round(covered / len(eligible) * 100, 1) if eligible else 100.0,
             "remaining_symbols": remaining,
             "requested_this_run": len(scan_symbols),
+            "refresh_mode": "all_eligible" if args.refresh_existing else "missing_only",
             "returned_this_run": len(rows),
             "unresolved_fundamental_symbols": len(unresolved),
             "rulebook_build": stock_app.TRADE_RULEBOOK_BUILD,
