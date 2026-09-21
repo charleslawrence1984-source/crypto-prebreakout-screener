@@ -61,6 +61,7 @@ def main() -> int:
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--output-dir", default="prepared_scans")
     parser.add_argument("--resume", action="store_true")
+    parser.add_argument("--symbols-json", default="", help="Optional JSON file containing per-exchange changed_symbols/new_symbols lists.")
     args = parser.parse_args()
 
     output_dir = Path(args.output_dir)
@@ -71,6 +72,20 @@ def main() -> int:
     except Exception:
         manifest = {"schema_version": 1, "exchanges": {}}
     manifest.setdefault("exchanges", {})
+
+    selected_symbols_by_kind = None
+    if args.symbols_json:
+        try:
+            payload = json.loads(Path(args.symbols_json).read_text(encoding="utf-8"))
+            selected_symbols_by_kind = {
+                kind: sorted(set(
+                    list(meta.get("changed_symbols", []))
+                    + list(meta.get("new_symbols", []))
+                ))
+                for kind, meta in payload.get("exchanges", {}).items()
+            }
+        except Exception as exc:
+            raise SystemExit(f"Cannot read --symbols-json {args.symbols_json}: {exc}")
 
     labels_by_kind = {kind: label for label, kind in stock_app.EXCHANGE_UNIVERSES.items()}
     if args.exchange == "all":
@@ -96,6 +111,7 @@ def main() -> int:
         if (
             args.resume
             and not args.gap_fill
+            and selected_symbols_by_kind is None
             and str(previous.get("completed_at", "")).startswith(run_date)
         ):
             print(f"[{position}/{len(kinds)}] {kind}: already completed today; skipping", flush=True)
@@ -129,7 +145,11 @@ def main() -> int:
                 existing_symbols = set(existing["Ticker"].dropna().astype(str))
 
             cursor = int(previous.get("next_cursor", 0) or 0) % len(eligible)
-            if args.gap_fill:
+            if selected_symbols_by_kind is not None:
+                requested = set(selected_symbols_by_kind.get(kind, []))
+                scan_symbols = [symbol for symbol in eligible if symbol in requested]
+                next_cursor = cursor
+            elif args.gap_fill:
                 missing_symbols = [symbol for symbol in eligible if symbol not in existing_symbols]
                 # Persist dispatch counts separately from healthy completed retries.
                 # Untouched companies go first; failed requests cannot monopolise
@@ -153,6 +173,13 @@ def main() -> int:
             else:
                 scan_symbols = eligible
                 next_cursor = 0
+
+            if not scan_symbols and selected_symbols_by_kind is not None:
+                print(
+                    f"[{position}/{len(kinds)}] {kind}: no changed fundamentals to refresh",
+                    flush=True,
+                )
+                continue
 
             if not scan_symbols:
                 # Persist the trimmed snapshot even when there is no provider work.
@@ -253,6 +280,9 @@ def main() -> int:
                 "result_rows": len(results),
                 "minimum_market_cap_bn": args.min_market_cap_bn,
                 "diagnostics": diagnostics,
+                "refresh_mode": "changed_fundamentals" if selected_symbols_by_kind is not None else (
+                    "gap_fill" if args.gap_fill else "rolling_or_full"
+                ),
             }
             manifest["last_completed_exchange"] = kind
             manifest["updated_at"] = completed_at
