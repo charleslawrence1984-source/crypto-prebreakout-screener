@@ -17,7 +17,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
-from cl_signal_ui import render_module_header
+from cl_signal_ui import render_module_header, render_decision_guidance
 import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis
@@ -851,6 +851,7 @@ def render_decision_card(title: str, action: str, reason: str):
         """,
         unsafe_allow_html=True,
     )
+    render_decision_guidance(action_upper, reason)
 
 
 def normalise_us_symbol(s: str) -> str:
