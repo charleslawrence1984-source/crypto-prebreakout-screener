@@ -15,11 +15,9 @@ on:
         description: Rolling companies per exchange
         required: true
         default: "100"
-  schedule:
-    # Both UTC times are triggered; the timezone guard keeps only 22:15 UK
-    # across GMT and BST.
-    - cron: "15 21 * * 1-5"
-    - cron: "15 22 * * 1-5"
+  # Weekday Investment fundamentals are now refreshed only when the shared
+  # fundamental-change detector finds new financial inputs. Keep this workflow
+  # for manual full/rolling recovery runs.
 
 permissions:
   contents: write
