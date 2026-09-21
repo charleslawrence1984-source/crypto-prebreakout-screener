@@ -140,6 +140,54 @@ def apply_cl_signal_styles():
             background:#f7faff !important;
         }
 
+        /* CL Signal action system */
+        div[data-testid="stButton"] button[kind="primary"] {
+            background:linear-gradient(135deg,#1769e0 0%,#2f8cff 100%) !important;
+            border:1px solid #1769e0 !important;
+            color:#ffffff !important;
+            border-radius:11px !important;
+            font-weight:800 !important;
+            box-shadow:0 5px 14px rgba(23,105,224,.16) !important;
+        }
+
+        div[data-testid="stButton"] button[kind="primary"]:hover {
+            background:linear-gradient(135deg,#0f55bf 0%,#247be8 100%) !important;
+            border-color:#0f55bf !important;
+            box-shadow:0 7px 18px rgba(23,105,224,.22) !important;
+        }
+
+        div[data-testid="stButton"] button[kind="primary"]:focus {
+            box-shadow:0 0 0 3px rgba(47,123,242,.20) !important;
+        }
+
+        div[data-testid="stButton"] button[kind="secondary"] {
+            background:#ffffff !important;
+            border:1px solid #bfd1eb !important;
+            color:#174f9e !important;
+            border-radius:11px !important;
+            font-weight:750 !important;
+        }
+
+        div[data-testid="stButton"] button[kind="secondary"]:hover {
+            border-color:#2f7bf2 !important;
+            color:#0f55bf !important;
+            background:#f7faff !important;
+        }
+
+        /* Destructive actions remain red */
+        div[class*="st-key-remove_watch_"] button {
+            background:#fff7f7 !important;
+            border:1px solid #e59a9a !important;
+            color:#b42318 !important;
+            box-shadow:none !important;
+        }
+
+        div[class*="st-key-remove_watch_"] button:hover {
+            background:#fff0f0 !important;
+            border-color:#d65f5f !important;
+            color:#8f1d14 !important;
+        }
+
         section[data-testid="stSidebar"] {
             background:#f8faff;
             border-right:1px solid #e7edf6;
