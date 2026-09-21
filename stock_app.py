@@ -84,12 +84,14 @@ def safe(v, default=np.nan):
 def action_cell_style(value) -> str:
     """Return the RAG colour for a screener action without changing its value."""
     action = str(value).strip().upper()
-    if action in {"BUY", "BUY CANDIDATE", "PAPER CANDIDATE"}:
+    if action in {"BUY", "BUY CANDIDATE", "PAPER CANDIDATE", "ENTRY ZONE"}:
         return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
     if action in {"WAIT", "WATCH", "READY TO VERIFY", "HOLD", "EARNINGS WAIT", "RETRY"}:
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
-    if action in {"PASS", "AVOID", "SELL", "BLOCKED"}:
+    if action in {"PASS", "AVOID", "SELL", "BLOCKED", "EXTENDED", "INVALIDATED"}:
         return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+    if action in {"DATA STALE", "LATEST SESSION"}:
+        return "background-color: #eceff3; color: #4b5563; font-weight: 700"
     return ""
 
 
@@ -2621,6 +2623,321 @@ def format_freshness_time(value: str) -> str:
         return ts.strftime("%d %b %Y %H:%M")
     except Exception:
         return str(value)
+
+
+@st.cache_data(ttl=270, show_spinner=False)
+def fetch_live_trade_quotes(symbols_tuple: tuple[str, ...]) -> Dict[str, Dict]:
+    """Fetch a light 5-minute quote overlay without recalculating daily indicators."""
+    symbols = [str(symbol).strip().upper() for symbol in symbols_tuple if str(symbol).strip()]
+    output: Dict[str, Dict] = {}
+    if not symbols:
+        return output
+
+    now_utc = pd.Timestamp.now(tz="UTC")
+    for start in range(0, len(symbols), 80):
+        chunk = symbols[start:start + 80]
+        try:
+            data = yf.download(
+                tickers=chunk,
+                period="1d",
+                interval="5m",
+                group_by="ticker",
+                auto_adjust=False,
+                threads=True,
+                progress=False,
+            )
+        except Exception:
+            continue
+
+        for symbol in chunk:
+            try:
+                frame = extract_ticker_frame(data, symbol)
+                if frame is None or frame.empty:
+                    continue
+                frame = frame.copy()
+                for column in ("Open", "Close"):
+                    if column in frame.columns:
+                        frame[column] = pd.to_numeric(frame[column], errors="coerce")
+                frame = frame.dropna(subset=["Open", "Close"])
+                if frame.empty:
+                    continue
+
+                timestamp = pd.Timestamp(frame.index[-1])
+                if timestamp.tzinfo is None:
+                    timestamp = timestamp.tz_localize("UTC")
+                else:
+                    timestamp = timestamp.tz_convert("UTC")
+
+                age_minutes = max((now_utc - timestamp).total_seconds() / 60.0, 0.0)
+                output[symbol] = {
+                    "price": safe(frame["Close"].iloc[-1]),
+                    "session_open": safe(frame["Open"].iloc[0]),
+                    "quote_time": timestamp.isoformat(),
+                    "age_minutes": round(age_minutes, 1),
+                    # Allows common delayed feeds while still preventing old-session
+                    # quotes from changing an intraday state.
+                    "fresh": age_minutes <= 35.0,
+                }
+            except Exception:
+                continue
+    return output
+
+
+def _overnight_trade_state(row: pd.Series) -> str:
+    technical_state = str(row.get("Technical state") or "").upper()
+    if technical_state == "WATCH":
+        return "WATCH"
+    if technical_state in {"AWAITING NEXT OPEN", "ENTRY READY"}:
+        return "READY TO VERIFY"
+    return str(row.get("Status") or "WATCH").upper()
+
+
+def apply_live_trade_overlay(
+    frame: pd.DataFrame,
+    quotes: Dict[str, Dict],
+) -> pd.DataFrame:
+    """Overlay live price location on the completed-daily-candle Trade setup.
+
+    This deliberately never recalculates RSI, MACD, moving averages or candle
+    confirmation intraday. Those remain overnight/close-of-market decisions.
+    """
+    if frame.empty:
+        return frame.copy()
+
+    out = frame.copy()
+    live_rows = []
+    for _, row in out.iterrows():
+        symbol = str(row.get("Ticker") or "").upper()
+        quote = quotes.get(symbol)
+        baseline = _overnight_trade_state(row)
+
+        live_state = baseline
+        live_reason = "Overnight completed-candle setup retained."
+        live_price = np.nan
+        session_open = np.nan
+        quote_time = ""
+        quote_status = "DATA STALE"
+        remaining_upside = np.nan
+        live_rr = np.nan
+
+        if not quote:
+            live_state = "DATA STALE"
+            live_reason = "No usable 5-minute quote was returned; overnight setup is not being promoted intraday."
+        else:
+            live_price = safe(quote.get("price"))
+            session_open = safe(quote.get("session_open"))
+            quote_time = str(quote.get("quote_time") or "")
+            is_fresh = bool(quote.get("fresh"))
+            quote_status = "LIVE / DELAYED" if is_fresh else "LATEST SESSION"
+
+            if not is_fresh:
+                live_reason = "Latest intraday quote is from an older session; overnight setup retained."
+            elif not math.isfinite(live_price) or live_price <= 0:
+                live_state = "DATA STALE"
+                live_reason = "Latest quote is unusable; overnight setup is not being promoted intraday."
+            else:
+                technical_state = str(row.get("Technical state") or "").upper()
+                entry = safe(row.get("Entry"))
+                stop = safe(row.get("Stop"))
+                target = safe(row.get("Target"))
+                atr20 = safe(row.get("ATR20"))
+                zone_high = safe(row.get("MA zone high"))
+                confirmation = safe(row.get("Price"))
+
+                if math.isfinite(stop) and live_price <= stop:
+                    live_state = "INVALIDATED"
+                    live_reason = "Current price is at or below the overnight structural invalidation level."
+                elif technical_state == "WATCH":
+                    live_state = "WATCH"
+                    live_reason = "WATCH remains WATCH intraday; a completed daily MACD crossover is still required."
+                elif technical_state == "AWAITING NEXT OPEN":
+                    needed = [session_open, stop, target, atr20, zone_high, confirmation]
+                    if not all(math.isfinite(value) for value in needed) or atr20 <= 0:
+                        live_state = "READY TO VERIFY"
+                        live_reason = "Valid daily close is awaiting opening-entry checks; full live setup fields are not yet available."
+                    else:
+                        gap_atr = abs(session_open - confirmation) / atr20
+                        stop_distance = (session_open - stop) / session_open if session_open > 0 else np.nan
+                        remaining_upside = (target - session_open) / session_open * 100 if session_open > 0 else np.nan
+                        risk = session_open - stop
+                        live_rr = (target - session_open) / risk if risk > 0 else np.nan
+
+                        if session_open <= stop:
+                            live_state = "INVALIDATED"
+                            live_reason = "The opening price was at or below the structural stop."
+                        elif session_open > zone_high + atr20:
+                            live_state = "EXTENDED"
+                            live_reason = "The opening price is more than 1 ATR above the approved MA support zone."
+                        elif gap_atr > 0.5:
+                            live_state = "EXTENDED" if session_open > confirmation else "INVALIDATED"
+                            live_reason = "The opening gap exceeds the approved 0.5 ATR limit."
+                        elif stop_distance > 0.10:
+                            live_state = "INVALIDATED"
+                            live_reason = "The opening price would require a structural stop wider than 10%."
+                        elif remaining_upside < 10 or not math.isfinite(live_rr) or live_rr < 2:
+                            live_state = "EXTENDED"
+                            live_reason = "At the opening price, remaining upside / reward-risk no longer meets the entry gates."
+                        else:
+                            live_state = "READY TO VERIFY"
+                            live_reason = "Opening-entry checks still pass; verify current event/news conditions before acting."
+                elif technical_state == "ENTRY READY":
+                    if math.isfinite(target) and live_price > 0:
+                        remaining_upside = (target - live_price) / live_price * 100
+                    if math.isfinite(stop) and math.isfinite(target):
+                        risk = live_price - stop
+                        live_rr = (target - live_price) / risk if risk > 0 else np.nan
+
+                    if math.isfinite(target) and live_price >= target:
+                        live_state = "EXTENDED"
+                        live_reason = "Price has already reached or exceeded the planned technical target; do not chase."
+                    elif (
+                        math.isfinite(remaining_upside) and remaining_upside < 10
+                    ) or (
+                        math.isfinite(live_rr) and live_rr < 2
+                    ):
+                        live_state = "EXTENDED"
+                        live_reason = "Current price no longer offers the approved 10% upside / 2:1 reward-risk for a new entry."
+                    elif math.isfinite(entry) and math.isfinite(atr20) and atr20 > 0:
+                        if abs(live_price - entry) <= 0.5 * atr20:
+                            live_state = "ENTRY ZONE"
+                            live_reason = "Current price remains within 0.5 ATR of the approved following-open entry."
+                        elif live_price > entry + 0.5 * atr20:
+                            live_state = "EXTENDED"
+                            live_reason = "Current price has moved more than 0.5 ATR above the approved entry."
+                        else:
+                            live_state = "READY TO VERIFY"
+                            live_reason = "Price is below the planned entry but above invalidation; verify the setup before acting."
+                    else:
+                        live_state = "READY TO VERIFY"
+                        live_reason = "Overnight entry setup remains valid; verify the current price before acting."
+
+        live_rows.append({
+            "Live state": live_state,
+            "Live price": live_price,
+            "Session open": session_open,
+            "Live quote status": quote_status,
+            "Live quote time": quote_time,
+            "Remaining upside %": remaining_upside,
+            "Live R:R": live_rr,
+            "Live reason": live_reason,
+        })
+
+    return pd.concat([out.reset_index(drop=True), pd.DataFrame(live_rows)], axis=1)
+
+
+@st.fragment(run_every="5m")
+def render_live_trade_monitor(key_prefix: str = "home", show_table: bool = True) -> None:
+    trade_frame = load_all_trade_opportunities()
+    watchlist = load_browser_watchlist()
+    active_symbols = (
+        trade_frame["Ticker"].dropna().astype(str).str.upper().tolist()
+        if not trade_frame.empty and "Ticker" in trade_frame.columns else []
+    )
+    symbols = tuple(dict.fromkeys(active_symbols + [str(x).upper() for x in watchlist]))
+
+    st.markdown("#### ⚡ Live Trade monitor")
+    if st.button(
+        "Refresh live prices",
+        key=f"{key_prefix}_refresh_live_trade",
+        use_container_width=False,
+    ):
+        fetch_live_trade_quotes.clear()
+
+    if not symbols:
+        st.info("No active Trade candidates or watchlist companies need live monitoring right now.")
+        return
+
+    quotes = fetch_live_trade_quotes(symbols)
+    live = apply_live_trade_overlay(trade_frame, quotes) if not trade_frame.empty else pd.DataFrame()
+
+    if live.empty:
+        st.info("No overnight Trade setups are active. Watchlist quotes are still refreshed in the Watchlist tab.")
+        return
+
+    counts = live["Live state"].value_counts()
+    lm1, lm2, lm3, lm4, lm5 = st.columns(5)
+    lm1.metric("ENTRY ZONE", int(counts.get("ENTRY ZONE", 0)))
+    lm2.metric("Ready to verify", int(counts.get("READY TO VERIFY", 0)))
+    lm3.metric("WATCH", int(counts.get("WATCH", 0)))
+    lm4.metric("Extended", int(counts.get("EXTENDED", 0)))
+    lm5.metric("Invalidated", int(counts.get("INVALIDATED", 0)))
+
+    quote_times = [
+        pd.Timestamp(value.get("quote_time"))
+        for value in quotes.values()
+        if value.get("quote_time") and value.get("fresh")
+    ]
+    if quote_times:
+        latest_quote = max(quote_times)
+        if latest_quote.tzinfo is None:
+            latest_quote = latest_quote.tz_localize("UTC")
+        latest_quote = latest_quote.tz_convert("Europe/London")
+        quote_text = latest_quote.strftime("%d %b %Y %H:%M")
+    else:
+        quote_text = "latest market session"
+
+    stale_count = int(counts.get("DATA STALE", 0))
+    st.caption(
+        f"Live/delayed quote layer: {quote_text} · refreshes every 5 minutes while the app is open · "
+        "daily RSI/MACD/SMA/candle rules remain locked to the completed-candle scan."
+        + (f" · {stale_count} candidate{'s' if stale_count != 1 else ''} have no usable live quote." if stale_count else "")
+    )
+
+    if show_table:
+        live_cols = [
+            "Live state", "Ticker", "Company", "Exchange", "Technical state",
+            "Live price", "Entry", "Stop", "Target", "Remaining upside %",
+            "Live R:R", "Live quote status", "Live reason",
+        ]
+        visible = [column for column in live_cols if column in live.columns]
+        display = live[visible].copy()
+        order = {
+            "ENTRY ZONE": 0,
+            "READY TO VERIFY": 1,
+            "WATCH": 2,
+            "EXTENDED": 3,
+            "INVALIDATED": 4,
+            "DATA STALE": 5,
+        }
+        display["_order"] = display["Live state"].map(order).fillna(9)
+        display = display.sort_values(["_order", "Technical score"] if "Technical score" in display.columns else ["_order"]).drop(columns="_order")
+        with st.expander("See live Trade candidates", expanded=False):
+            styled = display.style.map(action_cell_style, subset=["Live state"])
+            st.dataframe(styled, hide_index=True, use_container_width=True)
+
+
+@st.fragment(run_every="5m")
+def render_live_watchlist_quotes() -> None:
+    watchlist = load_browser_watchlist()
+    if not watchlist:
+        return
+    symbols = tuple(dict.fromkeys(str(value).upper() for value in watchlist))
+    quotes = fetch_live_trade_quotes(symbols)
+    active = load_all_trade_opportunities()
+    active_by_symbol = {
+        str(row.get("Ticker") or "").upper(): row
+        for row in active.to_dict(orient="records")
+    } if not active.empty else {}
+
+    rows = []
+    for symbol in symbols:
+        quote = quotes.get(symbol, {})
+        active_row = active_by_symbol.get(symbol)
+        rows.append({
+            "Ticker": symbol,
+            "Live price": safe(quote.get("price")),
+            "Quote status": (
+                "LIVE / DELAYED" if quote.get("fresh")
+                else "LATEST SESSION" if quote
+                else "DATA STALE"
+            ),
+            "Overnight Trade setup": (
+                _overnight_trade_state(pd.Series(active_row))
+                if active_row else "NO ACTIVE TRADE SETUP"
+            ),
+        })
+    st.caption("Watchlist prices refresh every 5 minutes while this page is open.")
+    st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
