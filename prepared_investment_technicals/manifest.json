@@ -2308,13 +2308,13 @@
     "vienna": {
       "coverage_symbols": 152,
       "dispatch_counts": {
-        "BLCK.VI": 91,
-        "ETN.VI": 91,
-        "FTNT.VI": 91,
-        "KKRO.VI": 91,
-        "MCK.VI": 91,
-        "MPWR.VI": 91,
-        "TTEC.VI": 90
+        "BLCK.VI": 92,
+        "ETN.VI": 92,
+        "FTNT.VI": 92,
+        "KKRO.VI": 92,
+        "MCK.VI": 92,
+        "MPWR.VI": 92,
+        "TTEC.VI": 91
       },
       "eligible_symbols": 159,
       "errors": [
@@ -2355,30 +2355,90 @@
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "xetra": {
-      "coverage_symbols": 154,
+      "coverage_symbols": 155,
       "dispatch_counts": {
-        "3SM.DE": 89,
-        "6RV.DE": 89,
-        "AP4N.DE": 89,
-        "AT4.DE": 89,
-        "C7N.DE": 89,
-        "CFZ.DE": 89,
-        "D6I.DE": 89,
-        "ET9.DE": 89,
-        "H3V.DE": 89,
-        "HFF.DE": 89,
-        "JYS1.DE": 89,
-        "LGI.DE": 89,
-        "R902.DE": 89,
-        "SMP0.DE": 88,
-        "STD.DE": 88,
-        "SWG.DE": 0
+        "3SM.DE": 90,
+        "6RV.DE": 90,
+        "AP4N.DE": 90,
+        "AT4.DE": 90,
+        "C7N.DE": 90,
+        "CFZ.DE": 90,
+        "D6I.DE": 90,
+        "ET9.DE": 90,
+        "H3V.DE": 90,
+        "HFF.DE": 90,
+        "JYS1.DE": 90,
+        "LGI.DE": 90,
+        "R902.DE": 90,
+        "SMP0.DE": 89,
+        "STD.DE": 89
       },
       "eligible_symbols": 170,
-      "errors": [],
-      "remaining_symbols": 16,
-      "requested_this_run": 50,
-      "returned_this_run": 50,
+      "errors": [
+        {
+          "error": "1y: 30 rows, insufficient usable history/indicators; 2y: 30 rows, insufficient usable history/indicators",
+          "symbol": "SMP0.DE"
+        },
+        {
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "symbol": "STD.DE"
+        },
+        {
+          "error": "1y: 75 rows, insufficient usable history/indicators; 2y: 75 rows, insufficient usable history/indicators",
+          "symbol": "3SM.DE"
+        },
+        {
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "symbol": "6RV.DE"
+        },
+        {
+          "error": "1y: 78 rows, insufficient usable history/indicators; 2y: 78 rows, insufficient usable history/indicators",
+          "symbol": "AP4N.DE"
+        },
+        {
+          "error": "1y: 25 rows, insufficient usable history/indicators; 2y: 25 rows, insufficient usable history/indicators",
+          "symbol": "AT4.DE"
+        },
+        {
+          "error": "1y: 30 rows, insufficient usable history/indicators; 2y: 30 rows, insufficient usable history/indicators",
+          "symbol": "C7N.DE"
+        },
+        {
+          "error": "1y: 77 rows, insufficient usable history/indicators; 2y: 77 rows, insufficient usable history/indicators",
+          "symbol": "CFZ.DE"
+        },
+        {
+          "error": "1y: 30 rows, insufficient usable history/indicators; 2y: 30 rows, insufficient usable history/indicators",
+          "symbol": "D6I.DE"
+        },
+        {
+          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
+          "symbol": "ET9.DE"
+        },
+        {
+          "error": "1y: 24 rows, insufficient usable history/indicators; 2y: 24 rows, insufficient usable history/indicators",
+          "symbol": "H3V.DE"
+        },
+        {
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "symbol": "HFF.DE"
+        },
+        {
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "symbol": "JYS1.DE"
+        },
+        {
+          "error": "1y: 30 rows, insufficient usable history/indicators; 2y: 30 rows, insufficient usable history/indicators",
+          "symbol": "LGI.DE"
+        },
+        {
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "symbol": "R902.DE"
+        }
+      ],
+      "remaining_symbols": 15,
+      "requested_this_run": 16,
+      "returned_this_run": 1,
       "source_fundamentals_updated_at": "2026-09-21T22:30:25+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
@@ -2386,5 +2446,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-21T22:37:18.946677+00:00"
+  "updated_at": "2026-09-21T23:36:10.923551+00:00"
 }
