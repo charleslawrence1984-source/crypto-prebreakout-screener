@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 
@@ -57,7 +58,7 @@ def crypto_universe_exclusion_reason(
     base = str(base or "").upper().strip()
     exchange_id = str(exchange_id or "").lower().strip()
 
-    if not base:
+    if not base or re.fullmatch(r"[A-Z0-9]{1,20}", base) is None:
         return "invalid_symbol"
     if base in STABLE_OR_CASH_BASES:
         return "stable_or_cash"
