@@ -2590,6 +2590,40 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 @st.cache_data(ttl=300, show_spinner=False)
+def load_stock_freshness_summary() -> Dict[str, str]:
+    def _read_json(path: Path) -> dict:
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    trade_fund = _read_json(TRADE_PREPARED_DIR / "manifest.json")
+    trade_tech = _read_json(TRADE_TECHNICAL_DIR / "manifest.json")
+    investment = _read_json(PREPARED_SCAN_DIR / "manifest.json")
+    changes = _read_json(TRADE_PREPARED_DIR / "fundamental_changes.json")
+
+    return {
+        "trade_fundamentals": str(trade_fund.get("updated_at") or ""),
+        "trade_technicals": str(trade_tech.get("updated_at") or ""),
+        "investment_prices": str(investment.get("price_refreshed_at") or ""),
+        "fundamental_check": str(changes.get("generated_at") or ""),
+    }
+
+
+def format_freshness_time(value: str) -> str:
+    if not value:
+        return "not yet available"
+    try:
+        ts = pd.Timestamp(value)
+        if ts.tzinfo is None:
+            ts = ts.tz_localize("UTC")
+        ts = ts.tz_convert("Europe/London")
+        return ts.strftime("%d %b %Y %H:%M")
+    except Exception:
+        return str(value)
+
+
+@st.cache_data(ttl=300, show_spinner=False)
 def load_all_trade_opportunities() -> pd.DataFrame:
     """Combine prepared Trade technicals across exchanges for a simple user-facing opportunity feed."""
     frames = []
@@ -3055,6 +3089,14 @@ with tab_home:
     m4.metric("Investment WAIT", investment_wait_count)
     m5.metric("Watchlist", len(home_watchlist))
     m6.metric("Recent alerts", recent_alert_count)
+
+    stock_freshness = load_stock_freshness_summary()
+    st.caption(
+        "Data freshness · "
+        f"Trade technicals: {format_freshness_time(stock_freshness['trade_technicals'])} · "
+        f"Investment closing prices: {format_freshness_time(stock_freshness['investment_prices'])} · "
+        f"Fundamental change check: {format_freshness_time(stock_freshness['fundamental_check'])}"
+    )
 
     action1, action2, action3 = st.columns(3)
     with action1:
