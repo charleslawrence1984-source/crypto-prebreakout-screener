@@ -3137,1519 +3137,1642 @@ if "last_scan" not in st.session_state:
 macro = macro_liquidity_regime()
 st.session_state.macro_liquidity = macro
 
-st.markdown("### Your crypto dashboard")
-st.caption("Start with a coin, see what the screener is finding, or track the coins you want to revisit.")
-
-crypto_summary = crypto_dashboard_summary(st.session_state.scan_df, cfg, macro)
-crypto_watchlist = load_crypto_watchlist()
-
-d1, d2, d3, d4, d5, d6 = st.columns(6)
-d1.metric("Swing BUY", crypto_summary["swing_buy"])
-d2.metric("Accumulation", crypto_summary["accumulation"])
-d3.metric(
-    "Best swing score",
-    "—" if not math.isfinite(_safe_float(crypto_summary["best_score"])) else f"{crypto_summary['best_score']:.1f}/100",
+tab_crypto_home, tab_crypto_quick, tab_crypto_opportunities, tab_crypto_watchlist, tab_crypto_advanced = st.tabs(
+    ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Advanced Crypto"]
 )
-d4.metric("BTC trend", crypto_summary["btc_trend"])
-d5.metric("Macro regime", macro.get("regime", "DATA LIMITED"))
-d6.metric("Watchlist", len(crypto_watchlist))
 
-home_a, home_b, home_c = st.columns(3)
-with home_a:
-    with st.container(border=True):
-        st.markdown("#### 🔎 Analyse a coin")
-        st.write("Search by coin name or ticker and get the current swing and accumulation decision first.")
-        crypto_home_query = st.text_input(
-            "Coin",
-            value="",
-            placeholder="e.g. Solana, SOL, SOL/USDT",
-            key="crypto_home_query",
-            label_visibility="collapsed",
-        )
-        crypto_home_analyse = st.button(
-            "Analyse coin",
-            type="primary",
-            use_container_width=True,
-            key="crypto_home_analyse",
-        )
+with tab_crypto_home:
+    st.markdown("### Your crypto dashboard")
+    st.caption("Start with a coin, see what the screener is finding, or track the coins you want to revisit.")
 
-with home_b:
-    with st.container(border=True):
-        st.markdown("#### 🎯 Find opportunities")
-        if crypto_summary["swing_buy"]:
-            st.success(
-                f"{crypto_summary['swing_buy']} swing BUY setup"
-                f"{'s' if crypto_summary['swing_buy'] != 1 else ''}"
+    crypto_summary = crypto_dashboard_summary(st.session_state.scan_df, cfg, macro)
+    crypto_watchlist = load_crypto_watchlist()
+
+    d1, d2, d3, d4, d5, d6 = st.columns(6)
+    d1.metric("Swing BUY", crypto_summary["swing_buy"])
+    d2.metric("Accumulation", crypto_summary["accumulation"])
+    d3.metric(
+        "Best swing score",
+        "—" if not math.isfinite(_safe_float(crypto_summary["best_score"])) else f"{crypto_summary['best_score']:.1f}/100",
+    )
+    d4.metric("BTC trend", crypto_summary["btc_trend"])
+    d5.metric("Macro regime", macro.get("regime", "DATA LIMITED"))
+    d6.metric("Watchlist", len(crypto_watchlist))
+
+    home_a, home_b, home_c = st.columns(3)
+    with home_a:
+        with st.container(border=True):
+            st.markdown("#### 🔎 Analyse a coin")
+            st.write("Search by coin name or ticker and get the current swing and accumulation decision first.")
+            crypto_home_query = st.text_input(
+                "Coin",
+                value="",
+                placeholder="e.g. Solana, SOL, SOL/USDT",
+                key="crypto_home_query",
+                label_visibility="collapsed",
             )
-        else:
-            st.info("No swing BUY setup is ready right now.")
-        if crypto_summary["accumulation"]:
-            st.success(
-                f"{crypto_summary['accumulation']} accumulation setup"
-                f"{'s' if crypto_summary['accumulation'] != 1 else ''}"
-            )
-        st.caption("Run or refresh the screener below to update the opportunity set.")
-
-with home_c:
-    with st.container(border=True):
-        st.markdown("#### ⭐ My watchlist")
-        if crypto_watchlist:
-            st.write(
-                f"You are following **{len(crypto_watchlist)}** coin"
-                f"{'s' if len(crypto_watchlist) != 1 else ''}."
-            )
-            st.caption(", ".join(crypto_watchlist[:6]) + ("…" if len(crypto_watchlist) > 6 else ""))
-        else:
-            st.write("Your crypto watchlist is empty.")
-            st.caption("Analyse a coin below and tick **Watch** to start tracking it.")
-        st.caption("Use **Manage watchlist** below to remove coins you no longer want to follow.")
-
-if crypto_watchlist:
-    with st.expander("Manage crypto watchlist", expanded=False):
-        for crypto_watch_index, crypto_watch_symbol in enumerate(crypto_watchlist):
-            watch_name_col, watch_remove_col = st.columns([5, 1], vertical_alignment="center")
-            with watch_name_col:
-                st.write(f"**{crypto_watch_symbol}**")
-            with watch_remove_col:
-                if st.button(
-                    "Remove",
-                    key=f"remove_crypto_watch_{crypto_watch_symbol}_{crypto_watch_index}",
-                    use_container_width=True,
-                ):
-                    set_crypto_watchlist_symbol(crypto_watch_symbol, False)
-                    st.rerun()
-
-if crypto_home_analyse and crypto_home_query:
-    with st.spinner(f"Analysing {crypto_home_query.strip()}…"):
-        try:
-            home_symbol, home_result, _home_raw = asyncio.run(
-                analyse_individual_coin(cfg, crypto_home_query)
-            )
-            home_result = dict(home_result or {})
-            home_result["symbol"] = home_symbol
-        except Exception as exc:
-            home_symbol, home_result = "", {}
-            st.error(f"{type(exc).__name__}: {exc}")
-
-    if home_symbol and home_result:
-        st.markdown("---")
-        title_col, watch_col = st.columns([5, 1])
-        with title_col:
-            st.markdown(f"### {home_symbol.split('/')[0]} on {exchange_name}")
-            if "price" in home_result:
-                st.caption(f"Current price: {fmt_price(home_result['price'])}")
-        with watch_col:
-            watched_now = home_symbol.split("/")[0].upper() in set(crypto_watchlist)
-            watch_now = st.checkbox(
-                "Watch",
-                value=watched_now,
-                key=f"crypto_home_watch_{home_symbol.split('/')[0]}",
-            )
-            if watch_now != watched_now:
-                set_crypto_watchlist_symbol(home_symbol.split("/")[0], watch_now)
-                st.toast("Added to crypto watchlist" if watch_now else "Removed from crypto watchlist")
-
-        trade_decision = crypto_trade_decision(home_result, macro)
-        accumulation_verdict = str(
-            home_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
-        )
-        if accumulation_verdict == "ACCUMULATION READY":
-            accumulation_action = "ACCUMULATE"
-            accumulation_reason = "The confirmed daily base and accumulation score currently meet the model rules."
-        elif accumulation_verdict.startswith("WATCH"):
-            accumulation_action = "WAIT"
-            accumulation_reason = "The longer-term base is developing but is not ready yet."
-        else:
-            accumulation_action = "PASS"
-            accumulation_reason = "The current daily base does not meet the accumulation rules."
-
-        dc1, dc2 = st.columns(2)
-        with dc1:
-            render_crypto_decision_card(
-                "SWING DECISION",
-                trade_decision["action"],
-                trade_decision["reason"],
-            )
-        with dc2:
-            render_crypto_decision_card(
-                "ACCUMULATION DECISION",
-                accumulation_action,
-                accumulation_reason,
+            crypto_home_analyse = st.button(
+                "Analyse coin",
+                type="primary",
+                use_container_width=True,
+                key="crypto_home_analyse",
             )
 
-        if "score" in home_result:
-            hm1, hm2, hm3, hm4 = st.columns(4)
-            hm1.metric("Swing score", f"{home_result.get('score', 0):.1f}/100")
-            hm2.metric("RS vs BTC", f"{home_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
-            hm3.metric("RSI", f"{home_result.get('rsi', np.nan):.1f}")
-            hm4.metric(
-                "Potential ROI",
-                "—" if not math.isfinite(_safe_float(home_result.get("target_upside_pct"))) else f"{home_result.get('target_upside_pct'):.1f}%",
-            )
-        st.caption("The detailed crypto scanner below contains the full evidence, charts and advanced filters.")
-
-st.markdown("### How it works")
-hw1, hw2, hw3 = st.columns(3)
-with hw1:
-    st.markdown("**1 · Search a coin**")
-    st.caption("Use a coin name or ticker. The screener resolves the active market for you.")
-with hw2:
-    st.markdown("**2 · See the decision**")
-    st.caption("Swing and accumulation decisions come first; the detailed evidence remains available below.")
-with hw3:
-    st.markdown("**3 · Watch what matters**")
-    st.caption("If the setup is not ready, add it to your crypto watchlist rather than chasing the price.")
-
-st.divider()
-st.markdown("### Advanced crypto screener")
-st.caption("The full pre-breakout engine, macro analysis, category rotation, detailed evidence and scan controls remain below.")
-
-st.subheader("Macro liquidity regime")
-if macro.get("available"):
-    ml1, ml2, ml3, ml4 = st.columns(4)
-    ml1.metric("Liquidity score", f"{macro['score']:.1f}/100")
-    ml2.metric("Regime", macro["regime"])
-    ml3.metric("Risk stance", macro["stance"])
-    ml4.metric(
-        "New swing risk",
-        "ALLOWED" if macro["allows_new_swing_risk"] else "WAIT",
-    )
-    if not macro["allows_new_swing_risk"]:
-        st.warning(
-            "Technical setups can still be identified, but new swing BUY signals are "
-            "downgraded to WAIT while the macro-liquidity regime is deteriorating or contracting."
-        )
-else:
-    st.info(
-        "Macro-liquidity data is currently incomplete, so the scanner will not block "
-        "technical BUY signals on macro grounds."
-    )
-
-with st.expander("Macro liquidity factors"):
-    macro_factors = pd.DataFrame(macro.get("factors", []))
-    if not macro_factors.empty:
-        st.dataframe(macro_factors, hide_index=True, use_container_width=True)
-    if macro.get("errors"):
-        st.caption("Unavailable inputs: " + " | ".join(macro["errors"]))
-    st.caption(
-        "Primary cycle framework: macro liquidity, not a fixed four-year crypto cycle. "
-        "The regime combines broad money, Fed net liquidity, financial conditions, "
-        "real yields, the broad US dollar and stablecoin supply. Four-year price-range "
-        "statistics remain reference-only."
-    )
-
-manual_col, info_col = st.columns([1, 4])
-with manual_col:
-    manual_scan = st.button("Run scan now", type="primary", use_container_width=True)
-with info_col:
-    st.info("A flag means the setup matches the pre-breakout rules. It is not a prediction or a guarantee of a pump.")
-
-run_every = f"{refresh_minutes}m"
-
-@st.fragment(run_every=run_every)
-def live_scan():
-    # A dropdown interaction reruns the full app. Only fetch fresh market data when
-    # the refresh interval has elapsed, so inspecting another coin cannot reset it.
-    now = datetime.now(timezone.utc)
-    last_scan = st.session_state.last_scan
-    scan_due = (
-        last_scan is None
-        or (now - last_scan).total_seconds() >= refresh_minutes * 60
-    )
-    required_scan_columns = {
-        "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
-        "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
-        "Category leader", "Leader categories", "Project freshness", "Catalyst status",
-        "Candle caution", "Last 4h candle", "Pattern", "Triangle score",
-        "SMA regime", "SMA50", "SMA200", "BB 4h regime", "BB 4h width %",
-        "4h Channel", "4h Channel pos %",
-        "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
-    }
-    needs_candidate_refresh = (
-        not st.session_state.scan_df.empty
-        and not required_scan_columns.issubset(set(st.session_state.scan_df.columns))
-    )
-    settings_changed = st.session_state.get("last_scan_config") != vars(cfg)
-    should_scan = manual_scan or needs_candidate_refresh or settings_changed or scan_due
-    if should_scan:
-        status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
-        try:
-            def report_progress(completed, total):
-                status.update(label=f"Analysing markets: {completed}/{total} completed…")
-            df, raw, errors = asyncio.run(scan_exchange(cfg, progress=report_progress))
-            if df.empty and errors:
-                raise RuntimeError("No markets could be scored; previous results have been retained. " + errors[0])
-            st.session_state.scan_df = df
-            st.session_state.raw_data = raw
-            st.session_state.last_scan_config = dict(vars(cfg))
-            st.session_state.last_scan = datetime.now(timezone.utc)
-            selected_count = df.attrs.get("markets_selected", len(df))
-            status.update(
-                label=f"Scan finished — {len(df)} coins scored from {selected_count} selected markets",
-                state="complete",
-            )
-            if len(df) < selected_count:
-                st.warning(
-                    f"Partial coverage: {len(df)} of {selected_count} selected markets were scored. "
-                    "See market-data warnings for unavailable or timed-out data."
-                )
-            if errors:
-                with st.expander(f"{len(errors)} market-data warnings"):
-                    st.code("\n".join(errors[:25]))
-        except Exception as e:
-            status.update(label="Scan failed", state="error")
-            st.error(f"{type(e).__name__}: {e}")
-            return
-
-    df = st.session_state.scan_df.copy()
-    if st.session_state.last_scan:
-        st.caption("Last scan: " + st.session_state.last_scan.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"))
-
-    if df.empty:
-        st.warning("No coins could be scored from the available market data. Check market-data warnings and try another scan.")
-        return
-
-    macro_now = st.session_state.get("macro_liquidity") or {}
-    df = apply_ta_context_overlay(df, macro_now)
-
-    technical_swing_setups = df[
-        (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
-        & (df["Score"] >= cfg.score_threshold)
-    ].copy().sort_values("Score", ascending=False)
-    rs_qualified_setups = technical_swing_setups[
-        (technical_swing_setups["Coin"] == "BTC")
-        | (technical_swing_setups["RS vs BTC %"] > 0)
-    ].copy()
-    tokenomics_qualified_setups = rs_qualified_setups[
-        rs_qualified_setups["Tokenomics gate"] == "PASS"
-    ].copy()
-    cex_qualified_setups = tokenomics_qualified_setups[
-        tokenomics_qualified_setups["Major CEX gate"] == "PASS"
-    ].copy()
-    candle_qualified_setups = cex_qualified_setups[
-        cex_qualified_setups["Candle caution"] != "CAUTION"
-    ].copy()
-    context_qualified_setups = candle_qualified_setups[
-        (candle_qualified_setups["Context confidence"] != "LOW")
-        & (candle_qualified_setups["Known event risk"] != "HIGH")
-    ].copy()
-    macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
-    swing_setups = (
-        context_qualified_setups
-        if macro_allows_new_risk
-        else context_qualified_setups.iloc[0:0].copy()
-    )
-    accumulation_setups = df[
-        df["Accumulation verdict"] == "ACCUMULATION READY"
-    ].copy().sort_values("Accumulation score", ascending=False)
-
-    # Tables retain potential candidates even when no actionable setups exist.
-    swing_candidates = df.copy()
-    swing_candidates["Status"] = np.where(
-        swing_candidates["Symbol"].isin(swing_setups["Symbol"]), "BUY", "WAIT"
-    )
-    swing_candidates["Macro regime"] = macro_now.get("regime", "DATA LIMITED")
-    swing_candidates["Macro score"] = macro_now.get("score", np.nan)
-    swing_candidates["Reason"] = swing_candidates.apply(
-        lambda row: (
-            "Meets technical rules and macro liquidity allows new swing risk"
-            if row["Status"] == "BUY"
-            else (
-                (
-                    "Technical setup qualifies, but the altcoin is not beating BTC over the "
-                    "48-hour relative-strength window. "
-                    if (
-                        row["Symbol"] in set(technical_swing_setups["Symbol"])
-                        and row["Coin"] != "BTC"
-                        and row["RS vs BTC %"] <= 0
-                    )
-                    else ""
-                )
-                + (
-                    (
-                        "Technical setup qualifies, but tokenomics need review: "
-                        + (
-                            "circulating float is below the 25% rule. "
-                            if row.get("Tokenomics gate") == "FAIL"
-                            else "circulating/total supply could not be verified. "
-                        )
-                    )
-                    if (
-                        row["Symbol"] in set(rs_qualified_setups["Symbol"])
-                        and row.get("Tokenomics gate") != "PASS"
-                    )
-                    else ""
-                )
-                + (
-                    (
-                        f"Major-exchange breadth is {row.get('Major CEX quality', 'DATA LIMITED')} "
-                        f"({int(row.get('Major CEX count', 0))} major CEX listing(s)); "
-                        "at least 2 verified major CEX listings are required for BUY. "
-                    )
-                    if (
-                        row["Symbol"] in set(tokenomics_qualified_setups["Symbol"])
-                        and row.get("Major CEX gate") != "PASS"
-                    )
-                    else ""
-                )
-                + (
-                    (
-                        "Latest completed 4h candle is a red shooting star near the setup zone; "
-                        "buyers were rejected higher up, so wait for confirmation. "
-                    )
-                    if (
-                        row["Symbol"] in set(cex_qualified_setups["Symbol"])
-                        and row.get("Candle caution") == "CAUTION"
-                    )
-                    else ""
-                )
-                + (
-                    (
-                        f"TA limitation overlay is {row.get('Context confidence', 'MEDIUM')}: "
-                        + (
-                            f"known event risk is {row.get('Known event risk', 'UNKNOWN')}. "
-                            if row.get("Known event risk") == "HIGH"
-                            else ""
-                        )
-                        + (
-                            f"Conflicts: {row.get('Conflicts', '')}. "
-                            if row.get("Context confidence") == "LOW" and row.get("Conflicts")
-                            else ""
-                        )
-                    )
-                    if (
-                        row["Symbol"] in set(candle_qualified_setups["Symbol"])
-                        and (
-                            row.get("Context confidence") == "LOW"
-                            or row.get("Known event risk") == "HIGH"
-                        )
-                    )
-                    else ""
-                )
-                + (
-                    f"Technical setup qualifies, but macro liquidity is "
-                    f"{macro_now.get('regime', 'DATA LIMITED')} "
-                    f"({macro_now.get('score', np.nan):.1f}/100). "
-                    if (
-                        row["Symbol"] in set(context_qualified_setups["Symbol"])
-                        and not macro_allows_new_risk
-                        and pd.notna(macro_now.get("score", np.nan))
-                    )
-                    else ""
-                )
-                + (
-                    f"Score {row['Score']:.1f} below {cfg.score_threshold}. "
-                    if row["Score"] < cfg.score_threshold else ""
-                )
-                + (
-                    row["Trade reason"]
-                    if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET" else ""
-                )
-            )
-        ), axis=1,
-    )
-    swing_candidates["_confidence_rank"] = swing_candidates["Context confidence"].map(
-        {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
-    ).fillna(3)
-    swing_candidates["_leader_rank"] = swing_candidates["Category leader"].map(
-        {"TOP 3": 0, "NOT TOP 3": 1, "UNKNOWN": 2}
-    ).fillna(2)
-    swing_candidates["_catalyst_rank"] = swing_candidates["Catalyst status"].map(
-        {
-            "HIGH CATALYST": 0,
-            "CATALYST WATCH": 1,
-            "UPCOMING": 2,
-            "NONE FOUND": 3,
-            "NOT CONNECTED": 4,
-        }
-    ).fillna(5)
-    swing_candidates["_freshness_rank"] = swing_candidates["Project freshness"].map(
-        {"NEW": 0, "RECENT": 1, "MATURE": 2, "LEGACY": 3, "UNKNOWN": 4}
-    ).fillna(4)
-    swing_candidates["_triangle_rank"] = swing_candidates["Pattern"].map(
-        {
-            "ASCENDING TRIANGLE — STRONG": 0,
-            "ASCENDING TRIANGLE — DEVELOPING": 1,
-            "POSSIBLE ASCENDING TRIANGLE": 2,
-            "NO TRIANGLE": 3,
-        }
-    ).fillna(4)
-    swing_candidates["_bb_rank"] = swing_candidates["BB 4h regime"].map(
-        {"SQUEEZE": 0, "NORMAL": 1, "EXPANDING": 2, "UNAVAILABLE": 3}
-    ).fillna(3)
-
-    def _channel_rank(row):
-        direction = str(row.get("4h Channel", "UNAVAILABLE"))
-        quality = str(row.get("4h Channel quality", "LOW"))
-        pos = _safe_float(row.get("4h Channel pos %"), np.nan)
-        state = str(row.get("4h Channel state", "NONE"))
-        if direction == "RISING" and quality in ("HIGH", "MEDIUM") and math.isfinite(pos) and 10 <= pos <= 65:
-            return 0
-        if state == "ABOVE CHANNEL":
-            return 1
-        if direction == "SIDEWAYS" and quality in ("HIGH", "MEDIUM") and math.isfinite(pos) and pos <= 55:
-            return 1
-        if direction == "RISING" and math.isfinite(pos) and pos <= 85:
-            return 2
-        if direction == "SIDEWAYS":
-            return 3
-        if direction == "RISING":
-            return 4
-        if direction == "FALLING":
-            return 5
-        return 6
-
-    swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
-    swing_candidates = swing_candidates.sort_values(
-        ["Status", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
-        ascending=[True, True, True, True, True, True, True, True, False],
-    ).drop(columns=[
-        "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank",
-        "_bb_rank", "_channel_rank", "_freshness_rank"
-    ])
-    accumulation_candidates = df.copy()
-    accumulation_candidates["Status"] = np.where(
-        accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
-        "ACCUMULATE", "WAIT",
-    )
-    accumulation_candidates["Reason"] = accumulation_candidates.apply(
-        lambda row: (
-            "Meets accumulation rules" if row["Status"] == "ACCUMULATE"
-            else (
-                (f"Base score {row['Accumulation score']:.1f} below 70. "
-                 if row["Accumulation score"] < 70 else "")
-                + ("Price outside the confirmed daily base accumulation zone."
-                   if not row["In accumulation zone"]
-                   else "")
-            )
-        ), axis=1,
-    )
-    accumulation_candidates = accumulation_candidates.sort_values(
-        ["Status", "Accumulation score"], ascending=[True, False]
-    )
-
-    current_flags = set(swing_setups["Symbol"].tolist()) | set(
-        accumulation_setups["Symbol"].tolist()
-    )
-    new_flags = current_flags - st.session_state.previous_flags
-    if new_flags:
-        st.toast(
-            "New actionable setup: "
-            + ", ".join(sorted(symbol.split("/")[0] for symbol in new_flags))
-        )
-        if sound_alerts:
-            sr = 16000
-            t = np.linspace(0, 0.28, int(sr * 0.28), endpoint=False)
-            tone = (0.20 * np.sin(2 * np.pi * 880 * t)).astype(np.float32)
-            st.audio(tone, sample_rate=sr, autoplay=True)
-    st.session_state.previous_flags = current_flags
-
-    best_swing_score = (
-        f"{swing_setups['Score'].max():.1f}/100"
-        if not swing_setups.empty
-        else "None"
-    )
-    current_market_trend = (
-        str(df["Market trend"].dropna().iloc[0])
-        if "Market trend" in df.columns and not df["Market trend"].dropna().empty
-        else "UNAVAILABLE"
-    )
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Candidates analysed", len(df))
-    c2.metric(f"Swing BUYs ≥ {cfg.score_threshold}", len(swing_setups))
-    c3.metric("Accumulation setups", len(accumulation_setups))
-    c4.metric("Best swing score", best_swing_score)
-    c5.metric("Market trend (BTC)", current_market_trend)
-
-    st.subheader("Category rotation")
-    st.caption(
-        "Looks for category leadership and acceleration using CoinGecko top-3 category "
-        "leaders in the scanned universe. Relative performance is measured versus BTC "
-        "over approximately 30, 90 and 180 days. ROTATING IN aims to highlight a "
-        "category whose recent leadership is accelerating before it becomes an obvious "
-        "six-month winner."
-    )
-    category_df = category_rotation_table(df)
-    if category_df.empty:
-        st.info("Not enough category-leader performance data is available in this scan yet.")
-    else:
-        rotating = category_df[category_df["Rotation status"] == "ROTATING IN"]
-        leading = category_df[category_df["Rotation status"] == "LEADING"]
-        cr1, cr2, cr3 = st.columns(3)
-        cr1.metric("Rotating in", len(rotating))
-        cr2.metric("Leading categories", len(leading))
-        cr3.metric(
-            "Top category",
-            str(category_df.iloc[0]["Category"]) if not category_df.empty else "Unavailable",
-        )
-        st.dataframe(
-            category_df,
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "Category momentum": st.column_config.ProgressColumn(
-                    "Category momentum", min_value=0, max_value=100, format="%.1f"
-                ),
-                "RS vs BTC 30d %": st.column_config.NumberColumn(format="%.2f%%"),
-                "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
-                "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
-                "30d leader breadth %": st.column_config.NumberColumn(format="%.1f%%"),
-            },
-        )
-
-    swing_tab, accumulation_tab = st.tabs(["Swing trades", "Accumulation"])
-
-    with swing_tab:
-        st.subheader("Swing-trade candidates")
-        st.caption(
-            f"All {len(df)} analysed coins are shown. BUY requires a trade score of "
-            f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
-            "A technical qualifier is only promoted to BUY when an altcoin is beating BTC over "
-            "the 48h relative-strength window, circulating supply is at least 25% of total/max "
-            "supply, the coin is verified on at least 2 major CEXs, and the macro-liquidity "
-            "regime is not deteriorating/contracting. "
-            "Unknown tokenomics remain WAIT rather than passing by assumption. "
-            "WAIT candidates remain visible with their reasons. "
-            "The first columns show the trade plan: current price, planned entry, stop/exit, "
-            "price target, projected ROI and reward/risk. A red shooting star on the latest "
-            "completed 4h candle forces an otherwise-qualified setup to WAIT for confirmation. "
-            "The TA limitation overlay also keeps LOW-confidence / high-event-risk setups at WAIT "
-            "when too many signals conflict or a known risk event could invalidate the chart. "
-            "Green = preferred, amber = borderline, red = weak or extended."
-        )
-        if swing_setups.empty:
-            rs_blocked = len(technical_swing_setups) - len(rs_qualified_setups)
-            tokenomics_blocked = len(rs_qualified_setups) - len(tokenomics_qualified_setups)
-            cex_blocked = len(tokenomics_qualified_setups) - len(cex_qualified_setups)
-            candle_blocked = len(cex_qualified_setups) - len(candle_qualified_setups)
-            context_blocked = len(candle_qualified_setups) - len(context_qualified_setups)
-            if rs_blocked > 0:
-                st.info(
-                    f"{rs_blocked} technical setup(s) currently qualify technically but remain "
-                    "WAIT because the altcoin is not beating BTC over the 48h RS window."
-                )
-            elif tokenomics_blocked > 0:
-                st.info(
-                    f"{tokenomics_blocked} technical setup(s) currently qualify technically "
-                    "but remain WAIT because the 25% circulating-supply tokenomics gate "
-                    "fails or cannot be verified."
-                )
-            elif cex_blocked > 0:
-                st.info(
-                    f"{cex_blocked} otherwise-qualified setup(s) remain WAIT because they "
-                    "do not have at least 2 verified listings across the major CEX basket."
-                )
-            elif candle_blocked > 0:
-                st.info(
-                    f"{candle_blocked} otherwise-qualified setup(s) remain WAIT because the "
-                    "latest completed 4h candle is a red shooting star."
-                )
-            elif context_blocked > 0:
-                st.info(
-                    f"{context_blocked} otherwise-qualified setup(s) remain WAIT because the "
-                    "TA limitation overlay is LOW confidence or a known high-risk event is present."
-                )
-            elif not context_qualified_setups.empty and not macro_allows_new_risk:
-                st.info(
-                    f"{len(context_qualified_setups)} technical setup(s) currently meet the "
-                    f"{cfg.score_threshold}+, 30% target, relative-strength, tokenomics, "
-                    "major-CEX, candle and conflict rules, but macro liquidity is "
-                    f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
+    with home_b:
+        with st.container(border=True):
+            st.markdown("#### 🎯 Find opportunities")
+            if crypto_summary["swing_buy"]:
+                st.success(
+                    f"{crypto_summary['swing_buy']} swing BUY setup"
+                    f"{'s' if crypto_summary['swing_buy'] != 1 else ''}"
                 )
             else:
-                st.info(
-                    f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
-                    "BUY rules and 30% gross-target requirement."
+                st.info("No swing BUY setup is ready right now.")
+            if crypto_summary["accumulation"]:
+                st.success(
+                    f"{crypto_summary['accumulation']} accumulation setup"
+                    f"{'s' if crypto_summary['accumulation'] != 1 else ''}"
                 )
-        swing_cols = [
-            "Coin", "Status", "Context confidence", "Known event risk",
-            "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
-            "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
-            "Pattern", "Triangle score", "Triangle touches", "Triangle compression %",
-            "Candle caution", "Last 4h candle",
-            "SMA regime", "SMA50", "SMA200", "Price vs SMA50 %", "Price vs SMA200 %",
-            "BB 4h regime", "BB 4h width %", "BB 4h width percentile", "BB 4h position %",
-            "BB Daily regime", "4h Channel", "4h Channel pos %", "4h Channel support",
-            "4h Channel resistance", "4h Channel R:R", "4h Channel quality",
-            "Daily Channel", "Daily Channel pos %",
-            "Entry low", "Entry high", "Breakout", "First resistance target", "Stretch target",
-            "Reason",
-            "Category leader", "Leader categories",
-            "Project freshness", "History days", "Freshness score",
-            "Catalyst status", "Next catalyst", "Catalyst date", "Catalyst days",
-            "Catalyst categories", "Catalyst impact",
-            "Coin trend", "Market trend",
-            "Major CEX quality", "Major CEX count", "Major CEX listings",
-            "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks",
-            "Macro regime", "Macro score", "Conflicts", "Non-TA detail",
-            "News coverage", "Sentiment coverage", "TA limitation note",
-            "To resistance %", "Tests", "RSI", "ATR ratio", "Vol ratio",
-            "RS vs BTC %", "RS vs BTC 96h %",
-            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
-            "Triangle resistance", "Triangle support", "Triangle target", "Triangle detail",
-            "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
-        ]
-        styled_swing = swing_candidates[swing_cols].style
-        styled_swing = styled_swing.map(
-            lambda value: (
-                "background-color: #d8f3dc; color: #16351c; font-weight: 700"
-                if str(value) == "HIGH"
-                else "background-color: #fff3bf; color: #5f4500; font-weight: 700"
-                if str(value) == "MEDIUM"
-                else "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
-                if str(value) == "LOW"
-                else ""
-            ),
-            subset=["Context confidence"],
-        )
-        styled_swing = styled_swing.map(
-            lambda value: (
-                "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
-                if str(value) == "HIGH"
-                else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
-                if str(value) in ("MEDIUM", "UNKNOWN")
-                else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
-                if str(value) == "LOW"
-                else ""
-            ),
-            subset=["Known event risk"],
-        )
-        styled_swing = styled_swing.map(
-            lambda value: (
-                "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
-                if str(value) == "CAUTION"
-                else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
-                if str(value) == "CLEAR"
-                else ""
-            ),
-            subset=["Candle caution"],
-        )
-        for trend_column in ["Coin trend", "Market trend"]:
-            styled_swing = styled_swing.map(
-                lambda value, column=trend_column: scan_cell_style(value, column),
-                subset=[trend_column],
-            )
-        for traffic_column in [
-            "Status", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
-            "4h Channel", "4h Channel quality", "Daily Channel",
-            "Category leader", "Major CEX quality", "Macro regime", "Catalyst status",
-        ]:
-            if traffic_column in swing_candidates.columns:
-                styled_swing = styled_swing.map(
-                    lambda value, column=traffic_column: scan_cell_style(value, column),
-                    subset=[traffic_column],
+            st.caption("Run or refresh the screener below to update the opportunity set.")
+
+    with home_c:
+        with st.container(border=True):
+            st.markdown("#### ⭐ My watchlist")
+            if crypto_watchlist:
+                st.write(
+                    f"You are following **{len(crypto_watchlist)}** coin"
+                    f"{'s' if len(crypto_watchlist) != 1 else ''}."
                 )
-        styled_swing = styled_swing.map(
-            lambda value: (
-                "background-color: #d8f3dc; color: #16351c; font-weight: 600"
-                if str(value) == "PASS"
-                else "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
-                if str(value) == "FAIL"
-                else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
-            ),
-            subset=["Tokenomics gate"],
-        )
-        for column in [
-            "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
-            "Triangle score", "ROI %", "Macro score", "4h Channel R:R",
-            "4h Channel pos %", "BB 4h width percentile",
-            "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
-            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
-        ]:
-            styled_swing = styled_swing.map(
-                lambda value, column=column: scan_cell_style(value, column),
-                subset=[column],
-            )
-        st.dataframe(
-            styled_swing,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Circulating %": st.column_config.NumberColumn(format="%.1f%%"),
-                "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
-                "Macro score": st.column_config.ProgressColumn(
-                    "Macro liquidity", min_value=0, max_value=100, format="%.1f"
-                ),
-                "Signal agreement %": st.column_config.ProgressColumn(
-                    "Signal agreement", min_value=0, max_value=100, format="%.1f"
-                ),
-                "Score": st.column_config.ProgressColumn(
-                    "Trade score", min_value=0, max_value=100, format="%.1f"
-                ),
-                "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
-                "RS vs BTC %": st.column_config.NumberColumn("RS vs BTC 48h %", format="%.2f%%"),
-                "RS vs BTC 96h %": st.column_config.NumberColumn(format="%.2f%%"),
-                "RS vs BTC 30d %": st.column_config.NumberColumn(format="%.2f%%"),
-                "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
-                "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
-                "Catalyst days": st.column_config.NumberColumn(format="%.1f"),
-                "History days": st.column_config.NumberColumn(format="%.0f"),
-                "Freshness score": st.column_config.ProgressColumn(
-                    "Freshness", min_value=0, max_value=100, format="%.0f"
-                ),
-                "R:R": st.column_config.NumberColumn(format="%.2f"),
-                "Price": st.column_config.NumberColumn("Current Price", format="%.8g"),
-                "Entry Price": st.column_config.NumberColumn("Entry Price", format="%.8g"),
-                "Exit / Stop": st.column_config.NumberColumn("Exit / Stop", format="%.8g"),
-                "Price Target": st.column_config.NumberColumn("Price Target", format="%.8g"),
-                "ROI %": st.column_config.NumberColumn("ROI %", format="%.2f%%"),
-                "4h Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
-                "4h Channel support": st.column_config.NumberColumn(format="%.8g"),
-                "4h Channel resistance": st.column_config.NumberColumn(format="%.8g"),
-                "4h Channel R:R": st.column_config.NumberColumn(format="%.2f"),
-                "Daily Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
-                "Entry low": st.column_config.NumberColumn(format="%.8g"),
-                "Entry high": st.column_config.NumberColumn(format="%.8g"),
-                "Breakout": st.column_config.NumberColumn(format="%.8g"),
-                "Invalidation": st.column_config.NumberColumn(format="%.8g"),
-                "First resistance target": st.column_config.NumberColumn(
-                    "First resistance / partial profit", format="%.8g"
-                ),
-                "Sell target": st.column_config.NumberColumn(
-                    "30% trade target", format="%.8g"
-                ),
-                "Stretch target": st.column_config.NumberColumn(format="%.8g"),
-                "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
-            },
-        )
+                st.caption(", ".join(crypto_watchlist[:6]) + ("…" if len(crypto_watchlist) > 6 else ""))
+            else:
+                st.write("Your crypto watchlist is empty.")
+                st.caption("Analyse a coin below and tick **Watch** to start tracking it.")
+            st.caption("Open **Watchlist** above to manage the coins you are following.")
 
-    with accumulation_tab:
-        st.subheader("Accumulation candidates")
-        st.caption(
-            "All analysed coins are ranked by their separate accumulation score. "
-            "ACCUMULATE requires at least 70 and price inside the confirmed daily "
-            "base accumulation zone. Long-range weekly support and the 4Y range are "
-            "reference-only and do not trigger the decision."
-        )
-        if accumulation_setups.empty:
-            st.info("No coin currently meets the confirmed accumulation rules.")
-        accumulation_cols = [
-            "Coin", "Status", "Category leader", "Leader categories",
-            "Project freshness", "History days", "Freshness score", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
-            "Accumulation low", "Accumulation high", "In accumulation zone",
-            "Cycle accumulation low", "Cycle accumulation high",
-            "In cycle accumulation zone", "4Y cycle position %",
-            "Previous cycle-high reference", "Accumulation verdict",
-        ]
-        accumulation_display = accumulation_candidates[accumulation_cols].rename(columns={
-            "Cycle accumulation low": "Weekly support low",
-            "Cycle accumulation high": "Weekly support high",
-            "In cycle accumulation zone": "In weekly support zone",
-            "4Y cycle position %": "4Y range position % (reference)",
-            "Previous cycle-high reference": "4Y range-high reference",
-        })
-        styled_accumulation = accumulation_display.style.map(
-            lambda value: scan_cell_style(value, "Accumulation signal"),
-            subset=["Accumulation signal"],
-        )
-        for trend_column in ["Coin trend", "Market trend"]:
-            styled_accumulation = styled_accumulation.map(
-                lambda value, column=trend_column: scan_cell_style(value, column),
-                subset=[trend_column],
-            )
-        styled_accumulation = styled_accumulation.map(
-            lambda value: (
-                "background-color: #d8f3dc; color: #16351c; font-weight: 600"
-                if str(value) == "PASS"
-                else "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
-                if str(value) == "FAIL"
-                else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
-            ),
-            subset=["Tokenomics gate"],
-        )
-        st.dataframe(
-            styled_accumulation,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-                "Circulating %": st.column_config.NumberColumn(format="%.1f%%"),
-                "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
-                "History days": st.column_config.NumberColumn(format="%.0f"),
-                "Freshness score": st.column_config.ProgressColumn(
-                    "Freshness", min_value=0, max_value=100, format="%.0f"
-                ),
-                "Accumulation score": st.column_config.ProgressColumn(
-                    "Accumulation score",
-                    min_value=0,
-                    max_value=100,
-                    format="%.1f",
-                ),
-                "Price": st.column_config.NumberColumn(format="%.8g"),
-                "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
-                "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
-                "Weekly support low": st.column_config.NumberColumn(format="%.8g"),
-                "Weekly support high": st.column_config.NumberColumn(format="%.8g"),
-                "4Y range position % (reference)": st.column_config.NumberColumn(format="%.1f%%"),
-                "4Y range-high reference": st.column_config.NumberColumn(format="%.8g"),
-            },
-        )
-
-live_scan()
-
-st.divider()
-st.subheader("Quick Analysis")
-st.caption("Search any active coin on the selected exchange. The decision comes first; detailed evidence follows underneath.")
-
-if "quick_analysis" not in st.session_state:
-    st.session_state.quick_analysis = None
-
-qa_input_col, qa_button_col = st.columns([4, 1])
-with qa_input_col:
-    quick_query = st.text_input(
-        "Ticker or coin name",
-        placeholder="For example: SOL, SOL/USDT or Solana",
-        key="quick_query",
-    )
-with qa_button_col:
-    st.write("")
-    st.write("")
-    run_quick_analysis = st.button("Analyse coin", type="primary", use_container_width=True)
-
-if run_quick_analysis:
-    if not quick_query.strip():
-        st.warning("Enter a ticker or coin name first.")
-    else:
-        with st.spinner(f"Analysing {quick_query.strip()}…"):
+    if crypto_home_analyse and crypto_home_query:
+        with st.spinner(f"Analysing {crypto_home_query.strip()}…"):
             try:
-                qa_symbol, qa_result, qa_raw = asyncio.run(analyse_individual_coin(cfg, quick_query))
-                st.session_state.quick_analysis = {
-                    "symbol": qa_symbol,
-                    "result": qa_result,
-                    "raw": qa_raw,
-                    "exchange": exchange_name,
-                }
-            except Exception as e:
-                st.session_state.quick_analysis = None
-                st.error(f"{type(e).__name__}: {e}")
+                home_symbol, home_result, _home_raw = asyncio.run(
+                    analyse_individual_coin(cfg, crypto_home_query)
+                )
+                home_result = dict(home_result or {})
+                home_result["symbol"] = home_symbol
+            except Exception as exc:
+                home_symbol, home_result = "", {}
+                st.error(f"{type(exc).__name__}: {exc}")
 
-qa = st.session_state.quick_analysis
-if qa:
-    qa_result = qa["result"]
-    qa_symbol = qa["symbol"]
-    st.markdown(f"### {qa_symbol.split('/')[0]} on {qa['exchange']}")
+        if home_symbol and home_result:
+            st.markdown("---")
+            title_col, watch_col = st.columns([5, 1])
+            with title_col:
+                st.markdown(f"### {home_symbol.split('/')[0]} on {exchange_name}")
+                if "price" in home_result:
+                    st.caption(f"Current price: {fmt_price(home_result['price'])}")
+            with watch_col:
+                watched_now = home_symbol.split("/")[0].upper() in set(crypto_watchlist)
+                watch_now = st.checkbox(
+                    "Watch",
+                    value=watched_now,
+                    key=f"crypto_home_watch_{home_symbol.split('/')[0]}",
+                )
+                if watch_now != watched_now:
+                    set_crypto_watchlist_symbol(home_symbol.split("/")[0], watch_now)
+                    st.toast("Added to crypto watchlist" if watch_now else "Removed from crypto watchlist")
 
-    if "score" not in qa_result:
-        st.warning(qa_result.get("reason", "Not enough market data to score this coin."))
-    else:
-        macro_now = st.session_state.get("macro_liquidity") or {}
-        qa_overlay = assess_ta_limitations(
-            pd.Series({
-                "Coin": qa_symbol.split("/")[0].upper(),
-                "Candle caution": "CAUTION" if qa_result.get("candle_caution") else "CLEAR",
-                "RS vs BTC %": qa_result.get("rs_vs_btc_pct", np.nan),
-                "Coin trend": qa_result.get("coin_trend", "UNAVAILABLE"),
-                "Market trend": qa_result.get("market_trend", "UNAVAILABLE"),
-                "SMA regime": qa_result.get("sma_regime", "UNAVAILABLE"),
-                "4h Channel": qa_result.get("channel_4h_direction", "UNAVAILABLE"),
-                "RSI": qa_result.get("rsi", np.nan),
-                "BB 4h regime": qa_result.get("bb_4h_regime", "UNAVAILABLE"),
-                "BB 4h position %": qa_result.get("bb_4h_position_pct", np.nan),
-                "Pattern": qa_result.get("triangle_label", "NO TRIANGLE"),
-                "Catalyst status": qa_result.get("catalyst_status", "NOT CONNECTED"),
-                "Catalyst days": qa_result.get("catalyst_days", np.nan),
-                "Tokenomics gate": qa_result.get("tokenomics_gate", "UNKNOWN"),
-                "Major CEX gate": qa_result.get("major_cex_gate", "UNKNOWN"),
-                "Category leader": qa_result.get("category_leader", "UNKNOWN"),
-            }),
-            macro_now,
-        )
-        trade_decision = crypto_trade_decision(qa_result, macro_now)
-        accumulation_verdict = str(
-            qa_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
-        )
-        if accumulation_verdict == "ACCUMULATION READY":
-            accumulation_action = "ACCUMULATE"
-            accumulation_reason = (
-                "The confirmed daily base and accumulation score currently meet the model rules."
+            trade_decision = crypto_trade_decision(home_result, macro)
+            accumulation_verdict = str(
+                home_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
             )
-        elif accumulation_verdict.startswith("WATCH"):
-            accumulation_action = "WAIT"
-            accumulation_reason = (
-                "The longer-term base is developing but is not ready yet."
-            )
-        else:
-            accumulation_action = "PASS"
-            accumulation_reason = (
-                "The current daily base does not meet the accumulation rules."
-            )
-
-        decision_left, decision_right = st.columns(2)
-        with decision_left:
-            render_crypto_decision_card(
-                "SWING DECISION",
-                trade_decision["action"],
-                trade_decision["reason"],
-            )
-        with decision_right:
-            render_crypto_decision_card(
-                "ACCUMULATION DECISION",
-                accumulation_action,
-                accumulation_reason,
-            )
-
-        st.caption(
-            "Decision first. The metrics and detailed technical evidence below explain why."
-        )
-
-        q1, q2, q3, q4 = st.columns(4)
-        q1.metric("Trade setup score", f"{qa_result['score']:.1f}/100")
-        q2.metric("Price", fmt_price(qa_result["price"]))
-        q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
-        q4.metric("RSI", f"{qa_result['rsi']:.1f}")
-
-        cf1, cf2, cf3, cf4 = st.columns(4)
-        cf1.metric("Context confidence", qa_overlay["Context confidence"])
-        cf2.metric("Signal agreement", f"{qa_overlay['Signal agreement %']:.1f}%")
-        cf3.metric("Known event risk", qa_overlay["Known event risk"])
-        cf4.metric("Non-TA confirmations", qa_overlay["Non-TA confirmations"])
-        if qa_overlay["Conflicts"]:
-            st.caption("Conflicting signals: " + qa_overlay["Conflicts"])
-        st.caption(
-            f"News coverage: {qa_overlay['News coverage']} · "
-            f"Sentiment coverage: {qa_overlay['Sentiment coverage']} · "
-            "Unexpected news cannot be predicted by technical analysis."
-        )
-
-        cd1, cd2 = st.columns(2)
-        cd1.metric(
-            "Latest completed 4h candle",
-            qa_result.get("candle_pattern", "UNAVAILABLE"),
-        )
-        cd2.metric(
-            "Candle caution",
-            "CAUTION" if qa_result.get("candle_caution") else "CLEAR",
-        )
-        st.caption(qa_result.get("candle_detail", ""))
-
-        pt1, pt2, pt3, pt4 = st.columns(4)
-        pt1.metric("Pattern", qa_result.get("triangle_label", "NO TRIANGLE"))
-        pt2.metric("Triangle quality", f"{qa_result.get('triangle_score', 0):.1f}/100")
-        pt3.metric("Resistance touches", int(qa_result.get("triangle_touches", 0)))
-        pt4.metric(
-            "Triangle compression",
-            f"{qa_result.get('triangle_compression_pct', np.nan):.1f}%"
-            if pd.notna(qa_result.get("triangle_compression_pct", np.nan))
-            else "Unavailable",
-        )
-        if qa_result.get("triangle_detail"):
-            st.caption(qa_result.get("triangle_detail"))
-
-        ma1, ma2, ma3 = st.columns(3)
-        ma1.metric("Daily SMA regime", qa_result.get("sma_regime", "UNAVAILABLE"))
-        ma2.metric(
-            "SMA50",
-            fmt_optional_price(qa_result.get("sma50", np.nan), "Unavailable"),
-            f"{qa_result.get('price_vs_sma50_pct', np.nan):+.2f}%"
-            if pd.notna(qa_result.get("price_vs_sma50_pct", np.nan)) else None,
-        )
-        ma3.metric(
-            "SMA200",
-            fmt_optional_price(qa_result.get("sma200", np.nan), "Unavailable"),
-            f"{qa_result.get('price_vs_sma200_pct', np.nan):+.2f}%"
-            if pd.notna(qa_result.get("price_vs_sma200_pct", np.nan)) else None,
-        )
-
-        bb1, bb2, bb3, bb4 = st.columns(4)
-        bb1.metric("4h Bollinger", qa_result.get("bb_4h_regime", "UNAVAILABLE"))
-        bb2.metric(
-            "Band width",
-            f"{qa_result.get('bb_4h_width_pct', np.nan):.2f}%"
-            if pd.notna(qa_result.get("bb_4h_width_pct", np.nan)) else "Unavailable",
-        )
-        bb3.metric(
-            "Width percentile",
-            f"{qa_result.get('bb_4h_width_percentile', np.nan):.1f}%"
-            if pd.notna(qa_result.get("bb_4h_width_percentile", np.nan)) else "Unavailable",
-        )
-        bb4.metric(
-            "Price in bands",
-            f"{qa_result.get('bb_4h_position_pct', np.nan):.1f}%"
-            if pd.notna(qa_result.get("bb_4h_position_pct", np.nan)) else "Unavailable",
-        )
-        st.caption(
-            "Low Bollinger-width percentile = volatility compression/squeeze; "
-            "0% is the lower band and 100% is the upper band."
-        )
-
-        ch1, ch2, ch3, ch4 = st.columns(4)
-        ch1.metric("4h channel", qa_result.get("channel_4h_direction", "UNAVAILABLE"))
-        ch2.metric("4h channel position", str(qa_result.get("channel_4h_position", "Unavailable")))
-        ch3.metric("4h channel quality", qa_result.get("channel_4h_quality", "LOW"))
-        ch4.metric("4h channel R:R", str(qa_result.get("channel_4h_rr", "Unavailable")))
-        dch1, dch2 = st.columns(2)
-        dch1.metric("Daily channel", qa_result.get("channel_daily_direction", "UNAVAILABLE"))
-        dch2.metric("Daily channel position", str(qa_result.get("channel_daily_position", "Unavailable")))
-
-        rs1, rs2 = st.columns(2)
-        rs1.metric("RS vs BTC — 48h", f"{qa_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
-        rs2.metric("RS vs BTC — 96h", f"{qa_result.get('rs_vs_btc_96h_pct', np.nan):+.2f}%")
-
-        lrs1, lrs2, lrs3 = st.columns(3)
-        lrs1.metric("RS vs BTC — 30d", f"{qa_result.get('rs_vs_btc_30d_pct', np.nan):+.2f}%")
-        lrs2.metric("RS vs BTC — 90d", f"{qa_result.get('rs_vs_btc_90d_pct', np.nan):+.2f}%")
-        lrs3.metric("RS vs BTC — 180d", f"{qa_result.get('rs_vs_btc_180d_pct', np.nan):+.2f}%")
-
-        tr1, tr2, tr3, tr4 = st.columns(4)
-        tr1.metric("Coin trend", qa_result.get("coin_trend", "UNAVAILABLE"))
-        tr2.metric("Market trend (BTC)", qa_result.get("market_trend", "UNAVAILABLE"))
-        tr3.metric("Coin daily / 4h", f"{qa_result.get('coin_trend_daily', '—')} / {qa_result.get('coin_trend_4h', '—')}")
-        tr4.metric("BTC daily / 4h", f"{qa_result.get('market_trend_daily', '—')} / {qa_result.get('market_trend_4h', '—')}")
-        st.caption(
-            f"Coin trend: {qa_result.get('coin_trend_detail', '')} · "
-            f"Market trend: {qa_result.get('market_trend_detail', '')}"
-        )
-
-        tok1, tok2, tok3, tok4 = st.columns(4)
-        tok1.metric("Tokenomics gate", qa_result.get("tokenomics_gate", "UNKNOWN"))
-        circ_pct = qa_result.get("circulating_pct", np.nan)
-        tok2.metric(
-            "Circulating / supply",
-            f"{circ_pct:.1f}%" if pd.notna(circ_pct) else "Unavailable",
-            qa_result.get("supply_basis", ""),
-        )
-        fdv_mcap = qa_result.get("fdv_mcap", np.nan)
-        tok3.metric("FDV / Market cap", f"{fdv_mcap:.2f}x" if pd.notna(fdv_mcap) else "Unavailable")
-        tok4.metric("VC / unlock review", "Needs verification")
-        if qa_result.get("tokenomics_risks"):
-            st.caption("Tokenomics risks: " + qa_result["tokenomics_risks"])
-
-        ex1, ex2, ex3 = st.columns(3)
-        ex1.metric("Major CEX quality", qa_result.get("major_cex_quality", "DATA LIMITED"))
-        ex2.metric("Major CEX count", int(qa_result.get("major_cex_count", 0)))
-        ex3.metric("Major CEX gate", qa_result.get("major_cex_gate", "UNKNOWN"))
-        st.caption(
-            "Verified major CEX listings: "
-            + (qa_result.get("major_cex_list") or "None / unavailable")
-        )
-
-        lead1, lead2 = st.columns(2)
-        lead1.metric("Category leadership", qa_result.get("category_leader", "UNKNOWN"))
-        lead2.metric(
-            "Leader categories",
-            qa_result.get("leader_categories") or "None identified",
-        )
-
-        fresh1, fresh2, fresh3 = st.columns(3)
-        fresh1.metric("Project freshness", qa_result.get("project_freshness", "UNKNOWN"))
-        history_days = qa_result.get("history_days", np.nan)
-        fresh2.metric(
-            "Exchange history",
-            f"{history_days:.0f} days" if pd.notna(history_days) else "Unavailable",
-        )
-        fresh3.metric(
-            "Freshness score",
-            f"{qa_result.get('freshness_score', np.nan):.0f}/100"
-            if pd.notna(qa_result.get("freshness_score", np.nan))
-            else "Unavailable",
-        )
-        st.caption(
-            "Freshness is an exchange-history proxy, not the project's exact launch age."
-        )
-
-        cat1, cat2, cat3 = st.columns(3)
-        cat1.metric("Catalyst radar", qa_result.get("catalyst_status", "NOT CONNECTED"))
-        cat2.metric(
-            "Next catalyst",
-            qa_result.get("next_catalyst") or "None in available window",
-        )
-        cat3.metric(
-            "Catalyst date",
-            qa_result.get("catalyst_date") or "Unavailable",
-        )
-        if qa_result.get("catalyst_categories") or qa_result.get("catalyst_impact"):
-            st.caption(
-                f"CoinMarketCal category: {qa_result.get('catalyst_categories') or 'Unavailable'} · "
-                f"Impact: {qa_result.get('catalyst_impact') or 'Unavailable on current plan'}"
-            )
-
-        coin_id = qa_result.get("coingecko_id", "")
-        project_links = coingecko_project_links(coin_id)
-        official_x = project_links.get("twitter", "")
-        with st.expander("Information advantage — official sources"):
-            link1, link2, link3 = st.columns(3)
-            link1.link_button("CoinMarketCap Events", "https://coinmarketcap.com/events/")
-            link2.link_button("CoinMarketCal", "https://coinmarketcal.com/")
-            if official_x:
-                link3.link_button("Official X", f"https://x.com/{official_x}")
+            if accumulation_verdict == "ACCUMULATION READY":
+                accumulation_action = "ACCUMULATE"
+                accumulation_reason = "The confirmed daily base and accumulation score currently meet the model rules."
+            elif accumulation_verdict.startswith("WATCH"):
+                accumulation_action = "WAIT"
+                accumulation_reason = "The longer-term base is developing but is not ready yet."
             else:
-                link3.caption("Official X unavailable")
+                accumulation_action = "PASS"
+                accumulation_reason = "The current daily base does not meet the accumulation rules."
 
-            if official_x:
-                st.write(f"Official X: **@{official_x}**")
-            if project_links.get("homepage"):
-                st.write("Official website:", project_links["homepage"])
-            if project_links.get("github"):
-                st.write("GitHub:", project_links["github"])
-            if project_links.get("official_forum"):
-                st.write("Official forum:", project_links["official_forum"])
+            dc1, dc2 = st.columns(2)
+            with dc1:
+                render_crypto_decision_card(
+                    "SWING DECISION",
+                    trade_decision["action"],
+                    trade_decision["reason"],
+                )
+            with dc2:
+                render_crypto_decision_card(
+                    "ACCUMULATION DECISION",
+                    accumulation_action,
+                    accumulation_reason,
+                )
 
-            x_token = _streamlit_secret("X_BEARER_TOKEN")
-            x_posts, x_status = x_official_catalyst_posts(official_x, x_token)
-            st.caption(f"Official-X catalyst search: {x_status}")
-            if x_posts:
-                post_rows = []
-                for post in x_posts[:5]:
-                    metrics = post.get("public_metrics") or {}
-                    post_rows.append({
-                        "Created": post.get("created_at", ""),
-                        "Post": post.get("text", ""),
-                        "Likes": metrics.get("like_count", 0),
-                        "Reposts": metrics.get("retweet_count", 0),
-                    })
+            if "score" in home_result:
+                hm1, hm2, hm3, hm4 = st.columns(4)
+                hm1.metric("Swing score", f"{home_result.get('score', 0):.1f}/100")
+                hm2.metric("RS vs BTC", f"{home_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
+                hm3.metric("RSI", f"{home_result.get('rsi', np.nan):.1f}")
+                hm4.metric(
+                    "Potential ROI",
+                    "—" if not math.isfinite(_safe_float(home_result.get("target_upside_pct"))) else f"{home_result.get('target_upside_pct'):.1f}%",
+                )
+            st.caption("Open **Quick Analysis** for the full single-coin view, or **Advanced Crypto** for the complete screener.")
+
+    st.markdown("### How it works")
+    hw1, hw2, hw3 = st.columns(3)
+    with hw1:
+        st.markdown("**1 · Search a coin**")
+        st.caption("Use a coin name or ticker. The screener resolves the active market for you.")
+    with hw2:
+        st.markdown("**2 · See the decision**")
+        st.caption("Swing and accumulation decisions come first; the detailed evidence remains available below.")
+    with hw3:
+        st.markdown("**3 · Watch what matters**")
+        st.caption("If the setup is not ready, add it to your crypto watchlist rather than chasing the price.")
+
+with tab_crypto_opportunities:
+    st.markdown("### Opportunities")
+    st.caption(
+        "A cleaner view of the latest Crypto scan. Run a fresh scan from **Advanced Crypto** "
+        "when you want to update the market data."
+    )
+
+    opportunity_scan = st.session_state.scan_df.copy()
+    if opportunity_scan.empty:
+        st.info(
+            "No Crypto scan results are loaded yet. Open **Advanced Crypto** and run a scan "
+            "to populate this page."
+        )
+    else:
+        opportunity_scan = apply_ta_context_overlay(opportunity_scan, macro)
+
+        technical_opportunities = opportunity_scan[
+            (opportunity_scan["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+            & (pd.to_numeric(opportunity_scan["Score"], errors="coerce") >= cfg.score_threshold)
+        ].copy()
+
+        if not technical_opportunities.empty:
+            swing_buy_mask = (
+                ((technical_opportunities["Coin"] == "BTC")
+                 | (pd.to_numeric(technical_opportunities["RS vs BTC %"], errors="coerce") > 0))
+                & technical_opportunities["Tokenomics gate"].eq("PASS")
+                & technical_opportunities["Major CEX gate"].eq("PASS")
+                & technical_opportunities["Candle caution"].ne("CAUTION")
+                & technical_opportunities["Context confidence"].ne("LOW")
+                & technical_opportunities["Known event risk"].ne("HIGH")
+            )
+            if not macro.get("allows_new_swing_risk", True):
+                swing_buy_mask = swing_buy_mask & False
+            technical_opportunities["Status"] = np.where(swing_buy_mask, "BUY", "WAIT")
+            technical_opportunities = technical_opportunities.sort_values(
+                ["Status", "Score"], ascending=[True, False]
+            )
+
+        accumulation_opportunities = opportunity_scan[
+            opportunity_scan["Accumulation verdict"] == "ACCUMULATION READY"
+        ].copy().sort_values("Accumulation score", ascending=False)
+
+        om1, om2, om3 = st.columns(3)
+        om1.metric(
+            "Swing BUY",
+            int((technical_opportunities["Status"] == "BUY").sum())
+            if not technical_opportunities.empty else 0,
+        )
+        om2.metric(
+            "Swing WAIT",
+            int((technical_opportunities["Status"] == "WAIT").sum())
+            if not technical_opportunities.empty else 0,
+        )
+        om3.metric("Accumulation ready", len(accumulation_opportunities))
+
+        swing_view, accumulation_view = st.tabs(["Swing opportunities", "Accumulation"])
+
+        with swing_view:
+            if technical_opportunities.empty:
+                st.info("No swing setup currently reaches the technical opportunity threshold.")
+            else:
+                swing_cols = [
+                    "Status", "Coin", "Score", "Price", "RS vs BTC %",
+                    "Trade verdict", "Trade reason", "Tokenomics gate",
+                    "Major CEX gate", "Context confidence", "Known event risk",
+                    "Distance %", "Target upside %",
+                ]
+                visible_swing_cols = [
+                    col for col in swing_cols if col in technical_opportunities.columns
+                ]
                 st.dataframe(
-                    pd.DataFrame(post_rows),
+                    technical_opportunities[visible_swing_cols],
                     hide_index=True,
                     use_container_width=True,
                 )
-            elif official_x and not x_token:
-                st.info(
-                    "Add X_BEARER_TOKEN to Streamlit Secrets to search the official "
-                    "project account's last 7 days for planned announcements."
-                )
-            if qa_result.get("catalyst_status") == "NOT CONNECTED":
-                st.info(
-                    "Add COINMARKETCAL_API_KEY to Streamlit Secrets to activate the "
-                    "structured upcoming-event feed."
+
+        with accumulation_view:
+            if accumulation_opportunities.empty:
+                st.info("No accumulation setup is currently marked ACCUMULATION READY.")
+            else:
+                accumulation_cols = [
+                    "Coin", "Accumulation score", "Price", "Accumulation low",
+                    "Accumulation high", "Coin trend", "Tokenomics gate",
+                    "Project freshness",
+                ]
+                visible_accumulation_cols = [
+                    col for col in accumulation_cols if col in accumulation_opportunities.columns
+                ]
+                st.dataframe(
+                    accumulation_opportunities[visible_accumulation_cols],
+                    hide_index=True,
+                    use_container_width=True,
                 )
 
-        qa_row = pd.Series({
-            "Breakout": qa_result["resistance"],
-            "Invalidation": qa_result["invalidation"],
-            "Entry low": qa_result["entry_low"],
-            "Entry high": qa_result["entry_high"],
-            "Accumulation low": qa_result["accumulation_low"],
-            "Accumulation high": qa_result["accumulation_high"],
-            "Sell target": qa_result["projected_target"],
-            "Cycle accumulation low": qa_result["cycle_accumulation_low"],
-            "Cycle accumulation high": qa_result["cycle_accumulation_high"],
-        })
-        qa_timeframes = {
+
+with tab_crypto_watchlist:
+    st.markdown("### Watchlist")
+    st.caption(
+        "Keep interesting coins here while you wait for the setup to improve. "
+        "Removing a coin does not change any screener result."
+    )
+
+    managed_crypto_watchlist = load_crypto_watchlist()
+    if not managed_crypto_watchlist:
+        st.info(
+            "Your Crypto watchlist is empty. Use **Watch** after analysing a coin to add it here."
+        )
+    else:
+        wm1, wm2 = st.columns([1, 3])
+        wm1.metric("Coins watched", len(managed_crypto_watchlist))
+        with wm2:
+            st.caption(
+                "Use Quick Analysis to re-check a watched coin against the latest market conditions."
+            )
+
+        for crypto_watch_index, crypto_watch_symbol in enumerate(managed_crypto_watchlist):
+            with st.container(border=True):
+                watch_name_col, watch_remove_col = st.columns(
+                    [5, 1], vertical_alignment="center"
+                )
+                with watch_name_col:
+                    st.markdown(f"#### {crypto_watch_symbol}")
+                    st.caption("Saved for review")
+                with watch_remove_col:
+                    if st.button(
+                        "Remove",
+                        key=f"remove_crypto_watch_{crypto_watch_symbol}_{crypto_watch_index}",
+                        use_container_width=True,
+                    ):
+                        set_crypto_watchlist_symbol(crypto_watch_symbol, False)
+                        st.rerun()
+
+
+with tab_crypto_quick:
+    st.markdown("### Quick Analysis")
+    st.caption("Search any active coin on the selected exchange. The decision comes first; detailed evidence follows underneath.")
+
+    if "quick_analysis" not in st.session_state:
+        st.session_state.quick_analysis = None
+
+    qa_input_col, qa_button_col = st.columns([4, 1])
+    with qa_input_col:
+        quick_query = st.text_input(
+            "Ticker or coin name",
+            placeholder="For example: SOL, SOL/USDT or Solana",
+            key="quick_query",
+        )
+    with qa_button_col:
+        st.write("")
+        st.write("")
+        run_quick_analysis = st.button("Analyse coin", type="primary", use_container_width=True)
+
+    if run_quick_analysis:
+        if not quick_query.strip():
+            st.warning("Enter a ticker or coin name first.")
+        else:
+            with st.spinner(f"Analysing {quick_query.strip()}…"):
+                try:
+                    qa_symbol, qa_result, qa_raw = asyncio.run(analyse_individual_coin(cfg, quick_query))
+                    st.session_state.quick_analysis = {
+                        "symbol": qa_symbol,
+                        "result": qa_result,
+                        "raw": qa_raw,
+                        "exchange": exchange_name,
+                    }
+                except Exception as e:
+                    st.session_state.quick_analysis = None
+                    st.error(f"{type(e).__name__}: {e}")
+
+    qa = st.session_state.quick_analysis
+    if qa:
+        qa_result = qa["result"]
+        qa_symbol = qa["symbol"]
+        st.markdown(f"### {qa_symbol.split('/')[0]} on {qa['exchange']}")
+
+        if "score" not in qa_result:
+            st.warning(qa_result.get("reason", "Not enough market data to score this coin."))
+        else:
+            macro_now = st.session_state.get("macro_liquidity") or {}
+            qa_overlay = assess_ta_limitations(
+                pd.Series({
+                    "Coin": qa_symbol.split("/")[0].upper(),
+                    "Candle caution": "CAUTION" if qa_result.get("candle_caution") else "CLEAR",
+                    "RS vs BTC %": qa_result.get("rs_vs_btc_pct", np.nan),
+                    "Coin trend": qa_result.get("coin_trend", "UNAVAILABLE"),
+                    "Market trend": qa_result.get("market_trend", "UNAVAILABLE"),
+                    "SMA regime": qa_result.get("sma_regime", "UNAVAILABLE"),
+                    "4h Channel": qa_result.get("channel_4h_direction", "UNAVAILABLE"),
+                    "RSI": qa_result.get("rsi", np.nan),
+                    "BB 4h regime": qa_result.get("bb_4h_regime", "UNAVAILABLE"),
+                    "BB 4h position %": qa_result.get("bb_4h_position_pct", np.nan),
+                    "Pattern": qa_result.get("triangle_label", "NO TRIANGLE"),
+                    "Catalyst status": qa_result.get("catalyst_status", "NOT CONNECTED"),
+                    "Catalyst days": qa_result.get("catalyst_days", np.nan),
+                    "Tokenomics gate": qa_result.get("tokenomics_gate", "UNKNOWN"),
+                    "Major CEX gate": qa_result.get("major_cex_gate", "UNKNOWN"),
+                    "Category leader": qa_result.get("category_leader", "UNKNOWN"),
+                }),
+                macro_now,
+            )
+            trade_decision = crypto_trade_decision(qa_result, macro_now)
+            accumulation_verdict = str(
+                qa_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
+            )
+            if accumulation_verdict == "ACCUMULATION READY":
+                accumulation_action = "ACCUMULATE"
+                accumulation_reason = (
+                    "The confirmed daily base and accumulation score currently meet the model rules."
+                )
+            elif accumulation_verdict.startswith("WATCH"):
+                accumulation_action = "WAIT"
+                accumulation_reason = (
+                    "The longer-term base is developing but is not ready yet."
+                )
+            else:
+                accumulation_action = "PASS"
+                accumulation_reason = (
+                    "The current daily base does not meet the accumulation rules."
+                )
+
+            decision_left, decision_right = st.columns(2)
+            with decision_left:
+                render_crypto_decision_card(
+                    "SWING DECISION",
+                    trade_decision["action"],
+                    trade_decision["reason"],
+                )
+            with decision_right:
+                render_crypto_decision_card(
+                    "ACCUMULATION DECISION",
+                    accumulation_action,
+                    accumulation_reason,
+                )
+
+            st.caption(
+                "Decision first. The metrics and detailed technical evidence below explain why."
+            )
+
+            q1, q2, q3, q4 = st.columns(4)
+            q1.metric("Trade setup score", f"{qa_result['score']:.1f}/100")
+            q2.metric("Price", fmt_price(qa_result["price"]))
+            q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
+            q4.metric("RSI", f"{qa_result['rsi']:.1f}")
+
+            cf1, cf2, cf3, cf4 = st.columns(4)
+            cf1.metric("Context confidence", qa_overlay["Context confidence"])
+            cf2.metric("Signal agreement", f"{qa_overlay['Signal agreement %']:.1f}%")
+            cf3.metric("Known event risk", qa_overlay["Known event risk"])
+            cf4.metric("Non-TA confirmations", qa_overlay["Non-TA confirmations"])
+            if qa_overlay["Conflicts"]:
+                st.caption("Conflicting signals: " + qa_overlay["Conflicts"])
+            st.caption(
+                f"News coverage: {qa_overlay['News coverage']} · "
+                f"Sentiment coverage: {qa_overlay['Sentiment coverage']} · "
+                "Unexpected news cannot be predicted by technical analysis."
+            )
+
+            cd1, cd2 = st.columns(2)
+            cd1.metric(
+                "Latest completed 4h candle",
+                qa_result.get("candle_pattern", "UNAVAILABLE"),
+            )
+            cd2.metric(
+                "Candle caution",
+                "CAUTION" if qa_result.get("candle_caution") else "CLEAR",
+            )
+            st.caption(qa_result.get("candle_detail", ""))
+
+            pt1, pt2, pt3, pt4 = st.columns(4)
+            pt1.metric("Pattern", qa_result.get("triangle_label", "NO TRIANGLE"))
+            pt2.metric("Triangle quality", f"{qa_result.get('triangle_score', 0):.1f}/100")
+            pt3.metric("Resistance touches", int(qa_result.get("triangle_touches", 0)))
+            pt4.metric(
+                "Triangle compression",
+                f"{qa_result.get('triangle_compression_pct', np.nan):.1f}%"
+                if pd.notna(qa_result.get("triangle_compression_pct", np.nan))
+                else "Unavailable",
+            )
+            if qa_result.get("triangle_detail"):
+                st.caption(qa_result.get("triangle_detail"))
+
+            ma1, ma2, ma3 = st.columns(3)
+            ma1.metric("Daily SMA regime", qa_result.get("sma_regime", "UNAVAILABLE"))
+            ma2.metric(
+                "SMA50",
+                fmt_optional_price(qa_result.get("sma50", np.nan), "Unavailable"),
+                f"{qa_result.get('price_vs_sma50_pct', np.nan):+.2f}%"
+                if pd.notna(qa_result.get("price_vs_sma50_pct", np.nan)) else None,
+            )
+            ma3.metric(
+                "SMA200",
+                fmt_optional_price(qa_result.get("sma200", np.nan), "Unavailable"),
+                f"{qa_result.get('price_vs_sma200_pct', np.nan):+.2f}%"
+                if pd.notna(qa_result.get("price_vs_sma200_pct", np.nan)) else None,
+            )
+
+            bb1, bb2, bb3, bb4 = st.columns(4)
+            bb1.metric("4h Bollinger", qa_result.get("bb_4h_regime", "UNAVAILABLE"))
+            bb2.metric(
+                "Band width",
+                f"{qa_result.get('bb_4h_width_pct', np.nan):.2f}%"
+                if pd.notna(qa_result.get("bb_4h_width_pct", np.nan)) else "Unavailable",
+            )
+            bb3.metric(
+                "Width percentile",
+                f"{qa_result.get('bb_4h_width_percentile', np.nan):.1f}%"
+                if pd.notna(qa_result.get("bb_4h_width_percentile", np.nan)) else "Unavailable",
+            )
+            bb4.metric(
+                "Price in bands",
+                f"{qa_result.get('bb_4h_position_pct', np.nan):.1f}%"
+                if pd.notna(qa_result.get("bb_4h_position_pct", np.nan)) else "Unavailable",
+            )
+            st.caption(
+                "Low Bollinger-width percentile = volatility compression/squeeze; "
+                "0% is the lower band and 100% is the upper band."
+            )
+
+            ch1, ch2, ch3, ch4 = st.columns(4)
+            ch1.metric("4h channel", qa_result.get("channel_4h_direction", "UNAVAILABLE"))
+            ch2.metric("4h channel position", str(qa_result.get("channel_4h_position", "Unavailable")))
+            ch3.metric("4h channel quality", qa_result.get("channel_4h_quality", "LOW"))
+            ch4.metric("4h channel R:R", str(qa_result.get("channel_4h_rr", "Unavailable")))
+            dch1, dch2 = st.columns(2)
+            dch1.metric("Daily channel", qa_result.get("channel_daily_direction", "UNAVAILABLE"))
+            dch2.metric("Daily channel position", str(qa_result.get("channel_daily_position", "Unavailable")))
+
+            rs1, rs2 = st.columns(2)
+            rs1.metric("RS vs BTC — 48h", f"{qa_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
+            rs2.metric("RS vs BTC — 96h", f"{qa_result.get('rs_vs_btc_96h_pct', np.nan):+.2f}%")
+
+            lrs1, lrs2, lrs3 = st.columns(3)
+            lrs1.metric("RS vs BTC — 30d", f"{qa_result.get('rs_vs_btc_30d_pct', np.nan):+.2f}%")
+            lrs2.metric("RS vs BTC — 90d", f"{qa_result.get('rs_vs_btc_90d_pct', np.nan):+.2f}%")
+            lrs3.metric("RS vs BTC — 180d", f"{qa_result.get('rs_vs_btc_180d_pct', np.nan):+.2f}%")
+
+            tr1, tr2, tr3, tr4 = st.columns(4)
+            tr1.metric("Coin trend", qa_result.get("coin_trend", "UNAVAILABLE"))
+            tr2.metric("Market trend (BTC)", qa_result.get("market_trend", "UNAVAILABLE"))
+            tr3.metric("Coin daily / 4h", f"{qa_result.get('coin_trend_daily', '—')} / {qa_result.get('coin_trend_4h', '—')}")
+            tr4.metric("BTC daily / 4h", f"{qa_result.get('market_trend_daily', '—')} / {qa_result.get('market_trend_4h', '—')}")
+            st.caption(
+                f"Coin trend: {qa_result.get('coin_trend_detail', '')} · "
+                f"Market trend: {qa_result.get('market_trend_detail', '')}"
+            )
+
+            tok1, tok2, tok3, tok4 = st.columns(4)
+            tok1.metric("Tokenomics gate", qa_result.get("tokenomics_gate", "UNKNOWN"))
+            circ_pct = qa_result.get("circulating_pct", np.nan)
+            tok2.metric(
+                "Circulating / supply",
+                f"{circ_pct:.1f}%" if pd.notna(circ_pct) else "Unavailable",
+                qa_result.get("supply_basis", ""),
+            )
+            fdv_mcap = qa_result.get("fdv_mcap", np.nan)
+            tok3.metric("FDV / Market cap", f"{fdv_mcap:.2f}x" if pd.notna(fdv_mcap) else "Unavailable")
+            tok4.metric("VC / unlock review", "Needs verification")
+            if qa_result.get("tokenomics_risks"):
+                st.caption("Tokenomics risks: " + qa_result["tokenomics_risks"])
+
+            ex1, ex2, ex3 = st.columns(3)
+            ex1.metric("Major CEX quality", qa_result.get("major_cex_quality", "DATA LIMITED"))
+            ex2.metric("Major CEX count", int(qa_result.get("major_cex_count", 0)))
+            ex3.metric("Major CEX gate", qa_result.get("major_cex_gate", "UNKNOWN"))
+            st.caption(
+                "Verified major CEX listings: "
+                + (qa_result.get("major_cex_list") or "None / unavailable")
+            )
+
+            lead1, lead2 = st.columns(2)
+            lead1.metric("Category leadership", qa_result.get("category_leader", "UNKNOWN"))
+            lead2.metric(
+                "Leader categories",
+                qa_result.get("leader_categories") or "None identified",
+            )
+
+            fresh1, fresh2, fresh3 = st.columns(3)
+            fresh1.metric("Project freshness", qa_result.get("project_freshness", "UNKNOWN"))
+            history_days = qa_result.get("history_days", np.nan)
+            fresh2.metric(
+                "Exchange history",
+                f"{history_days:.0f} days" if pd.notna(history_days) else "Unavailable",
+            )
+            fresh3.metric(
+                "Freshness score",
+                f"{qa_result.get('freshness_score', np.nan):.0f}/100"
+                if pd.notna(qa_result.get("freshness_score", np.nan))
+                else "Unavailable",
+            )
+            st.caption(
+                "Freshness is an exchange-history proxy, not the project's exact launch age."
+            )
+
+            cat1, cat2, cat3 = st.columns(3)
+            cat1.metric("Catalyst radar", qa_result.get("catalyst_status", "NOT CONNECTED"))
+            cat2.metric(
+                "Next catalyst",
+                qa_result.get("next_catalyst") or "None in available window",
+            )
+            cat3.metric(
+                "Catalyst date",
+                qa_result.get("catalyst_date") or "Unavailable",
+            )
+            if qa_result.get("catalyst_categories") or qa_result.get("catalyst_impact"):
+                st.caption(
+                    f"CoinMarketCal category: {qa_result.get('catalyst_categories') or 'Unavailable'} · "
+                    f"Impact: {qa_result.get('catalyst_impact') or 'Unavailable on current plan'}"
+                )
+
+            coin_id = qa_result.get("coingecko_id", "")
+            project_links = coingecko_project_links(coin_id)
+            official_x = project_links.get("twitter", "")
+            with st.expander("Information advantage — official sources"):
+                link1, link2, link3 = st.columns(3)
+                link1.link_button("CoinMarketCap Events", "https://coinmarketcap.com/events/")
+                link2.link_button("CoinMarketCal", "https://coinmarketcal.com/")
+                if official_x:
+                    link3.link_button("Official X", f"https://x.com/{official_x}")
+                else:
+                    link3.caption("Official X unavailable")
+
+                if official_x:
+                    st.write(f"Official X: **@{official_x}**")
+                if project_links.get("homepage"):
+                    st.write("Official website:", project_links["homepage"])
+                if project_links.get("github"):
+                    st.write("GitHub:", project_links["github"])
+                if project_links.get("official_forum"):
+                    st.write("Official forum:", project_links["official_forum"])
+
+                x_token = _streamlit_secret("X_BEARER_TOKEN")
+                x_posts, x_status = x_official_catalyst_posts(official_x, x_token)
+                st.caption(f"Official-X catalyst search: {x_status}")
+                if x_posts:
+                    post_rows = []
+                    for post in x_posts[:5]:
+                        metrics = post.get("public_metrics") or {}
+                        post_rows.append({
+                            "Created": post.get("created_at", ""),
+                            "Post": post.get("text", ""),
+                            "Likes": metrics.get("like_count", 0),
+                            "Reposts": metrics.get("retweet_count", 0),
+                        })
+                    st.dataframe(
+                        pd.DataFrame(post_rows),
+                        hide_index=True,
+                        use_container_width=True,
+                    )
+                elif official_x and not x_token:
+                    st.info(
+                        "Add X_BEARER_TOKEN to Streamlit Secrets to search the official "
+                        "project account's last 7 days for planned announcements."
+                    )
+                if qa_result.get("catalyst_status") == "NOT CONNECTED":
+                    st.info(
+                        "Add COINMARKETCAL_API_KEY to Streamlit Secrets to activate the "
+                        "structured upcoming-event feed."
+                    )
+
+            qa_row = pd.Series({
+                "Breakout": qa_result["resistance"],
+                "Invalidation": qa_result["invalidation"],
+                "Entry low": qa_result["entry_low"],
+                "Entry high": qa_result["entry_high"],
+                "Accumulation low": qa_result["accumulation_low"],
+                "Accumulation high": qa_result["accumulation_high"],
+                "Sell target": qa_result["projected_target"],
+                "Cycle accumulation low": qa_result["cycle_accumulation_low"],
+                "Cycle accumulation high": qa_result["cycle_accumulation_high"],
+            })
+            qa_timeframes = {
+                "4-hour — entry timing (30 days)": ("4h", "4h", 180),
+                "Daily — structure (up to 1 year)": ("1d", "1d", 365),
+                "Weekly — long-range structure (up to ~4 years)": ("1w", "1w", 209),
+            }
+            qa_timeframe_choice = st.selectbox(
+                "Chart timeframe",
+                list(qa_timeframes.keys()),
+                key="quick_chart_timeframe",
+            )
+            qa_data_key, qa_label, qa_bars = qa_timeframes[qa_timeframe_choice]
+            qa_chart_data = qa["raw"].get(qa_data_key, pd.DataFrame())
+            if not qa_chart_data.empty:
+                qa_chart_key = (
+                    "quick_chart_" + qa_symbol.replace("/", "_").replace(":", "_")
+                    + "_" + qa_data_key
+                )
+                st.plotly_chart(
+                    make_chart(qa_chart_data, qa_row, qa_label, qa_bars),
+                    use_container_width=True,
+                    key=qa_chart_key,
+                )
+
+            l1, l2, l3, l4 = st.columns(4)
+            l1.metric("Pre-breakout entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}", qa_result["entry_basis"])
+            l2.metric("Breakout level", fmt_price(qa_result["resistance"]))
+            l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
+            l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
+
+            t1, t2, t3, t4 = st.columns(4)
+            t1.metric(
+                "First resistance / partial profit",
+                fmt_price(qa_result["first_take_profit"]),
+                qa_result["first_take_profit_basis"],
+            )
+            t2.metric("30% trade target", fmt_optional_price(qa_result["projected_target"]))
+            gross_upside = qa_result.get("target_upside_pct", np.nan)
+            t3.metric(
+                "Gross upside from planned entry",
+                f"{gross_upside:.1f}%" if pd.notna(gross_upside) else "Below requirement",
+            )
+            t4.metric(
+                "Reward / risk",
+                f"{qa_result['risk_reward']:.2f}:1" if qa_result.get("trade_target_eligible") else "Not qualified",
+            )
+
+            a1, a2, a3, a4 = st.columns(4)
+            a1.metric("Bottoming signal", qa_result["bottom_status"], f"{qa_result['bottom_score']:.1f}/100")
+            a2.metric(
+                "Daily base accumulation zone",
+                f"{fmt_price(qa_result['accumulation_low'])} – {fmt_price(qa_result['accumulation_high'])}",
+            )
+            a3.metric("Inside daily base zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
+            a4.metric(
+                "Long-term accumulation verdict",
+                qa_result["accumulation_verdict"],
+            )
+            cycle_position = qa_result.get("cycle_position_pct", np.nan)
+            cycle_text = f"{cycle_position:.1f}%" if pd.notna(cycle_position) else "Unavailable"
+            cycle_low = qa_result.get("cycle_accumulation_low", np.nan)
+            cycle_high = qa_result.get("cycle_accumulation_high", np.nan)
+            cycle_zone_text = (
+                f"{fmt_price(cycle_low)} – {fmt_price(cycle_high)}"
+                if pd.notna(cycle_low) and pd.notna(cycle_high)
+                else "Unavailable"
+            )
+            st.caption(
+                f"Long-range weekly support zone: {cycle_zone_text} · "
+                f"Inside zone: {'Yes' if qa_result.get('in_cycle_accumulation_zone') else 'No'} · "
+                f"{qa_result.get('cycle_accumulation_basis', '')}"
+            )
+            st.caption(
+                f"30% target basis: {qa_result['target_basis']} · "
+                f"Next qualifying target: {fmt_optional_price(qa_result['stretch_target'], 'Unavailable')} · "
+                f"Position within available 4Y range (reference only): {cycle_text}"
+            )
+
+            qa_components = qa_result["components"]
+            qa_comp_df = pd.DataFrame({
+                "Factor": list(qa_components.keys()),
+                "Points": list(qa_components.values()),
+            })
+            st.bar_chart(qa_comp_df.set_index("Factor"), horizontal=True)
+
+with tab_crypto_advanced:
+    st.markdown("### Advanced Crypto")
+    st.caption("The full pre-breakout engine, macro analysis, scan controls, charts and research detail live here.")
+
+    st.subheader("Macro liquidity regime")
+    if macro.get("available"):
+        ml1, ml2, ml3, ml4 = st.columns(4)
+        ml1.metric("Liquidity score", f"{macro['score']:.1f}/100")
+        ml2.metric("Regime", macro["regime"])
+        ml3.metric("Risk stance", macro["stance"])
+        ml4.metric(
+            "New swing risk",
+            "ALLOWED" if macro["allows_new_swing_risk"] else "WAIT",
+        )
+        if not macro["allows_new_swing_risk"]:
+            st.warning(
+                "Technical setups can still be identified, but new swing BUY signals are "
+                "downgraded to WAIT while the macro-liquidity regime is deteriorating or contracting."
+            )
+    else:
+        st.info(
+            "Macro-liquidity data is currently incomplete, so the scanner will not block "
+            "technical BUY signals on macro grounds."
+        )
+
+    with st.expander("Macro liquidity factors"):
+        macro_factors = pd.DataFrame(macro.get("factors", []))
+        if not macro_factors.empty:
+            st.dataframe(macro_factors, hide_index=True, use_container_width=True)
+        if macro.get("errors"):
+            st.caption("Unavailable inputs: " + " | ".join(macro["errors"]))
+        st.caption(
+            "Primary cycle framework: macro liquidity, not a fixed four-year crypto cycle. "
+            "The regime combines broad money, Fed net liquidity, financial conditions, "
+            "real yields, the broad US dollar and stablecoin supply. Four-year price-range "
+            "statistics remain reference-only."
+        )
+
+    manual_col, info_col = st.columns([1, 4])
+    with manual_col:
+        manual_scan = st.button("Run scan now", type="primary", use_container_width=True)
+    with info_col:
+        st.info("A flag means the setup matches the pre-breakout rules. It is not a prediction or a guarantee of a pump.")
+
+    run_every = f"{refresh_minutes}m"
+
+    @st.fragment(run_every=run_every)
+    def live_scan():
+        # A dropdown interaction reruns the full app. Only fetch fresh market data when
+        # the refresh interval has elapsed, so inspecting another coin cannot reset it.
+        now = datetime.now(timezone.utc)
+        last_scan = st.session_state.last_scan
+        scan_due = (
+            last_scan is None
+            or (now - last_scan).total_seconds() >= refresh_minutes * 60
+        )
+        required_scan_columns = {
+            "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
+            "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
+            "Category leader", "Leader categories", "Project freshness", "Catalyst status",
+            "Candle caution", "Last 4h candle", "Pattern", "Triangle score",
+            "SMA regime", "SMA50", "SMA200", "BB 4h regime", "BB 4h width %",
+            "4h Channel", "4h Channel pos %",
+            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
+        }
+        needs_candidate_refresh = (
+            not st.session_state.scan_df.empty
+            and not required_scan_columns.issubset(set(st.session_state.scan_df.columns))
+        )
+        settings_changed = st.session_state.get("last_scan_config") != vars(cfg)
+        should_scan = manual_scan or needs_candidate_refresh or settings_changed or scan_due
+        if should_scan:
+            status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
+            try:
+                def report_progress(completed, total):
+                    status.update(label=f"Analysing markets: {completed}/{total} completed…")
+                df, raw, errors = asyncio.run(scan_exchange(cfg, progress=report_progress))
+                if df.empty and errors:
+                    raise RuntimeError("No markets could be scored; previous results have been retained. " + errors[0])
+                st.session_state.scan_df = df
+                st.session_state.raw_data = raw
+                st.session_state.last_scan_config = dict(vars(cfg))
+                st.session_state.last_scan = datetime.now(timezone.utc)
+                selected_count = df.attrs.get("markets_selected", len(df))
+                status.update(
+                    label=f"Scan finished — {len(df)} coins scored from {selected_count} selected markets",
+                    state="complete",
+                )
+                if len(df) < selected_count:
+                    st.warning(
+                        f"Partial coverage: {len(df)} of {selected_count} selected markets were scored. "
+                        "See market-data warnings for unavailable or timed-out data."
+                    )
+                if errors:
+                    with st.expander(f"{len(errors)} market-data warnings"):
+                        st.code("\n".join(errors[:25]))
+            except Exception as e:
+                status.update(label="Scan failed", state="error")
+                st.error(f"{type(e).__name__}: {e}")
+                return
+
+        df = st.session_state.scan_df.copy()
+        if st.session_state.last_scan:
+            st.caption("Last scan: " + st.session_state.last_scan.astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"))
+
+        if df.empty:
+            st.warning("No coins could be scored from the available market data. Check market-data warnings and try another scan.")
+            return
+
+        macro_now = st.session_state.get("macro_liquidity") or {}
+        df = apply_ta_context_overlay(df, macro_now)
+
+        technical_swing_setups = df[
+            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+            & (df["Score"] >= cfg.score_threshold)
+        ].copy().sort_values("Score", ascending=False)
+        rs_qualified_setups = technical_swing_setups[
+            (technical_swing_setups["Coin"] == "BTC")
+            | (technical_swing_setups["RS vs BTC %"] > 0)
+        ].copy()
+        tokenomics_qualified_setups = rs_qualified_setups[
+            rs_qualified_setups["Tokenomics gate"] == "PASS"
+        ].copy()
+        cex_qualified_setups = tokenomics_qualified_setups[
+            tokenomics_qualified_setups["Major CEX gate"] == "PASS"
+        ].copy()
+        candle_qualified_setups = cex_qualified_setups[
+            cex_qualified_setups["Candle caution"] != "CAUTION"
+        ].copy()
+        context_qualified_setups = candle_qualified_setups[
+            (candle_qualified_setups["Context confidence"] != "LOW")
+            & (candle_qualified_setups["Known event risk"] != "HIGH")
+        ].copy()
+        macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
+        swing_setups = (
+            context_qualified_setups
+            if macro_allows_new_risk
+            else context_qualified_setups.iloc[0:0].copy()
+        )
+        accumulation_setups = df[
+            df["Accumulation verdict"] == "ACCUMULATION READY"
+        ].copy().sort_values("Accumulation score", ascending=False)
+
+        # Tables retain potential candidates even when no actionable setups exist.
+        swing_candidates = df.copy()
+        swing_candidates["Status"] = np.where(
+            swing_candidates["Symbol"].isin(swing_setups["Symbol"]), "BUY", "WAIT"
+        )
+        swing_candidates["Macro regime"] = macro_now.get("regime", "DATA LIMITED")
+        swing_candidates["Macro score"] = macro_now.get("score", np.nan)
+        swing_candidates["Reason"] = swing_candidates.apply(
+            lambda row: (
+                "Meets technical rules and macro liquidity allows new swing risk"
+                if row["Status"] == "BUY"
+                else (
+                    (
+                        "Technical setup qualifies, but the altcoin is not beating BTC over the "
+                        "48-hour relative-strength window. "
+                        if (
+                            row["Symbol"] in set(technical_swing_setups["Symbol"])
+                            and row["Coin"] != "BTC"
+                            and row["RS vs BTC %"] <= 0
+                        )
+                        else ""
+                    )
+                    + (
+                        (
+                            "Technical setup qualifies, but tokenomics need review: "
+                            + (
+                                "circulating float is below the 25% rule. "
+                                if row.get("Tokenomics gate") == "FAIL"
+                                else "circulating/total supply could not be verified. "
+                            )
+                        )
+                        if (
+                            row["Symbol"] in set(rs_qualified_setups["Symbol"])
+                            and row.get("Tokenomics gate") != "PASS"
+                        )
+                        else ""
+                    )
+                    + (
+                        (
+                            f"Major-exchange breadth is {row.get('Major CEX quality', 'DATA LIMITED')} "
+                            f"({int(row.get('Major CEX count', 0))} major CEX listing(s)); "
+                            "at least 2 verified major CEX listings are required for BUY. "
+                        )
+                        if (
+                            row["Symbol"] in set(tokenomics_qualified_setups["Symbol"])
+                            and row.get("Major CEX gate") != "PASS"
+                        )
+                        else ""
+                    )
+                    + (
+                        (
+                            "Latest completed 4h candle is a red shooting star near the setup zone; "
+                            "buyers were rejected higher up, so wait for confirmation. "
+                        )
+                        if (
+                            row["Symbol"] in set(cex_qualified_setups["Symbol"])
+                            and row.get("Candle caution") == "CAUTION"
+                        )
+                        else ""
+                    )
+                    + (
+                        (
+                            f"TA limitation overlay is {row.get('Context confidence', 'MEDIUM')}: "
+                            + (
+                                f"known event risk is {row.get('Known event risk', 'UNKNOWN')}. "
+                                if row.get("Known event risk") == "HIGH"
+                                else ""
+                            )
+                            + (
+                                f"Conflicts: {row.get('Conflicts', '')}. "
+                                if row.get("Context confidence") == "LOW" and row.get("Conflicts")
+                                else ""
+                            )
+                        )
+                        if (
+                            row["Symbol"] in set(candle_qualified_setups["Symbol"])
+                            and (
+                                row.get("Context confidence") == "LOW"
+                                or row.get("Known event risk") == "HIGH"
+                            )
+                        )
+                        else ""
+                    )
+                    + (
+                        f"Technical setup qualifies, but macro liquidity is "
+                        f"{macro_now.get('regime', 'DATA LIMITED')} "
+                        f"({macro_now.get('score', np.nan):.1f}/100). "
+                        if (
+                            row["Symbol"] in set(context_qualified_setups["Symbol"])
+                            and not macro_allows_new_risk
+                            and pd.notna(macro_now.get("score", np.nan))
+                        )
+                        else ""
+                    )
+                    + (
+                        f"Score {row['Score']:.1f} below {cfg.score_threshold}. "
+                        if row["Score"] < cfg.score_threshold else ""
+                    )
+                    + (
+                        row["Trade reason"]
+                        if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET" else ""
+                    )
+                )
+            ), axis=1,
+        )
+        swing_candidates["_confidence_rank"] = swing_candidates["Context confidence"].map(
+            {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
+        ).fillna(3)
+        swing_candidates["_leader_rank"] = swing_candidates["Category leader"].map(
+            {"TOP 3": 0, "NOT TOP 3": 1, "UNKNOWN": 2}
+        ).fillna(2)
+        swing_candidates["_catalyst_rank"] = swing_candidates["Catalyst status"].map(
+            {
+                "HIGH CATALYST": 0,
+                "CATALYST WATCH": 1,
+                "UPCOMING": 2,
+                "NONE FOUND": 3,
+                "NOT CONNECTED": 4,
+            }
+        ).fillna(5)
+        swing_candidates["_freshness_rank"] = swing_candidates["Project freshness"].map(
+            {"NEW": 0, "RECENT": 1, "MATURE": 2, "LEGACY": 3, "UNKNOWN": 4}
+        ).fillna(4)
+        swing_candidates["_triangle_rank"] = swing_candidates["Pattern"].map(
+            {
+                "ASCENDING TRIANGLE — STRONG": 0,
+                "ASCENDING TRIANGLE — DEVELOPING": 1,
+                "POSSIBLE ASCENDING TRIANGLE": 2,
+                "NO TRIANGLE": 3,
+            }
+        ).fillna(4)
+        swing_candidates["_bb_rank"] = swing_candidates["BB 4h regime"].map(
+            {"SQUEEZE": 0, "NORMAL": 1, "EXPANDING": 2, "UNAVAILABLE": 3}
+        ).fillna(3)
+
+        def _channel_rank(row):
+            direction = str(row.get("4h Channel", "UNAVAILABLE"))
+            quality = str(row.get("4h Channel quality", "LOW"))
+            pos = _safe_float(row.get("4h Channel pos %"), np.nan)
+            state = str(row.get("4h Channel state", "NONE"))
+            if direction == "RISING" and quality in ("HIGH", "MEDIUM") and math.isfinite(pos) and 10 <= pos <= 65:
+                return 0
+            if state == "ABOVE CHANNEL":
+                return 1
+            if direction == "SIDEWAYS" and quality in ("HIGH", "MEDIUM") and math.isfinite(pos) and pos <= 55:
+                return 1
+            if direction == "RISING" and math.isfinite(pos) and pos <= 85:
+                return 2
+            if direction == "SIDEWAYS":
+                return 3
+            if direction == "RISING":
+                return 4
+            if direction == "FALLING":
+                return 5
+            return 6
+
+        swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
+        swing_candidates = swing_candidates.sort_values(
+            ["Status", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
+            ascending=[True, True, True, True, True, True, True, True, False],
+        ).drop(columns=[
+            "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank",
+            "_bb_rank", "_channel_rank", "_freshness_rank"
+        ])
+        accumulation_candidates = df.copy()
+        accumulation_candidates["Status"] = np.where(
+            accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
+            "ACCUMULATE", "WAIT",
+        )
+        accumulation_candidates["Reason"] = accumulation_candidates.apply(
+            lambda row: (
+                "Meets accumulation rules" if row["Status"] == "ACCUMULATE"
+                else (
+                    (f"Base score {row['Accumulation score']:.1f} below 70. "
+                     if row["Accumulation score"] < 70 else "")
+                    + ("Price outside the confirmed daily base accumulation zone."
+                       if not row["In accumulation zone"]
+                       else "")
+                )
+            ), axis=1,
+        )
+        accumulation_candidates = accumulation_candidates.sort_values(
+            ["Status", "Accumulation score"], ascending=[True, False]
+        )
+
+        current_flags = set(swing_setups["Symbol"].tolist()) | set(
+            accumulation_setups["Symbol"].tolist()
+        )
+        new_flags = current_flags - st.session_state.previous_flags
+        if new_flags:
+            st.toast(
+                "New actionable setup: "
+                + ", ".join(sorted(symbol.split("/")[0] for symbol in new_flags))
+            )
+            if sound_alerts:
+                sr = 16000
+                t = np.linspace(0, 0.28, int(sr * 0.28), endpoint=False)
+                tone = (0.20 * np.sin(2 * np.pi * 880 * t)).astype(np.float32)
+                st.audio(tone, sample_rate=sr, autoplay=True)
+        st.session_state.previous_flags = current_flags
+
+        best_swing_score = (
+            f"{swing_setups['Score'].max():.1f}/100"
+            if not swing_setups.empty
+            else "None"
+        )
+        current_market_trend = (
+            str(df["Market trend"].dropna().iloc[0])
+            if "Market trend" in df.columns and not df["Market trend"].dropna().empty
+            else "UNAVAILABLE"
+        )
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Candidates analysed", len(df))
+        c2.metric(f"Swing BUYs ≥ {cfg.score_threshold}", len(swing_setups))
+        c3.metric("Accumulation setups", len(accumulation_setups))
+        c4.metric("Best swing score", best_swing_score)
+        c5.metric("Market trend (BTC)", current_market_trend)
+
+        st.subheader("Category rotation")
+        st.caption(
+            "Looks for category leadership and acceleration using CoinGecko top-3 category "
+            "leaders in the scanned universe. Relative performance is measured versus BTC "
+            "over approximately 30, 90 and 180 days. ROTATING IN aims to highlight a "
+            "category whose recent leadership is accelerating before it becomes an obvious "
+            "six-month winner."
+        )
+        category_df = category_rotation_table(df)
+        if category_df.empty:
+            st.info("Not enough category-leader performance data is available in this scan yet.")
+        else:
+            rotating = category_df[category_df["Rotation status"] == "ROTATING IN"]
+            leading = category_df[category_df["Rotation status"] == "LEADING"]
+            cr1, cr2, cr3 = st.columns(3)
+            cr1.metric("Rotating in", len(rotating))
+            cr2.metric("Leading categories", len(leading))
+            cr3.metric(
+                "Top category",
+                str(category_df.iloc[0]["Category"]) if not category_df.empty else "Unavailable",
+            )
+            st.dataframe(
+                category_df,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Category momentum": st.column_config.ProgressColumn(
+                        "Category momentum", min_value=0, max_value=100, format="%.1f"
+                    ),
+                    "RS vs BTC 30d %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "30d leader breadth %": st.column_config.NumberColumn(format="%.1f%%"),
+                },
+            )
+
+        swing_tab, accumulation_tab = st.tabs(["Swing trades", "Accumulation"])
+
+        with swing_tab:
+            st.subheader("Swing-trade candidates")
+            st.caption(
+                f"All {len(df)} analysed coins are shown. BUY requires a trade score of "
+                f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
+                "A technical qualifier is only promoted to BUY when an altcoin is beating BTC over "
+                "the 48h relative-strength window, circulating supply is at least 25% of total/max "
+                "supply, the coin is verified on at least 2 major CEXs, and the macro-liquidity "
+                "regime is not deteriorating/contracting. "
+                "Unknown tokenomics remain WAIT rather than passing by assumption. "
+                "WAIT candidates remain visible with their reasons. "
+                "The first columns show the trade plan: current price, planned entry, stop/exit, "
+                "price target, projected ROI and reward/risk. A red shooting star on the latest "
+                "completed 4h candle forces an otherwise-qualified setup to WAIT for confirmation. "
+                "The TA limitation overlay also keeps LOW-confidence / high-event-risk setups at WAIT "
+                "when too many signals conflict or a known risk event could invalidate the chart. "
+                "Green = preferred, amber = borderline, red = weak or extended."
+            )
+            if swing_setups.empty:
+                rs_blocked = len(technical_swing_setups) - len(rs_qualified_setups)
+                tokenomics_blocked = len(rs_qualified_setups) - len(tokenomics_qualified_setups)
+                cex_blocked = len(tokenomics_qualified_setups) - len(cex_qualified_setups)
+                candle_blocked = len(cex_qualified_setups) - len(candle_qualified_setups)
+                context_blocked = len(candle_qualified_setups) - len(context_qualified_setups)
+                if rs_blocked > 0:
+                    st.info(
+                        f"{rs_blocked} technical setup(s) currently qualify technically but remain "
+                        "WAIT because the altcoin is not beating BTC over the 48h RS window."
+                    )
+                elif tokenomics_blocked > 0:
+                    st.info(
+                        f"{tokenomics_blocked} technical setup(s) currently qualify technically "
+                        "but remain WAIT because the 25% circulating-supply tokenomics gate "
+                        "fails or cannot be verified."
+                    )
+                elif cex_blocked > 0:
+                    st.info(
+                        f"{cex_blocked} otherwise-qualified setup(s) remain WAIT because they "
+                        "do not have at least 2 verified listings across the major CEX basket."
+                    )
+                elif candle_blocked > 0:
+                    st.info(
+                        f"{candle_blocked} otherwise-qualified setup(s) remain WAIT because the "
+                        "latest completed 4h candle is a red shooting star."
+                    )
+                elif context_blocked > 0:
+                    st.info(
+                        f"{context_blocked} otherwise-qualified setup(s) remain WAIT because the "
+                        "TA limitation overlay is LOW confidence or a known high-risk event is present."
+                    )
+                elif not context_qualified_setups.empty and not macro_allows_new_risk:
+                    st.info(
+                        f"{len(context_qualified_setups)} technical setup(s) currently meet the "
+                        f"{cfg.score_threshold}+, 30% target, relative-strength, tokenomics, "
+                        "major-CEX, candle and conflict rules, but macro liquidity is "
+                        f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
+                    )
+                else:
+                    st.info(
+                        f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
+                        "BUY rules and 30% gross-target requirement."
+                    )
+            swing_cols = [
+                "Coin", "Status", "Context confidence", "Known event risk",
+                "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
+                "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
+                "Pattern", "Triangle score", "Triangle touches", "Triangle compression %",
+                "Candle caution", "Last 4h candle",
+                "SMA regime", "SMA50", "SMA200", "Price vs SMA50 %", "Price vs SMA200 %",
+                "BB 4h regime", "BB 4h width %", "BB 4h width percentile", "BB 4h position %",
+                "BB Daily regime", "4h Channel", "4h Channel pos %", "4h Channel support",
+                "4h Channel resistance", "4h Channel R:R", "4h Channel quality",
+                "Daily Channel", "Daily Channel pos %",
+                "Entry low", "Entry high", "Breakout", "First resistance target", "Stretch target",
+                "Reason",
+                "Category leader", "Leader categories",
+                "Project freshness", "History days", "Freshness score",
+                "Catalyst status", "Next catalyst", "Catalyst date", "Catalyst days",
+                "Catalyst categories", "Catalyst impact",
+                "Coin trend", "Market trend",
+                "Major CEX quality", "Major CEX count", "Major CEX listings",
+                "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks",
+                "Macro regime", "Macro score", "Conflicts", "Non-TA detail",
+                "News coverage", "Sentiment coverage", "TA limitation note",
+                "To resistance %", "Tests", "RSI", "ATR ratio", "Vol ratio",
+                "RS vs BTC %", "RS vs BTC 96h %",
+                "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
+                "Triangle resistance", "Triangle support", "Triangle target", "Triangle detail",
+                "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
+            ]
+            styled_swing = swing_candidates[swing_cols].style
+            styled_swing = styled_swing.map(
+                lambda value: (
+                    "background-color: #d8f3dc; color: #16351c; font-weight: 700"
+                    if str(value) == "HIGH"
+                    else "background-color: #fff3bf; color: #5f4500; font-weight: 700"
+                    if str(value) == "MEDIUM"
+                    else "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                    if str(value) == "LOW"
+                    else ""
+                ),
+                subset=["Context confidence"],
+            )
+            styled_swing = styled_swing.map(
+                lambda value: (
+                    "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                    if str(value) == "HIGH"
+                    else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+                    if str(value) in ("MEDIUM", "UNKNOWN")
+                    else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                    if str(value) == "LOW"
+                    else ""
+                ),
+                subset=["Known event risk"],
+            )
+            styled_swing = styled_swing.map(
+                lambda value: (
+                    "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                    if str(value) == "CAUTION"
+                    else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                    if str(value) == "CLEAR"
+                    else ""
+                ),
+                subset=["Candle caution"],
+            )
+            for trend_column in ["Coin trend", "Market trend"]:
+                styled_swing = styled_swing.map(
+                    lambda value, column=trend_column: scan_cell_style(value, column),
+                    subset=[trend_column],
+                )
+            for traffic_column in [
+                "Status", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
+                "4h Channel", "4h Channel quality", "Daily Channel",
+                "Category leader", "Major CEX quality", "Macro regime", "Catalyst status",
+            ]:
+                if traffic_column in swing_candidates.columns:
+                    styled_swing = styled_swing.map(
+                        lambda value, column=traffic_column: scan_cell_style(value, column),
+                        subset=[traffic_column],
+                    )
+            styled_swing = styled_swing.map(
+                lambda value: (
+                    "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                    if str(value) == "PASS"
+                    else "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+                    if str(value) == "FAIL"
+                    else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+                ),
+                subset=["Tokenomics gate"],
+            )
+            for column in [
+                "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
+                "Triangle score", "ROI %", "Macro score", "4h Channel R:R",
+                "4h Channel pos %", "BB 4h width percentile",
+                "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
+                "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
+            ]:
+                styled_swing = styled_swing.map(
+                    lambda value, column=column: scan_cell_style(value, column),
+                    subset=[column],
+                )
+            st.dataframe(
+                styled_swing,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Circulating %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
+                    "Macro score": st.column_config.ProgressColumn(
+                        "Macro liquidity", min_value=0, max_value=100, format="%.1f"
+                    ),
+                    "Signal agreement %": st.column_config.ProgressColumn(
+                        "Signal agreement", min_value=0, max_value=100, format="%.1f"
+                    ),
+                    "Score": st.column_config.ProgressColumn(
+                        "Trade score", min_value=0, max_value=100, format="%.1f"
+                    ),
+                    "To resistance %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "RS vs BTC %": st.column_config.NumberColumn("RS vs BTC 48h %", format="%.2f%%"),
+                    "RS vs BTC 96h %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "RS vs BTC 30d %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "RS vs BTC 90d %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "RS vs BTC 180d %": st.column_config.NumberColumn(format="%.2f%%"),
+                    "Catalyst days": st.column_config.NumberColumn(format="%.1f"),
+                    "History days": st.column_config.NumberColumn(format="%.0f"),
+                    "Freshness score": st.column_config.ProgressColumn(
+                        "Freshness", min_value=0, max_value=100, format="%.0f"
+                    ),
+                    "R:R": st.column_config.NumberColumn(format="%.2f"),
+                    "Price": st.column_config.NumberColumn("Current Price", format="%.8g"),
+                    "Entry Price": st.column_config.NumberColumn("Entry Price", format="%.8g"),
+                    "Exit / Stop": st.column_config.NumberColumn("Exit / Stop", format="%.8g"),
+                    "Price Target": st.column_config.NumberColumn("Price Target", format="%.8g"),
+                    "ROI %": st.column_config.NumberColumn("ROI %", format="%.2f%%"),
+                    "4h Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "4h Channel support": st.column_config.NumberColumn(format="%.8g"),
+                    "4h Channel resistance": st.column_config.NumberColumn(format="%.8g"),
+                    "4h Channel R:R": st.column_config.NumberColumn(format="%.2f"),
+                    "Daily Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "Entry low": st.column_config.NumberColumn(format="%.8g"),
+                    "Entry high": st.column_config.NumberColumn(format="%.8g"),
+                    "Breakout": st.column_config.NumberColumn(format="%.8g"),
+                    "Invalidation": st.column_config.NumberColumn(format="%.8g"),
+                    "First resistance target": st.column_config.NumberColumn(
+                        "First resistance / partial profit", format="%.8g"
+                    ),
+                    "Sell target": st.column_config.NumberColumn(
+                        "30% trade target", format="%.8g"
+                    ),
+                    "Stretch target": st.column_config.NumberColumn(format="%.8g"),
+                    "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
+                },
+            )
+
+        with accumulation_tab:
+            st.subheader("Accumulation candidates")
+            st.caption(
+                "All analysed coins are ranked by their separate accumulation score. "
+                "ACCUMULATE requires at least 70 and price inside the confirmed daily "
+                "base accumulation zone. Long-range weekly support and the 4Y range are "
+                "reference-only and do not trigger the decision."
+            )
+            if accumulation_setups.empty:
+                st.info("No coin currently meets the confirmed accumulation rules.")
+            accumulation_cols = [
+                "Coin", "Status", "Category leader", "Leader categories",
+                "Project freshness", "History days", "Freshness score", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
+                "Accumulation low", "Accumulation high", "In accumulation zone",
+                "Cycle accumulation low", "Cycle accumulation high",
+                "In cycle accumulation zone", "4Y cycle position %",
+                "Previous cycle-high reference", "Accumulation verdict",
+            ]
+            accumulation_display = accumulation_candidates[accumulation_cols].rename(columns={
+                "Cycle accumulation low": "Weekly support low",
+                "Cycle accumulation high": "Weekly support high",
+                "In cycle accumulation zone": "In weekly support zone",
+                "4Y cycle position %": "4Y range position % (reference)",
+                "Previous cycle-high reference": "4Y range-high reference",
+            })
+            styled_accumulation = accumulation_display.style.map(
+                lambda value: scan_cell_style(value, "Accumulation signal"),
+                subset=["Accumulation signal"],
+            )
+            for trend_column in ["Coin trend", "Market trend"]:
+                styled_accumulation = styled_accumulation.map(
+                    lambda value, column=trend_column: scan_cell_style(value, column),
+                    subset=[trend_column],
+                )
+            styled_accumulation = styled_accumulation.map(
+                lambda value: (
+                    "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                    if str(value) == "PASS"
+                    else "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+                    if str(value) == "FAIL"
+                    else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+                ),
+                subset=["Tokenomics gate"],
+            )
+            st.dataframe(
+                styled_accumulation,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "Circulating %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "FDV / MCap": st.column_config.NumberColumn(format="%.2fx"),
+                    "History days": st.column_config.NumberColumn(format="%.0f"),
+                    "Freshness score": st.column_config.ProgressColumn(
+                        "Freshness", min_value=0, max_value=100, format="%.0f"
+                    ),
+                    "Accumulation score": st.column_config.ProgressColumn(
+                        "Accumulation score",
+                        min_value=0,
+                        max_value=100,
+                        format="%.1f",
+                    ),
+                    "Price": st.column_config.NumberColumn(format="%.8g"),
+                    "Accumulation low": st.column_config.NumberColumn(format="%.8g"),
+                    "Accumulation high": st.column_config.NumberColumn(format="%.8g"),
+                    "Weekly support low": st.column_config.NumberColumn(format="%.8g"),
+                    "Weekly support high": st.column_config.NumberColumn(format="%.8g"),
+                    "4Y range position % (reference)": st.column_config.NumberColumn(format="%.1f%%"),
+                    "4Y range-high reference": st.column_config.NumberColumn(format="%.8g"),
+                },
+            )
+
+    live_scan()
+
+    st.divider()
+    st.subheader("Inspect a setup")
+    scan_df = st.session_state.scan_df
+    if not scan_df.empty:
+        symbols = scan_df["Symbol"].tolist()
+        # Keep the user's inspected coin selected across normal Streamlit reruns and
+        # scheduled rescans. Fall back to the new top result only if it leaves the scan.
+        if st.session_state.get("inspect_symbol") not in symbols:
+            st.session_state.inspect_symbol = symbols[0]
+        selected = st.selectbox(
+            "Candidate",
+            symbols,
+            key="inspect_symbol",
+            format_func=lambda s: f"{s.split('/')[0]} — {float(scan_df.loc[scan_df['Symbol']==s, 'Score'].iloc[0]):.1f}/100",
+        )
+        row = scan_df.loc[scan_df["Symbol"] == selected].iloc[0]
+        raw = st.session_state.raw_data.get(selected, {})
+        inspect_timeframes = {
             "4-hour — entry timing (30 days)": ("4h", "4h", 180),
             "Daily — structure (up to 1 year)": ("1d", "1d", 365),
             "Weekly — long-range structure (up to ~4 years)": ("1w", "1w", 209),
         }
-        qa_timeframe_choice = st.selectbox(
-            "Chart timeframe",
-            list(qa_timeframes.keys()),
-            key="quick_chart_timeframe",
-        )
-        qa_data_key, qa_label, qa_bars = qa_timeframes[qa_timeframe_choice]
-        qa_chart_data = qa["raw"].get(qa_data_key, pd.DataFrame())
-        if not qa_chart_data.empty:
-            qa_chart_key = (
-                "quick_chart_" + qa_symbol.replace("/", "_").replace(":", "_")
-                + "_" + qa_data_key
+        available_timeframes = {
+            label: values
+            for label, values in inspect_timeframes.items()
+            if values[0] in raw and not raw[values[0]].empty
+        }
+        if available_timeframes:
+            inspect_timeframe_choice = st.selectbox(
+                "Chart timeframe",
+                list(available_timeframes.keys()),
+                key="inspect_chart_timeframe",
+            )
+            inspect_data_key, inspect_label, inspect_bars = available_timeframes[inspect_timeframe_choice]
+            chart_key = (
+                "inspect_chart_" + selected.replace("/", "_").replace(":", "_")
+                + "_" + inspect_data_key
             )
             st.plotly_chart(
-                make_chart(qa_chart_data, qa_row, qa_label, qa_bars),
+                make_chart(raw[inspect_data_key], row, inspect_label, inspect_bars),
                 use_container_width=True,
-                key=qa_chart_key,
+                key=chart_key,
             )
 
-        l1, l2, l3, l4 = st.columns(4)
-        l1.metric("Pre-breakout entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}", qa_result["entry_basis"])
-        l2.metric("Breakout level", fmt_price(qa_result["resistance"]))
-        l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
-        l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
+        trend1, trend2 = st.columns(2)
+        trend1.metric("Coin trend", row.get("Coin trend", "UNAVAILABLE"))
+        trend2.metric("Market trend (BTC)", row.get("Market trend", "UNAVAILABLE"))
+        if row.get("Coin trend detail") or row.get("Market trend detail"):
+            st.caption(
+                f"Coin: {row.get('Coin trend detail', '')} · "
+                f"Market: {row.get('Market trend detail', '')}"
+            )
+
+        candle1, candle2 = st.columns(2)
+        candle1.metric("Last completed 4h candle", row.get("Last 4h candle", "UNAVAILABLE"))
+        candle2.metric("Candle caution", row.get("Candle caution", "CLEAR"))
+        if row.get("Candle detail"):
+            st.caption(str(row.get("Candle detail")))
+
+        channel1, channel2, channel3, channel4 = st.columns(4)
+        channel1.metric("4h channel", row.get("4h Channel", "UNAVAILABLE"))
+        channel2.metric("Channel position", row.get("4h Channel pos %", "Unavailable"))
+        channel3.metric("Channel quality", row.get("4h Channel quality", "LOW"))
+        channel4.metric("Channel R:R", row.get("4h Channel R:R", "Unavailable"))
+
+        m1, m2, m3, m4 = st.columns(4)
+        m1.metric("Pre-breakout entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}", row["Entry basis"])
+        m2.metric("Breakout level", fmt_price(row["Breakout"]))
+        m3.metric("Invalidation", fmt_price(row["Invalidation"]))
+        m4.metric("Risk / reward", f"{row['R:R']:.2f}:1")
 
         t1, t2, t3, t4 = st.columns(4)
-        t1.metric(
-            "First resistance / partial profit",
-            fmt_price(qa_result["first_take_profit"]),
-            qa_result["first_take_profit_basis"],
-        )
-        t2.metric("30% trade target", fmt_optional_price(qa_result["projected_target"]))
-        gross_upside = qa_result.get("target_upside_pct", np.nan)
+        t1.metric("First resistance / partial profit", fmt_price(row["First resistance target"]), row["First resistance basis"])
+        t2.metric("30% trade target", fmt_optional_price(row["Sell target"]))
         t3.metric(
             "Gross upside from planned entry",
-            f"{gross_upside:.1f}%" if pd.notna(gross_upside) else "Below requirement",
+            f"{row['Target upside %']:.1f}%" if pd.notna(row["Target upside %"]) else "Below requirement",
         )
         t4.metric(
             "Reward / risk",
-            f"{qa_result['risk_reward']:.2f}:1" if qa_result.get("trade_target_eligible") else "Not qualified",
+            f"{row['R:R']:.2f}:1" if row["Trade verdict"].startswith("QUALIFIES") else "Not qualified",
         )
 
         a1, a2, a3, a4 = st.columns(4)
-        a1.metric("Bottoming signal", qa_result["bottom_status"], f"{qa_result['bottom_score']:.1f}/100")
+        a1.metric("Bottoming signal", row["Accumulation signal"], f"{row['Accumulation score']:.1f}/100")
         a2.metric(
             "Daily base accumulation zone",
-            f"{fmt_price(qa_result['accumulation_low'])} – {fmt_price(qa_result['accumulation_high'])}",
+            f"{fmt_price(row['Accumulation low'])} – {fmt_price(row['Accumulation high'])}",
         )
-        a3.metric("Inside daily base zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
-        a4.metric(
-            "Long-term accumulation verdict",
-            qa_result["accumulation_verdict"],
-        )
-        cycle_position = qa_result.get("cycle_position_pct", np.nan)
-        cycle_text = f"{cycle_position:.1f}%" if pd.notna(cycle_position) else "Unavailable"
-        cycle_low = qa_result.get("cycle_accumulation_low", np.nan)
-        cycle_high = qa_result.get("cycle_accumulation_high", np.nan)
+        a3.metric("Inside daily base zone", "Yes" if row["In accumulation zone"] else "No")
+        a4.metric("Long-term accumulation verdict", row["Accumulation verdict"])
+        cycle_text = f"{row['4Y cycle position %']:.1f}%" if pd.notna(row["4Y cycle position %"]) else "Unavailable"
         cycle_zone_text = (
-            f"{fmt_price(cycle_low)} – {fmt_price(cycle_high)}"
-            if pd.notna(cycle_low) and pd.notna(cycle_high)
+            f"{fmt_price(row['Cycle accumulation low'])} – {fmt_price(row['Cycle accumulation high'])}"
+            if pd.notna(row["Cycle accumulation low"]) and pd.notna(row["Cycle accumulation high"])
             else "Unavailable"
         )
         st.caption(
             f"Long-range weekly support zone: {cycle_zone_text} · "
-            f"Inside zone: {'Yes' if qa_result.get('in_cycle_accumulation_zone') else 'No'} · "
-            f"{qa_result.get('cycle_accumulation_basis', '')}"
+            f"Inside zone: {'Yes' if row['In cycle accumulation zone'] else 'No'} · "
+            f"{row['Cycle accumulation basis']}"
         )
         st.caption(
-            f"30% target basis: {qa_result['target_basis']} · "
-            f"Next qualifying target: {fmt_optional_price(qa_result['stretch_target'], 'Unavailable')} · "
+            f"30% target basis: {row['Target basis']} · "
+            f"Next qualifying target: {fmt_optional_price(row['Stretch target'], 'Unavailable')} · "
             f"Position within available 4Y range (reference only): {cycle_text}"
         )
 
-        qa_components = qa_result["components"]
-        qa_comp_df = pd.DataFrame({
-            "Factor": list(qa_components.keys()),
-            "Points": list(qa_components.values()),
-        })
-        st.bar_chart(qa_comp_df.set_index("Factor"), horizontal=True)
+        comps = row["_components"]
+        comp_df = pd.DataFrame({"Factor": list(comps.keys()), "Points": list(comps.values())})
+        st.bar_chart(comp_df.set_index("Factor"), horizontal=True)
+    else:
+        st.caption("Run a scan to inspect individual setups.")
 
-st.divider()
-st.subheader("Inspect a setup")
-scan_df = st.session_state.scan_df
-if not scan_df.empty:
-    symbols = scan_df["Symbol"].tolist()
-    # Keep the user's inspected coin selected across normal Streamlit reruns and
-    # scheduled rescans. Fall back to the new top result only if it leaves the scan.
-    if st.session_state.get("inspect_symbol") not in symbols:
-        st.session_state.inspect_symbol = symbols[0]
-    selected = st.selectbox(
-        "Candidate",
-        symbols,
-        key="inspect_symbol",
-        format_func=lambda s: f"{s.split('/')[0]} — {float(scan_df.loc[scan_df['Symbol']==s, 'Score'].iloc[0]):.1f}/100",
-    )
-    row = scan_df.loc[scan_df["Symbol"] == selected].iloc[0]
-    raw = st.session_state.raw_data.get(selected, {})
-    inspect_timeframes = {
-        "4-hour — entry timing (30 days)": ("4h", "4h", 180),
-        "Daily — structure (up to 1 year)": ("1d", "1d", 365),
-        "Weekly — long-range structure (up to ~4 years)": ("1w", "1w", 209),
-    }
-    available_timeframes = {
-        label: values
-        for label, values in inspect_timeframes.items()
-        if values[0] in raw and not raw[values[0]].empty
-    }
-    if available_timeframes:
-        inspect_timeframe_choice = st.selectbox(
-            "Chart timeframe",
-            list(available_timeframes.keys()),
-            key="inspect_chart_timeframe",
-        )
-        inspect_data_key, inspect_label, inspect_bars = available_timeframes[inspect_timeframe_choice]
-        chart_key = (
-            "inspect_chart_" + selected.replace("/", "_").replace(":", "_")
-            + "_" + inspect_data_key
-        )
-        st.plotly_chart(
-            make_chart(raw[inspect_data_key], row, inspect_label, inspect_bars),
-            use_container_width=True,
-            key=chart_key,
-        )
-
-    trend1, trend2 = st.columns(2)
-    trend1.metric("Coin trend", row.get("Coin trend", "UNAVAILABLE"))
-    trend2.metric("Market trend (BTC)", row.get("Market trend", "UNAVAILABLE"))
-    if row.get("Coin trend detail") or row.get("Market trend detail"):
-        st.caption(
-            f"Coin: {row.get('Coin trend detail', '')} · "
-            f"Market: {row.get('Market trend detail', '')}"
-        )
-
-    candle1, candle2 = st.columns(2)
-    candle1.metric("Last completed 4h candle", row.get("Last 4h candle", "UNAVAILABLE"))
-    candle2.metric("Candle caution", row.get("Candle caution", "CLEAR"))
-    if row.get("Candle detail"):
-        st.caption(str(row.get("Candle detail")))
-
-    channel1, channel2, channel3, channel4 = st.columns(4)
-    channel1.metric("4h channel", row.get("4h Channel", "UNAVAILABLE"))
-    channel2.metric("Channel position", row.get("4h Channel pos %", "Unavailable"))
-    channel3.metric("Channel quality", row.get("4h Channel quality", "LOW"))
-    channel4.metric("Channel R:R", row.get("4h Channel R:R", "Unavailable"))
-
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Pre-breakout entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}", row["Entry basis"])
-    m2.metric("Breakout level", fmt_price(row["Breakout"]))
-    m3.metric("Invalidation", fmt_price(row["Invalidation"]))
-    m4.metric("Risk / reward", f"{row['R:R']:.2f}:1")
-
-    t1, t2, t3, t4 = st.columns(4)
-    t1.metric("First resistance / partial profit", fmt_price(row["First resistance target"]), row["First resistance basis"])
-    t2.metric("30% trade target", fmt_optional_price(row["Sell target"]))
-    t3.metric(
-        "Gross upside from planned entry",
-        f"{row['Target upside %']:.1f}%" if pd.notna(row["Target upside %"]) else "Below requirement",
-    )
-    t4.metric(
-        "Reward / risk",
-        f"{row['R:R']:.2f}:1" if row["Trade verdict"].startswith("QUALIFIES") else "Not qualified",
-    )
-
-    a1, a2, a3, a4 = st.columns(4)
-    a1.metric("Bottoming signal", row["Accumulation signal"], f"{row['Accumulation score']:.1f}/100")
-    a2.metric(
-        "Daily base accumulation zone",
-        f"{fmt_price(row['Accumulation low'])} – {fmt_price(row['Accumulation high'])}",
-    )
-    a3.metric("Inside daily base zone", "Yes" if row["In accumulation zone"] else "No")
-    a4.metric("Long-term accumulation verdict", row["Accumulation verdict"])
-    cycle_text = f"{row['4Y cycle position %']:.1f}%" if pd.notna(row["4Y cycle position %"]) else "Unavailable"
-    cycle_zone_text = (
-        f"{fmt_price(row['Cycle accumulation low'])} – {fmt_price(row['Cycle accumulation high'])}"
-        if pd.notna(row["Cycle accumulation low"]) and pd.notna(row["Cycle accumulation high"])
-        else "Unavailable"
-    )
+    st.divider()
+    st.subheader("Historical sanity check")
     st.caption(
-        f"Long-range weekly support zone: {cycle_zone_text} · "
-        f"Inside zone: {'Yes' if row['In cycle accumulation zone'] else 'No'} · "
-        f"{row['Cycle accumulation basis']}"
-    )
-    st.caption(
-        f"30% target basis: {row['Target basis']} · "
-        f"Next qualifying target: {fmt_optional_price(row['Stretch target'], 'Unavailable')} · "
-        f"Position within available 4Y range (reference only): {cycle_text}"
+        "This is a simple event study, not a full execution simulator. It replays the "
+        "technical setup only; the new macro-liquidity overlay is not yet historically "
+        "replayed in this backtest."
     )
 
-    comps = row["_components"]
-    comp_df = pd.DataFrame({"Factor": list(comps.keys()), "Points": list(comps.values())})
-    st.bar_chart(comp_df.set_index("Factor"), horizontal=True)
-else:
-    st.caption("Run a scan to inspect individual setups.")
+    if not scan_df.empty:
+        bc1, bc2, bc3 = st.columns(3)
+        with bc1:
+            bt_symbol = st.selectbox("Coin to backtest", scan_df["Symbol"].tolist(), key="bt_symbol")
+        with bc2:
+            bt_threshold = st.slider("Historical score threshold", 65, 95, cfg.score_threshold, 1)
+        with bc3:
+            horizon = st.selectbox("Forward window", [6, 12, 18, 24, 36], index=3, format_func=lambda x: f"{x} × 4h bars ({x*4}h)")
 
-st.divider()
-st.subheader("Historical sanity check")
-st.caption(
-    "This is a simple event study, not a full execution simulator. It replays the "
-    "technical setup only; the new macro-liquidity overlay is not yet historically "
-    "replayed in this backtest."
-)
+        if st.button("Run backtest"):
+            with st.spinner("Fetching historical candles and replaying the setup rules…"):
+                try:
+                    coin4, coind, btc4 = asyncio.run(fetch_backtest_data(cfg.exchange_id, bt_symbol, cfg.quote))
+                    bt = historical_backtest(coin4, coind, btc4, cfg, bt_threshold, horizon)
+                    if bt.empty:
+                        st.warning("No historical signals met those settings in the available candle history.")
+                    else:
+                        b1, b2, b3, b4, b5 = st.columns(5)
+                        b1.metric("Signals", len(bt))
+                        b2.metric("Hit +5%", f"{bt['Hit +5%'].mean()*100:.1f}%")
+                        b3.metric("Hit +10%", f"{bt['Hit +10%'].mean()*100:.1f}%")
+                        b4.metric("Hit +20%", f"{bt['Hit +20%'].mean()*100:.1f}%")
+                        b5.metric("Invalidation touched", f"{bt['Invalidation touched'].mean()*100:.1f}%")
+                        st.dataframe(bt.sort_values("Time", ascending=False), use_container_width=True, hide_index=True)
+                except Exception as e:
+                    st.error(f"Backtest failed: {type(e).__name__}: {e}")
 
-if not scan_df.empty:
-    bc1, bc2, bc3 = st.columns(3)
-    with bc1:
-        bt_symbol = st.selectbox("Coin to backtest", scan_df["Symbol"].tolist(), key="bt_symbol")
-    with bc2:
-        bt_threshold = st.slider("Historical score threshold", 65, 95, cfg.score_threshold, 1)
-    with bc3:
-        horizon = st.selectbox("Forward window", [6, 12, 18, 24, 36], index=3, format_func=lambda x: f"{x} × 4h bars ({x*4}h)")
+    with st.expander("How the opportunity scores work"):
+        st.markdown(
+            """
+    The score measures **technical setup quality, not probability of success or expected return**. The Swing trades tab shows trade quality; the Accumulation tab shows bottoming quality. WAIT rows remain visible for review and are not actionable signals.
 
-    if st.button("Run backtest"):
-        with st.spinner("Fetching historical candles and replaying the setup rules…"):
-            try:
-                coin4, coind, btc4 = asyncio.run(fetch_backtest_data(cfg.exchange_id, bt_symbol, cfg.quote))
-                bt = historical_backtest(coin4, coind, btc4, cfg, bt_threshold, horizon)
-                if bt.empty:
-                    st.warning("No historical signals met those settings in the available candle history.")
-                else:
-                    b1, b2, b3, b4, b5 = st.columns(5)
-                    b1.metric("Signals", len(bt))
-                    b2.metric("Hit +5%", f"{bt['Hit +5%'].mean()*100:.1f}%")
-                    b3.metric("Hit +10%", f"{bt['Hit +10%'].mean()*100:.1f}%")
-                    b4.metric("Hit +20%", f"{bt['Hit +20%'].mean()*100:.1f}%")
-                    b5.metric("Invalidation touched", f"{bt['Invalidation touched'].mean()*100:.1f}%")
-                    st.dataframe(bt.sort_values("Time", ascending=False), use_container_width=True, hide_index=True)
-            except Exception as e:
-                st.error(f"Backtest failed: {type(e).__name__}: {e}")
+    #### Trend regime — directional context
 
-with st.expander("How the opportunity scores work"):
-    st.markdown(
-        """
-The score measures **technical setup quality, not probability of success or expected return**. The Swing trades tab shows trade quality; the Accumulation tab shows bottoming quality. WAIT rows remain visible for review and are not actionable signals.
+    Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
 
-#### Trend regime — directional context
+    #### Project freshness — prefer newer narratives, with risk controls
 
-Each coin and the wider crypto market (using BTC) are classified as **UPTREND, SIDEWAYS or DOWNTREND**. The **daily chart sets the primary direction** using price versus the 20/50 EMAs and the slope of the 50 EMA; the **4h chart confirms or weakens** that direction. The 200-day EMA is shown as longer-term context when enough history is available. Trend is currently displayed as decision context rather than a new hard BUY gate.
+    The scanner now labels assets **NEW, RECENT, MATURE or LEGACY** using the amount of spot-price history available on the selected exchange. This is a **freshness proxy**, not the project's exact launch date. Newer/recent projects are ranked ahead of otherwise similar older assets because fresh narratives often attract more speculative capital, but freshness is **not a hard BUY gate** and cannot override low-float tokenomics, weak liquidity, poor relative strength or a bad technical setup.
 
-#### Project freshness — prefer newer narratives, with risk controls
+    #### Information advantage — upcoming catalyst radar
 
-The scanner now labels assets **NEW, RECENT, MATURE or LEGACY** using the amount of spot-price history available on the selected exchange. This is a **freshness proxy**, not the project's exact launch date. Newer/recent projects are ranked ahead of otherwise similar older assets because fresh narratives often attract more speculative capital, but freshness is **not a hard BUY gate** and cannot override low-float tokenomics, weak liquidity, poor relative strength or a bad technical setup.
+    Swing trades now have an **Upcoming Catalyst** layer. When a server-side CoinMarketCal API key is configured, the scanner pulls the upcoming event catalog once per scan and maps events to coins. Mainnet launches, releases, upgrades, integrations, listings, partnerships, roadmap items and similar near-dated events are labelled **HIGH CATALYST / CATALYST WATCH**; token unlock or vesting-style events are labelled **RISK EVENT**. Catalyst presence is a ranking advantage, not a hard BUY gate and not automatically bullish because markets can price events early or sell the news.
 
-#### Information advantage — upcoming catalyst radar
+    Quick Analyse also exposes official project links and can search the **official X account's last 7 days** for planned-announcement language when an optional X bearer token is configured. X search is intentionally on-demand rather than run across the full universe.
 
-Swing trades now have an **Upcoming Catalyst** layer. When a server-side CoinMarketCal API key is configured, the scanner pulls the upcoming event catalog once per scan and maps events to coins. Mainnet launches, releases, upgrades, integrations, listings, partnerships, roadmap items and similar near-dated events are labelled **HIGH CATALYST / CATALYST WATCH**; token unlock or vesting-style events are labelled **RISK EVENT**. Catalyst presence is a ranking advantage, not a hard BUY gate and not automatically bullish because markets can price events early or sell the news.
+    #### Category rotation — find the narrative before selecting the coin
 
-Quick Analyse also exposes official project links and can search the **official X account's last 7 days** for planned-announcement language when an optional X bearer token is configured. X search is intentionally on-demand rather than run across the full universe.
+    The scanner now builds a **Category Rotation** table from CoinGecko's current top-3 category leaders that are present in the scanned universe. It compares those leaders with BTC over roughly **30, 90 and 180 days**. **ROTATING IN** means recent category relative strength is accelerating versus its 3-month and 6-month pace; **LEADING** means the category is outperforming BTC across all three horizons; **FADING** means longer-term leadership remains but the latest 30-day relative strength has turned negative. Coverage/confidence shows how many of that category's leaders were actually observed in the current scan.
 
-#### Category rotation — find the narrative before selecting the coin
+    This is intentionally used to answer **which category is attracting capital first**, before choosing the strongest coin inside that category.
 
-The scanner now builds a **Category Rotation** table from CoinGecko's current top-3 category leaders that are present in the scanned universe. It compares those leaders with BTC over roughly **30, 90 and 180 days**. **ROTATING IN** means recent category relative strength is accelerating versus its 3-month and 6-month pace; **LEADING** means the category is outperforming BTC across all three horizons; **FADING** means longer-term leadership remains but the latest 30-day relative strength has turned negative. Coverage/confidence shows how many of that category's leaders were actually observed in the current scan.
+    #### Category leadership — prefer leaders over copycats
 
-This is intentionally used to answer **which category is attracting capital first**, before choosing the strongest coin inside that category.
+    CoinGecko publishes the current **top 3 coins in each crypto category**. The scanner now marks a coin **TOP 3** when its CoinGecko ID appears in that published leader set and shows the categories where it leads. Category leadership is a **strong ranking preference rather than a hard BUY gate** because categories overlap and leadership can rotate; TOP 3 candidates are ranked ahead of otherwise similar non-leaders.
 
-#### Category leadership — prefer leaders over copycats
+    #### Major-exchange breadth — legitimacy / liquidity quality
 
-CoinGecko publishes the current **top 3 coins in each crypto category**. The scanner now marks a coin **TOP 3** when its CoinGecko ID appears in that published leader set and shows the categories where it leads. Category leadership is a **strong ranking preference rather than a hard BUY gate** because categories overlap and leadership can rotate; TOP 3 candidates are ranked ahead of otherwise similar non-leaders.
+    The scanner checks active spot listings across **Binance, Coinbase, Kraken, OKX, Bybit, Gate, Bitget and MEXC**. A main-screener BUY requires at least **2 verified major CEX listings**. **4+ = STRONG**, 3 = GOOD, 2 = ACCEPTABLE, 1 = WEAK. This is treated as a legitimacy/liquidity-quality gate rather than proof that the project has intrinsically strong fundamentals.
 
-#### Major-exchange breadth — legitimacy / liquidity quality
+    #### Relative strength gate — altcoin must beat Bitcoin
 
-The scanner checks active spot listings across **Binance, Coinbase, Kraken, OKX, Bybit, Gate, Bitget and MEXC**. A main-screener BUY requires at least **2 verified major CEX listings**. **4+ = STRONG**, 3 = GOOD, 2 = ACCEPTABLE, 1 = WEAK. This is treated as a legitimacy/liquidity-quality gate rather than proof that the project has intrinsically strong fundamentals.
+    For an **altcoin** to become a BUY, its 48-hour return must be stronger than BTC's over the same period (**RS vs BTC > 0%**). BTC itself is exempt. The 96-hour reading remains confirmation: positive on both windows is stronger; positive 48h with weaker 96h can indicate early rotation. A technically good altcoin that is not beating BTC remains WAIT.
 
-#### Relative strength gate — altcoin must beat Bitcoin
+    #### Tokenomics gate — supply quality
 
-For an **altcoin** to become a BUY, its 48-hour return must be stronger than BTC's over the same period (**RS vs BTC > 0%**). BTC itself is exempt. The 96-hour reading remains confirmation: positive on both windows is stronger; positive 48h with weaker 96h can indicate early rotation. A technically good altcoin that is not beating BTC remains WAIT.
+    For altcoin BUY decisions, the scanner now requires **at least 25% of total supply (or max supply when total supply is unavailable) to be circulating**. Below 25% is treated as low float and remains WAIT; missing supply data is UNKNOWN and also remains WAIT rather than being assumed safe. The scanner also flags **FDV / market-cap ratios of 4x or more** as high-FDV/low-float risk. Detailed VC allocations and future insider unlock schedules require a specialist verified dataset and are shown as needing separate verification rather than guessed.
 
-#### Tokenomics gate — supply quality
+    #### Technical-analysis limitations — confidence, not certainty
 
-For altcoin BUY decisions, the scanner now requires **at least 25% of total supply (or max supply when total supply is unavailable) to be circulating**. Below 25% is treated as low float and remains WAIT; missing supply data is UNKNOWN and also remains WAIT rather than being assumed safe. The scanner also flags **FDV / market-cap ratios of 4x or more** as high-FDV/low-float risk. Detailed VC allocations and future insider unlock schedules require a specialist verified dataset and are shown as needing separate verification rather than guessed.
+    The screener deliberately separates **technical setup score** from **context confidence**. TA is backward-looking and can fail when news, token events, sentiment shocks or market-regime changes overwhelm the chart. The overlay therefore checks for conflicting signals across BTC relative strength, coin/market trend, SMA50/200 structure, channel direction, RSI, Bollinger state, candle rejection, ascending-triangle structure and macro liquidity.
 
-#### Technical-analysis limitations — confidence, not certainty
+    - **HIGH context confidence:** strong agreement with few/no material conflicts.
+    - **MEDIUM:** usable setup, but one or more signals or event conditions deserve caution.
+    - **LOW:** too many conflicts or a known high-risk event; an otherwise technical BUY remains WAIT.
+    - **Known event risk:** explicit unlock/vesting-style risk events are treated as HIGH risk; near-dated catalysts are treated as event-volatility caution.
+    - **News coverage:** the full scan can only see structured known events. Unexpected breaking news cannot be predicted.
+    - **Sentiment coverage:** the full scan currently uses proxies rather than pretending it has complete market-wide social sentiment.
+    - **Invalidation remains mandatory:** no confidence label removes the need to exit when the trade thesis fails.
 
-The screener deliberately separates **technical setup score** from **context confidence**. TA is backward-looking and can fail when news, token events, sentiment shocks or market-regime changes overwhelm the chart. The overlay therefore checks for conflicting signals across BTC relative strength, coin/market trend, SMA50/200 structure, channel direction, RSI, Bollinger state, candle rejection, ascending-triangle structure and macro liquidity.
+    The confidence overlay is **not a win probability** and does not rewrite the raw technical score. Its purpose is to stop a good-looking chart from being treated as sufficient evidence on its own.
 
-- **HIGH context confidence:** strong agreement with few/no material conflicts.
-- **MEDIUM:** usable setup, but one or more signals or event conditions deserve caution.
-- **LOW:** too many conflicts or a known high-risk event; an otherwise technical BUY remains WAIT.
-- **Known event risk:** explicit unlock/vesting-style risk events are treated as HIGH risk; near-dated catalysts are treated as event-volatility caution.
-- **News coverage:** the full scan can only see structured known events. Unexpected breaking news cannot be predicted.
-- **Sentiment coverage:** the full scan currently uses proxies rather than pretending it has complete market-wide social sentiment.
-- **Invalidation remains mandatory:** no confidence label removes the need to exit when the trade thesis fails.
+    #### Bollinger Bands — compression before expansion
 
-The confidence overlay is **not a win probability** and does not rewrite the raw technical score. Its purpose is to stop a good-looking chart from being treated as sufficient evidence on its own.
+    The crypto swing model now calculates **20-period Bollinger Bands with 2 standard deviations** on both 4h and daily data. The main pre-breakout signal is the **4h band-width percentile**: very low relative width is labelled **SQUEEZE**, normal compression is **NORMAL**, and a clear increase in band width is **EXPANDING**. Price position is shown from 0% at the lower band to 100% at the upper band. SQUEEZE is a ranking preference, not a hard BUY rule, because Bollinger compression overlaps with the ATR/range-compression logic already in the technical score.
 
-#### Bollinger Bands — compression before expansion
+    #### Trend channels — swing structure and location
 
-The crypto swing model now calculates **20-period Bollinger Bands with 2 standard deviations** on both 4h and daily data. The main pre-breakout signal is the **4h band-width percentile**: very low relative width is labelled **SQUEEZE**, normal compression is **NORMAL**, and a clear increase in band width is **EXPANDING**. Price position is shown from 0% at the lower band to 100% at the upper band. SQUEEZE is a ranking preference, not a hard BUY rule, because Bollinger compression overlaps with the ATR/range-compression logic already in the technical score.
+    The scanner uses a reproducible regression channel rather than hand-picked trendlines. Crypto uses an **80-bar 4h channel for execution** and a **90-day channel for broader swing structure**. It reports channel direction, support, resistance, price position, validation quality and channel-based reward/risk. Reliable channel support can help define the planned entry. Better lower/middle-channel locations rank ahead of otherwise similar upper-channel setups, while falling channels are treated cautiously. A move above the channel is not automatically rejected because breakout/retest trades can still be valid.
 
-#### Trend channels — swing structure and location
+    #### Latest 4h candle — rejection caution
 
-The scanner uses a reproducible regression channel rather than hand-picked trendlines. Crypto uses an **80-bar 4h channel for execution** and a **90-day channel for broader swing structure**. It reports channel direction, support, resistance, price position, validation quality and channel-based reward/risk. Reliable channel support can help define the planned entry. Better lower/middle-channel locations rank ahead of otherwise similar upper-channel setups, while falling channels are treated cautiously. A move above the channel is not automatically rejected because breakout/retest trades can still be valid.
+    The scanner checks the **latest completed 4h candle**, ignoring an unfinished live candle. A **red shooting star** requires a red close, a relatively small body near the low of the candle and a long upper wick showing rejection of higher prices. Because the screener is deliberately looking for entries close to resistance, an otherwise-qualified setup with this candle pattern is held at **WAIT** until the next candles confirm that the rejection has been absorbed. The raw technical score is left unchanged; this is a separate execution-risk gate.
 
-#### Latest 4h candle — rejection caution
+    #### BUY score — pre-breakout swing-trade quality
 
-The scanner checks the **latest completed 4h candle**, ignoring an unfinished live candle. A **red shooting star** requires a red close, a relatively small body near the low of the candle and a long upper wick showing rejection of higher prices. Because the screener is deliberately looking for entries close to resistance, an otherwise-qualified setup with this candle pattern is held at **WAIT** until the next candles confirm that the rejection has been absorbed. The raw technical score is left unchanged; this is a separate execution-risk gate.
+    - **20 raw pts — Structure:** higher lows, repeated resistance tests, 4h EMA structure.
+    - **15 raw pts — Compression:** ATR contraction and a tightening trading range.
+    - **15 raw pts — Volume:** volume dries up during the coil, with preference for stronger volume on up-bars.
+    - **15 raw pts — Relative strength:** coin return versus BTC over recent 4h windows.
+    - **10 raw pts — Momentum:** RSI in a constructive zone plus improving MACD histogram.
+    - **5 raw pts — OBV:** accumulation proxy via rising on-balance volume.
+    - **5 raw pts — Daily context:** daily trend constructive without being extremely stretched.
+    - **10 raw pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk.
 
-#### BUY score — pre-breakout swing-trade quality
+    Those weights total 95 raw points, which the app now normalises to a genuine **0–100 score**. BUY also has separate hard rules: the setup must still be below and near resistance, show at least two tests, avoid material overextension, and have a technically credible target offering at least **30% gross upside from the planned entry**.
 
-- **20 raw pts — Structure:** higher lows, repeated resistance tests, 4h EMA structure.
-- **15 raw pts — Compression:** ATR contraction and a tightening trading range.
-- **15 raw pts — Volume:** volume dries up during the coil, with preference for stronger volume on up-bars.
-- **15 raw pts — Relative strength:** coin return versus BTC over recent 4h windows.
-- **10 raw pts — Momentum:** RSI in a constructive zone plus improving MACD histogram.
-- **5 raw pts — OBV:** accumulation proxy via rising on-balance volume.
-- **5 raw pts — Daily context:** daily trend constructive without being extremely stretched.
-- **10 raw pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk.
+    #### ACCUMULATE score — bottoming quality
 
-Those weights total 95 raw points, which the app now normalises to a genuine **0–100 score**. BUY also has separate hard rules: the setup must still be below and near resistance, show at least two tests, avoid material overextension, and have a technically credible target offering at least **30% gross upside from the planned entry**.
+    - **30 pts — Base proximity:** price is near its 60-day low.
+    - **25 pts — Higher lows:** the recent daily low is improving versus the prior base.
+    - **20 pts — Trend flattening:** the daily 20 EMA is stabilising or turning up.
+    - **15 pts — RSI recovery:** daily momentum is recovering from a constructive level.
+    - **10 pts — Daily OBV:** volume flow is improving.
 
-#### ACCUMULATE score — bottoming quality
+    ACCUMULATE also requires the score to reach 70 and price to be inside the confirmed daily base zone. Long-range weekly support and the four-year price range remain visible as technical reference only; they do not trigger ACCUMULATE.
 
-- **30 pts — Base proximity:** price is near its 60-day low.
-- **25 pts — Higher lows:** the recent daily low is improving versus the prior base.
-- **20 pts — Trend flattening:** the daily 20 EMA is stabilising or turning up.
-- **15 pts — RSI recovery:** daily momentum is recovering from a constructive level.
-- **10 pts — Daily OBV:** volume flow is improving.
+    #### Macro-liquidity regime — primary cycle framework
 
-ACCUMULATE also requires the score to reach 70 and price to be inside the confirmed daily base zone. Long-range weekly support and the four-year price range remain visible as technical reference only; they do not trigger ACCUMULATE.
+    The scanner no longer assumes crypto must follow a fixed four-year cycle. New swing BUY signals are overlaid with a macro-liquidity regime built from **US M2 (20 pts), Fed net liquidity (15), Chicago Fed financial conditions (20), 10Y real-yield direction (15), the broad US dollar (15), and stablecoin supply growth (15)**. Scores below 42 are treated as a macro headwind and technically qualified swings remain WAIT until liquidity improves.
+            """
+        )
 
-#### Macro-liquidity regime — primary cycle framework
-
-The scanner no longer assumes crypto must follow a fixed four-year cycle. New swing BUY signals are overlaid with a macro-liquidity regime built from **US M2 (20 pts), Fed net liquidity (15), Chicago Fed financial conditions (20), 10Y real-yield direction (15), the broad US dollar (15), and stablecoin supply growth (15)**. Scores below 42 are treated as a macro headwind and technically qualified swings remain WAIT until liquidity improves.
-        """
-    )
-
-st.caption("Trading tool only — not financial advice. Crypto can gap through technical levels; always size risk independently of the score.")
+    st.caption("Trading tool only — not financial advice. Crypto can gap through technical levels; always size risk independently of the score.")
