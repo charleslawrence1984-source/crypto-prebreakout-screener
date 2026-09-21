@@ -3311,19 +3311,29 @@ with tab_crypto_home:
     with home_b:
         with st.container(border=True):
             st.markdown("#### 🎯 Find opportunities")
-            if crypto_summary["swing_buy"]:
-                st.success(
-                    f"{crypto_summary['swing_buy']} swing BUY setup"
-                    f"{'s' if crypto_summary['swing_buy'] != 1 else ''}"
-                )
+            if not scan_loaded:
+                st.info("Formal BUY/WAIT results are not loaded in this session yet.")
+                if pipeline_manifest:
+                    st.caption(
+                        f"The 24/7 discovery monitor is tracking "
+                        f"{int(pipeline_manifest.get('active_candidates', 0) or 0)} active candidate"
+                        f"{'s' if int(pipeline_manifest.get('active_candidates', 0) or 0) != 1 else ''} "
+                        "for deeper analysis."
+                    )
             else:
-                st.info("No swing BUY setup is ready right now.")
-            if crypto_summary["accumulation"]:
-                st.success(
-                    f"{crypto_summary['accumulation']} accumulation setup"
-                    f"{'s' if crypto_summary['accumulation'] != 1 else ''}"
-                )
-            st.caption("Open **Advanced Crypto** to run or refresh the market scan.")
+                if crypto_summary["swing_buy"]:
+                    st.success(
+                        f"{crypto_summary['swing_buy']} swing BUY setup"
+                        f"{'s' if crypto_summary['swing_buy'] != 1 else ''}"
+                    )
+                else:
+                    st.info("No swing BUY setup is ready in the latest formal scan.")
+                if crypto_summary["accumulation"]:
+                    st.success(
+                        f"{crypto_summary['accumulation']} accumulation setup"
+                        f"{'s' if crypto_summary['accumulation'] != 1 else ''}"
+                    )
+            st.caption("Open **Advanced Crypto** to run or refresh the formal market scan.")
 
     with home_c:
         with st.container(border=True):
