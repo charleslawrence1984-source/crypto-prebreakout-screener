@@ -31,6 +31,13 @@ from trade_rules import (
 
 st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", layout="wide")
 
+st.page_link(
+    "platform_home.py",
+    label="← Back to CL Signal Home",
+    use_container_width=False,
+)
+
+
 PRIORITY_DEFAULT = ""
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
