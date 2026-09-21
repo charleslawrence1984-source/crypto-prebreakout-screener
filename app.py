@@ -96,17 +96,33 @@ def _safe_float(x, default=np.nan):
 
 @st.cache_data(ttl=60, show_spinner=False)
 def load_crypto_pipeline_state() -> Dict:
+    raw_base = (
+        "https://raw.githubusercontent.com/"
+        "charleslawrence1984-source/crypto-prebreakout-screener/"
+        "crypto-data/prepared_crypto/"
+    )
+
     def read_json(name: str) -> dict:
         try:
-            return json.loads((PREPARED_CRYPTO_DIR / name).read_text(encoding="utf-8"))
+            response = requests.get(raw_base + name, timeout=8)
+            response.raise_for_status()
+            return response.json()
         except Exception:
-            return {}
+            try:
+                return json.loads((PREPARED_CRYPTO_DIR / name).read_text(encoding="utf-8"))
+            except Exception:
+                return {}
 
     def read_csv(name: str) -> pd.DataFrame:
         try:
-            return pd.read_csv(PREPARED_CRYPTO_DIR / name, compression="gzip")
+            response = requests.get(raw_base + name, timeout=10)
+            response.raise_for_status()
+            return pd.read_csv(io.BytesIO(response.content), compression="gzip")
         except Exception:
-            return pd.DataFrame()
+            try:
+                return pd.read_csv(PREPARED_CRYPTO_DIR / name, compression="gzip")
+            except Exception:
+                return pd.DataFrame()
 
     manifest = read_json("manifest.json")
     audit = read_json("audit.json")
