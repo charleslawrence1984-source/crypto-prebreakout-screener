@@ -278,3 +278,52 @@ def render_module_header(module_name: str, icon: str, subtitle: str):
         """,
         unsafe_allow_html=True,
     )
+
+
+
+def render_signal_decision_card(title: str, action: str, reason: str):
+    action_upper = str(action or "UNAVAILABLE").upper()
+
+    if action_upper in {
+        "BUY", "BUY CANDIDATE", "ACCUMULATE", "HIGH PRIORITY", "SHORTLIST"
+    }:
+        border, background, text_colour, icon = "#2e7d32", "#eef8f0", "#1b5e20", "🟢"
+    elif action_upper in {"WAIT", "WATCH", "HOLD"}:
+        border, background, text_colour, icon = "#d48a00", "#fff8e1", "#7a4d00", "🟠"
+    elif action_upper in {"PASS", "AVOID", "SELL", "BLOCKED", "FAIL"}:
+        border, background, text_colour, icon = "#c62828", "#fff0f0", "#8e1b1b", "🔴"
+    else:
+        border, background, text_colour, icon = "#6b7280", "#f5f5f5", "#374151", "⚪"
+
+    st.markdown(
+        f"""
+        <div style="
+            border:2px solid {border};
+            background:{background};
+            border-radius:16px;
+            padding:18px 20px;
+            min-height:175px;
+            margin:6px 0 14px 0;
+        ">
+            <div style="
+                font-size:.82rem;
+                font-weight:800;
+                letter-spacing:.07em;
+                opacity:.72;
+                margin-bottom:5px;
+            ">{title}</div>
+            <div style="
+                font-size:2.35rem;
+                line-height:1.05;
+                font-weight:900;
+                color:{text_colour};
+                margin:6px 0 12px 0;
+                letter-spacing:-.03em;
+            ">{icon} {action_upper}</div>
+            <div style="font-size:1rem;line-height:1.5;color:#313131;">
+                {reason}
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
