@@ -48,6 +48,20 @@ MAJOR_CEX = {
 }
 
 
+def make_public_ccxt_exchange(exchange_id: str):
+    cls = getattr(ccxt, exchange_id)
+    config = {"enableRateLimit": True, "options": {"defaultType": "spot"}}
+    if exchange_id == "bybit":
+        config["hostname"] = "bytick.com"
+    exchange = cls(config)
+    if exchange_id == "binance":
+        api_urls = exchange.urls.get("api", {})
+        if isinstance(api_urls, dict):
+            api_urls["public"] = "https://data-api.binance.vision/api/v3"
+            api_urls["v1"] = "https://data-api.binance.vision/api/v1"
+    return exchange
+
+
 @dataclass
 class ScreenerConfig:
     exchange_id: str = "okx"
@@ -613,7 +627,7 @@ async def major_cex_presence() -> Tuple[Dict[str, set], List[str]]:
                     f"(tried {', '.join(candidate_ids)})"
                 )
 
-            exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+            exchange = make_public_ccxt_exchange(resolved_id)
             markets = await asyncio.wait_for(exchange.load_markets(), timeout=25)
             bases = {
                 str(market.get("base") or "").upper()
@@ -2174,8 +2188,7 @@ def score_setup(
 
 
 async def fetch_market_universe(cfg: ScreenerConfig) -> Tuple[List[Tuple[str, float]], Dict[str, dict], dict]:
-    cls = getattr(ccxt, cfg.exchange_id)
-    exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+    exchange = make_public_ccxt_exchange(cfg.exchange_id)
     try:
         markets = await exchange.load_markets()
         if not exchange.has.get("fetchTickers"):
@@ -2239,8 +2252,7 @@ def coingecko_symbol_candidates(query: str) -> List[str]:
 
 
 async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str, Dict, Dict[str, pd.DataFrame]]:
-    cls = getattr(ccxt, cfg.exchange_id)
-    exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+    exchange = make_public_ccxt_exchange(cfg.exchange_id)
     try:
         markets = await exchange.load_markets()
         typed = query.strip().upper().replace("-", "/")
@@ -2333,8 +2345,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
     cex_presence, cex_errors = cex_result
     cmcal_events, cmcal_status = cmcal_result
     cmcal_index = catalyst_event_index(cmcal_events)
-    cls = getattr(ccxt, cfg.exchange_id)
-    exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+    exchange = make_public_ccxt_exchange(cfg.exchange_id)
     errors: List[str] = list(cex_errors)
     raw: Dict[str, Dict[str, pd.DataFrame]] = {}
     sem = asyncio.Semaphore(cfg.concurrency)
@@ -2735,8 +2746,7 @@ def make_chart(
 
 
 async def fetch_backtest_data(exchange_id: str, symbol: str, quote: str) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    cls = getattr(ccxt, exchange_id)
-    exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+    exchange = make_public_ccxt_exchange(exchange_id)
     try:
         await exchange.load_markets()
         coin4 = ohlcv_to_df(await exchange.fetch_ohlcv(symbol, timeframe="4h", limit=500))
