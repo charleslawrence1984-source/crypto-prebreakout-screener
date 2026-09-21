@@ -37,6 +37,24 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
 
+def make_exchange(exchange_id: str):
+    cls = getattr(ccxt, exchange_id)
+    config = {"enableRateLimit": True, "options": {"defaultType": "spot"}}
+    if exchange_id == "bybit":
+        # Bybit documents bytick.com as an alternate mainnet host.
+        config["hostname"] = "bytick.com"
+    exchange = cls(config)
+    if exchange_id == "binance":
+        # Binance's official market-data-only host is suitable for the public
+        # endpoints this pipeline uses and avoids location restrictions on the
+        # general trading API host.
+        api_urls = exchange.urls.get("api", {})
+        if isinstance(api_urls, dict):
+            api_urls["public"] = "https://data-api.binance.vision/api/v3"
+            api_urls["v1"] = "https://data-api.binance.vision/api/v1"
+    return exchange
+
+
 def is_leveraged(base: str) -> bool:
     base = str(base or "").upper()
     return any(
@@ -69,8 +87,7 @@ async def load_exchange_snapshot(
     quote: str,
     min_quote_volume: float,
 ) -> Tuple[pd.DataFrame, dict]:
-    cls = getattr(ccxt, exchange_id)
-    exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+    exchange = make_exchange(exchange_id)
     label = EXCHANGES[exchange_id]
     try:
         markets = await asyncio.wait_for(exchange.load_markets(), timeout=45)
@@ -321,8 +338,7 @@ async def discovery_batch(universe: pd.DataFrame, symbols: List[str], concurrenc
     errors = []
 
     async def scan_exchange(exchange_id: str, items: list):
-        cls = getattr(ccxt, exchange_id)
-        exchange = cls({"enableRateLimit": True, "options": {"defaultType": "spot"}})
+        exchange = make_exchange(exchange_id)
         sem = asyncio.Semaphore(concurrency)
         local = []
         try:
