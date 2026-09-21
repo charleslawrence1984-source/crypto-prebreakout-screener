@@ -3193,7 +3193,7 @@ with tab_crypto_home:
                     f"{crypto_summary['accumulation']} accumulation setup"
                     f"{'s' if crypto_summary['accumulation'] != 1 else ''}"
                 )
-            st.caption("Run or refresh the screener below to update the opportunity set.")
+            st.caption("Open **Advanced Crypto** to run or refresh the market scan.")
 
     with home_c:
         with st.container(border=True):
@@ -3206,7 +3206,7 @@ with tab_crypto_home:
                 st.caption(", ".join(crypto_watchlist[:6]) + ("…" if len(crypto_watchlist) > 6 else ""))
             else:
                 st.write("Your crypto watchlist is empty.")
-                st.caption("Analyse a coin below and tick **Watch** to start tracking it.")
+                st.caption("Use **Quick Analysis** and tick **Watch** to start tracking a coin.")
             st.caption("Open **Watchlist** above to manage the coins you are following.")
 
     if crypto_home_analyse and crypto_home_query:
