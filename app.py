@@ -17,6 +17,13 @@ import streamlit as st
 
 st.set_page_config(page_title="Pre-Breakout Crypto Screener", page_icon="⚡", layout="wide")
 
+st.page_link(
+    "platform_home.py",
+    label="← Back to CL Signal Home",
+    use_container_width=False,
+)
+
+
 STABLE_BASES = {
     "USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "PYUSD", "EURC", "USD1",
     "BUSD", "USDP", "GUSD", "LUSD", "FRAX", "EUR", "GBP",
