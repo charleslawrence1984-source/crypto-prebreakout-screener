@@ -964,6 +964,49 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
     }
 
 
+def load_meme_watchlist() -> List[str]:
+    try:
+        raw = st.query_params.get("mwl", "")
+    except Exception:
+        raw = ""
+    if isinstance(raw, list):
+        raw = raw[-1] if raw else ""
+    return [
+        item.strip().upper()
+        for item in str(raw or "").split(",")
+        if item.strip()
+    ][:30]
+
+
+def save_meme_watchlist(symbols: List[str]) -> None:
+    clean = []
+    for symbol in symbols[:30]:
+        value = str(symbol or "").strip().upper()
+        if value and value not in clean:
+            clean.append(value)
+    try:
+        if clean:
+            st.query_params["mwl"] = ",".join(clean)
+        elif "mwl" in st.query_params:
+            del st.query_params["mwl"]
+    except Exception:
+        pass
+
+
+def set_meme_watchlist_symbol(symbol: str, enabled: bool) -> None:
+    ticker = str(symbol or "").strip().upper()
+    current = load_meme_watchlist()
+    current_set = set(current)
+    if enabled:
+        current_set.add(ticker)
+    else:
+        current_set.discard(ticker)
+    ordered = [item for item in current if item in current_set]
+    if enabled and ticker not in ordered:
+        ordered.append(ticker)
+    save_meme_watchlist(ordered)
+
+
 render_module_header(
     "Meme Coins",
     "🐸",
@@ -1022,7 +1065,38 @@ cfg = {
     "min_circulating_pct": float(min_circ),
 }
 
-st.subheader("Quick Analyse")
+meme_watchlist = load_meme_watchlist()
+
+with st.container(border=True):
+    watch_title_col, watch_manage_col = st.columns([4, 1], vertical_alignment="center")
+    with watch_title_col:
+        st.markdown("#### ⭐ My watchlist")
+        if meme_watchlist:
+            st.write(
+                f"You are following **{len(meme_watchlist)}** meme coin"
+                f"{'s' if len(meme_watchlist) != 1 else ''}."
+            )
+            st.caption(", ".join(meme_watchlist[:8]) + ("…" if len(meme_watchlist) > 8 else ""))
+        else:
+            st.write("Your meme-coin watchlist is empty.")
+            st.caption("Analyse a coin and tick **Watch** to save it for later.")
+
+if meme_watchlist:
+    with st.expander("Manage meme-coin watchlist", expanded=False):
+        for meme_watch_index, meme_watch_symbol in enumerate(meme_watchlist):
+            meme_name_col, meme_remove_col = st.columns([5, 1], vertical_alignment="center")
+            with meme_name_col:
+                st.write(f"**{meme_watch_symbol}**")
+            with meme_remove_col:
+                if st.button(
+                    "Remove",
+                    key=f"remove_meme_watch_{meme_watch_symbol}_{meme_watch_index}",
+                    use_container_width=True,
+                ):
+                    set_meme_watchlist_symbol(meme_watch_symbol, False)
+                    st.rerun()
+
+st.subheader("Quick Analysis")
 st.caption("Search by coin name, ticker or contract address, then analyse the exact pair you want.")
 
 if "meme_quick_analysis" not in st.session_state:
@@ -1092,6 +1166,28 @@ if quick_query.strip():
             and saved_analysis.get("pair_address") == selected_pair_address
         ):
             result = saved_analysis["result"]
+
+            result_ticker = str(result.get("Ticker") or "").strip().upper()
+            result_title_col, result_watch_col = st.columns([5, 1], vertical_alignment="center")
+            with result_title_col:
+                st.markdown(
+                    f"### {result_ticker or 'Selected coin'}"
+                    + (f" · {result.get('Chain')}" if result.get("Chain") else "")
+                )
+            with result_watch_col:
+                meme_is_watched = result_ticker in set(load_meme_watchlist())
+                meme_watch_now = st.checkbox(
+                    "Watch",
+                    value=meme_is_watched,
+                    key=f"meme_watch_{result_ticker}_{selected_pair_address}",
+                )
+                if meme_watch_now != meme_is_watched:
+                    set_meme_watchlist_symbol(result_ticker, meme_watch_now)
+                    st.toast(
+                        "Added to meme-coin watchlist"
+                        if meme_watch_now
+                        else "Removed from meme-coin watchlist"
+                    )
 
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Decision", result["Decision"])
