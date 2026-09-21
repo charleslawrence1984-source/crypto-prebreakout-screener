@@ -13,6 +13,13 @@ import plotly.graph_objects as go
 
 st.set_page_config(page_title="Meme Coin Screener", page_icon="🐸", layout="wide")
 
+st.page_link(
+    "platform_home.py",
+    label="← Back to CL Signal Home",
+    use_container_width=False,
+)
+
+
 API = "https://api.dexscreener.com"
 HEADERS = {"User-Agent": "MemeCoinScreener/1.0"}
 
