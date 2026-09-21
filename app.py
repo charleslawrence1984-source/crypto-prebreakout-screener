@@ -13,15 +13,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from cl_signal_ui import render_module_header
 
 
 st.set_page_config(page_title="Pre-Breakout Crypto Screener", page_icon="⚡", layout="wide")
 
-st.page_link(
-    "platform_home.py",
-    label="← Back to CL Signal Home",
-    use_container_width=False,
-)
 
 
 STABLE_BASES = {
@@ -3073,8 +3069,11 @@ def crypto_dashboard_summary(frame: pd.DataFrame, cfg: ScreenerConfig, macro_now
 
 
 # ---------------- UI ----------------
-st.title("⚡ Crypto Opportunity Screener")
-st.caption("Find pre-breakout swing entries and accumulation setups without digging through all the market data yourself.")
+render_module_header(
+    "Crypto",
+    "⚡",
+    "Find pre-breakout swing entries and accumulation setups without digging through all the market data yourself.",
+)
 
 st.markdown("""
 <style>
