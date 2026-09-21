@@ -39,7 +39,15 @@ def now_iso() -> str:
 
 def make_exchange(exchange_id: str):
     cls = getattr(ccxt, exchange_id)
-    config = {"enableRateLimit": True, "options": {"defaultType": "spot"}}
+    config = {
+        "enableRateLimit": True,
+        "options": {
+            "defaultType": "spot",
+            "fetchMarkets": {"types": ["spot"]},
+            "fetchCurrencies": False,
+            "fetchMargins": False,
+        },
+    }
     if exchange_id == "bybit":
         # Bybit documents bytick.com as an alternate mainnet host.
         config["hostname"] = "bytick.com"
