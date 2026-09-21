@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - "crypto_market_pipeline.py"
+      - "crypto_universe_rules.py"
       - ".github/workflows/crypto-market-pipeline.yml"
   schedule:
     - cron: "*/5 * * * *"
