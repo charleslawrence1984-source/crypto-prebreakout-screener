@@ -30,7 +30,7 @@ from trade_rules import (
     score_fundamental_snapshot,
 )
 
-st.set_page_config(page_title="Stock Opportunity Screener", page_icon="📈", layout="wide")
+st.set_page_config(page_title="CL Signal · Stocks", page_icon="📈", layout="wide")
 
 
 
