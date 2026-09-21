@@ -1065,547 +1065,729 @@ cfg = {
     "min_circulating_pct": float(min_circ),
 }
 
-meme_watchlist = load_meme_watchlist()
+if "meme_scan_df" not in st.session_state:
+    st.session_state.meme_scan_df = pd.DataFrame()
 
-with st.container(border=True):
-    watch_title_col, watch_manage_col = st.columns([4, 1], vertical_alignment="center")
-    with watch_title_col:
-        st.markdown("#### ⭐ My watchlist")
-        if meme_watchlist:
-            st.write(
-                f"You are following **{len(meme_watchlist)}** meme coin"
-                f"{'s' if len(meme_watchlist) != 1 else ''}."
-            )
-            st.caption(", ".join(meme_watchlist[:8]) + ("…" if len(meme_watchlist) > 8 else ""))
-        else:
-            st.write("Your meme-coin watchlist is empty.")
-            st.caption("Analyse a coin and tick **Watch** to save it for later.")
-
-if meme_watchlist:
-    with st.expander("Manage meme-coin watchlist", expanded=False):
-        for meme_watch_index, meme_watch_symbol in enumerate(meme_watchlist):
-            meme_name_col, meme_remove_col = st.columns([5, 1], vertical_alignment="center")
-            with meme_name_col:
-                st.write(f"**{meme_watch_symbol}**")
-            with meme_remove_col:
-                if st.button(
-                    "Remove",
-                    key=f"remove_meme_watch_{meme_watch_symbol}_{meme_watch_index}",
-                    use_container_width=True,
-                ):
-                    set_meme_watchlist_symbol(meme_watch_symbol, False)
-                    st.rerun()
-
-st.subheader("Quick Analysis")
-st.caption("Search by coin name, ticker or contract address, then analyse the exact pair you want.")
-
-if "meme_quick_analysis" not in st.session_state:
-    st.session_state.meme_quick_analysis = None
-
-quick_query = st.text_input(
-    "Coin name, ticker or contract address",
-    placeholder="e.g. PEPE, BONK, DOGE or paste a contract address",
-    key="meme_quick_query",
+tab_meme_home, tab_meme_quick, tab_meme_opportunities, tab_meme_watchlist, tab_meme_advanced = st.tabs(
+    ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Advanced Meme Screener"]
 )
 
-if quick_query.strip():
-    try:
-        quick_pairs = dex_search(quick_query)
-    except Exception as exc:
-        quick_pairs = []
-        st.error(f"Search failed: {exc}")
-
-    if quick_pairs:
-        quick_pairs = sorted(
-            quick_pairs,
-            key=lambda p: safe((p.get("liquidity") or {}).get("usd"), 0),
-            reverse=True,
-        )[:30]
-
-        def _pair_label(p):
-            base = p.get("baseToken") or {}
-            quote = p.get("quoteToken") or {}
-            chain = p.get("chainId") or "?"
-            dex = p.get("dexId") or "?"
-            liq = safe((p.get("liquidity") or {}).get("usd"), 0)
-            return (
-                f"{base.get('symbol','?')} — {base.get('name','?')} | "
-                f"{chain} | {dex} | {base.get('symbol','?')}/{quote.get('symbol','?')} | "
-                f"Liquidity ${liq:,.0f}"
-            )
-
-        selected_idx = st.selectbox(
-            "Choose result",
-            options=list(range(len(quick_pairs))),
-            format_func=lambda i: _pair_label(quick_pairs[i]),
-            key="meme_quick_pair",
-        )
-        selected_pair = quick_pairs[selected_idx]
-
-        if st.button("Analyse coin", type="primary", key="analyse_meme_coin"):
-            base = selected_pair.get("baseToken") or {}
-            chain = str(selected_pair.get("chainId") or "").lower()
-            address = str(base.get("address") or "")
-            meta = {}
-            try:
-                discovered = discovery_universe()
-                meta = discovered.get(token_key(chain, address), {})
-            except Exception:
-                meta = {}
-
-            result = score_candidate(selected_pair, meta, cfg)
-            st.session_state.meme_quick_analysis = {
-                "pair_address": result.get("Pair Address") or "",
-                "result": result,
-            }
-
-        saved_analysis = st.session_state.get("meme_quick_analysis")
-        selected_pair_address = str(selected_pair.get("pairAddress") or "")
-        if (
-            saved_analysis
-            and saved_analysis.get("pair_address") == selected_pair_address
-        ):
-            result = saved_analysis["result"]
-
-            result_ticker = str(result.get("Ticker") or "").strip().upper()
-            result_title_col, result_watch_col = st.columns([5, 1], vertical_alignment="center")
-            with result_title_col:
-                st.markdown(
-                    f"### {result_ticker or 'Selected coin'}"
-                    + (f" · {result.get('Chain')}" if result.get("Chain") else "")
-                )
-            with result_watch_col:
-                meme_is_watched = result_ticker in set(load_meme_watchlist())
-                meme_watch_now = st.checkbox(
-                    "Watch",
-                    value=meme_is_watched,
-                    key=f"meme_watch_{result_ticker}_{selected_pair_address}",
-                )
-                if meme_watch_now != meme_is_watched:
-                    set_meme_watchlist_symbol(result_ticker, meme_watch_now)
-                    st.toast(
-                        "Added to meme-coin watchlist"
-                        if meme_watch_now
-                        else "Removed from meme-coin watchlist"
-                    )
-
-            if result["Gate"] == "FAIL":
-                meme_decision_reason = (
-                    "This coin currently fails one or more preliminary gates: "
-                    + (result["Gate Reasons"] or "see the detailed evidence below.")
-                )
-            elif result["Decision"] in ("HIGH PRIORITY", "SHORTLIST"):
-                meme_decision_reason = (
-                    "This coin currently passes the preliminary gates and reaches "
-                    "the model's current shortlist threshold."
-                )
-            else:
-                meme_decision_reason = (
-                    "This coin can be analysed, but the current model does not rank "
-                    "it as a shortlist candidate yet."
-                )
-
-            render_signal_decision_card(
-                "MEME COIN DECISION",
-                result["Decision"],
-                meme_decision_reason,
-            )
-            st.caption(
-                "Decision first. The liquidity, activity, community, narrative and "
-                "tokenomics evidence below explains the result."
-            )
-
-            m1, m2, m3, m4 = st.columns(4)
-            m1.metric("Decision", result["Decision"])
-            m2.metric("Meme Score", f"{result['Score']:.1f}/100")
-            m3.metric("Market Cap", "—" if np.isnan(safe(result["Market Cap"])) else f"${result['Market Cap']:,.0f}")
-            m4.metric("Liquidity", f"${result['Liquidity']:,.0f}")
-
-            p1, p2, p3, p4 = st.columns(4)
-            p1.metric("Price", "—" if np.isnan(safe(result["Price USD"])) else f"${result['Price USD']:.10g}")
-            p2.metric("24h Volume", f"${result['24h Volume']:,.0f}")
-            p3.metric("Buy %", f"{result['Buy %']:.1f}%")
-            p4.metric("24h Move", f"{result['24h %']:+.2f}%")
-
-            cm1, cm2, cm3, cm4 = st.columns(4)
-            cm1.metric("Community strength", result["Community Strength"])
-            cm2.metric("Community score", f"{result['Community Score']:.1f}/30")
-            cm3.metric("24h transactions", f"{result['24h Buys'] + result['24h Sells']:,}")
-            cm4.metric("Social breadth", f"{result['Social Breadth']}/4")
-
-            nr1, nr2 = st.columns(2)
-            nr1.metric("Narrative strength", result["Narrative Strength"])
-            nr2.metric("Narrative score", f"{result['Narrative Score']:.1f}/20")
-            if result.get("Narrative Signals"):
-                st.caption("Narrative signals: " + result["Narrative Signals"])
-
-            tk1, tk2, tk3, tk4 = st.columns(4)
-            tk1.metric("Tokenomics gate", result["Tokenomics Gate"])
-            circ_proxy = result.get("Circulating % (proxy)", np.nan)
-            tk2.metric(
-                "Circulating float",
-                f"{circ_proxy:.1f}%" if pd.notna(circ_proxy) else "Unavailable",
-                "Market cap / FDV proxy",
-            )
-            ratio = result.get("FDV / MCap", np.nan)
-            tk3.metric("FDV / Market cap", f"{ratio:.2f}x" if pd.notna(ratio) else "Unavailable")
-            tk4.metric("VC / unlock review", "Needs verification")
-
-            st.write(
-                f"**{result['Name']} ({result['Ticker']})** · "
-                f"Chain: **{result['Chain']}** · DEX: **{result['DEX']}** · Pair: **{result['Pair']}**"
-            )
-
-            pair_address = result.get("Pair Address") or ""
-            token_address = result.get("Token Address") or ""
-            trade_plan = {
-                "Plan Status": "UNAVAILABLE",
-                "Entry Low": np.nan,
-                "Entry High": np.nan,
-                "Entry Price": np.nan,
-                "Negative Exit": np.nan,
-                "Positive Exit": np.nan,
-                "Stretch Exit": np.nan,
-                "Gross ROI %": np.nan,
-                "Net ROI %": np.nan,
-                "Potential ROI %": np.nan,
-                "Gross R:R": np.nan,
-                "Net R:R": np.nan,
-                "R:R": np.nan,
-                "Estimated Slippage %": np.nan,
-                "Estimated Total Costs %": np.nan,
-                "Potential Profit $": np.nan,
-                "Potential Loss $": np.nan,
-                "Plan Basis": "No candle history",
-            }
-            plan_timeframe = "4h structure + 1h entry timing"
-            if pair_address and result.get("Chain"):
-                try:
-                    plan_4h = fetch_pool_ohlcv(
-                        result["Chain"],
-                        pair_address,
-                        token_address,
-                        "4h",
-                    )
-                    plan_1h = fetch_pool_ohlcv(
-                        result["Chain"],
-                        pair_address,
-                        token_address,
-                        "1h",
-                    )
-                    if plan_4h.empty or len(plan_4h) < 24:
-                        plan_timeframe = "1h fallback"
-                    trade_plan = meme_trade_plan(
-                        plan_4h,
-                        plan_1h,
-                        liquidity=result.get("Liquidity", np.nan),
-                        position_size=planned_position_size,
-                        round_trip_fees_pct=round_trip_fees_pct,
-                    )
-                except Exception:
-                    trade_plan["Plan Basis"] = "Trade-plan candle data unavailable"
-
-            result.update(trade_plan)
-
-            st.subheader("Trade Plan")
-            tp1, tp2, tp3, tp4, tp5, tp6 = st.columns(6)
-            tp1.metric("Current Price", fmt_meme_price(result.get("Price USD")))
-            tp2.metric("Entry Price", fmt_meme_price(trade_plan.get("Entry Price")))
-            tp3.metric("Negative Exit / Stop", fmt_meme_price(trade_plan.get("Negative Exit")))
-            tp4.metric("First Exit Target", fmt_meme_price(trade_plan.get("Positive Exit")))
-            tp5.metric(
-                "Net ROI",
-                f"{safe(trade_plan.get('Net ROI %')):.1f}%"
-                if math.isfinite(safe(trade_plan.get("Net ROI %")))
-                else "Unavailable",
-            )
-            tp6.metric(
-                "Net R:R",
-                f"{safe(trade_plan.get('Net R:R')):.2f}:1"
-                if math.isfinite(safe(trade_plan.get("Net R:R")))
-                else "Unavailable",
-            )
-
-            tc1, tc2, tc3, tc4, tc5, tc6 = st.columns(6)
-            tc1.metric("Stretch Target", fmt_meme_price(trade_plan.get("Stretch Exit")))
-            tc2.metric(
-                "Gross ROI",
-                f"{safe(trade_plan.get('Gross ROI %')):.1f}%"
-                if math.isfinite(safe(trade_plan.get("Gross ROI %")))
-                else "Unavailable",
-            )
-            tc3.metric(
-                "Est. Slippage",
-                f"{safe(trade_plan.get('Estimated Slippage %')):.2f}%"
-                if math.isfinite(safe(trade_plan.get("Estimated Slippage %")))
-                else "Unavailable",
-            )
-            tc4.metric(
-                "Est. Total Costs",
-                f"{safe(trade_plan.get('Estimated Total Costs %')):.2f}%"
-                if math.isfinite(safe(trade_plan.get("Estimated Total Costs %")))
-                else "Unavailable",
-            )
-            tc5.metric(
-                "Potential Profit",
-                ("$" + format(safe(trade_plan.get("Potential Profit $")), ",.2f"))
-                if math.isfinite(safe(trade_plan.get("Potential Profit $")))
-                else "Unavailable",
-            )
-            tc6.metric(
-                "Potential Loss",
-                ("$" + format(safe(trade_plan.get("Potential Loss $")), ",.2f"))
-                if math.isfinite(safe(trade_plan.get("Potential Loss $")))
-                else "Unavailable",
-            )
-            st.caption(
-                f"Plan status: **{trade_plan.get('Plan Status', 'UNAVAILABLE')}** · "
-                f"Entry zone: {fmt_meme_price(trade_plan.get('Entry Low'))} – "
-                f"{fmt_meme_price(trade_plan.get('Entry High'))} · "
-                f"Basis timeframe: {plan_timeframe} · "
-                f"{trade_plan.get('Plan Basis', '')}"
-            )
-            risk_to_stop = safe(trade_plan.get("Risk to Stop %"))
-            atr_pct = safe(trade_plan.get("ATR %"))
-            if math.isfinite(risk_to_stop) or math.isfinite(atr_pct):
-                st.caption(
-                    "Volatility context: "
-                    + (
-                        f"risk to stop {risk_to_stop:.1f}%"
-                        if math.isfinite(risk_to_stop)
-                        else ""
-                    )
-                    + (
-                        f" · ATR {atr_pct:.1f}%"
-                        if math.isfinite(atr_pct)
-                        else ""
-                    )
-                )
-            if trade_plan.get("Plan Status") == "HIGH VOLATILITY — WAIT":
-                st.warning(
-                    "The structural stop is very wide for this meme coin. "
-                    "Treat the setup as WAIT rather than forcing a high-risk entry."
-                )
-            elif trade_plan.get("Plan Status") == "LIQUIDITY / SLIPPAGE — WAIT":
-                st.warning(
-                    "Your planned trade size is large relative to this pool's liquidity. "
-                    "Estimated slippage is too high for a clean entry/exit."
-                )
-            elif trade_plan.get("Plan Status") == "POOR R:R — WAIT":
-                st.warning(
-                    "The first realistic resistance target does not offer enough reward "
-                    "for the structural downside risk. The model will not invent a higher target."
-                )
-            elif trade_plan.get("Plan Status") == "WAIT FOR ENTRY":
-                st.info(
-                    "Current price is above the preferred entry zone. Wait for the pullback "
-                    "rather than chasing the move."
-                )
-
-            if pair_address and result.get("Chain"):
-                st.subheader("Price Chart")
-                chart_tf = st.selectbox(
-                    "Chart timeframe",
-                    list(CHART_TIMEFRAMES.keys()),
-                    index=1,
-                    key=f"meme_chart_tf_{result['Chain']}_{pair_address}",
-                )
-                try:
-                    chart_df = fetch_pool_ohlcv(
-                        result["Chain"],
-                        pair_address,
-                        token_address,
-                        chart_tf,
-                    )
-                    if chart_df.empty:
-                        st.info("No OHLCV candle history is available for this pair yet.")
-                    else:
-                        latest = chart_df.iloc[-1]
-                        bbw = chart_df["BBW_PCT"].dropna()
-                        bbw_now = safe(latest.get("BBW_PCT"))
-                        bbw_pctile = (
-                            float((bbw.tail(120) <= bbw_now).mean() * 100)
-                            if len(bbw.tail(120)) >= 20 and math.isfinite(bbw_now)
-                            else np.nan
-                        )
-                        recent_bbw = bbw.tail(6)
-                        expanding = (
-                            len(recent_bbw) >= 4
-                            and recent_bbw.iloc[-1] > recent_bbw.iloc[0] * 1.12
-                        )
-                        bb_regime = (
-                            "SQUEEZE" if math.isfinite(bbw_pctile) and bbw_pctile <= 20
-                            else "EXPANDING" if expanding
-                            else "NORMAL"
-                        )
-                        band_range = safe(latest.get("BBU")) - safe(latest.get("BBL"))
-                        bb_position = (
-                            (safe(latest.get("close")) - safe(latest.get("BBL"))) / band_range * 100
-                            if math.isfinite(band_range) and band_range > 0
-                            else np.nan
-                        )
-
-                        ta1, ta2, ta3, ta4 = st.columns(4)
-                        ta1.metric("RSI", f"{safe(latest.get('RSI'), 50):.1f}")
-                        ta2.metric("Bollinger", bb_regime)
-                        ta3.metric(
-                            "BB width percentile",
-                            f"{bbw_pctile:.1f}%" if math.isfinite(bbw_pctile) else "Unavailable",
-                        )
-                        ta4.metric(
-                            "Price in bands",
-                            f"{bb_position:.1f}%" if math.isfinite(bb_position) else "Unavailable",
-                        )
-
-                        chart_key = (
-                            "meme_price_chart_"
-                            + str(result.get("Chain", "")).replace("/", "_")
-                            + "_"
-                            + str(pair_address).replace("/", "_")
-                            + "_"
-                            + chart_tf
-                        )
-                        st.plotly_chart(
-                            meme_price_chart(
-                                chart_df,
-                                result["Ticker"],
-                                chart_tf,
-                                trade_plan=trade_plan,
-                            ),
-                            use_container_width=True,
-                            key=chart_key,
-                        )
-                        st.caption(
-                            "Native on-chain candlestick chart with EMA20/EMA50 and Bollinger Bands. "
-                            "RSI and Bollinger readings are context only and do not alter the meme score."
-                        )
-                except Exception as exc:
-                    st.warning(f"Chart data is temporarily unavailable for this pair: {exc}")
-
-            detail_cols = [
-                "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
-                "Price USD", "Entry Low", "Entry High", "Entry Price", "Negative Exit",
-                "Positive Exit", "Stretch Exit", "Gross ROI %", "Net ROI %",
-                "Potential ROI %", "Gross R:R", "Net R:R", "R:R",
-                "Estimated Slippage %", "Estimated Total Costs %",
-                "Potential Profit $", "Potential Loss $", "Plan Status", "Plan Basis",
-                "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
-                "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
-                "Pair Age h", "Narrative Strength", "Narrative Score", "Narrative Signals",
-                "Community Strength", "Community Score", "Social Breadth", "Community Takeover", "Boost", "Gate Reasons", "Risk Flags",
-            ]
-            st.dataframe(
-                pd.DataFrame([{k: result.get(k) for k in detail_cols}]),
-                hide_index=True,
-                use_container_width=True,
-            )
-
-            social_cols = [
-                "X", "Telegram", "Discord", "Website", "Discovery",
-                "Token Address", "DexScreener",
-            ]
-            st.dataframe(
-                pd.DataFrame([{k: result.get(k) for k in social_cols}]),
-                hide_index=True,
-                use_container_width=True,
-            )
-
-            st.caption("Detailed evidence shown above. Use Watch if you want to revisit this coin later.")
-    else:
-        st.warning("No DexScreener pairs matched that search.")
-
-st.divider()
-st.subheader("Discovery Scan")
-st.info(
-    "v0.1 uses DexScreener's latest profiles, boosts and community-takeover feeds for discovery, then scores the most liquid pair for each token. "
-    "Boosts are treated as a small discovery signal, not proof of quality."
-)
-
-if st.button("Run meme coin scan", type="primary", use_container_width=True):
-    chains = {CHAIN_OPTIONS[n] for n in selected_names}
-    with st.spinner("Finding emerging tokens and checking live pairs…"):
-        universe = discovery_universe()
-        pairs = fetch_pairs_for_tokens(universe, chains)
-        best_pairs = best_pair_per_token(pairs)
-
-    rows = []
-    for k, p in best_pairs.items():
-        meta = universe.get(k, {})
-        rows.append(score_candidate(p, meta, cfg))
-
-    if not rows:
-        st.warning("No candidates returned from the selected discovery feeds/chains.")
-    else:
-        df = pd.DataFrame(rows)
-        order = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
-        df["_order"] = df["Decision"].map(order).fillna(9)
-        df = df.sort_values(["_order", "Score", "Liquidity"], ascending=[True, False, False]).drop(columns=["_order"])
-
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("High priority", int((df["Decision"] == "HIGH PRIORITY").sum()))
-        c2.metric("Shortlist", int((df["Decision"] == "SHORTLIST").sum()))
-        c3.metric("Watch", int((df["Decision"] == "WATCH").sum()))
-        c4.metric("Tokens checked", len(df))
-
-        main_cols = [
-            "Ticker", "Name", "Chain", "Decision", "Score",
-            "Narrative Strength", "Narrative Score",
-            "Community Strength", "Community Score", "Social Breadth", "Gate", "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
-            "24h Volume", "Vol/Liq", "Buy %", "1h %", "6h %", "24h %",
-            "Pair Age h", "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
-        ]
-        st.subheader("Ranked candidates")
-        meme_display = df[main_cols]
-        meme_styled = meme_display.style
-        for _col in [
-            "Decision", "Score", "Narrative Strength", "Narrative Score",
-            "Community Strength", "Community Score", "Social Breadth",
-            "Gate", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate",
-            "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
-            "Buy %", "1h %", "6h %", "24h %", "Pair Age h",
-        ]:
-            if _col in meme_display.columns:
-                meme_styled = meme_styled.map(
-                    lambda value, col=_col: meme_cell_style(value, col),
-                    subset=[_col],
-                )
-        st.caption("Colour key: 🟢 strong / healthy · 🟠 acceptable or watch · 🔴 weak / higher risk")
-        st.dataframe(meme_styled, hide_index=True, use_container_width=True)
-
-        st.subheader("Community / discovery detail")
-        community_cols = [
-            "Ticker", "Chain", "Narrative Strength", "Narrative Score", "Narrative Signals",
-            "Community Strength", "Community Score", "Social Breadth",
-            "X", "Telegram", "Discord", "Website", "Community Takeover", "Discovery", "Boost", "DEX", "Pair", "Token Address", "DexScreener",
-        ]
-        st.dataframe(df[community_cols], hide_index=True, use_container_width=True)
-
-with st.expander("How v0.1 scores candidates"):
-    st.markdown(
-        """
-**100-point preliminary model**
-
-- **30 — Community strength:** social breadth plus actual transaction participation. This remains the largest single factor.
-- **20 — Narrative / cultural-icon potential:** simple branding, a clear story, community ownership and evidence the idea is spreading across multiple discovery surfaces.
-- **12 — Liquidity quality:** absolute liquidity plus liquidity relative to market cap.
-- **10 — Real activity:** 24h volume relative to liquidity plus transaction count.
-- **8 — Buy pressure:** constructive demand is rewarded; extremely one-sided flow is not.
-- **8 — Discovery/catalyst:** boosts and appearing across multiple discovery feeds. Paid boosts remain capped.
-- **8 — Momentum without chasing:** constructive 1h/6h/24h movement scores better than a vertical pump.
-- **4 — Pair maturity:** enough history to reduce immediate-launch noise.
-
-**Hard gates** currently cover liquidity, volume, market-cap range, minimum pair age, anti-chase limits and the meme tokenomics rule: **at least 10% circulating float**. Because very new DEX tokens often lack a verified supply feed, v0.1 estimates circulating float as **market cap ÷ FDV** when both values are available. If it cannot verify the ratio, tokenomics is UNKNOWN and the coin does not pass the hard gate. A **FDV/market-cap ratio of 10x or more** is flagged as high-FDV/low-float risk.
-
-Detailed VC allocations and insider unlock schedules are not guessed; they require a specialist verified tokenomics/unlock source and are marked for separate review.
-
-**Community warning:** visible socials alone do not prove a real community. Follower counts can be bought or botted, so the model deliberately rewards actual transaction participation and multi-channel presence rather than treating raw followers as truth.
-
-**Narrative warning:** the cultural score is heuristic. It can identify simple, recognisable, shareable meme structures, but it cannot know in advance which joke, mascot or cultural reference will genuinely go viral.
-
-**Technical context:** Quick Analyse now shows RSI and 20-period/2-standard-deviation Bollinger Bands for the selected on-chain timeframe. They are deliberately **not part of the meme ranking score** because meme coins can remain overbought or highly volatile for long periods; community, narrative, liquidity and real activity remain more important.
-
-This is **v0.1**, not the final meme-coin model. Narrative quality, holder distribution, LP lock/burn, contract/security checks, influencer quality, community growth/engagement and migration/relaunch rules are intentionally left as the next modular layers rather than being guessed.
-"""
+with tab_meme_home:
+    st.markdown("### Your meme-coin dashboard")
+    st.caption(
+        "Start with a coin, review what the latest discovery scan found, or revisit coins you are watching."
     )
 
-st.caption("Screening aid only. Meme coins are exceptionally speculative; live DEX data can be incomplete, manipulated or change rapidly.")
+    meme_home_scan = st.session_state.meme_scan_df.copy()
+    meme_home_watchlist = load_meme_watchlist()
+
+    high_priority_count = (
+        int((meme_home_scan["Decision"] == "HIGH PRIORITY").sum())
+        if not meme_home_scan.empty and "Decision" in meme_home_scan.columns else 0
+    )
+    shortlist_count = (
+        int((meme_home_scan["Decision"] == "SHORTLIST").sum())
+        if not meme_home_scan.empty and "Decision" in meme_home_scan.columns else 0
+    )
+    watch_count = (
+        int((meme_home_scan["Decision"] == "WATCH").sum())
+        if not meme_home_scan.empty and "Decision" in meme_home_scan.columns else 0
+    )
+
+    mh1, mh2, mh3, mh4 = st.columns(4)
+    mh1.metric("High priority", high_priority_count)
+    mh2.metric("Shortlist", shortlist_count)
+    mh3.metric("Watch", watch_count)
+    mh4.metric("Watchlist", len(meme_home_watchlist))
+
+    home_analyse, home_opps, home_watch = st.columns(3)
+
+    with home_analyse:
+        with st.container(border=True):
+            st.markdown("#### 🔎 Analyse a coin")
+            st.write(
+                "Use **Quick Analysis** above to search by coin name, ticker or contract address "
+                "and see the current decision first."
+            )
+            st.caption("No strategy rules are changed by using Quick Analysis.")
+
+    with home_opps:
+        with st.container(border=True):
+            st.markdown("#### 🎯 Find opportunities")
+            if meme_home_scan.empty:
+                st.info("No discovery scan is loaded yet.")
+                st.caption("Run a scan from **Advanced Meme Screener**.")
+            else:
+                if high_priority_count:
+                    st.success(
+                        f"{high_priority_count} high-priority candidate"
+                        f"{'s' if high_priority_count != 1 else ''}"
+                    )
+                elif shortlist_count:
+                    st.success(
+                        f"{shortlist_count} shortlist candidate"
+                        f"{'s' if shortlist_count != 1 else ''}"
+                    )
+                else:
+                    st.info("No high-priority or shortlist candidate is ready in the latest scan.")
+                st.caption("Open **Opportunities** above for the cleaner shortlist view.")
+
+    with home_watch:
+        with st.container(border=True):
+            st.markdown("#### ⭐ My watchlist")
+            if meme_home_watchlist:
+                st.write(
+                    f"You are following **{len(meme_home_watchlist)}** meme coin"
+                    f"{'s' if len(meme_home_watchlist) != 1 else ''}."
+                )
+                st.caption(
+                    ", ".join(meme_home_watchlist[:6])
+                    + ("…" if len(meme_home_watchlist) > 6 else "")
+                )
+            else:
+                st.write("Your meme-coin watchlist is empty.")
+                st.caption("Use **Watch** after analysing a coin to save it for later.")
+
+    st.markdown("### How it works")
+    mhw1, mhw2, mhw3 = st.columns(3)
+    with mhw1:
+        st.markdown("**1 · Search a coin**")
+        st.caption("Use Quick Analysis for one specific token or pair.")
+    with mhw2:
+        st.markdown("**2 · See the decision**")
+        st.caption("The current model decision appears before the detailed evidence.")
+    with mhw3:
+        st.markdown("**3 · Watch what matters**")
+        st.caption("Save interesting coins rather than repeatedly starting the research again.")
+
+
+with tab_meme_quick:
+    st.markdown("### Quick Analysis")
+    st.caption("Search by coin name, ticker or contract address, then analyse the exact pair you want.")
+
+    if "meme_quick_analysis" not in st.session_state:
+        st.session_state.meme_quick_analysis = None
+
+    quick_query = st.text_input(
+        "Coin name, ticker or contract address",
+        placeholder="e.g. PEPE, BONK, DOGE or paste a contract address",
+        key="meme_quick_query",
+    )
+
+    if quick_query.strip():
+        try:
+            quick_pairs = dex_search(quick_query)
+        except Exception as exc:
+            quick_pairs = []
+            st.error(f"Search failed: {exc}")
+
+        if quick_pairs:
+            quick_pairs = sorted(
+                quick_pairs,
+                key=lambda p: safe((p.get("liquidity") or {}).get("usd"), 0),
+                reverse=True,
+            )[:30]
+
+            def _pair_label(p):
+                base = p.get("baseToken") or {}
+                quote = p.get("quoteToken") or {}
+                chain = p.get("chainId") or "?"
+                dex = p.get("dexId") or "?"
+                liq = safe((p.get("liquidity") or {}).get("usd"), 0)
+                return (
+                    f"{base.get('symbol','?')} — {base.get('name','?')} | "
+                    f"{chain} | {dex} | {base.get('symbol','?')}/{quote.get('symbol','?')} | "
+                    f"Liquidity ${liq:,.0f}"
+                )
+
+            selected_idx = st.selectbox(
+                "Choose result",
+                options=list(range(len(quick_pairs))),
+                format_func=lambda i: _pair_label(quick_pairs[i]),
+                key="meme_quick_pair",
+            )
+            selected_pair = quick_pairs[selected_idx]
+
+            if st.button("Analyse coin", type="primary", key="analyse_meme_coin"):
+                base = selected_pair.get("baseToken") or {}
+                chain = str(selected_pair.get("chainId") or "").lower()
+                address = str(base.get("address") or "")
+                meta = {}
+                try:
+                    discovered = discovery_universe()
+                    meta = discovered.get(token_key(chain, address), {})
+                except Exception:
+                    meta = {}
+
+                result = score_candidate(selected_pair, meta, cfg)
+                st.session_state.meme_quick_analysis = {
+                    "pair_address": result.get("Pair Address") or "",
+                    "result": result,
+                }
+
+            saved_analysis = st.session_state.get("meme_quick_analysis")
+            selected_pair_address = str(selected_pair.get("pairAddress") or "")
+            if (
+                saved_analysis
+                and saved_analysis.get("pair_address") == selected_pair_address
+            ):
+                result = saved_analysis["result"]
+
+                result_ticker = str(result.get("Ticker") or "").strip().upper()
+                result_title_col, result_watch_col = st.columns([5, 1], vertical_alignment="center")
+                with result_title_col:
+                    st.markdown(
+                        f"### {result_ticker or 'Selected coin'}"
+                        + (f" · {result.get('Chain')}" if result.get("Chain") else "")
+                    )
+                with result_watch_col:
+                    meme_is_watched = result_ticker in set(load_meme_watchlist())
+                    meme_watch_now = st.checkbox(
+                        "Watch",
+                        value=meme_is_watched,
+                        key=f"meme_watch_{result_ticker}_{selected_pair_address}",
+                    )
+                    if meme_watch_now != meme_is_watched:
+                        set_meme_watchlist_symbol(result_ticker, meme_watch_now)
+                        st.toast(
+                            "Added to meme-coin watchlist"
+                            if meme_watch_now
+                            else "Removed from meme-coin watchlist"
+                        )
+
+                if result["Gate"] == "FAIL":
+                    meme_decision_reason = (
+                        "This coin currently fails one or more preliminary gates: "
+                        + (result["Gate Reasons"] or "see the detailed evidence below.")
+                    )
+                elif result["Decision"] in ("HIGH PRIORITY", "SHORTLIST"):
+                    meme_decision_reason = (
+                        "This coin currently passes the preliminary gates and reaches "
+                        "the model's current shortlist threshold."
+                    )
+                else:
+                    meme_decision_reason = (
+                        "This coin can be analysed, but the current model does not rank "
+                        "it as a shortlist candidate yet."
+                    )
+
+                render_signal_decision_card(
+                    "MEME COIN DECISION",
+                    result["Decision"],
+                    meme_decision_reason,
+                )
+                st.caption(
+                    "Decision first. The liquidity, activity, community, narrative and "
+                    "tokenomics evidence below explains the result."
+                )
+
+                m1, m2, m3, m4 = st.columns(4)
+                m1.metric("Decision", result["Decision"])
+                m2.metric("Meme Score", f"{result['Score']:.1f}/100")
+                m3.metric("Market Cap", "—" if np.isnan(safe(result["Market Cap"])) else f"${result['Market Cap']:,.0f}")
+                m4.metric("Liquidity", f"${result['Liquidity']:,.0f}")
+
+                p1, p2, p3, p4 = st.columns(4)
+                p1.metric("Price", "—" if np.isnan(safe(result["Price USD"])) else f"${result['Price USD']:.10g}")
+                p2.metric("24h Volume", f"${result['24h Volume']:,.0f}")
+                p3.metric("Buy %", f"{result['Buy %']:.1f}%")
+                p4.metric("24h Move", f"{result['24h %']:+.2f}%")
+
+                cm1, cm2, cm3, cm4 = st.columns(4)
+                cm1.metric("Community strength", result["Community Strength"])
+                cm2.metric("Community score", f"{result['Community Score']:.1f}/30")
+                cm3.metric("24h transactions", f"{result['24h Buys'] + result['24h Sells']:,}")
+                cm4.metric("Social breadth", f"{result['Social Breadth']}/4")
+
+                nr1, nr2 = st.columns(2)
+                nr1.metric("Narrative strength", result["Narrative Strength"])
+                nr2.metric("Narrative score", f"{result['Narrative Score']:.1f}/20")
+                if result.get("Narrative Signals"):
+                    st.caption("Narrative signals: " + result["Narrative Signals"])
+
+                tk1, tk2, tk3, tk4 = st.columns(4)
+                tk1.metric("Tokenomics gate", result["Tokenomics Gate"])
+                circ_proxy = result.get("Circulating % (proxy)", np.nan)
+                tk2.metric(
+                    "Circulating float",
+                    f"{circ_proxy:.1f}%" if pd.notna(circ_proxy) else "Unavailable",
+                    "Market cap / FDV proxy",
+                )
+                ratio = result.get("FDV / MCap", np.nan)
+                tk3.metric("FDV / Market cap", f"{ratio:.2f}x" if pd.notna(ratio) else "Unavailable")
+                tk4.metric("VC / unlock review", "Needs verification")
+
+                st.write(
+                    f"**{result['Name']} ({result['Ticker']})** · "
+                    f"Chain: **{result['Chain']}** · DEX: **{result['DEX']}** · Pair: **{result['Pair']}**"
+                )
+
+                pair_address = result.get("Pair Address") or ""
+                token_address = result.get("Token Address") or ""
+                trade_plan = {
+                    "Plan Status": "UNAVAILABLE",
+                    "Entry Low": np.nan,
+                    "Entry High": np.nan,
+                    "Entry Price": np.nan,
+                    "Negative Exit": np.nan,
+                    "Positive Exit": np.nan,
+                    "Stretch Exit": np.nan,
+                    "Gross ROI %": np.nan,
+                    "Net ROI %": np.nan,
+                    "Potential ROI %": np.nan,
+                    "Gross R:R": np.nan,
+                    "Net R:R": np.nan,
+                    "R:R": np.nan,
+                    "Estimated Slippage %": np.nan,
+                    "Estimated Total Costs %": np.nan,
+                    "Potential Profit $": np.nan,
+                    "Potential Loss $": np.nan,
+                    "Plan Basis": "No candle history",
+                }
+                plan_timeframe = "4h structure + 1h entry timing"
+                if pair_address and result.get("Chain"):
+                    try:
+                        plan_4h = fetch_pool_ohlcv(
+                            result["Chain"],
+                            pair_address,
+                            token_address,
+                            "4h",
+                        )
+                        plan_1h = fetch_pool_ohlcv(
+                            result["Chain"],
+                            pair_address,
+                            token_address,
+                            "1h",
+                        )
+                        if plan_4h.empty or len(plan_4h) < 24:
+                            plan_timeframe = "1h fallback"
+                        trade_plan = meme_trade_plan(
+                            plan_4h,
+                            plan_1h,
+                            liquidity=result.get("Liquidity", np.nan),
+                            position_size=planned_position_size,
+                            round_trip_fees_pct=round_trip_fees_pct,
+                        )
+                    except Exception:
+                        trade_plan["Plan Basis"] = "Trade-plan candle data unavailable"
+
+                result.update(trade_plan)
+
+                st.subheader("Trade Plan")
+                tp1, tp2, tp3, tp4, tp5, tp6 = st.columns(6)
+                tp1.metric("Current Price", fmt_meme_price(result.get("Price USD")))
+                tp2.metric("Entry Price", fmt_meme_price(trade_plan.get("Entry Price")))
+                tp3.metric("Negative Exit / Stop", fmt_meme_price(trade_plan.get("Negative Exit")))
+                tp4.metric("First Exit Target", fmt_meme_price(trade_plan.get("Positive Exit")))
+                tp5.metric(
+                    "Net ROI",
+                    f"{safe(trade_plan.get('Net ROI %')):.1f}%"
+                    if math.isfinite(safe(trade_plan.get("Net ROI %")))
+                    else "Unavailable",
+                )
+                tp6.metric(
+                    "Net R:R",
+                    f"{safe(trade_plan.get('Net R:R')):.2f}:1"
+                    if math.isfinite(safe(trade_plan.get("Net R:R")))
+                    else "Unavailable",
+                )
+
+                tc1, tc2, tc3, tc4, tc5, tc6 = st.columns(6)
+                tc1.metric("Stretch Target", fmt_meme_price(trade_plan.get("Stretch Exit")))
+                tc2.metric(
+                    "Gross ROI",
+                    f"{safe(trade_plan.get('Gross ROI %')):.1f}%"
+                    if math.isfinite(safe(trade_plan.get("Gross ROI %")))
+                    else "Unavailable",
+                )
+                tc3.metric(
+                    "Est. Slippage",
+                    f"{safe(trade_plan.get('Estimated Slippage %')):.2f}%"
+                    if math.isfinite(safe(trade_plan.get("Estimated Slippage %")))
+                    else "Unavailable",
+                )
+                tc4.metric(
+                    "Est. Total Costs",
+                    f"{safe(trade_plan.get('Estimated Total Costs %')):.2f}%"
+                    if math.isfinite(safe(trade_plan.get("Estimated Total Costs %")))
+                    else "Unavailable",
+                )
+                tc5.metric(
+                    "Potential Profit",
+                    ("$" + format(safe(trade_plan.get("Potential Profit $")), ",.2f"))
+                    if math.isfinite(safe(trade_plan.get("Potential Profit $")))
+                    else "Unavailable",
+                )
+                tc6.metric(
+                    "Potential Loss",
+                    ("$" + format(safe(trade_plan.get("Potential Loss $")), ",.2f"))
+                    if math.isfinite(safe(trade_plan.get("Potential Loss $")))
+                    else "Unavailable",
+                )
+                st.caption(
+                    f"Plan status: **{trade_plan.get('Plan Status', 'UNAVAILABLE')}** · "
+                    f"Entry zone: {fmt_meme_price(trade_plan.get('Entry Low'))} – "
+                    f"{fmt_meme_price(trade_plan.get('Entry High'))} · "
+                    f"Basis timeframe: {plan_timeframe} · "
+                    f"{trade_plan.get('Plan Basis', '')}"
+                )
+                risk_to_stop = safe(trade_plan.get("Risk to Stop %"))
+                atr_pct = safe(trade_plan.get("ATR %"))
+                if math.isfinite(risk_to_stop) or math.isfinite(atr_pct):
+                    st.caption(
+                        "Volatility context: "
+                        + (
+                            f"risk to stop {risk_to_stop:.1f}%"
+                            if math.isfinite(risk_to_stop)
+                            else ""
+                        )
+                        + (
+                            f" · ATR {atr_pct:.1f}%"
+                            if math.isfinite(atr_pct)
+                            else ""
+                        )
+                    )
+                if trade_plan.get("Plan Status") == "HIGH VOLATILITY — WAIT":
+                    st.warning(
+                        "The structural stop is very wide for this meme coin. "
+                        "Treat the setup as WAIT rather than forcing a high-risk entry."
+                    )
+                elif trade_plan.get("Plan Status") == "LIQUIDITY / SLIPPAGE — WAIT":
+                    st.warning(
+                        "Your planned trade size is large relative to this pool's liquidity. "
+                        "Estimated slippage is too high for a clean entry/exit."
+                    )
+                elif trade_plan.get("Plan Status") == "POOR R:R — WAIT":
+                    st.warning(
+                        "The first realistic resistance target does not offer enough reward "
+                        "for the structural downside risk. The model will not invent a higher target."
+                    )
+                elif trade_plan.get("Plan Status") == "WAIT FOR ENTRY":
+                    st.info(
+                        "Current price is above the preferred entry zone. Wait for the pullback "
+                        "rather than chasing the move."
+                    )
+
+                if pair_address and result.get("Chain"):
+                    st.subheader("Price Chart")
+                    chart_tf = st.selectbox(
+                        "Chart timeframe",
+                        list(CHART_TIMEFRAMES.keys()),
+                        index=1,
+                        key=f"meme_chart_tf_{result['Chain']}_{pair_address}",
+                    )
+                    try:
+                        chart_df = fetch_pool_ohlcv(
+                            result["Chain"],
+                            pair_address,
+                            token_address,
+                            chart_tf,
+                        )
+                        if chart_df.empty:
+                            st.info("No OHLCV candle history is available for this pair yet.")
+                        else:
+                            latest = chart_df.iloc[-1]
+                            bbw = chart_df["BBW_PCT"].dropna()
+                            bbw_now = safe(latest.get("BBW_PCT"))
+                            bbw_pctile = (
+                                float((bbw.tail(120) <= bbw_now).mean() * 100)
+                                if len(bbw.tail(120)) >= 20 and math.isfinite(bbw_now)
+                                else np.nan
+                            )
+                            recent_bbw = bbw.tail(6)
+                            expanding = (
+                                len(recent_bbw) >= 4
+                                and recent_bbw.iloc[-1] > recent_bbw.iloc[0] * 1.12
+                            )
+                            bb_regime = (
+                                "SQUEEZE" if math.isfinite(bbw_pctile) and bbw_pctile <= 20
+                                else "EXPANDING" if expanding
+                                else "NORMAL"
+                            )
+                            band_range = safe(latest.get("BBU")) - safe(latest.get("BBL"))
+                            bb_position = (
+                                (safe(latest.get("close")) - safe(latest.get("BBL"))) / band_range * 100
+                                if math.isfinite(band_range) and band_range > 0
+                                else np.nan
+                            )
+
+                            ta1, ta2, ta3, ta4 = st.columns(4)
+                            ta1.metric("RSI", f"{safe(latest.get('RSI'), 50):.1f}")
+                            ta2.metric("Bollinger", bb_regime)
+                            ta3.metric(
+                                "BB width percentile",
+                                f"{bbw_pctile:.1f}%" if math.isfinite(bbw_pctile) else "Unavailable",
+                            )
+                            ta4.metric(
+                                "Price in bands",
+                                f"{bb_position:.1f}%" if math.isfinite(bb_position) else "Unavailable",
+                            )
+
+                            chart_key = (
+                                "meme_price_chart_"
+                                + str(result.get("Chain", "")).replace("/", "_")
+                                + "_"
+                                + str(pair_address).replace("/", "_")
+                                + "_"
+                                + chart_tf
+                            )
+                            st.plotly_chart(
+                                meme_price_chart(
+                                    chart_df,
+                                    result["Ticker"],
+                                    chart_tf,
+                                    trade_plan=trade_plan,
+                                ),
+                                use_container_width=True,
+                                key=chart_key,
+                            )
+                            st.caption(
+                                "Native on-chain candlestick chart with EMA20/EMA50 and Bollinger Bands. "
+                                "RSI and Bollinger readings are context only and do not alter the meme score."
+                            )
+                    except Exception as exc:
+                        st.warning(f"Chart data is temporarily unavailable for this pair: {exc}")
+
+                detail_cols = [
+                    "Ticker", "Name", "Chain", "DEX", "Pair", "Decision", "Score", "Gate",
+                    "Price USD", "Entry Low", "Entry High", "Entry Price", "Negative Exit",
+                    "Positive Exit", "Stretch Exit", "Gross ROI %", "Net ROI %",
+                    "Potential ROI %", "Gross R:R", "Net R:R", "R:R",
+                    "Estimated Slippage %", "Estimated Total Costs %",
+                    "Potential Profit $", "Potential Loss $", "Plan Status", "Plan Basis",
+                    "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
+                    "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
+                    "Pair Age h", "Narrative Strength", "Narrative Score", "Narrative Signals",
+                    "Community Strength", "Community Score", "Social Breadth", "Community Takeover", "Boost", "Gate Reasons", "Risk Flags",
+                ]
+                st.dataframe(
+                    pd.DataFrame([{k: result.get(k) for k in detail_cols}]),
+                    hide_index=True,
+                    use_container_width=True,
+                )
+
+                social_cols = [
+                    "X", "Telegram", "Discord", "Website", "Discovery",
+                    "Token Address", "DexScreener",
+                ]
+                st.dataframe(
+                    pd.DataFrame([{k: result.get(k) for k in social_cols}]),
+                    hide_index=True,
+                    use_container_width=True,
+                )
+
+                st.caption("Detailed evidence shown above. Use Watch if you want to revisit this coin later.")
+        else:
+            st.warning("No DexScreener pairs matched that search.")
+
+with tab_meme_opportunities:
+    st.markdown("### Opportunities")
+    st.caption(
+        "A cleaner view of the latest Meme Coin discovery scan. Run a fresh scan from "
+        "**Advanced Meme Screener** whenever you want to update the market data."
+    )
+
+    meme_opportunities = st.session_state.meme_scan_df.copy()
+    if meme_opportunities.empty:
+        st.info(
+            "No discovery scan results are loaded yet. Open **Advanced Meme Screener** "
+            "and run a scan to populate this page."
+        )
+    else:
+        mo1, mo2, mo3, mo4 = st.columns(4)
+        mo1.metric(
+            "High priority",
+            int((meme_opportunities["Decision"] == "HIGH PRIORITY").sum()),
+        )
+        mo2.metric(
+            "Shortlist",
+            int((meme_opportunities["Decision"] == "SHORTLIST").sum()),
+        )
+        mo3.metric(
+            "Watch",
+            int((meme_opportunities["Decision"] == "WATCH").sum()),
+        )
+        mo4.metric("Tokens checked", len(meme_opportunities))
+
+        opportunity_filter = st.radio(
+            "Show",
+            ["Best opportunities", "High priority", "Shortlist", "Watch", "All"],
+            horizontal=True,
+            key="meme_opportunity_filter",
+        )
+
+        shown_meme = meme_opportunities.copy()
+        if opportunity_filter == "High priority":
+            shown_meme = shown_meme[shown_meme["Decision"] == "HIGH PRIORITY"]
+        elif opportunity_filter == "Shortlist":
+            shown_meme = shown_meme[shown_meme["Decision"] == "SHORTLIST"]
+        elif opportunity_filter == "Watch":
+            shown_meme = shown_meme[shown_meme["Decision"] == "WATCH"]
+        elif opportunity_filter == "Best opportunities":
+            shown_meme = shown_meme[
+                shown_meme["Decision"].isin(["HIGH PRIORITY", "SHORTLIST", "WATCH"])
+            ].head(25)
+
+        meme_opportunity_cols = [
+            "Ticker", "Name", "Chain", "Decision", "Score",
+            "Narrative Strength", "Community Strength", "Gate",
+            "Price USD", "Market Cap", "Liquidity", "24h Volume",
+            "Buy %", "1h %", "6h %", "24h %", "Risk Flags",
+        ]
+        visible_meme_cols = [
+            col for col in meme_opportunity_cols if col in shown_meme.columns
+        ]
+
+        if shown_meme.empty:
+            st.info("No candidates match that view in the latest scan.")
+        else:
+            meme_opportunity_display = shown_meme[visible_meme_cols]
+            meme_opportunity_styled = meme_opportunity_display.style
+            for _col in [
+                "Decision", "Score", "Narrative Strength", "Community Strength",
+                "Gate", "Liquidity", "24h Volume", "Buy %", "1h %", "6h %", "24h %",
+            ]:
+                if _col in meme_opportunity_display.columns:
+                    meme_opportunity_styled = meme_opportunity_styled.map(
+                        lambda value, col=_col: meme_cell_style(value, col),
+                        subset=[_col],
+                    )
+            st.dataframe(
+                meme_opportunity_styled,
+                hide_index=True,
+                use_container_width=True,
+            )
+
+
+with tab_meme_watchlist:
+    st.markdown("### Watchlist")
+    st.caption("Save meme coins you want to revisit without changing the screener rules.")
+
+    meme_watchlist = load_meme_watchlist()
+
+    with st.container(border=True):
+        watch_title_col, watch_manage_col = st.columns([4, 1], vertical_alignment="center")
+        with watch_title_col:
+            st.markdown("#### ⭐ My watchlist")
+            if meme_watchlist:
+                st.write(
+                    f"You are following **{len(meme_watchlist)}** meme coin"
+                    f"{'s' if len(meme_watchlist) != 1 else ''}."
+                )
+                st.caption(", ".join(meme_watchlist[:8]) + ("…" if len(meme_watchlist) > 8 else ""))
+            else:
+                st.write("Your meme-coin watchlist is empty.")
+                st.caption("Analyse a coin and tick **Watch** to save it for later.")
+
+    if meme_watchlist:
+        with st.expander("Manage meme-coin watchlist", expanded=False):
+            for meme_watch_index, meme_watch_symbol in enumerate(meme_watchlist):
+                meme_name_col, meme_remove_col = st.columns([5, 1], vertical_alignment="center")
+                with meme_name_col:
+                    st.write(f"**{meme_watch_symbol}**")
+                with meme_remove_col:
+                    if st.button(
+                        "Remove",
+                        key=f"remove_meme_watch_{meme_watch_symbol}_{meme_watch_index}",
+                        use_container_width=True,
+                    ):
+                        set_meme_watchlist_symbol(meme_watch_symbol, False)
+                        st.rerun()
+
+with tab_meme_advanced:
+    st.markdown("### Advanced Meme Screener")
+    st.subheader("Discovery Scan")
+    st.info(
+        "v0.1 uses DexScreener's latest profiles, boosts and community-takeover feeds for discovery, then scores the most liquid pair for each token. "
+        "Boosts are treated as a small discovery signal, not proof of quality."
+    )
+
+    if st.button("Run meme coin scan", type="primary", use_container_width=True):
+        chains = {CHAIN_OPTIONS[n] for n in selected_names}
+        with st.spinner("Finding emerging tokens and checking live pairs…"):
+            universe = discovery_universe()
+            pairs = fetch_pairs_for_tokens(universe, chains)
+            best_pairs = best_pair_per_token(pairs)
+
+        rows = []
+        for k, p in best_pairs.items():
+            meta = universe.get(k, {})
+            rows.append(score_candidate(p, meta, cfg))
+
+        if not rows:
+            st.warning("No candidates returned from the selected discovery feeds/chains.")
+        else:
+            df = pd.DataFrame(rows)
+            order = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
+            df["_order"] = df["Decision"].map(order).fillna(9)
+            df = df.sort_values(["_order", "Score", "Liquidity"], ascending=[True, False, False]).drop(columns=["_order"])
+            st.session_state.meme_scan_df = df.copy()
+
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("High priority", int((df["Decision"] == "HIGH PRIORITY").sum()))
+            c2.metric("Shortlist", int((df["Decision"] == "SHORTLIST").sum()))
+            c3.metric("Watch", int((df["Decision"] == "WATCH").sum()))
+            c4.metric("Tokens checked", len(df))
+
+            main_cols = [
+                "Ticker", "Name", "Chain", "Decision", "Score",
+                "Narrative Strength", "Narrative Score",
+                "Community Strength", "Community Score", "Social Breadth", "Gate", "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
+                "24h Volume", "Vol/Liq", "Buy %", "1h %", "6h %", "24h %",
+                "Pair Age h", "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
+            ]
+            st.subheader("Ranked candidates")
+            meme_display = df[main_cols]
+            meme_styled = meme_display.style
+            for _col in [
+                "Decision", "Score", "Narrative Strength", "Narrative Score",
+                "Community Strength", "Community Score", "Social Breadth",
+                "Gate", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate",
+                "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
+                "Buy %", "1h %", "6h %", "24h %", "Pair Age h",
+            ]:
+                if _col in meme_display.columns:
+                    meme_styled = meme_styled.map(
+                        lambda value, col=_col: meme_cell_style(value, col),
+                        subset=[_col],
+                    )
+            st.caption("Colour key: 🟢 strong / healthy · 🟠 acceptable or watch · 🔴 weak / higher risk")
+            st.dataframe(meme_styled, hide_index=True, use_container_width=True)
+
+            st.subheader("Community / discovery detail")
+            community_cols = [
+                "Ticker", "Chain", "Narrative Strength", "Narrative Score", "Narrative Signals",
+                "Community Strength", "Community Score", "Social Breadth",
+                "X", "Telegram", "Discord", "Website", "Community Takeover", "Discovery", "Boost", "DEX", "Pair", "Token Address", "DexScreener",
+            ]
+            st.dataframe(df[community_cols], hide_index=True, use_container_width=True)
+
+    with st.expander("How v0.1 scores candidates"):
+        st.markdown(
+            """
+    **100-point preliminary model**
+
+    - **30 — Community strength:** social breadth plus actual transaction participation. This remains the largest single factor.
+    - **20 — Narrative / cultural-icon potential:** simple branding, a clear story, community ownership and evidence the idea is spreading across multiple discovery surfaces.
+    - **12 — Liquidity quality:** absolute liquidity plus liquidity relative to market cap.
+    - **10 — Real activity:** 24h volume relative to liquidity plus transaction count.
+    - **8 — Buy pressure:** constructive demand is rewarded; extremely one-sided flow is not.
+    - **8 — Discovery/catalyst:** boosts and appearing across multiple discovery feeds. Paid boosts remain capped.
+    - **8 — Momentum without chasing:** constructive 1h/6h/24h movement scores better than a vertical pump.
+    - **4 — Pair maturity:** enough history to reduce immediate-launch noise.
+
+    **Hard gates** currently cover liquidity, volume, market-cap range, minimum pair age, anti-chase limits and the meme tokenomics rule: **at least 10% circulating float**. Because very new DEX tokens often lack a verified supply feed, v0.1 estimates circulating float as **market cap ÷ FDV** when both values are available. If it cannot verify the ratio, tokenomics is UNKNOWN and the coin does not pass the hard gate. A **FDV/market-cap ratio of 10x or more** is flagged as high-FDV/low-float risk.
+
+    Detailed VC allocations and insider unlock schedules are not guessed; they require a specialist verified tokenomics/unlock source and are marked for separate review.
+
+    **Community warning:** visible socials alone do not prove a real community. Follower counts can be bought or botted, so the model deliberately rewards actual transaction participation and multi-channel presence rather than treating raw followers as truth.
+
+    **Narrative warning:** the cultural score is heuristic. It can identify simple, recognisable, shareable meme structures, but it cannot know in advance which joke, mascot or cultural reference will genuinely go viral.
+
+    **Technical context:** Quick Analyse now shows RSI and 20-period/2-standard-deviation Bollinger Bands for the selected on-chain timeframe. They are deliberately **not part of the meme ranking score** because meme coins can remain overbought or highly volatile for long periods; community, narrative, liquidity and real activity remain more important.
+
+    This is **v0.1**, not the final meme-coin model. Narrative quality, holder distribution, LP lock/burn, contract/security checks, influencer quality, community growth/engagement and migration/relaunch rules are intentionally left as the next modular layers rather than being guessed.
+    """
+        )
+
+    st.caption("Screening aid only. Meme coins are exceptionally speculative; live DEX data can be incomplete, manipulated or change rapidly.")
