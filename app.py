@@ -3148,16 +3148,35 @@ with tab_crypto_home:
     crypto_summary = crypto_dashboard_summary(st.session_state.scan_df, cfg, macro)
     crypto_watchlist = load_crypto_watchlist()
 
+    scan_loaded = not st.session_state.scan_df.empty
     d1, d2, d3, d4, d5, d6 = st.columns(6)
-    d1.metric("Swing BUY", crypto_summary["swing_buy"])
-    d2.metric("Accumulation", crypto_summary["accumulation"])
+    d1.metric("Swing BUY", crypto_summary["swing_buy"] if scan_loaded else "—")
+    d2.metric("Accumulation", crypto_summary["accumulation"] if scan_loaded else "—")
     d3.metric(
         "Best swing score",
-        "—" if not math.isfinite(_safe_float(crypto_summary["best_score"])) else f"{crypto_summary['best_score']:.1f}/100",
+        (
+            "—"
+            if not scan_loaded or not math.isfinite(_safe_float(crypto_summary["best_score"]))
+            else f"{crypto_summary['best_score']:.1f}/100"
+        ),
     )
-    d4.metric("BTC trend", crypto_summary["btc_trend"])
+    d4.metric("BTC trend", crypto_summary["btc_trend"] if scan_loaded else "—")
     d5.metric("Macro regime", macro.get("regime", "DATA LIMITED"))
     d6.metric("Watchlist", len(crypto_watchlist))
+
+    if st.session_state.last_scan is not None:
+        scan_time = st.session_state.last_scan.astimezone().strftime("%d %b %Y %H:%M:%S %Z")
+        selected = int(st.session_state.scan_df.attrs.get("markets_selected", len(st.session_state.scan_df)))
+        completed = int(st.session_state.scan_df.attrs.get("markets_completed", len(st.session_state.scan_df)))
+        st.caption(
+            f"Crypto market scan: {scan_time} · {len(st.session_state.scan_df)} scored · "
+            f"{completed}/{selected} markets completed"
+        )
+    else:
+        st.info(
+            "No market-wide Crypto scan is loaded in this session yet. "
+            "The dashes above mean **not scanned**, not zero opportunities."
+        )
 
     home_a, home_b, home_c = st.columns(3)
     with home_a:
@@ -3296,6 +3315,14 @@ with tab_crypto_opportunities:
         "A cleaner view of the latest Crypto scan. Run a fresh scan from **Advanced Crypto** "
         "when you want to update the market data."
     )
+    if st.session_state.last_scan is not None and not st.session_state.scan_df.empty:
+        opp_scan_time = st.session_state.last_scan.astimezone().strftime("%d %b %Y %H:%M:%S %Z")
+        opp_selected = int(st.session_state.scan_df.attrs.get("markets_selected", len(st.session_state.scan_df)))
+        opp_completed = int(st.session_state.scan_df.attrs.get("markets_completed", len(st.session_state.scan_df)))
+        st.caption(
+            f"Last market-wide scan: {opp_scan_time} · "
+            f"{opp_completed}/{opp_selected} selected markets completed"
+        )
 
     opportunity_scan = st.session_state.scan_df.copy()
     if opportunity_scan.empty:
