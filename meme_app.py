@@ -12,7 +12,7 @@ from cl_signal_ui import render_module_header
 import plotly.graph_objects as go
 
 
-st.set_page_config(page_title="Meme Coin Screener", page_icon="🐸", layout="wide")
+st.set_page_config(page_title="CL Signal · Meme Coins", page_icon="🐸", layout="wide")
 
 
 
