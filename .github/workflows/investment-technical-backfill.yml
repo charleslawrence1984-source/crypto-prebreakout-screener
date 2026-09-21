@@ -7,7 +7,7 @@ on:
     paths:
       - ".github/investment-technical-backfill-kick.txt"
   workflow_run:
-    workflows: ["Nightly investment scans", "Weekend investment fundamentals backfill"]
+    workflows: ["Nightly stock freshness", "Nightly investment scans", "Weekend investment fundamentals backfill"]
     branches: [main]
     types: [completed]
   schedule:
