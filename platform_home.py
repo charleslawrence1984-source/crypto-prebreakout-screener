@@ -218,6 +218,14 @@ st.markdown(
     div[data-testid="stPageLink"] a {
         border-radius:12px !important;
         font-weight:800 !important;
+        border:1px solid #bfd1eb !important;
+        color:#174f9e !important;
+        background:#ffffff !important;
+    }
+    div[data-testid="stPageLink"] a:hover {
+        border-color:#2f7bf2 !important;
+        color:#0f55bf !important;
+        background:#f7faff !important;
     }
     @media(max-width:800px) {
         .hero-title { font-size:2.35rem; }
