@@ -16,6 +16,37 @@ logging.getLogger("streamlit.runtime").setLevel(logging.CRITICAL)
 import stock_app
 
 
+FUNDAMENTAL_CHANGE_COLUMNS = [
+    "Currency", "ROIC", "ROE", "Operating margin", "FCF margin",
+    "Annual FCF", "Annual net income", "Net debt / FCF",
+    "Interest coverage", "No interest expense", "Current ratio",
+    "Revenue growth", "Earnings growth", "Operating growth",
+    "Growth source", "Share change", "Distribution ratio",
+    "Missing hard inputs", "Trailing FCF",
+]
+
+
+def _normalise_change_value(value):
+    if value is None:
+        return None
+    try:
+        if pd.isna(value):
+            return None
+    except Exception:
+        pass
+    if isinstance(value, float):
+        return round(value, 8)
+    return value
+
+
+def _fundamental_fingerprint(row: dict) -> str:
+    payload = {
+        column: _normalise_change_value(row.get(column))
+        for column in FUNDAMENTAL_CHANGE_COLUMNS
+    }
+    return json.dumps(payload, sort_keys=True, default=str)
+
+
 def save_manifest(path: Path, manifest: dict) -> None:
     path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
@@ -49,6 +80,13 @@ def main() -> int:
     except Exception:
         manifest = {"schema_version": 1, "exchanges": {}}
     manifest.setdefault("exchanges", {})
+
+    changes_path = output_dir / "fundamental_changes.json"
+    changes = {
+        "generated_at": datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"),
+        "rulebook_build": stock_app.TRADE_RULEBOOK_BUILD,
+        "exchanges": {},
+    }
 
     labels_by_kind = {
         kind: label for label, kind in stock_app.EXCHANGE_UNIVERSES.items()
@@ -84,11 +122,12 @@ def main() -> int:
 
         if (
             args.resume
-            and str(previous.get("status", "")).lower() == "complete"
+            and str(previous.get("completed_at", "")).startswith(run_date)
             and str(previous.get("rulebook_build", "")) == stock_app.TRADE_RULEBOOK_BUILD
+            and not args.closed_markets_only
         ):
             print(
-                f"[{position}/{len(kinds)}] {kind}: prepared coverage already complete; skipping",
+                f"[{position}/{len(kinds)}] {kind}: already refreshed today; skipping",
                 flush=True,
             )
             continue
@@ -113,8 +152,14 @@ def main() -> int:
                     existing = pd.DataFrame()
 
             existing_symbols = set()
+            previous_fingerprints = {}
             if not existing.empty and "Ticker" in existing.columns:
                 existing_symbols = set(existing["Ticker"].dropna().astype(str))
+                previous_fingerprints = {
+                    str(row.get("Ticker")): _fundamental_fingerprint(row)
+                    for row in existing.to_dict(orient="records")
+                    if row.get("Ticker")
+                }
 
             missing_symbols = [
                 symbol for symbol in universe if symbol not in existing_symbols
@@ -190,6 +235,32 @@ def main() -> int:
                     for snapshot in refreshed.values()
                 ]
             )
+
+            changed_symbols = []
+            new_symbols = []
+            if not fresh_frame.empty:
+                for row in fresh_frame.to_dict(orient="records"):
+                    symbol = str(row.get("Ticker") or "")
+                    if not symbol:
+                        continue
+                    old_fp = previous_fingerprints.get(symbol)
+                    new_fp = _fundamental_fingerprint(row)
+                    if old_fp is None:
+                        new_symbols.append(symbol)
+                    elif old_fp != new_fp:
+                        changed_symbols.append(symbol)
+
+            changes["exchanges"][kind] = {
+                "label": labels_by_kind[kind],
+                "changed_symbols": sorted(changed_symbols),
+                "new_symbols": sorted(new_symbols),
+                "changed_count": len(changed_symbols),
+                "new_count": len(new_symbols),
+            }
+            changes["generated_at"] = datetime.now(
+                ZoneInfo("Europe/London")
+            ).isoformat(timespec="seconds")
+            save_manifest(changes_path, changes)
 
             # Preserve the last known snapshot for any symbol missed by a temporary
             # provider failure instead of deleting good background data.
@@ -279,6 +350,10 @@ def main() -> int:
                 flush=True,
             )
 
+    changes["generated_at"] = datetime.now(
+        ZoneInfo("Europe/London")
+    ).isoformat(timespec="seconds")
+    save_manifest(changes_path, changes)
     return 1 if hard_failures else 0
 
 
