@@ -228,7 +228,28 @@ st.markdown(
         background:#f7faff !important;
     }
     @media(max-width:800px) {
-        .hero-title { font-size:2.35rem; }
+        .block-container {
+            padding-top:2.4rem;
+            padding-left:.75rem;
+            padding-right:.75rem;
+        }
+        .cl-wordmark {
+            gap:13px;
+            margin-top:8px;
+            margin-bottom:28px;
+        }
+        .cl-logo-css {
+            width:82px;
+            height:82px;
+            flex-basis:82px;
+            transform:scale(.78);
+            transform-origin:left center;
+            margin-right:-18px;
+        }
+        .cl-title { font-size:2.35rem; }
+        .cl-subtitle { font-size:.92rem; }
+        .hero-title { font-size:2.25rem; }
+        .hero-copy { font-size:1rem; }
         .market-copy,.market-sub { min-height:0; }
     }
     </style>
