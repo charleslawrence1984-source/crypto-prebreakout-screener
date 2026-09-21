@@ -174,6 +174,20 @@ def apply_cl_signal_styles():
             background:#f7faff !important;
         }
 
+        div[data-testid="stDownloadButton"] button {
+            background:#ffffff !important;
+            border:1px solid #bfd1eb !important;
+            color:#174f9e !important;
+            border-radius:11px !important;
+            font-weight:750 !important;
+        }
+
+        div[data-testid="stDownloadButton"] button:hover {
+            border-color:#2f7bf2 !important;
+            color:#0f55bf !important;
+            background:#f7faff !important;
+        }
+
         /* Destructive actions remain red */
         div[class*="st-key-remove_watch_"] button {
             background:#fff7f7 !important;
