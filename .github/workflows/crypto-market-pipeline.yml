@@ -1,0 +1,70 @@
+name: Crypto all-market pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "crypto_market_pipeline.py"
+      - ".github/workflows/crypto-market-pipeline.yml"
+  schedule:
+    - cron: "*/5 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: crypto-all-market-pipeline
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Refresh all-market universe, discovery batch and active monitor
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python crypto_market_pipeline.py \
+            --quote USDT \
+            --min-quote-volume 5000000 \
+            --batch-size 150 \
+            --max-active 150 \
+            --concurrency 10
+
+      - name: Persist Crypto pipeline state
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -d prepared_crypto ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_crypto
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Update all-market Crypto pipeline"
+          for attempt in 1 2 3; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 5))
+          done
+          exit 1
