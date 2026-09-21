@@ -219,10 +219,20 @@ def main() -> int:
                 except Exception:
                     continue
 
+        if args.refresh_existing and not existing.empty:
+            # A full refresh must never leave yesterday's technical state behind
+            # when today's price-history request fails. Remove every attempted row
+            # first, then add back only successfully recalculated rows.
+            existing = existing[
+                ~existing["Ticker"].astype(str).isin(set(scan_symbols))
+            ]
+
         if rows:
             refreshed = {str(row["Ticker"]) for row in rows}
-            if not existing.empty:
-                existing = existing[~existing["Ticker"].astype(str).isin(refreshed)]
+            if not existing.empty and not args.refresh_existing:
+                existing = existing[
+                    ~existing["Ticker"].astype(str).isin(refreshed)
+                ]
             combined = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True)
         else:
             combined = existing
