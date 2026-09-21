@@ -3189,7 +3189,7 @@ with tab1:
     with c2:
         st.write("")
         st.write("")
-        analyse_clicked = st.button("Analyse", type="primary", use_container_width=True)
+        analyse_clicked = st.button("Analyse company", type="primary", use_container_width=True)
 
     if analyse_clicked and manual:
         resolved = resolve_company_query(manual)
