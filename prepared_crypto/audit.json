@@ -1,22 +1,29 @@
 {
-  "active_candidates": 49,
-  "deduplicated_cross_exchange_coins": 54,
-  "discovery_batch_scanned": 54,
+  "active_candidates": 102,
+  "deduplicated_cross_exchange_coins": 117,
+  "discovery_batch_scanned": 117,
   "discovery_batch_size": 150,
-  "discovery_coverage_pct": 96.3,
-  "discovery_rows_current": 52,
-  "eligible_market_rows": 54,
+  "discovery_coverage_pct": 98.3,
+  "discovery_rows_current": 115,
+  "eligible_market_rows": 159,
   "errors": [
-    "binance: ExchangeNotAvailable: binance GET https://fapi.binance.com/fapi/v1/exchangeInfo 451  {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error.\"\n}",
-    "bybit: RateLimitExceeded: bybit GET https://api.bytick.com/v5/market/instruments-info?category=option&baseCoin=BTC 403 Forbidden {\n    error:The Amazon CloudFront distribution is configured to block access from your country\n}"
+    "bybit: RateLimitExceeded: bybit GET https://api.bytick.com/v5/market/instruments-info?category=spot 403 Forbidden {\n    error:The Amazon CloudFront distribution is configured to block access from your country\n}"
   ],
   "estimated_full_sweep_minutes_at_5m_cadence": 5,
   "exchange_counts": [
     {
-      "error": "ExchangeNotAvailable: binance GET https://fapi.binance.com/fapi/v1/exchangeInfo 451  {\n  \"code\": 0,\n  \"msg\": \"Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error.\"\n}",
+      "active_spot_total": 1368,
+      "below_liquidity": 379,
+      "eligible": 105,
       "exchange": "Binance",
       "exchange_id": "binance",
-      "status": "DATA ISSUE"
+      "leveraged_excluded": 1,
+      "min_quote_volume": 5000000.0,
+      "quote": "USDT",
+      "quote_matched": 493,
+      "stablecoin_excluded": 8,
+      "status": "CURRENT",
+      "volume_unavailable": 0
     },
     {
       "active_spot_total": 1410,
@@ -33,14 +40,14 @@
       "volume_unavailable": 0
     },
     {
-      "error": "RateLimitExceeded: bybit GET https://api.bytick.com/v5/market/instruments-info?category=option&baseCoin=BTC 403 Forbidden {\n    error:The Amazon CloudFront distribution is configured to block access from your country\n}",
+      "error": "RateLimitExceeded: bybit GET https://api.bytick.com/v5/market/instruments-info?category=spot 403 Forbidden {\n    error:The Amazon CloudFront distribution is configured to block access from your country\n}",
       "exchange": "Bybit",
       "exchange_id": "bybit",
       "status": "DATA ISSUE"
     }
   ],
-  "generated_at": "2026-09-21T20:06:03+00:00",
+  "generated_at": "2026-09-21T20:07:40+00:00",
   "minimum_24h_quote_volume": 5000000.0,
   "quote": "USDT",
-  "unique_eligible_coins": 54
+  "unique_eligible_coins": 117
 }
