@@ -3415,6 +3415,8 @@ with tab_home:
         f"Fundamental change check: {format_freshness_time(stock_freshness['fundamental_check'])}"
     )
 
+    render_live_trade_monitor("home", show_table=True)
+
     action1, action2, action3 = st.columns(3)
     with action1:
         with st.container(border=True):
@@ -3869,6 +3871,9 @@ with tab2:
     )
 
     watch_entries = load_browser_watchlist()
+
+    if watch_entries:
+        render_live_watchlist_quotes()
 
     refresh_watchlist = False
     if not watch_entries:
