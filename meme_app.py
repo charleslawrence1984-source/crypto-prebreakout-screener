@@ -8,16 +8,12 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
+from cl_signal_ui import render_module_header
 import plotly.graph_objects as go
 
 
 st.set_page_config(page_title="Meme Coin Screener", page_icon="🐸", layout="wide")
 
-st.page_link(
-    "platform_home.py",
-    label="← Back to CL Signal Home",
-    use_container_width=False,
-)
 
 
 API = "https://api.dexscreener.com"
@@ -968,9 +964,10 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
     }
 
 
-st.title("🐸 Meme Coin Screener — v0.1")
-st.caption(
-    "Early-discovery screener for meme-coin candidates. It is deliberately separate from the main crypto screener and is built to be expanded as your shortlist rules evolve."
+render_module_header(
+    "Meme Coins",
+    "🐸",
+    "Early-discovery screening for meme-coin candidates, with deeper analysis and shortlist tools available underneath.",
 )
 
 with st.sidebar:
