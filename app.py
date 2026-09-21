@@ -16,6 +16,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_decision_guidance
+from crypto_universe_rules import is_crypto_universe_asset
 
 
 st.set_page_config(page_title="CL Signal · Crypto", page_icon="⚡", layout="wide")
@@ -23,12 +24,6 @@ st.set_page_config(page_title="CL Signal · Crypto", page_icon="⚡", layout="wi
 
 PREPARED_CRYPTO_DIR = Path(__file__).resolve().parent / "prepared_crypto"
 
-
-STABLE_BASES = {
-    "USDT", "USDC", "DAI", "FDUSD", "TUSD", "USDE", "PYUSD", "EURC", "USD1",
-    "BUSD", "USDP", "GUSD", "LUSD", "FRAX", "EUR", "GBP",
-}
-LEVERAGED_SUFFIXES = ("UP", "DOWN", "BULL", "BEAR", "2L", "2S", "3L", "3S", "5L", "5S")
 
 EXCHANGES = {
     "Binance": "binance",
@@ -2226,7 +2221,7 @@ async def fetch_market_universe(cfg: ScreenerConfig) -> Tuple[List[Tuple[str, fl
             if market.get("quote") != cfg.quote:
                 continue
             base = str(market.get("base", "")).upper()
-            if base in STABLE_BASES or any(base.endswith(sfx) and len(base) > len(sfx) + 2 for sfx in LEVERAGED_SUFFIXES):
+            if not is_crypto_universe_asset(base, cfg.exchange_id):
                 continue
             t = tickers.get(symbol) or {}
             qv = _safe_float(t.get("quoteVolume"), np.nan)
@@ -2290,6 +2285,10 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
             if market.get("spot")
             and market.get("active") is not False
             and market.get("quote") == cfg.quote
+            and is_crypto_universe_asset(
+                str(market.get("base", "")).upper(),
+                cfg.exchange_id,
+            )
         }
 
         direct = [
