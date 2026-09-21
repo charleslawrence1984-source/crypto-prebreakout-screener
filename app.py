@@ -3201,7 +3201,22 @@ with home_c:
         else:
             st.write("Your crypto watchlist is empty.")
             st.caption("Analyse a coin below and tick **Watch** to start tracking it.")
-        st.caption("Full watchlist management and automatic status alerts are the next Crypto UX step.")
+        st.caption("Use **Manage watchlist** below to remove coins you no longer want to follow.")
+
+if crypto_watchlist:
+    with st.expander("Manage crypto watchlist", expanded=False):
+        for crypto_watch_index, crypto_watch_symbol in enumerate(crypto_watchlist):
+            watch_name_col, watch_remove_col = st.columns([5, 1], vertical_alignment="center")
+            with watch_name_col:
+                st.write(f"**{crypto_watch_symbol}**")
+            with watch_remove_col:
+                if st.button(
+                    "Remove",
+                    key=f"remove_crypto_watch_{crypto_watch_symbol}_{crypto_watch_index}",
+                    use_container_width=True,
+                ):
+                    set_crypto_watchlist_symbol(crypto_watch_symbol, False)
+                    st.rerun()
 
 if crypto_home_analyse and crypto_home_query:
     with st.spinner(f"Analysing {crypto_home_query.strip()}…"):
