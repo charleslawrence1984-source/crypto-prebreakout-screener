@@ -49,7 +49,7 @@ jobs:
           elif [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "0 9 1 * *" ]; then
             DEEP="--deep"
           fi
-          python stock_freshness_audit.py $DEEP || true
+          python stock_freshness_audit.py $DEEP
 
       - name: Save freshness report
         if: always()
