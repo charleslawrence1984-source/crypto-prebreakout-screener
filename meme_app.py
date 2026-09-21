@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
-from cl_signal_ui import render_module_header
+from cl_signal_ui import render_module_header, render_signal_decision_card
 import plotly.graph_objects as go
 
 
@@ -1189,6 +1189,32 @@ if quick_query.strip():
                         else "Removed from meme-coin watchlist"
                     )
 
+            if result["Gate"] == "FAIL":
+                meme_decision_reason = (
+                    "This coin currently fails one or more preliminary gates: "
+                    + (result["Gate Reasons"] or "see the detailed evidence below.")
+                )
+            elif result["Decision"] in ("HIGH PRIORITY", "SHORTLIST"):
+                meme_decision_reason = (
+                    "This coin currently passes the preliminary gates and reaches "
+                    "the model's current shortlist threshold."
+                )
+            else:
+                meme_decision_reason = (
+                    "This coin can be analysed, but the current model does not rank "
+                    "it as a shortlist candidate yet."
+                )
+
+            render_signal_decision_card(
+                "MEME COIN DECISION",
+                result["Decision"],
+                meme_decision_reason,
+            )
+            st.caption(
+                "Decision first. The liquidity, activity, community, narrative and "
+                "tokenomics evidence below explains the result."
+            )
+
             m1, m2, m3, m4 = st.columns(4)
             m1.metric("Decision", result["Decision"])
             m2.metric("Meme Score", f"{result['Score']:.1f}/100")
@@ -1484,12 +1510,7 @@ if quick_query.strip():
                 use_container_width=True,
             )
 
-            if result["Gate"] == "FAIL":
-                st.warning("This coin currently fails one or more preliminary gates: " + (result["Gate Reasons"] or "see table above."))
-            elif result["Decision"] in ("HIGH PRIORITY", "SHORTLIST"):
-                st.success("This coin currently passes the preliminary gates and reaches the model's shortlist threshold.")
-            else:
-                st.info("This coin passes the lookup, but the current v0.1 model does not rank it as a shortlist candidate yet.")
+            st.caption("Detailed evidence shown above. Use Watch if you want to revisit this coin later.")
     else:
         st.warning("No DexScreener pairs matched that search.")
 
