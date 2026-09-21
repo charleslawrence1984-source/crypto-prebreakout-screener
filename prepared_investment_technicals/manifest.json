@@ -2293,15 +2293,15 @@
     "vienna": {
       "coverage_symbols": 168,
       "dispatch_counts": {
-        "BLCK.VI": 68,
-        "CATL.VI": 68,
-        "ETN.VI": 68,
-        "FTNT.VI": 68,
-        "IBKR.VI": 68,
-        "KKRO.VI": 68,
-        "MCK.VI": 68,
-        "MPWR.VI": 68,
-        "TTEC.VI": 67
+        "BLCK.VI": 69,
+        "CATL.VI": 69,
+        "ETN.VI": 69,
+        "FTNT.VI": 69,
+        "IBKR.VI": 69,
+        "KKRO.VI": 69,
+        "MCK.VI": 69,
+        "MPWR.VI": 69,
+        "TTEC.VI": 68
       },
       "eligible_symbols": 177,
       "errors": [
@@ -2352,21 +2352,21 @@
     "xetra": {
       "coverage_symbols": 153,
       "dispatch_counts": {
-        "3SM.DE": 68,
-        "6RV.DE": 68,
-        "AP4N.DE": 68,
-        "AT4.DE": 68,
-        "C7N.DE": 68,
-        "CFZ.DE": 68,
-        "D6I.DE": 68,
-        "ET9.DE": 68,
-        "H3V.DE": 68,
-        "HFF.DE": 68,
-        "JYS1.DE": 68,
-        "LGI.DE": 68,
-        "R902.DE": 68,
-        "SMP0.DE": 67,
-        "STD.DE": 67
+        "3SM.DE": 69,
+        "6RV.DE": 69,
+        "AP4N.DE": 69,
+        "AT4.DE": 69,
+        "C7N.DE": 69,
+        "CFZ.DE": 69,
+        "D6I.DE": 69,
+        "ET9.DE": 69,
+        "H3V.DE": 69,
+        "HFF.DE": 69,
+        "JYS1.DE": 69,
+        "LGI.DE": 69,
+        "R902.DE": 69,
+        "SMP0.DE": 68,
+        "STD.DE": 68
       },
       "eligible_symbols": 168,
       "errors": [
@@ -2441,5 +2441,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-21T00:42:23.545823+00:00"
+  "updated_at": "2026-09-21T01:37:29.374959+00:00"
 }
