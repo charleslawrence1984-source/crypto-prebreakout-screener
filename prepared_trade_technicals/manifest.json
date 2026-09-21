@@ -75,28 +75,30 @@
       "coverage_symbols": 33,
       "eligible_symbols": 33,
       "label": "London Stock Exchange",
+      "refresh_mode": "all_eligible",
       "remaining_symbols": 0,
-      "requested_this_run": 0,
-      "returned_this_run": 0,
+      "requested_this_run": 33,
+      "returned_this_run": 33,
       "rulebook_build": "2026.09.18.12",
-      "source_fundamentals_updated_at": "2026-09-20T23:22:43+01:00",
+      "source_fundamentals_updated_at": "2026-09-21T22:28:40+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 16,
-      "updated_at": "2026-09-21T00:17:53+01:00"
+      "updated_at": "2026-09-21T22:55:42+01:00"
     },
     "lse_aim": {
       "coverage_pct": 100.0,
       "coverage_symbols": 2,
       "eligible_symbols": 2,
       "label": "LSE AIM",
+      "refresh_mode": "all_eligible",
       "remaining_symbols": 0,
-      "requested_this_run": 0,
-      "returned_this_run": 0,
+      "requested_this_run": 2,
+      "returned_this_run": 2,
       "rulebook_build": "2026.09.18.12",
-      "source_fundamentals_updated_at": "2026-09-20T23:22:43+01:00",
+      "source_fundamentals_updated_at": "2026-09-21T22:28:40+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 1,
-      "updated_at": "2026-09-21T00:18:14+01:00"
+      "updated_at": "2026-09-21T22:55:46+01:00"
     },
     "madrid": {
       "coverage_pct": 100.0,
@@ -214,6 +216,6 @@
   "fundamental_coverage_mode": "practical-complete-with-explicit-provider-gaps",
   "rulebook_build": "2026.09.18.12",
   "schema_version": 1,
-  "source_fundamentals_updated_at": "2026-09-20T23:22:43+01:00",
-  "updated_at": "2026-09-21T00:18:19+01:00"
+  "source_fundamentals_updated_at": "2026-09-21T22:28:40+01:00",
+  "updated_at": "2026-09-21T22:55:46+01:00"
 }

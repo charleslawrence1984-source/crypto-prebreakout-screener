@@ -85,12 +85,13 @@
       "symbols": []
     },
     "six": {
-      "count": 69,
+      "count": 74,
       "label": "SIX Swiss Exchange",
       "symbols": [
         "AAPL-USD.SW",
         "ADBE-USD.SW",
         "AMAT-USD.SW",
+        "AMD-USD.SW",
         "AMZN-USD.SW",
         "ANET-USD.SW",
         "APH-USD.SW",
@@ -116,6 +117,7 @@
         "EPH-EUR.SW",
         "GE-USD.SW",
         "GLW-USD.SW",
+        "GME-USD.SW",
         "GOOG-USD.SW",
         "GOOGL-USD.SW",
         "GS-USD.SW",
@@ -127,8 +129,10 @@
         "IONQ-USD.SW",
         "JPM-USD.SW",
         "KO-USD.SW",
+        "MA-USD.SW",
         "MCD-USD.SW",
         "MDLZ-USD.SW",
+        "MDT-USD.SW",
         "META-USD.SW",
         "MRK-USD.SW",
         "MRNA-USD.SW",
@@ -142,6 +146,7 @@
         "NTR-USD.SW",
         "NVDA-USD.SW",
         "ORCL-USD.SW",
+        "PAAS-USD.SW",
         "PFE-USD.SW",
         "PG-USD.SW",
         "PLTR-USD.SW",
@@ -149,14 +154,14 @@
         "RKLB-USD.SW",
         "SNAP-USD.SW",
         "SPCX-USD.SW",
-        "TSLA-USD.SW",
         "TTWO-USD.SW",
         "UBER-USD.SW",
         "UUUU-USD.SW",
         "V-USD.SW",
         "VZ-USD.SW",
         "WDAY-USD.SW",
-        "XOM-USD.SW"
+        "XOM-USD.SW",
+        "ZM-USD.SW"
       ]
     },
     "tsx": {
@@ -264,8 +269,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-21T00:18:19+01:00",
+  "recorded_at": "2026-09-21T22:55:48+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-20T23:22:43+01:00",
-  "total_unresolved": 181
+  "source_fundamentals_updated_at": "2026-09-21T22:28:40+01:00",
+  "total_unresolved": 186
 }
