@@ -13,7 +13,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
-from cl_signal_ui import render_module_header
+from cl_signal_ui import render_module_header, render_decision_guidance
 
 
 st.set_page_config(page_title="CL Signal · Crypto", page_icon="⚡", layout="wide")
@@ -3024,6 +3024,7 @@ def render_crypto_decision_card(title: str, action: str, reason: str) -> None:
         """,
         unsafe_allow_html=True,
     )
+    render_decision_guidance(action_upper, reason)
 
 
 def crypto_dashboard_summary(frame: pd.DataFrame, cfg: ScreenerConfig, macro_now: Dict) -> Dict:
