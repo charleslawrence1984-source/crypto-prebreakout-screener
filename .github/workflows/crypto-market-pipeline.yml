@@ -27,6 +27,14 @@ jobs:
           ref: main
           fetch-depth: 0
 
+      - name: Restore previous Crypto data state
+        shell: bash
+        run: |
+          git fetch origin crypto-data:refs/remotes/origin/crypto-data || true
+          if git rev-parse --verify origin/crypto-data >/dev/null 2>&1; then
+            git checkout origin/crypto-data -- prepared_crypto 2>/dev/null || true
+          fi
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -46,7 +54,7 @@ jobs:
             --max-active 150 \
             --concurrency 10
 
-      - name: Persist Crypto pipeline state
+      - name: Persist Crypto pipeline state to data branch
         if: always()
         shell: bash
         run: |
@@ -56,15 +64,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add prepared_crypto
-          if git diff --cached --quiet; then
-            exit 0
-          fi
-          git commit -m "Update all-market Crypto pipeline"
+          git commit -m "Update all-market Crypto pipeline" || true
           for attempt in 1 2 3; do
-            git pull --rebase origin main
-            if git push origin HEAD:main; then
+            if git push --force-with-lease origin HEAD:crypto-data; then
               exit 0
             fi
+            git fetch origin crypto-data:refs/remotes/origin/crypto-data || true
             sleep $((attempt * 5))
           done
           exit 1
