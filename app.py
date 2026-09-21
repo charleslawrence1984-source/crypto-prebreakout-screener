@@ -50,7 +50,15 @@ MAJOR_CEX = {
 
 def make_public_ccxt_exchange(exchange_id: str):
     cls = getattr(ccxt, exchange_id)
-    config = {"enableRateLimit": True, "options": {"defaultType": "spot"}}
+    config = {
+        "enableRateLimit": True,
+        "options": {
+            "defaultType": "spot",
+            "fetchMarkets": {"types": ["spot"]},
+            "fetchCurrencies": False,
+            "fetchMargins": False,
+        },
+    }
     if exchange_id == "bybit":
         config["hostname"] = "bytick.com"
     exchange = cls(config)
