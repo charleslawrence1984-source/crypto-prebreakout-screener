@@ -4555,6 +4555,12 @@ with tab_crypto_advanced:
                 },
             )
 
+        # A successful scheduled/manual scan updates session state inside this
+        # fragment. Rerun the whole app once so Home and Opportunities immediately
+        # reflect the same newly-scanned dataset rather than the previous snapshot.
+        if should_scan:
+            st.rerun()
+
     live_scan()
 
     st.divider()
