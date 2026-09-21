@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import asyncio
 import io
+import json
 import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import ccxt.async_support as ccxt
@@ -18,6 +20,8 @@ from cl_signal_ui import render_module_header, render_decision_guidance
 
 st.set_page_config(page_title="CL Signal · Crypto", page_icon="⚡", layout="wide")
 
+
+PREPARED_CRYPTO_DIR = Path(__file__).resolve().parent / "prepared_crypto"
 
 
 STABLE_BASES = {
@@ -66,6 +70,60 @@ def _safe_float(x, default=np.nan):
         return v if math.isfinite(v) else default
     except Exception:
         return default
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def load_crypto_pipeline_state() -> Dict:
+    def read_json(name: str) -> dict:
+        try:
+            return json.loads((PREPARED_CRYPTO_DIR / name).read_text(encoding="utf-8"))
+        except Exception:
+            return {}
+
+    def read_csv(name: str) -> pd.DataFrame:
+        try:
+            return pd.read_csv(PREPARED_CRYPTO_DIR / name, compression="gzip")
+        except Exception:
+            return pd.DataFrame()
+
+    manifest = read_json("manifest.json")
+    audit = read_json("audit.json")
+    active = read_csv("active_monitor.csv.gz")
+    discovery = read_csv("discovery.csv.gz")
+    return {
+        "manifest": manifest,
+        "audit": audit,
+        "active": active,
+        "discovery": discovery,
+    }
+
+
+def crypto_pipeline_age_minutes(manifest: dict) -> float:
+    value = manifest.get("updated_at")
+    if not value:
+        return np.nan
+    try:
+        timestamp = pd.Timestamp(value)
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.tz_localize("UTC")
+        return max(
+            (pd.Timestamp.now(tz="UTC") - timestamp.tz_convert("UTC")).total_seconds() / 60,
+            0.0,
+        )
+    except Exception:
+        return np.nan
+
+
+def crypto_pipeline_health_label(manifest: dict) -> str:
+    age = crypto_pipeline_age_minutes(manifest)
+    status = str(manifest.get("status") or "NOT READY").upper()
+    if not math.isfinite(age):
+        return "NOT READY"
+    if age > 20:
+        return "STALE"
+    if status == "PARTIAL":
+        return "PARTIAL"
+    return "CURRENT"
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -3147,6 +3205,9 @@ with tab_crypto_home:
 
     crypto_summary = crypto_dashboard_summary(st.session_state.scan_df, cfg, macro)
     crypto_watchlist = load_crypto_watchlist()
+    pipeline_state = load_crypto_pipeline_state()
+    pipeline_manifest = pipeline_state["manifest"]
+    pipeline_active = pipeline_state["active"]
 
     scan_loaded = not st.session_state.scan_df.empty
     d1, d2, d3, d4, d5, d6 = st.columns(6)
@@ -3177,6 +3238,38 @@ with tab_crypto_home:
             "No market-wide Crypto scan is loaded in this session yet. "
             "The dashes above mean **not scanned**, not zero opportunities."
         )
+
+    st.markdown("#### 🌐 Persistent all-market monitor")
+    if pipeline_manifest:
+        pm1, pm2, pm3, pm4 = st.columns(4)
+        pm1.metric(
+            "Eligible coins",
+            int(pipeline_manifest.get("unique_eligible_coins", 0) or 0),
+        )
+        pm2.metric(
+            "Discovery coverage",
+            f"{float(pipeline_manifest.get('discovery_coverage_pct', 0) or 0):.1f}%",
+        )
+        pm3.metric(
+            "Active candidates",
+            int(pipeline_manifest.get("active_candidates", len(pipeline_active)) or 0),
+        )
+        pm4.metric(
+            "Full sweep",
+            f"~{int(pipeline_manifest.get('estimated_full_sweep_minutes', 0) or 0)} min",
+        )
+        pipeline_age = crypto_pipeline_age_minutes(pipeline_manifest)
+        pipeline_time = format(
+            pd.Timestamp(pipeline_manifest.get("updated_at")).tz_convert("Europe/London"),
+            "%d %b %Y %H:%M",
+        ) if pipeline_manifest.get("updated_at") else "not yet available"
+        st.caption(
+            f"Pipeline: {crypto_pipeline_health_label(pipeline_manifest)} · "
+            f"updated {pipeline_time} · 5-minute universe/active-monitor cadence · "
+            "discovery ranking prioritises deep analysis but does not replace the Crypto BUY/WAIT rules."
+        )
+    else:
+        st.caption("Persistent all-market monitor is initialising.")
 
     home_a, home_b, home_c = st.columns(3)
     with home_a:
@@ -3311,6 +3404,36 @@ with tab_crypto_home:
 
 with tab_crypto_opportunities:
     st.markdown("### Opportunities")
+
+    pipeline_state_opps = load_crypto_pipeline_state()
+    pipeline_active_opps = pipeline_state_opps["active"]
+    pipeline_manifest_opps = pipeline_state_opps["manifest"]
+    with st.expander("🌐 Background discovery monitor", expanded=False):
+        st.caption(
+            "This is the 24/7 all-market discovery layer, not a BUY list. "
+            "Coins shown here have been prioritised for deeper CL Signal analysis."
+        )
+        if pipeline_active_opps.empty:
+            st.info("The background discovery monitor is initialising.")
+        else:
+            monitor_cols = [
+                "Monitor state", "Base", "Exchange", "Current price",
+                "Live distance to resistance %", "discovery_rank",
+                "rs_vs_btc_48h_pct", "24h quote volume", "Eligible exchanges",
+            ]
+            monitor_cols = [
+                column for column in monitor_cols if column in pipeline_active_opps.columns
+            ]
+            monitor_view = pipeline_active_opps[monitor_cols].copy()
+            if "discovery_rank" in monitor_view.columns:
+                monitor_view = monitor_view.rename(columns={"discovery_rank": "Discovery rank"})
+            st.dataframe(monitor_view, hide_index=True, use_container_width=True)
+        if pipeline_manifest_opps:
+            st.caption(
+                f"Coverage {float(pipeline_manifest_opps.get('discovery_coverage_pct', 0) or 0):.1f}% · "
+                f"{int(pipeline_manifest_opps.get('unique_eligible_coins', 0) or 0)} eligible unique coins · "
+                f"estimated full sweep ~{int(pipeline_manifest_opps.get('estimated_full_sweep_minutes', 0) or 0)} minutes."
+            )
     st.caption(
         "A cleaner view of the latest Crypto scan. Run a fresh scan from **Advanced Crypto** "
         "when you want to update the market data."
