@@ -3189,10 +3189,15 @@ with st.sidebar:
     threshold = st.slider("Minimum BUY score", 80, 95, 80, 1)
     max_distance = st.slider("Maximum distance below resistance (%)", 1.0, 8.0, 5.0, 0.25)
     max_rsi = st.slider("Maximum RSI", 60, 75, 69, 1)
-    refresh_minutes = st.selectbox("Auto-refresh", [2, 5, 10, 15, 30], index=1, format_func=lambda x: f"Every {x} min")
-    if universe_size > 150 and refresh_minutes < 10:
-        refresh_minutes = 10
-        st.caption("Scans above 150 coins refresh at most every 10 minutes.")
+    refresh_minutes = st.selectbox(
+        "Formal scan refresh",
+        [5, 10, 15, 30],
+        index=1,
+        format_func=lambda x: f"Manual · previous setting {x} min",
+        disabled=True,
+        help="The formal Advanced Crypto scan is manual. The 24/7 all-market discovery pipeline updates every 5 minutes.",
+    )
+    st.caption("24/7 discovery refreshes every 5 min. Full CL Signal strategy scans run only when you press **Run scan now**.")
     sound_alerts = st.checkbox("Sound alert for new flags", value=False, help="Browser autoplay usually works after you have interacted with the page once.")
     st.divider()
     cmcal_connected = bool(_streamlit_secret("COINMARKETCAL_API_KEY"))
@@ -4082,33 +4087,15 @@ with tab_crypto_advanced:
     with info_col:
         st.info("A flag means the setup matches the pre-breakout rules. It is not a prediction or a guarantee of a pump.")
 
-    run_every = f"{refresh_minutes}m"
-
-    @st.fragment(run_every=run_every)
+    @st.fragment
     def live_scan():
-        # A dropdown interaction reruns the full app. Only fetch fresh market data when
-        # the refresh interval has elapsed, so inspecting another coin cannot reset it.
-        now = datetime.now(timezone.utc)
-        last_scan = st.session_state.last_scan
-        scan_due = (
-            last_scan is None
-            or (now - last_scan).total_seconds() >= refresh_minutes * 60
-        )
-        required_scan_columns = {
-            "Trade reason", "Coin trend", "Market trend", "Tokenomics gate",
-            "Circulating %", "RS vs BTC 96h %", "Major CEX gate", "Major CEX count",
-            "Category leader", "Leader categories", "Project freshness", "Catalyst status",
-            "Candle caution", "Last 4h candle", "Pattern", "Triangle score",
-            "SMA regime", "SMA50", "SMA200", "BB 4h regime", "BB 4h width %",
-            "4h Channel", "4h Channel pos %",
-            "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
-        }
-        needs_candidate_refresh = (
-            not st.session_state.scan_df.empty
-            and not required_scan_columns.issubset(set(st.session_state.scan_df.columns))
-        )
-        settings_changed = st.session_state.get("last_scan_config") != vars(cfg)
-        should_scan = manual_scan or needs_candidate_refresh or settings_changed or scan_due
+        # Formal scans are intentionally manual. The persistent all-market pipeline
+        # continues updating independently every five minutes.
+        # The 24/7 prepared Crypto pipeline now handles background freshness.
+        # Do not launch the expensive formal scanner from a hidden Streamlit tab:
+        # st.tabs renders every tab, so doing that can make Crypto Home appear blank
+        # while a full market scan runs. The formal strategy scan is manual-only.
+        should_scan = bool(manual_scan)
         if should_scan:
             status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
             try:
