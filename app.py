@@ -2752,9 +2752,13 @@ if "previous_flags" not in st.session_state:
 if "last_scan" not in st.session_state:
     st.session_state.last_scan = None
 
-tab_crypto_home, tab_crypto_quick, tab_crypto_opportunities, tab_crypto_watchlist, tab_crypto_research, tab_crypto_advanced = st.tabs(
-    ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Pre-Pump Research", "Advanced Crypto"]
+tab_crypto_home, tab_crypto_quick, tab_crypto_opportunities, tab_crypto_watchlist, tab_crypto_portfolio, tab_crypto_advanced_trade, tab_crypto_advanced_accumulation = st.tabs(
+    ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Portfolio", "Advanced Trade", "Advanced Accumulation"]
 )
+# Research and the existing full scanner now live inside Advanced Trade rather than
+# occupying separate top-level navigation.
+tab_crypto_research = tab_crypto_advanced_trade
+tab_crypto_advanced = tab_crypto_advanced_trade
 
 # Draw the module navigation before any remote data is requested. A cold macro
 # refresh previously ran here and could block the entire page for 60-90 seconds,
@@ -2771,82 +2775,61 @@ else:
     macro = unavailable_macro(["Prepared macro snapshot is initialising."])
 st.session_state.macro_liquidity = macro
 
+prepared_swing_feed = pipeline_state.get("swing", pd.DataFrame()).copy()
+prepared_accumulation_feed = pipeline_state.get("accumulation", pd.DataFrame()).copy()
+prepared_deep_scores = pipeline_state.get("scores", pd.DataFrame()).copy()
+
 with tab_crypto_home:
     st.markdown("### Your crypto dashboard")
-    st.caption("Start with a coin, see what the screener is finding, or track the coins you want to revisit.")
+    st.caption("Start with a coin, browse what the background screener is finding, or check the coins you are already watching.")
 
-    crypto_summary = crypto_dashboard_summary(st.session_state.scan_df, cfg, macro)
     crypto_watchlist = load_crypto_watchlist()
     pipeline_manifest = pipeline_state["manifest"]
-    pipeline_active = pipeline_state["active"]
 
-    scan_loaded = not st.session_state.scan_df.empty
-    d1, d2, d3, d4, d5, d6 = st.columns(6)
-    d1.metric("Swing BUY", crypto_summary["swing_buy"] if scan_loaded else "—")
-    d2.metric("Accumulation", crypto_summary["accumulation"] if scan_loaded else "—")
-    d3.metric(
-        "Best swing score",
-        (
-            "—"
-            if not scan_loaded or not math.isfinite(_safe_float(crypto_summary["best_score"]))
-            else f"{crypto_summary['best_score']:.1f}/100"
-        ),
+    swing_buy_count = (
+        int((prepared_swing_feed["Swing status"] == "BUY").sum())
+        if not prepared_swing_feed.empty and "Swing status" in prepared_swing_feed.columns else 0
     )
-    d4.metric("BTC trend", crypto_summary["btc_trend"] if scan_loaded else "—")
-    d5.metric("Macro regime", macro.get("regime", "DATA LIMITED"))
-    d6.metric("Watchlist", len(crypto_watchlist))
+    swing_watch_count = (
+        int((prepared_swing_feed["Swing status"] == "WATCH").sum())
+        if not prepared_swing_feed.empty and "Swing status" in prepared_swing_feed.columns else 0
+    )
+    accumulation_ready_count = (
+        int((prepared_accumulation_feed["Accumulation status"] == "ACCUMULATE").sum())
+        if not prepared_accumulation_feed.empty and "Accumulation status" in prepared_accumulation_feed.columns else 0
+    )
+    accumulation_watch_count = (
+        int((prepared_accumulation_feed["Accumulation status"] == "WATCH").sum())
+        if not prepared_accumulation_feed.empty and "Accumulation status" in prepared_accumulation_feed.columns else 0
+    )
 
-    if st.session_state.last_scan is not None:
-        scan_time = st.session_state.last_scan.astimezone().strftime("%d %b %Y %H:%M:%S %Z")
-        selected = int(st.session_state.scan_df.attrs.get("markets_selected", len(st.session_state.scan_df)))
-        completed = int(st.session_state.scan_df.attrs.get("markets_completed", len(st.session_state.scan_df)))
-        st.caption(
-            f"Crypto market scan: {scan_time} · {len(st.session_state.scan_df)} scored · "
-            f"{completed}/{selected} markets completed"
-        )
-    else:
-        st.info(
-            "No market-wide Crypto scan is loaded in this session yet. "
-            "The dashes above mean **not scanned**, not zero opportunities."
-        )
+    d1, d2, d3, d4, d5, d6 = st.columns(6)
+    d1.metric("Swing BUY", swing_buy_count)
+    d2.metric("Swing WATCH", swing_watch_count)
+    d3.metric("Accumulation READY", accumulation_ready_count)
+    d4.metric("Accumulation WATCH", accumulation_watch_count)
+    d5.metric("Watchlist", len(crypto_watchlist))
+    d6.metric("Pipeline", crypto_pipeline_health_label(pipeline_manifest))
 
-    st.markdown("#### 🌐 Persistent all-market monitor")
     if pipeline_manifest:
-        pm1, pm2, pm3, pm4 = st.columns(4)
-        pm1.metric(
-            "Eligible coins",
-            int(pipeline_manifest.get("unique_eligible_coins", 0) or 0),
+        pipeline_time = (
+            pd.Timestamp(pipeline_manifest.get("updated_at")).tz_convert("Europe/London").strftime("%d %b %Y %H:%M")
+            if pipeline_manifest.get("updated_at") else "not yet available"
         )
-        pm2.metric(
-            "Discovery coverage",
-            f"{float(pipeline_manifest.get('discovery_coverage_pct', 0) or 0):.1f}%",
-        )
-        pm3.metric(
-            "Active candidates",
-            int(pipeline_manifest.get("active_candidates", len(pipeline_active)) or 0),
-        )
-        pm4.metric(
-            "Full sweep",
-            f"~{int(pipeline_manifest.get('estimated_full_sweep_minutes', 0) or 0)} min",
-        )
-        pipeline_age = crypto_pipeline_age_minutes(pipeline_manifest)
-        pipeline_time = format(
-            pd.Timestamp(pipeline_manifest.get("updated_at")).tz_convert("Europe/London"),
-            "%d %b %Y %H:%M",
-        ) if pipeline_manifest.get("updated_at") else "not yet available"
         st.caption(
-            f"Pipeline: {crypto_pipeline_health_label(pipeline_manifest)} · "
-            f"updated {pipeline_time} · 5-minute universe/active-monitor cadence · "
-            "discovery ranking prioritises deep analysis but does not replace the Crypto BUY/WAIT rules."
+            "Data freshness · "
+            f"Background rule engine: {pipeline_time} · "
+            f"{int(pipeline_manifest.get('deep_scores_current', 0) or 0)} coins deep-scored · "
+            f"{int(pipeline_manifest.get('unique_eligible_coins', 0) or 0)} eligible coins in the rotating universe"
         )
     else:
-        st.caption("Persistent all-market monitor is initialising.")
+        st.caption("Background rule engine is initialising.")
 
     home_a, home_b, home_c = st.columns(3)
     with home_a:
         with st.container(border=True):
             st.markdown("#### 🔎 Analyse a coin")
-            st.write("Search by coin name or ticker and get the current swing and accumulation decision first.")
+            st.write("Search by coin name or ticker and get the Swing and Accumulation decision first.")
             crypto_home_query = st.text_input(
                 "Coin",
                 value="",
@@ -2864,29 +2847,23 @@ with tab_crypto_home:
     with home_b:
         with st.container(border=True):
             st.markdown("#### 🎯 Find opportunities")
-            if not scan_loaded:
-                st.info("Formal BUY/WAIT results are not loaded in this session yet.")
-                if pipeline_manifest:
-                    st.caption(
-                        f"The 24/7 discovery monitor is tracking "
-                        f"{int(pipeline_manifest.get('active_candidates', 0) or 0)} active candidate"
-                        f"{'s' if int(pipeline_manifest.get('active_candidates', 0) or 0) != 1 else ''} "
-                        "for deeper analysis."
-                    )
+            if swing_buy_count:
+                st.success(f"{swing_buy_count} Swing BUY setup{'s' if swing_buy_count != 1 else ''}")
+            elif swing_watch_count:
+                st.info(f"{swing_watch_count} Swing setup{'s' if swing_watch_count != 1 else ''} developing on WATCH")
             else:
-                if crypto_summary["swing_buy"]:
-                    st.success(
-                        f"{crypto_summary['swing_buy']} swing BUY setup"
-                        f"{'s' if crypto_summary['swing_buy'] != 1 else ''}"
-                    )
-                else:
-                    st.info("No swing BUY setup is ready in the latest formal scan.")
-                if crypto_summary["accumulation"]:
-                    st.success(
-                        f"{crypto_summary['accumulation']} accumulation setup"
-                        f"{'s' if crypto_summary['accumulation'] != 1 else ''}"
-                    )
-            st.caption("Open **Advanced Crypto** to run or refresh the formal market scan.")
+                st.info("No Swing setup is ready right now.")
+            if accumulation_ready_count:
+                st.success(
+                    f"{accumulation_ready_count} Accumulation setup"
+                    f"{'s' if accumulation_ready_count != 1 else ''} READY"
+                )
+            elif accumulation_watch_count:
+                st.info(
+                    f"{accumulation_watch_count} Accumulation setup"
+                    f"{'s' if accumulation_watch_count != 1 else ''} developing"
+                )
+            st.caption("Open **Opportunities** above to see the full automatically prepared shortlist.")
 
     with home_c:
         with st.container(border=True):
@@ -2969,7 +2946,7 @@ with tab_crypto_home:
                     "Potential ROI",
                     "—" if not math.isfinite(_safe_float(home_result.get("target_upside_pct"))) else f"{home_result.get('target_upside_pct'):.1f}%",
                 )
-            st.caption("Open **Quick Analysis** for the full single-coin view, or **Advanced Crypto** for the complete screener.")
+            st.caption("Open **Quick Analysis** for the full single-coin view. **Advanced Trade** and **Advanced Accumulation** hold the deeper tools.")
 
     st.markdown("### How it works")
     hw1, hw2, hw3 = st.columns(3)
