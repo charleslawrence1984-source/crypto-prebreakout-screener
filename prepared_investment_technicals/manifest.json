@@ -2308,13 +2308,13 @@
     "vienna": {
       "coverage_symbols": 152,
       "dispatch_counts": {
-        "BLCK.VI": 94,
-        "ETN.VI": 94,
-        "FTNT.VI": 94,
-        "KKRO.VI": 94,
-        "MCK.VI": 94,
-        "MPWR.VI": 94,
-        "TTEC.VI": 93
+        "BLCK.VI": 95,
+        "ETN.VI": 95,
+        "FTNT.VI": 95,
+        "KKRO.VI": 95,
+        "MCK.VI": 95,
+        "MPWR.VI": 95,
+        "TTEC.VI": 94
       },
       "eligible_symbols": 159,
       "errors": [
@@ -2357,21 +2357,21 @@
     "xetra": {
       "coverage_symbols": 155,
       "dispatch_counts": {
-        "3SM.DE": 92,
-        "6RV.DE": 92,
-        "AP4N.DE": 92,
-        "AT4.DE": 92,
-        "C7N.DE": 92,
-        "CFZ.DE": 92,
-        "D6I.DE": 92,
-        "ET9.DE": 92,
-        "H3V.DE": 92,
-        "HFF.DE": 92,
-        "JYS1.DE": 92,
-        "LGI.DE": 92,
-        "R902.DE": 92,
-        "SMP0.DE": 91,
-        "STD.DE": 91
+        "3SM.DE": 93,
+        "6RV.DE": 93,
+        "AP4N.DE": 93,
+        "AT4.DE": 93,
+        "C7N.DE": 93,
+        "CFZ.DE": 93,
+        "D6I.DE": 93,
+        "ET9.DE": 93,
+        "H3V.DE": 93,
+        "HFF.DE": 93,
+        "JYS1.DE": 93,
+        "LGI.DE": 93,
+        "R902.DE": 93,
+        "SMP0.DE": 92,
+        "STD.DE": 92
       },
       "eligible_symbols": 170,
       "errors": [
@@ -2420,7 +2420,7 @@
           "symbol": "H3V.DE"
         },
         {
-          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
           "symbol": "HFF.DE"
         },
         {
@@ -2446,5 +2446,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-22T01:36:24.632670+00:00"
+  "updated_at": "2026-09-22T02:40:02.063654+00:00"
 }
