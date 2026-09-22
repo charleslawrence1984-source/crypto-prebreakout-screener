@@ -8,6 +8,9 @@ import pandas as pd
 import requests
 
 
+ACCUMULATION_MODEL_VERSION = "accumulation-v2-quality-2026-09-22"
+
+
 def _safe(value, default=np.nan):
     try:
         number = float(value)
