@@ -9,6 +9,7 @@ import yfinance as yf
 
 
 BASE_REQUIRED_RETURN = 0.09
+MIN_INVESTMENT_QUALITY_SCORE = 70.0
 VALUATION_MODEL_VERSION = "investment-fx-v2-2026-09-22"
 
 CYCLICAL_TERMS = (
@@ -658,6 +659,14 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         1,
     )
 
+    # Quality comes before valuation. A cheap DCF cannot rescue a mediocre
+    # long-term business. Specialist sectors remain on their own review path.
+    if not specialist_sector and quality_score < MIN_INVESTMENT_QUALITY_SCORE:
+        hard_gate_failures.append(
+            f"investment quality score {quality_score:.1f} is below "
+            f"{MIN_INVESTMENT_QUALITY_SCORE:.0f}"
+        )
+
     sector_model = "Generic"
     sector_review_required = False
     if is_insurer:
@@ -717,6 +726,10 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         "long_term_raw_score": round(quality_score, 1),
         "long_term_label": long_term_label,
         "investment_quality_score": round(quality_score, 1),
+        "minimum_investment_quality_score": MIN_INVESTMENT_QUALITY_SCORE,
+        "quality_gate_pass": bool(
+            specialist_sector or quality_score >= MIN_INVESTMENT_QUALITY_SCORE
+        ),
         "moat_score": moat_score,
         "moat_confidence": moat_confidence,
         "structural_moat_status": structural_moat_status,
