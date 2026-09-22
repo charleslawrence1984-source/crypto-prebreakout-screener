@@ -19,6 +19,13 @@ import streamlit as st
 from cl_signal_ui import render_module_header, render_decision_guidance
 from crypto_macro import snapshot_age_minutes, unavailable_macro
 from crypto_universe_rules import is_crypto_universe_asset
+from pre_pump_research import (
+    build_feature_frame,
+    feature_comparison,
+    label_forward_outcomes,
+    research_summary,
+    snapshot_table,
+)
 
 
 st.set_page_config(page_title="CL Signal · Crypto", page_icon="⚡", layout="wide")
@@ -2813,6 +2820,29 @@ async def fetch_backtest_data(exchange_id: str, symbol: str, quote: str) -> Tupl
         await exchange.close()
 
 
+async def fetch_prepump_research_data(
+    exchange_id: str,
+    symbol: str,
+    quote: str,
+) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """Fetch a deeper daily history for point-in-time pre-pump research."""
+    exchange = make_public_ccxt_exchange(exchange_id)
+    try:
+        await exchange.load_markets()
+        if symbol not in exchange.markets:
+            raise ValueError(f"{symbol} is not available on {exchange_id}.")
+        btc_symbol = f"BTC/{quote}"
+        if btc_symbol not in exchange.markets:
+            raise ValueError(f"{btc_symbol} benchmark is not available on {exchange_id}.")
+        coin_raw, btc_raw = await asyncio.gather(
+            exchange.fetch_ohlcv(symbol, timeframe="1d", limit=1000),
+            exchange.fetch_ohlcv(btc_symbol, timeframe="1d", limit=1000),
+        )
+        return ohlcv_to_df(coin_raw), ohlcv_to_df(btc_raw)
+    finally:
+        await exchange.close()
+
+
 def historical_backtest(coin4: pd.DataFrame, coind: pd.DataFrame, btc4: pd.DataFrame, cfg: ScreenerConfig, threshold: int, horizon: int) -> pd.DataFrame:
     records = []
     start = max(cfg.resistance_lookback + 30, 80)
@@ -3263,8 +3293,8 @@ if "previous_flags" not in st.session_state:
 if "last_scan" not in st.session_state:
     st.session_state.last_scan = None
 
-tab_crypto_home, tab_crypto_quick, tab_crypto_opportunities, tab_crypto_watchlist, tab_crypto_advanced = st.tabs(
-    ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Advanced Crypto"]
+tab_crypto_home, tab_crypto_quick, tab_crypto_opportunities, tab_crypto_watchlist, tab_crypto_research, tab_crypto_advanced = st.tabs(
+    ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Pre-Pump Research", "Advanced Crypto"]
 )
 
 # Draw the module navigation before any remote data is requested. A cold macro
@@ -4084,6 +4114,194 @@ with tab_crypto_quick:
                 "Points": list(qa_components.values()),
             })
             st.bar_chart(qa_comp_df.set_index("Factor"), horizontal=True)
+
+with tab_crypto_research:
+    st.markdown("### Pre-Pump Research Lab")
+    st.caption(
+        "Research the technical fingerprint that existed before large moves. "
+        "This is an exploratory point-in-time event study: it compares successful future moves "
+        "with failed lookalikes and does not assume RSI, Fibonacci, resistance-test count or R:R are predictive."
+    )
+
+    rr1, rr2, rr3 = st.columns(3)
+    with rr1:
+        research_exchange_name = st.selectbox(
+            "Research exchange",
+            list(EXCHANGES.keys()),
+            index=list(EXCHANGES.values()).index(cfg.exchange_id) if cfg.exchange_id in EXCHANGES.values() else 0,
+            key="prepump_exchange",
+        )
+    with rr2:
+        research_base = st.text_input(
+            "Coin",
+            value="HYPE",
+            key="prepump_coin",
+            help="Enter the base ticker only, for example HYPE, NEAR or VVV.",
+        ).strip().upper()
+    with rr3:
+        research_target = st.selectbox(
+            "Target move",
+            [20, 30, 40, 50],
+            index=1,
+            format_func=lambda x: f"+{x}%",
+            key="prepump_target",
+        )
+
+    rs1, rs2, rs3 = st.columns(3)
+    with rs1:
+        research_horizon = st.selectbox(
+            "Forward window",
+            [7, 14, 30, 45, 60],
+            index=2,
+            format_func=lambda x: f"{x} days",
+            key="prepump_horizon",
+        )
+    with rs2:
+        research_adverse = st.selectbox(
+            "Maximum adverse move before target",
+            [8, 10, 12, 15, 20, 25],
+            index=3,
+            format_func=lambda x: f"-{x}%",
+            key="prepump_adverse",
+            help="A setup is not counted as a clean winner if this downside level is breached before the target.",
+        )
+    with rs3:
+        snapshot_mode = st.selectbox(
+            "Case-study run",
+            ["Latest qualifying run", "Strongest qualifying run"],
+            key="prepump_snapshot_mode",
+        )
+
+    st.caption(
+        "Primary question: what was measurable before the move? The research engine uses only technical/market data: "
+        "relative strength vs BTC, structure, resistance proximity/tests, compression, volume, RSI, moving averages, "
+        "OBV and price location. Context/catalysts are intentionally excluded from this 95%-technical research layer."
+    )
+
+    if st.button("Run pre-pump research", type="primary", key="run_prepump_research"):
+        research_exchange_id = EXCHANGES[research_exchange_name]
+        research_symbol = f"{research_base}/{cfg.quote}"
+        with st.spinner(f"Replaying {research_symbol} history and comparing winners with failures…"):
+            try:
+                prepump_coin_d, prepump_btc_d = asyncio.run(
+                    fetch_prepump_research_data(research_exchange_id, research_symbol, cfg.quote)
+                )
+                feature_frame = build_feature_frame(prepump_coin_d, prepump_btc_d)
+                research_events = label_forward_outcomes(
+                    feature_frame,
+                    target_pct=float(research_target),
+                    horizon_days=int(research_horizon),
+                    adverse_limit_pct=float(research_adverse),
+                )
+                summary = research_summary(research_events)
+                comparison = feature_comparison(research_events)
+                snapshots, snap_meta = snapshot_table(
+                    feature_frame,
+                    research_events,
+                    mode="strongest" if snapshot_mode.startswith("Strongest") else "latest",
+                )
+
+                st.session_state.prepump_research = {
+                    "symbol": research_symbol,
+                    "exchange": research_exchange_name,
+                    "target": research_target,
+                    "horizon": research_horizon,
+                    "adverse": research_adverse,
+                    "events": research_events,
+                    "comparison": comparison,
+                    "snapshots": snapshots,
+                    "snap_meta": snap_meta,
+                    "summary": summary,
+                }
+            except Exception as e:
+                st.session_state.prepump_research = None
+                st.error(f"Pre-pump research failed: {type(e).__name__}: {e}")
+
+    prepump_result = st.session_state.get("prepump_research")
+    if prepump_result:
+        ps = prepump_result["summary"]
+        p1, p2, p3, p4, p5 = st.columns(5)
+        p1.metric("Daily setup samples", ps["samples"])
+        p2.metric("Clean target hits", ps["winners"])
+        p3.metric(
+            "Observed hit rate",
+            f"{ps['hit_rate_pct']:.1f}%" if pd.notna(ps["hit_rate_pct"]) else "N/A",
+        )
+        p4.metric(
+            "Median MFE",
+            f"{ps['median_mfe_pct']:.1f}%" if pd.notna(ps["median_mfe_pct"]) else "N/A",
+        )
+        p5.metric(
+            "Median MAE",
+            f"{ps['median_mae_pct']:.1f}%" if pd.notna(ps["median_mae_pct"]) else "N/A",
+        )
+
+        st.caption(
+            f"{prepump_result['symbol']} on {prepump_result['exchange']} · "
+            f"winner = +{prepump_result['target']}% within {prepump_result['horizon']} days "
+            f"before a -{prepump_result['adverse']}% adverse breach. "
+            "Daily windows overlap, so this is exploratory evidence rather than an independent-sample statistical proof."
+        )
+
+        comparison = prepump_result["comparison"]
+        st.markdown("#### Which technical features separated winners from failures?")
+        if comparison is None or comparison.empty:
+            st.info("Not enough winner/failure observations in the available history for a useful comparison.")
+        else:
+            st.dataframe(comparison, use_container_width=True, hide_index=True)
+            st.caption(
+                "Standardised separation shows how far the winner median differed from the failure median after scaling "
+                "by the feature's overall variation. Large absolute values are more interesting, but they are not automatically causal."
+            )
+
+        snapshots = prepump_result["snapshots"]
+        st.markdown("#### Before a qualifying run")
+        if snapshots is None or snapshots.empty:
+            st.info("No clean qualifying run was found under these settings.")
+        else:
+            meta = prepump_result["snap_meta"]
+            sm1, sm2, sm3, sm4 = st.columns(4)
+            sm1.metric("Setup anchor", pd.Timestamp(meta["anchor_date"]).date().isoformat())
+            sm2.metric("Forward MFE", f"{meta['mfe_pct']:.1f}%")
+            sm3.metric("Forward MAE", f"{meta['mae_pct']:.1f}%")
+            sm4.metric(
+                "Days to target",
+                f"{meta['time_to_target_days']:.0f}" if pd.notna(meta["time_to_target_days"]) else "N/A",
+            )
+            st.dataframe(snapshots, use_container_width=True, hide_index=True)
+            st.caption(
+                "T-30/T-14/T-7/T-3/T-1 are point-in-time snapshots before the selected setup anchor. "
+                "T0 is the setup date itself; the outcome columns are never used to calculate the earlier technical features."
+            )
+
+        events = prepump_result["events"]
+        st.markdown("#### Historical setup outcomes")
+        if events is not None and not events.empty:
+            event_cols = [
+                "date", "success", "time_to_target_days", "mfe_pct", "mae_pct",
+                "rs_btc_7d_pct", "rs_btc_30d_pct", "rsi14", "atr_compression",
+                "bb_width_percentile_60d", "volume_ratio_5_20", "range_compression_10_20",
+                "distance_to_resistance_pct", "resistance_tests_30d", "higher_low_pct",
+                "close_position_30d_pct", "trend_regime",
+            ]
+            st.dataframe(
+                events[event_cols].sort_values("date", ascending=False),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.download_button(
+                "Download research results CSV",
+                data=events.to_csv(index=False).encode("utf-8"),
+                file_name=f"{prepump_result['symbol'].replace('/', '_')}_prepump_research.csv",
+                mime="text/csv",
+                key="download_prepump_csv",
+            )
+
+    st.info(
+        "Use HYPE, NEAR and VVV as the first sanity-check cases. Send me the tables or CSV results and we can see "
+        "whether the screener was detecting the technical fingerprint early enough before changing any scoring weights."
+    )
+
 
 with tab_crypto_advanced:
     st.markdown("### Advanced Crypto")
