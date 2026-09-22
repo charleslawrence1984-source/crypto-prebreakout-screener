@@ -3334,22 +3334,19 @@ def render_live_trade_monitor(key_prefix: str = "home", show_table: bool = True)
     for state, label, count, help_text in live_cards:
         active_class = " is-active" if live_focus == state else ""
         card_html.append(
-            f"""
-            <a class="stock-summary-card{active_class}" href="{stock_live_trade_href(state)}" target="_self" aria-label="View {label}">
-              <div class="stock-summary-label-row">
-                <span>{label}</span>
-                <span class="stock-info-dot" title="{help_text}">?</span>
-              </div>
-              <div class="stock-summary-value">{count}</div>
-            </a>
-            """
+            f'<a class="stock-summary-card{active_class}" '
+            f'href="{stock_live_trade_href(state)}" target="_self" aria-label="View {label}">'
+            f'<div class="stock-summary-label-row">'
+            f'<span>{label}</span>'
+            f'<span class="stock-info-dot" title="{help_text}">?</span>'
+            f'</div>'
+            f'<div class="stock-summary-value">{count}</div>'
+            f'</a>'
         )
 
     st.caption("Click any live status to see the companies currently in that group.")
-    st.markdown(
-        '<div class="live-trade-summary-grid">' + "".join(card_html) + "</div>",
-        unsafe_allow_html=True,
-    )
+    live_cards_markup = '<div class="live-trade-summary-grid">' + "".join(card_html) + "</div>"
+    st.markdown(live_cards_markup, unsafe_allow_html=True)
 
     quote_times = [
         pd.Timestamp(value.get("quote_time"))
