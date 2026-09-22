@@ -3563,197 +3563,161 @@ with tab_crypto_quick:
             })
             st.bar_chart(qa_comp_df.set_index("Factor"), horizontal=True)
 
-with tab_crypto_research:
-    st.markdown("### Pre-Pump Research Lab")
+with tab_crypto_portfolio:
+    st.subheader("Portfolio Review")
     st.caption(
-        "Research the technical fingerprint that existed before large moves. "
-        "This is an exploratory point-in-time event study: it compares successful future moves "
-        "with failed lookalikes and does not assume RSI, Fibonacci, resistance-test count or R:R are predictive."
+        "Track your crypto holdings and review each one against the same current Swing and Accumulation rules. "
+        "No exchange connection is required."
     )
 
-    rr1, rr2, rr3 = st.columns(3)
-    with rr1:
-        research_exchange_name = st.selectbox(
-            "Research exchange",
-            list(EXCHANGES.keys()),
-            index=list(EXCHANGES.values()).index(cfg.exchange_id) if cfg.exchange_id in EXCHANGES.values() else 0,
-            key="prepump_exchange",
-        )
-    with rr2:
-        research_base = st.text_input(
-            "Coin",
-            value="HYPE",
-            key="prepump_coin",
-            help="Enter the base ticker only, for example HYPE, NEAR or VVV.",
-        ).strip().upper()
-    with rr3:
-        research_target = st.selectbox(
-            "Target move",
-            [20, 30, 40, 50],
-            index=1,
-            format_func=lambda x: f"+{x}%",
-            key="prepump_target",
-        )
-
-    rs1, rs2, rs3 = st.columns(3)
-    with rs1:
-        research_horizon = st.selectbox(
-            "Forward window",
-            [7, 14, 30, 45, 60],
-            index=2,
-            format_func=lambda x: f"{x} days",
-            key="prepump_horizon",
-        )
-    with rs2:
-        research_adverse = st.selectbox(
-            "Maximum adverse move before target",
-            [8, 10, 12, 15, 20, 25],
-            index=3,
-            format_func=lambda x: f"-{x}%",
-            key="prepump_adverse",
-            help="A setup is not counted as a clean winner if this downside level is breached before the target.",
-        )
-    with rs3:
-        snapshot_mode = st.selectbox(
-            "Case-study run",
-            ["Latest qualifying run", "Strongest qualifying run"],
-            key="prepump_snapshot_mode",
-        )
-
-    st.caption(
-        "Primary question: what was measurable before the move? The research engine uses only technical/market data: "
-        "relative strength vs BTC, structure, resistance proximity/tests, compression, volume, RSI, moving averages, "
-        "OBV and price location. Context/catalysts are intentionally excluded from this 95%-technical research layer."
+    uploaded_crypto_portfolio = st.file_uploader(
+        "Import holdings CSV (optional)",
+        type=["csv"],
+        key="crypto_portfolio_csv_upload",
+        help="Required columns: Coin, Quantity and Average cost.",
     )
-
-    if st.button("Run pre-pump research", type="primary", key="run_prepump_research"):
-        research_exchange_id = EXCHANGES[research_exchange_name]
-        research_symbol = f"{research_base}/{cfg.quote}"
-        with st.spinner(f"Replaying {research_symbol} history and comparing winners with failures…"):
-            try:
-                prepump_coin_d, prepump_btc_d = asyncio.run(
-                    fetch_prepump_research_data(research_exchange_id, research_symbol, cfg.quote)
-                )
-                feature_frame = build_feature_frame(prepump_coin_d, prepump_btc_d)
-                research_events = label_forward_outcomes(
-                    feature_frame,
-                    target_pct=float(research_target),
-                    horizon_days=int(research_horizon),
-                    adverse_limit_pct=float(research_adverse),
-                )
-                summary = research_summary(research_events)
-                comparison = feature_comparison(research_events)
-                snapshots, snap_meta = snapshot_table(
-                    feature_frame,
-                    research_events,
-                    mode="strongest" if snapshot_mode.startswith("Strongest") else "latest",
-                )
-
-                st.session_state.prepump_research = {
-                    "symbol": research_symbol,
-                    "exchange": research_exchange_name,
-                    "target": research_target,
-                    "horizon": research_horizon,
-                    "adverse": research_adverse,
-                    "events": research_events,
-                    "comparison": comparison,
-                    "snapshots": snapshots,
-                    "snap_meta": snap_meta,
-                    "summary": summary,
+    crypto_portfolio_seed = pd.DataFrame([
+        {"Coin": "", "Quantity": 0.0, "Average cost": 0.0},
+    ])
+    if uploaded_crypto_portfolio is not None:
+        try:
+            imported = pd.read_csv(uploaded_crypto_portfolio)
+            aliases = {
+                "coin": "Coin",
+                "symbol": "Coin",
+                "ticker": "Coin",
+                "quantity": "Quantity",
+                "amount": "Quantity",
+                "average cost": "Average cost",
+                "average_cost": "Average cost",
+                "avg cost": "Average cost",
+                "avg_cost": "Average cost",
+            }
+            imported = imported.rename(
+                columns={
+                    column: aliases.get(str(column).strip().lower(), column)
+                    for column in imported.columns
                 }
-            except Exception as e:
-                st.session_state.prepump_research = None
-                st.error(f"Pre-pump research failed: {type(e).__name__}: {e}")
-
-    prepump_result = st.session_state.get("prepump_research")
-    if prepump_result:
-        ps = prepump_result["summary"]
-        p1, p2, p3, p4, p5 = st.columns(5)
-        p1.metric("Daily setup samples", ps["samples"])
-        p2.metric("Clean target hits", ps["winners"])
-        p3.metric(
-            "Observed hit rate",
-            f"{ps['hit_rate_pct']:.1f}%" if pd.notna(ps["hit_rate_pct"]) else "N/A",
-        )
-        p4.metric(
-            "Median MFE",
-            f"{ps['median_mfe_pct']:.1f}%" if pd.notna(ps["median_mfe_pct"]) else "N/A",
-        )
-        p5.metric(
-            "Median MAE",
-            f"{ps['median_mae_pct']:.1f}%" if pd.notna(ps["median_mae_pct"]) else "N/A",
-        )
-
-        st.caption(
-            f"{prepump_result['symbol']} on {prepump_result['exchange']} · "
-            f"winner = +{prepump_result['target']}% within {prepump_result['horizon']} days "
-            f"before a -{prepump_result['adverse']}% adverse breach. "
-            "Daily windows overlap, so this is exploratory evidence rather than an independent-sample statistical proof."
-        )
-
-        comparison = prepump_result["comparison"]
-        st.markdown("#### Which technical features separated winners from failures?")
-        if comparison is None or comparison.empty:
-            st.info("Not enough winner/failure observations in the available history for a useful comparison.")
-        else:
-            st.dataframe(comparison, use_container_width=True, hide_index=True)
-            st.caption(
-                "Standardised separation shows how far the winner median differed from the failure median after scaling "
-                "by the feature's overall variation. Large absolute values are more interesting, but they are not automatically causal."
             )
+            missing = {"Coin", "Quantity", "Average cost"} - set(imported.columns)
+            if missing:
+                raise ValueError("missing columns: " + ", ".join(sorted(missing)))
+            crypto_portfolio_seed = imported[["Coin", "Quantity", "Average cost"]].copy()
+        except Exception as exc:
+            st.error(f"The portfolio CSV could not be loaded: {exc}")
 
-        snapshots = prepump_result["snapshots"]
-        st.markdown("#### Before a qualifying run")
-        if snapshots is None or snapshots.empty:
-            st.info("No clean qualifying run was found under these settings.")
-        else:
-            meta = prepump_result["snap_meta"]
-            sm1, sm2, sm3, sm4 = st.columns(4)
-            sm1.metric("Setup anchor", pd.Timestamp(meta["anchor_date"]).date().isoformat())
-            sm2.metric("Forward MFE", f"{meta['mfe_pct']:.1f}%")
-            sm3.metric("Forward MAE", f"{meta['mae_pct']:.1f}%")
-            sm4.metric(
-                "Days to target",
-                f"{meta['time_to_target_days']:.0f}" if pd.notna(meta["time_to_target_days"]) else "N/A",
-            )
-            st.dataframe(snapshots, use_container_width=True, hide_index=True)
-            st.caption(
-                "T-30/T-14/T-7/T-3/T-1 are point-in-time snapshots before the selected setup anchor. "
-                "T0 is the setup date itself; the outcome columns are never used to calculate the earlier technical features."
-            )
-
-        events = prepump_result["events"]
-        st.markdown("#### Historical setup outcomes")
-        if events is not None and not events.empty:
-            event_cols = [
-                "date", "success", "time_to_target_days", "mfe_pct", "mae_pct",
-                "rs_btc_7d_pct", "rs_btc_30d_pct", "rsi14", "atr_compression",
-                "bb_width_percentile_60d", "volume_ratio_5_20", "range_compression_10_20",
-                "distance_to_resistance_pct", "resistance_tests_30d", "higher_low_pct",
-                "close_position_30d_pct", "trend_regime",
-            ]
-            st.dataframe(
-                events[event_cols].sort_values("date", ascending=False),
-                use_container_width=True,
-                hide_index=True,
-            )
-            st.download_button(
-                "Download research results CSV",
-                data=events.to_csv(index=False).encode("utf-8"),
-                file_name=f"{prepump_result['symbol'].replace('/', '_')}_prepump_research.csv",
-                mime="text/csv",
-                key="download_prepump_csv",
-            )
-
-    st.info(
-        "Use HYPE, NEAR and VVV as the first sanity-check cases. Send me the tables or CSV results and we can see "
-        "whether the screener was detecting the technical fingerprint early enough before changing any scoring weights."
+    edited_crypto_holdings = st.data_editor(
+        crypto_portfolio_seed,
+        num_rows="dynamic",
+        hide_index=True,
+        use_container_width=True,
+        key="crypto_portfolio_editor",
+        column_config={
+            "Coin": st.column_config.TextColumn(
+                "Coin",
+                help="Use a coin ticker such as BTC, ETH, HYPE or NEAR.",
+            ),
+            "Quantity": st.column_config.NumberColumn("Quantity", min_value=0.0, format="%.8f"),
+            "Average cost": st.column_config.NumberColumn(
+                "Average cost",
+                min_value=0.0,
+                format="%.8f",
+                help="Your average cost per coin in USDT-equivalent quoted units.",
+            ),
+        },
     )
+
+    pc1, pc2 = st.columns(2)
+    with pc1:
+        review_crypto_portfolio = st.button(
+            "Review Portfolio",
+            type="primary",
+            use_container_width=True,
+            key="review_crypto_portfolio",
+        )
+    with pc2:
+        st.download_button(
+            "Download Holdings CSV",
+            data=edited_crypto_holdings.to_csv(index=False).encode("utf-8"),
+            file_name="crypto_portfolio_holdings.csv",
+            mime="text/csv",
+            use_container_width=True,
+            key="download_crypto_portfolio",
+        )
+
+    if review_crypto_portfolio:
+        holdings = edited_crypto_holdings.copy()
+        holdings["Coin"] = holdings["Coin"].fillna("").astype(str).str.strip().str.upper()
+        holdings["Quantity"] = pd.to_numeric(holdings["Quantity"], errors="coerce").fillna(0.0)
+        holdings["Average cost"] = pd.to_numeric(holdings["Average cost"], errors="coerce").fillna(0.0)
+        holdings = holdings[(holdings["Coin"] != "") & (holdings["Quantity"] > 0)].head(20)
+
+        if holdings.empty:
+            st.info("Add at least one holding with a quantity above zero.")
+        else:
+            portfolio_rows = []
+            portfolio_errors = []
+            with st.spinner("Refreshing portfolio coins against the current crypto rules…"):
+                for _, holding in holdings.iterrows():
+                    coin = holding["Coin"]
+                    try:
+                        symbol, result, _raw = asyncio.run(analyse_individual_coin(cfg, coin))
+                        result = dict(result or {})
+                        result["symbol"] = symbol
+                        trade_decision = crypto_trade_decision(result, macro, cfg.score_threshold)
+                        acc_verdict = str(result.get("accumulation_verdict", "NOT READY TO ACCUMULATE"))
+                        acc_action = (
+                            "ACCUMULATE" if acc_verdict == "ACCUMULATION READY"
+                            else "WAIT" if acc_verdict.startswith("WATCH")
+                            else "PASS"
+                        )
+                        price = _safe_float(result.get("price"), np.nan)
+                        qty = float(holding["Quantity"])
+                        avg = float(holding["Average cost"])
+                        value = price * qty if math.isfinite(price) else np.nan
+                        pnl_pct = ((price / avg) - 1) * 100 if math.isfinite(price) and avg > 0 else np.nan
+                        portfolio_rows.append({
+                            "Coin": coin,
+                            "Exchange": exchange_name,
+                            "Quantity": qty,
+                            "Average cost": avg,
+                            "Current price": price,
+                            "Value": value,
+                            "P/L %": pnl_pct,
+                            "Swing": trade_decision["action"],
+                            "Swing score": result.get("score", np.nan),
+                            "Accumulation": acc_action,
+                            "Accumulation score": result.get("bottom_score", np.nan),
+                            "RS vs BTC %": result.get("rs_vs_btc_pct", np.nan),
+                        })
+                    except Exception as exc:
+                        portfolio_errors.append(f"{coin}: {type(exc).__name__}: {exc}")
+
+            portfolio_df = pd.DataFrame(portfolio_rows)
+            if not portfolio_df.empty:
+                total_value = pd.to_numeric(portfolio_df["Value"], errors="coerce").sum(min_count=1)
+                total_cost = sum(
+                    float(row["Quantity"]) * float(row["Average cost"])
+                    for _, row in holdings.iterrows()
+                    if float(row["Average cost"]) > 0
+                )
+                total_pnl = (
+                    (total_value / total_cost - 1) * 100
+                    if pd.notna(total_value) and total_cost > 0 else np.nan
+                )
+                pm1, pm2, pm3 = st.columns(3)
+                pm1.metric("Portfolio value", "—" if pd.isna(total_value) else f"{total_value:,.2f} USDT")
+                pm2.metric("Cost basis", f"{total_cost:,.2f} USDT" if total_cost > 0 else "—")
+                pm3.metric("P/L", "—" if pd.isna(total_pnl) else f"{total_pnl:+.1f}%")
+                st.dataframe(portfolio_df, hide_index=True, use_container_width=True)
+            if portfolio_errors:
+                with st.expander(f"{len(portfolio_errors)} portfolio data warning(s)"):
+                    st.code("\n".join(portfolio_errors))
 
 
 with tab_crypto_advanced:
-    st.markdown("### Advanced Crypto")
-    st.caption("The full pre-breakout engine, macro analysis, scan controls, charts and research detail live here.")
+    st.markdown("### Advanced Trade")
+    st.caption("Deep Swing analysis, live refresh controls, charts and technical evidence. Home and Opportunities are fed automatically by the scheduled background rule engine.")
 
     st.subheader("Macro liquidity regime")
     macro_refresh_col, macro_status_col = st.columns([1, 4])
@@ -3768,7 +3732,7 @@ with tab_crypto_advanced:
         if math.isfinite(macro_age):
             st.caption(f"Macro snapshot age: {macro_age:.0f} minutes.")
         else:
-            st.caption("Macro snapshot is still initialising. Crypto remains usable and macro will not block trades.")
+            st.caption("Macro snapshot is still initialising. It is context only and does not block technical BUY signals.")
 
     if refresh_macro_now:
         with st.spinner("Refreshing macro-liquidity inputs…"):
@@ -3788,13 +3752,11 @@ with tab_crypto_advanced:
         )
         if not macro["allows_new_swing_risk"]:
             st.warning(
-                "Technical setups can still be identified, but new swing BUY signals are "
-                "downgraded to WAIT while the macro-liquidity regime is deteriorating or contracting."
+                "Macro liquidity is currently a headwind. It is shown as context and does not override an otherwise valid technical Swing setup."
             )
     else:
         st.info(
-            "Macro-liquidity data is currently incomplete, so the scanner will not block "
-            "technical BUY signals on macro grounds."
+            "Macro-liquidity data is currently incomplete. Swing decisions remain technical-first."
         )
 
     with st.expander("Macro liquidity factors"):
@@ -4597,3 +4559,302 @@ with tab_crypto_advanced:
         )
 
     st.caption("Trading tool only — not financial advice. Crypto can gap through technical levels; always size risk independently of the score.")
+
+
+with tab_crypto_advanced_accumulation:
+    st.markdown("### Advanced Accumulation")
+    st.caption(
+        "Longer-term base and accumulation analysis. This strategy is separate from Swing and is fed automatically by the rotating background deep-score sweep."
+    )
+
+    acc_feed = prepared_accumulation_feed.copy()
+    aa1, aa2, aa3 = st.columns(3)
+    aa1.metric(
+        "READY",
+        int((acc_feed["Accumulation status"] == "ACCUMULATE").sum())
+        if not acc_feed.empty and "Accumulation status" in acc_feed.columns else 0,
+    )
+    aa2.metric(
+        "WATCH",
+        int((acc_feed["Accumulation status"] == "WATCH").sum())
+        if not acc_feed.empty and "Accumulation status" in acc_feed.columns else 0,
+    )
+    aa3.metric("Deep-scored universe", int(pipeline_manifest.get("deep_scores_current", 0) or 0))
+
+    with st.expander("Accumulation rule framework", expanded=False):
+        st.markdown(
+            """
+- **Separate from Swing:** a coin can be a Swing BUY and an Accumulation PASS, or vice versa.
+- **Base quality:** price location near a meaningful daily base, improving higher lows and trend flattening.
+- **Momentum recovery:** RSI recovery is supporting evidence rather than a stand-alone reason to accumulate.
+- **Volume flow:** daily OBV/participation should improve rather than confirm continued distribution.
+- **Zone discipline:** READY requires the model's confirmed accumulation zone; being far below an old ATH is not enough.
+- **Long-range context:** weekly support and long-range position are reference context, not automatic buy triggers.
+            """
+        )
+
+    if acc_feed.empty:
+        st.info("No prepared Accumulation READY/WATCH setups are available yet.")
+    else:
+        acc_cols = [
+            "Accumulation status", "Base", "Exchange", "Accumulation score",
+            "Price", "Accumulation low", "Accumulation high", "In accumulation zone",
+            "Coin trend", "RS vs BTC %", "RSI", "4Y cycle position %",
+            "Project freshness", "deep_scored_at",
+        ]
+        st.dataframe(
+            acc_feed[[col for col in acc_cols if col in acc_feed.columns]].head(100),
+            hide_index=True,
+            use_container_width=True,
+        )
+
+    st.markdown("#### Analyse an accumulation candidate")
+    ac1, ac2 = st.columns([4, 1])
+    with ac1:
+        advanced_acc_coin = st.text_input(
+            "Coin",
+            value="",
+            placeholder="e.g. BTC, ETH, NEAR",
+            key="advanced_accumulation_coin",
+        )
+    with ac2:
+        run_advanced_acc = st.button(
+            "Analyse",
+            type="primary",
+            use_container_width=True,
+            key="run_advanced_accumulation",
+        )
+
+    if run_advanced_acc and advanced_acc_coin.strip():
+        with st.spinner(f"Analysing {advanced_acc_coin.strip().upper()} accumulation structure…"):
+            try:
+                acc_symbol, acc_result, _ = asyncio.run(
+                    analyse_individual_coin(cfg, advanced_acc_coin.strip())
+                )
+                acc_result = dict(acc_result or {})
+                verdict = str(acc_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE"))
+                action = (
+                    "ACCUMULATE" if verdict == "ACCUMULATION READY"
+                    else "WAIT" if verdict.startswith("WATCH")
+                    else "PASS"
+                )
+                reason = (
+                    "Confirmed daily base and accumulation zone meet the approved rules."
+                    if action == "ACCUMULATE"
+                    else "The base is developing but is not yet confirmed."
+                    if action == "WAIT"
+                    else "The current structure does not meet the accumulation rules."
+                )
+                render_crypto_decision_card("ACCUMULATION DECISION", action, reason)
+                am1, am2, am3, am4 = st.columns(4)
+                am1.metric("Accumulation score", f"{acc_result.get('bottom_score', 0):.1f}/100")
+                am2.metric("Current price", fmt_price(acc_result.get("price", np.nan)))
+                am3.metric(
+                    "Zone",
+                    f"{fmt_price(acc_result.get('accumulation_low', np.nan))} – {fmt_price(acc_result.get('accumulation_high', np.nan))}",
+                )
+                cycle_pos = _safe_float(acc_result.get("cycle_position_pct"), np.nan)
+                am4.metric(
+                    "Long-range position",
+                    "—" if not math.isfinite(cycle_pos) else f"{cycle_pos:.1f}%",
+                )
+                comps = acc_result.get("bottom_components", {})
+                if comps:
+                    comp_df = pd.DataFrame({
+                        "Factor": list(comps.keys()),
+                        "Points": list(comps.values()),
+                    })
+                    st.bar_chart(comp_df.set_index("Factor"), horizontal=True)
+            except Exception as exc:
+                st.error(f"{type(exc).__name__}: {exc}")
+
+
+with tab_crypto_research:
+    st.markdown("### Pre-Pump Research Lab")
+    st.caption("Optional research tool for testing which technical features historically appeared before large moves.")
+    st.caption(
+        "Research the technical fingerprint that existed before large moves. "
+        "This is an exploratory point-in-time event study: it compares successful future moves "
+        "with failed lookalikes and does not assume RSI, Fibonacci, resistance-test count or R:R are predictive."
+    )
+
+    rr1, rr2, rr3 = st.columns(3)
+    with rr1:
+        research_exchange_name = st.selectbox(
+            "Research exchange",
+            list(EXCHANGES.keys()),
+            index=list(EXCHANGES.values()).index(cfg.exchange_id) if cfg.exchange_id in EXCHANGES.values() else 0,
+            key="prepump_exchange",
+        )
+    with rr2:
+        research_base = st.text_input(
+            "Coin",
+            value="HYPE",
+            key="prepump_coin",
+            help="Enter the base ticker only, for example HYPE, NEAR or VVV.",
+        ).strip().upper()
+    with rr3:
+        research_target = st.selectbox(
+            "Target move",
+            [20, 30, 40, 50],
+            index=1,
+            format_func=lambda x: f"+{x}%",
+            key="prepump_target",
+        )
+
+    rs1, rs2, rs3 = st.columns(3)
+    with rs1:
+        research_horizon = st.selectbox(
+            "Forward window",
+            [7, 14, 30, 45, 60],
+            index=2,
+            format_func=lambda x: f"{x} days",
+            key="prepump_horizon",
+        )
+    with rs2:
+        research_adverse = st.selectbox(
+            "Maximum adverse move before target",
+            [8, 10, 12, 15, 20, 25],
+            index=3,
+            format_func=lambda x: f"-{x}%",
+            key="prepump_adverse",
+            help="A setup is not counted as a clean winner if this downside level is breached before the target.",
+        )
+    with rs3:
+        snapshot_mode = st.selectbox(
+            "Case-study run",
+            ["Latest qualifying run", "Strongest qualifying run"],
+            key="prepump_snapshot_mode",
+        )
+
+    st.caption(
+        "Primary question: what was measurable before the move? The research engine uses only technical/market data: "
+        "relative strength vs BTC, structure, resistance proximity/tests, compression, volume, RSI, moving averages, "
+        "OBV and price location. Context/catalysts are intentionally excluded from this 95%-technical research layer."
+    )
+
+    if st.button("Run pre-pump research", type="primary", key="run_prepump_research"):
+        research_exchange_id = EXCHANGES[research_exchange_name]
+        research_symbol = f"{research_base}/{cfg.quote}"
+        with st.spinner(f"Replaying {research_symbol} history and comparing winners with failures…"):
+            try:
+                prepump_coin_d, prepump_btc_d = asyncio.run(
+                    fetch_prepump_research_data(research_exchange_id, research_symbol, cfg.quote)
+                )
+                feature_frame = build_feature_frame(prepump_coin_d, prepump_btc_d)
+                research_events = label_forward_outcomes(
+                    feature_frame,
+                    target_pct=float(research_target),
+                    horizon_days=int(research_horizon),
+                    adverse_limit_pct=float(research_adverse),
+                )
+                summary = research_summary(research_events)
+                comparison = feature_comparison(research_events)
+                snapshots, snap_meta = snapshot_table(
+                    feature_frame,
+                    research_events,
+                    mode="strongest" if snapshot_mode.startswith("Strongest") else "latest",
+                )
+
+                st.session_state.prepump_research = {
+                    "symbol": research_symbol,
+                    "exchange": research_exchange_name,
+                    "target": research_target,
+                    "horizon": research_horizon,
+                    "adverse": research_adverse,
+                    "events": research_events,
+                    "comparison": comparison,
+                    "snapshots": snapshots,
+                    "snap_meta": snap_meta,
+                    "summary": summary,
+                }
+            except Exception as e:
+                st.session_state.prepump_research = None
+                st.error(f"Pre-pump research failed: {type(e).__name__}: {e}")
+
+    prepump_result = st.session_state.get("prepump_research")
+    if prepump_result:
+        ps = prepump_result["summary"]
+        p1, p2, p3, p4, p5 = st.columns(5)
+        p1.metric("Daily setup samples", ps["samples"])
+        p2.metric("Clean target hits", ps["winners"])
+        p3.metric(
+            "Observed hit rate",
+            f"{ps['hit_rate_pct']:.1f}%" if pd.notna(ps["hit_rate_pct"]) else "N/A",
+        )
+        p4.metric(
+            "Median MFE",
+            f"{ps['median_mfe_pct']:.1f}%" if pd.notna(ps["median_mfe_pct"]) else "N/A",
+        )
+        p5.metric(
+            "Median MAE",
+            f"{ps['median_mae_pct']:.1f}%" if pd.notna(ps["median_mae_pct"]) else "N/A",
+        )
+
+        st.caption(
+            f"{prepump_result['symbol']} on {prepump_result['exchange']} · "
+            f"winner = +{prepump_result['target']}% within {prepump_result['horizon']} days "
+            f"before a -{prepump_result['adverse']}% adverse breach. "
+            "Daily windows overlap, so this is exploratory evidence rather than an independent-sample statistical proof."
+        )
+
+        comparison = prepump_result["comparison"]
+        st.markdown("#### Which technical features separated winners from failures?")
+        if comparison is None or comparison.empty:
+            st.info("Not enough winner/failure observations in the available history for a useful comparison.")
+        else:
+            st.dataframe(comparison, use_container_width=True, hide_index=True)
+            st.caption(
+                "Standardised separation shows how far the winner median differed from the failure median after scaling "
+                "by the feature's overall variation. Large absolute values are more interesting, but they are not automatically causal."
+            )
+
+        snapshots = prepump_result["snapshots"]
+        st.markdown("#### Before a qualifying run")
+        if snapshots is None or snapshots.empty:
+            st.info("No clean qualifying run was found under these settings.")
+        else:
+            meta = prepump_result["snap_meta"]
+            sm1, sm2, sm3, sm4 = st.columns(4)
+            sm1.metric("Setup anchor", pd.Timestamp(meta["anchor_date"]).date().isoformat())
+            sm2.metric("Forward MFE", f"{meta['mfe_pct']:.1f}%")
+            sm3.metric("Forward MAE", f"{meta['mae_pct']:.1f}%")
+            sm4.metric(
+                "Days to target",
+                f"{meta['time_to_target_days']:.0f}" if pd.notna(meta["time_to_target_days"]) else "N/A",
+            )
+            st.dataframe(snapshots, use_container_width=True, hide_index=True)
+            st.caption(
+                "T-30/T-14/T-7/T-3/T-1 are point-in-time snapshots before the selected setup anchor. "
+                "T0 is the setup date itself; the outcome columns are never used to calculate the earlier technical features."
+            )
+
+        events = prepump_result["events"]
+        st.markdown("#### Historical setup outcomes")
+        if events is not None and not events.empty:
+            event_cols = [
+                "date", "success", "time_to_target_days", "mfe_pct", "mae_pct",
+                "rs_btc_7d_pct", "rs_btc_30d_pct", "rsi14", "atr_compression",
+                "bb_width_percentile_60d", "volume_ratio_5_20", "range_compression_10_20",
+                "distance_to_resistance_pct", "resistance_tests_30d", "higher_low_pct",
+                "close_position_30d_pct", "trend_regime",
+            ]
+            st.dataframe(
+                events[event_cols].sort_values("date", ascending=False),
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.download_button(
+                "Download research results CSV",
+                data=events.to_csv(index=False).encode("utf-8"),
+                file_name=f"{prepump_result['symbol'].replace('/', '_')}_prepump_research.csv",
+                mime="text/csv",
+                key="download_prepump_csv",
+            )
+
+    st.info(
+        "Use HYPE, NEAR and VVV as the first sanity-check cases. Send me the tables or CSV results and we can see "
+        "whether the screener was detecting the technical fingerprint early enough before changing any scoring weights."
+    )
+
+
