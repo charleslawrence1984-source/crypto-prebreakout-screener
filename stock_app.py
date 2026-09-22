@@ -2929,6 +2929,28 @@ st.markdown("""
   font-weight:850;
   margin-top:14px;
 }
+.stock-home-opportunity-counts {
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  margin-top:13px;
+}
+.stock-home-opportunity-counts span {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:6px 9px;
+  border-radius:999px;
+  background:#f4f7fb;
+  border:1px solid #dce5f0;
+  color:#40566f;
+  font-size:.78rem;
+  font-weight:700;
+}
+.stock-home-opportunity-counts strong {
+  color:#0a1735;
+  font-size:.92rem;
+}
 .stock-summary-grid {
   display:grid;
   grid-template-columns:repeat(6,minmax(0,1fr));
@@ -4005,6 +4027,10 @@ with tab_home:
           <a class="stock-home-action-card" href="{opportunities_href}" target="_self" aria-label="Find opportunities">
             <div class="stock-home-action-title">🎯 Find opportunities</div>
             <div class="stock-home-action-copy">Jump straight to the latest Trade setups and long-term Investment candidates found by the screener.</div>
+            <div class="stock-home-opportunity-counts">
+              <span><strong>{ready_count}</strong> Trades to Buy</span>
+              <span><strong>{investment_buy_count}</strong> Investments to Buy</span>
+            </div>
             <div class="stock-home-action-cta">View opportunities →</div>
           </a>
           <a class="stock-home-action-card" href="{watchlist_href}" target="_self" aria-label="Open my watchlist">
@@ -4181,6 +4207,30 @@ with tab_home:
             if home_trade.empty:
                 st.info("No prepared Trade opportunities are available right now.")
             else:
+                home_trade_buy = int((home_trade["Status"] == "READY TO VERIFY").sum())
+                home_trade_watch = int((home_trade["Status"] == "WATCH").sum())
+                home_trade_markets = int(home_trade["Exchange"].nunique()) if "Exchange" in home_trade.columns else 0
+                ht1, ht2, ht3, ht4 = st.columns(4)
+                ht1.metric(
+                    "Trades to Buy",
+                    home_trade_buy,
+                    help="Prepared Trade setups at the ready-to-verify stage. Run Quick Analysis before acting so the current price and event gates are checked.",
+                )
+                ht2.metric(
+                    "Trades to Watch",
+                    home_trade_watch,
+                    help="Developing Trade setups that have passed the prepared filters but have not reached confirmation yet.",
+                )
+                ht3.metric(
+                    "Total opportunities",
+                    len(home_trade),
+                    help="All current prepared Trade opportunities shown in this shortlist, including Buy and Watch statuses.",
+                )
+                ht4.metric(
+                    "Markets represented",
+                    home_trade_markets,
+                    help="The number of different stock-market universes represented by the current Trade shortlist.",
+                )
                 visible = [column for column in trade_focus_columns if column in home_trade.columns]
                 render_watchlist_selector(
                     home_trade[visible].head(50),
@@ -4190,6 +4240,31 @@ with tab_home:
             if home_investment.empty:
                 st.info("No prepared Investment opportunities are available right now.")
             else:
+                home_invest_buy = int((home_investment["Action"] == "BUY CANDIDATE").sum())
+                home_invest_watch = int((home_investment["Action"] == "WAIT").sum())
+                home_invest_revalue = int((home_investment["Action"] == "REVALUE").sum())
+                home_invest_markets = int(home_investment["Exchange"].nunique()) if "Exchange" in home_investment.columns else 0
+                hi1, hi2, hi3, hi4 = st.columns(4)
+                hi1.metric(
+                    "Investments to Buy",
+                    home_invest_buy,
+                    help="Long-term candidates whose quality gates, FX-safe valuation and margin-of-safety requirements are currently passing.",
+                )
+                hi2.metric(
+                    "Investments to Watch",
+                    home_invest_watch,
+                    help="Quality candidates currently on WAIT because the valuation or another decision condition is not yet strong enough.",
+                )
+                hi3.metric(
+                    "Revaluation pending",
+                    home_invest_revalue,
+                    help="Quality research is retained, but the valuation is being withheld until the FX-safe DCF refresh is complete.",
+                )
+                hi4.metric(
+                    "Markets represented",
+                    home_invest_markets,
+                    help="The number of different stock-market universes represented by the current Investment shortlist.",
+                )
                 visible = [column for column in investment_focus_columns if column in home_investment.columns]
                 render_watchlist_selector(
                     home_investment[visible].head(50),
@@ -4543,10 +4618,27 @@ with tab_opportunities:
             watch_count = int((trade_opportunities["Status"] == "WATCH").sum())
             market_count = int(trade_opportunities["Exchange"].nunique())
 
-            t1, t2, t3 = st.columns(3)
-            t1.metric("Ready to verify", ready_count)
-            t2.metric("WATCH", watch_count)
-            t3.metric("Markets represented", market_count)
+            t1, t2, t3, t4 = st.columns(4)
+            t1.metric(
+                "Trades to Buy",
+                ready_count,
+                help="Prepared Trade setups at the ready-to-verify stage. Run Quick Analysis before acting so current price and event gates are checked.",
+            )
+            t2.metric(
+                "Trades to Watch",
+                watch_count,
+                help="Developing Trade setups that pass the prepared filters but have not yet reached the confirmation stage.",
+            )
+            t3.metric(
+                "Total opportunities",
+                len(trade_opportunities),
+                help="All current prepared Trade opportunities in this shortlist, including Buy and Watch statuses.",
+            )
+            t4.metric(
+                "Markets represented",
+                market_count,
+                help="The number of different stock-market universes represented by the current Trade shortlist.",
+            )
 
             st.caption(
                 "READY TO VERIFY means the prepared technical setup has reached the confirmation stage. "
@@ -4595,10 +4687,26 @@ with tab_opportunities:
             investment_market_count = int(investment_opportunities["Exchange"].nunique())
 
             i1, i2, i3, i4 = st.columns(4)
-            i1.metric("BUY CANDIDATE", buy_count)
-            i2.metric("WAIT / REVIEW", wait_count)
-            i3.metric("FX revaluation pending", refresh_count)
-            i4.metric("Markets represented", investment_market_count)
+            i1.metric(
+                "Investments to Buy",
+                buy_count,
+                help="Long-term candidates whose quality gates, FX-safe valuation and margin-of-safety requirements are currently passing.",
+            )
+            i2.metric(
+                "Investments to Watch",
+                wait_count,
+                help="Quality candidates currently on WAIT because the valuation or another decision condition is not yet strong enough.",
+            )
+            i3.metric(
+                "Revaluation pending",
+                refresh_count,
+                help="Quality research is retained, but the valuation is being withheld until the FX-safe DCF refresh is complete.",
+            )
+            i4.metric(
+                "Markets represented",
+                investment_market_count,
+                help="The number of different stock-market universes represented by the current Investment shortlist.",
+            )
 
             validation = load_investment_validation_coverage()
             if validation.get("prepared_rows"):
