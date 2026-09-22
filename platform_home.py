@@ -176,6 +176,50 @@ st.markdown(
         min-height:118px;
         margin-top:12px;
     }
+    .market-grid {
+        display:grid;
+        grid-template-columns:repeat(3,minmax(0,1fr));
+        gap:16px;
+        align-items:stretch;
+    }
+    .market-card-link {
+        display:flex;
+        flex-direction:column;
+        min-height:340px;
+        padding:22px;
+        border:1px solid #e2e9f3;
+        border-radius:18px;
+        background:#ffffff;
+        color:inherit !important;
+        text-decoration:none !important;
+        box-shadow:0 8px 22px rgba(16,45,92,.04);
+        transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+    }
+    .market-card-link:hover {
+        border-color:#2f7bf2;
+        box-shadow:0 14px 30px rgba(16,72,160,.11);
+        transform:translateY(-2px);
+    }
+    .market-card-link:focus-visible {
+        outline:3px solid rgba(47,123,242,.28);
+        outline-offset:3px;
+    }
+    .market-card-link .market-copy {
+        flex:1 1 auto;
+    }
+    .market-card-cta {
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        margin-top:18px;
+        padding:13px 15px;
+        border:1px solid #bfd1eb;
+        border-radius:12px;
+        color:#174f9e;
+        background:#f8fbff;
+        font-size:1.02rem;
+        font-weight:900;
+    }
     .tags {
         display:flex;
         flex-wrap:wrap;
@@ -250,6 +294,8 @@ st.markdown(
         .cl-subtitle { font-size:.92rem; }
         .hero-title { font-size:2.25rem; }
         .hero-copy { font-size:1rem; }
+        .market-grid { grid-template-columns:1fr; }
+        .market-card-link { min-height:0; }
         .market-copy,.market-sub { min-height:0; }
     }
     </style>
@@ -337,58 +383,34 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-c1, c2, c3 = st.columns(3, gap="medium")
-
-with c1:
-    with st.container(border=True):
-        st.markdown("### 📈 Stocks")
-        st.markdown(
-            '<div class="market-sub">Swing trades and long-term investment opportunities.</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="market-copy">Find technical trade setups alongside long-term company analysis using fundamentals, valuation, margin of safety and disciplined entry criteria.</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="tags"><span class="tag">Swing trades</span><span class="tag">Long-term</span><span class="tag">Valuation</span></div>',
-            unsafe_allow_html=True,
-        )
-        st.page_link("stocks_page.py", label="Open Stocks", icon="📈", use_container_width=True)
-
-with c2:
-    with st.container(border=True):
-        st.markdown("### ⚡ Crypto")
-        st.markdown(
-            '<div class="market-sub">Pre-breakout swing setups and accumulation opportunities.</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="market-copy">Look for compression before expansion while checking relative strength, tokenomics, exchange breadth, market structure and macro liquidity.</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="tags"><span class="tag">Pre-breakout</span><span class="tag">Accumulation</span><span class="tag">RS vs BTC</span></div>',
-            unsafe_allow_html=True,
-        )
-        st.page_link("app.py", label="Open Crypto", icon="⚡", use_container_width=True)
-
-with c3:
-    with st.container(border=True):
-        st.markdown("### 🐸 Meme Coins")
-        st.markdown(
-            '<div class="market-sub">Early-stage discovery with stricter filters.</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="market-copy">Cut through the noise using liquidity, activity, community, narrative, tokenomics and anti-chase rules designed for a much higher-risk market.</div>',
-            unsafe_allow_html=True,
-        )
-        st.markdown(
-            '<div class="tags"><span class="tag">Early stage</span><span class="tag">High risk</span><span class="tag">Community</span></div>',
-            unsafe_allow_html=True,
-        )
-        st.page_link("meme_app.py", label="Open Meme Coins", icon="🐸", use_container_width=True)
+st.markdown(
+    """
+    <div class="market-grid">
+        <a class="market-card-link" href="stocks" target="_self" aria-label="Open Stocks">
+            <div class="market-heading">📈 Stocks</div>
+            <div class="market-sub">Swing trades and long-term investment opportunities.</div>
+            <div class="market-copy">Find technical trade setups alongside long-term company analysis using fundamentals, valuation, margin of safety and disciplined entry criteria.</div>
+            <div class="tags"><span class="tag">Swing trades</span><span class="tag">Long-term</span><span class="tag">Valuation</span></div>
+            <div class="market-card-cta"><span>Open Stocks</span><span aria-hidden="true">→</span></div>
+        </a>
+        <a class="market-card-link" href="crypto" target="_self" aria-label="Open Crypto">
+            <div class="market-heading">⚡ Crypto</div>
+            <div class="market-sub">Pre-breakout swing setups and accumulation opportunities.</div>
+            <div class="market-copy">Look for compression before expansion while checking relative strength, tokenomics, exchange breadth, market structure and macro liquidity.</div>
+            <div class="tags"><span class="tag">Pre-breakout</span><span class="tag">Accumulation</span><span class="tag">RS vs BTC</span></div>
+            <div class="market-card-cta"><span>Open Crypto</span><span aria-hidden="true">→</span></div>
+        </a>
+        <a class="market-card-link" href="memes" target="_self" aria-label="Open Meme Coins">
+            <div class="market-heading">🐸 Meme Coins</div>
+            <div class="market-sub">Early-stage discovery with stricter filters.</div>
+            <div class="market-copy">Cut through the noise using liquidity, activity, community, narrative, tokenomics and anti-chase rules designed for a much higher-risk market.</div>
+            <div class="tags"><span class="tag">Early stage</span><span class="tag">High risk</span><span class="tag">Community</span></div>
+            <div class="market-card-cta"><span>Open Meme Coins</span><span aria-hidden="true">→</span></div>
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
 st.markdown('<div class="section-title">How CL Signal works</div>', unsafe_allow_html=True)
 st.markdown(
