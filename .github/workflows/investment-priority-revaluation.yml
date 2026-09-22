@@ -77,6 +77,10 @@ jobs:
             exit 0
           fi
           git commit -m "Revalue ${{ matrix.exchange }} prior Investment BUY candidates"
+          # scheduled_investment_scan also updates its local manifest. Each matrix
+          # job owns only one exchange CSV, so discard the uncommitted shared
+          # manifest before rebasing/pushing to avoid cross-job conflicts.
+          git restore prepared_priority_investments/manifest.json 2>/dev/null || true
           for attempt in 1 2 3 4 5; do
             git pull --rebase origin main
             if git push origin HEAD:main; then
