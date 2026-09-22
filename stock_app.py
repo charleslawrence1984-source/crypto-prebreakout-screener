@@ -4,6 +4,7 @@ import base64
 import io
 import json
 import math
+import re
 import time
 import zlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -3021,6 +3022,30 @@ def load_all_trade_opportunities() -> pd.DataFrame:
     return output.reset_index(drop=True)
 
 
+_LEGAL_COMPANY_SUFFIXES = {
+    "inc", "incorporated", "corp", "corporation", "co", "company",
+    "ltd", "limited", "plc", "ag", "aktiengesellschaft", "sa", "spa",
+    "nv", "bv", "ab", "publ", "oyj", "asa", "pte", "pt", "tbk",
+}
+
+
+def canonical_company_key(name: str) -> str:
+    """
+    Conservative cross-listing key.
+
+    Remove punctuation and trailing legal-form words only.  Do not remove
+    business descriptors such as Group/Holdings, so related but separately
+    listed companies are not accidentally merged.
+    """
+    tokens = re.findall(r"[a-z0-9]+", str(name or "").lower())
+    while tokens and tokens[-1] in _LEGAL_COMPANY_SUFFIXES:
+        tokens.pop()
+    # Some legal forms appear in pairs, e.g. "AB (publ)".
+    while tokens and tokens[-1] in _LEGAL_COMPANY_SUFFIXES:
+        tokens.pop()
+    return "".join(tokens)
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def load_all_investment_opportunities() -> pd.DataFrame:
     """Combine prepared Investment results across exchanges into a simple opportunity feed."""
@@ -3074,8 +3099,8 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     fx_pass = output["Valuation FX status"].astype(str).str.upper().eq("PASS")
 
     stale_or_invalid = ~(current_model & fx_pass)
-    output.loc[stale_or_invalid, "Action"] = "WAIT"
-    output.loc[stale_or_invalid, "Valuation gate"] = "WAIT"
+    output.loc[stale_or_invalid, "Action"] = "REVALUE"
+    output.loc[stale_or_invalid, "Valuation gate"] = "REVALUE"
     output.loc[stale_or_invalid, "Valuation FX status"] = "REFRESH REQUIRED"
     output.loc[stale_or_invalid, "Base intrinsic value"] = np.nan
     output.loc[stale_or_invalid, "Bear intrinsic value"] = np.nan
@@ -3087,13 +3112,14 @@ def load_all_investment_opportunities() -> pd.DataFrame:
         "FX-safe valuation refresh required; quality evidence retained, valuation decision withheld"
     )
 
-    output["_action_order"] = output["Action"].map({"BUY CANDIDATE": 0, "WAIT": 1}).fillna(9)
-    output["_company_key"] = (
-        output.get("Company", output["Ticker"])
-        .fillna(output["Ticker"])
-        .astype(str)
-        .str.lower()
-        .str.replace(r"[^a-z0-9]+", "", regex=True)
+    output["_action_order"] = output["Action"].map(
+        {"BUY CANDIDATE": 0, "WAIT": 1, "REVALUE": 2}
+    ).fillna(9)
+    output["_company_key"] = output.apply(
+        lambda row: canonical_company_key(
+            row.get("Company") or row.get("Ticker") or ""
+        ) or str(row.get("Ticker") or "").lower(),
+        axis=1,
     )
     output["_fx_order"] = output.get(
         "Valuation FX status", pd.Series("", index=output.index)
@@ -3462,11 +3488,8 @@ with tab_home:
         if not home_investment.empty and "Action" in home_investment.columns else 0
     )
     investment_refresh_count = (
-        int(home_investment.get(
-            "Valuation FX status",
-            pd.Series("", index=home_investment.index),
-        ).astype(str).str.upper().eq("REFRESH REQUIRED").sum())
-        if not home_investment.empty else 0
+        int((home_investment["Action"] == "REVALUE").sum())
+        if not home_investment.empty and "Action" in home_investment.columns else 0
     )
     recent_alert_count = len(home_events)
 
@@ -3476,7 +3499,7 @@ with tab_home:
     m3.metric("Investment BUY", investment_buy_count)
     m4.metric(
         "Investment review",
-        investment_wait_count,
+        investment_wait_count + investment_refresh_count,
         help=(
             f"{investment_refresh_count} currently require FX-safe revaluation."
             if investment_refresh_count
@@ -3894,12 +3917,7 @@ with tab_opportunities:
         else:
             buy_count = int((investment_opportunities["Action"] == "BUY CANDIDATE").sum())
             wait_count = int((investment_opportunities["Action"] == "WAIT").sum())
-            refresh_count = int(
-                investment_opportunities.get(
-                    "Valuation FX status",
-                    pd.Series("", index=investment_opportunities.index),
-                ).astype(str).str.upper().eq("REFRESH REQUIRED").sum()
-            )
+            refresh_count = int((investment_opportunities["Action"] == "REVALUE").sum())
             investment_market_count = int(investment_opportunities["Exchange"].nunique())
 
             i1, i2, i3, i4 = st.columns(4)
@@ -3909,14 +3927,14 @@ with tab_opportunities:
             i4.metric("Markets represented", investment_market_count)
 
             st.caption(
-                "BUY CANDIDATE means the measurable quality gates, FX-safe DCF valuation and margin-of-safety gate pass, "
-                "but the required manual review still applies. WAIT usually means quality passes but price, valuation FX, "
-                "or evidence is not good enough yet."
+                "BUY CANDIDATE means the measurable quality gates, FX-safe DCF valuation and margin-of-safety gate pass. "
+                "WAIT is a current, validated valuation that is not yet cheap enough or needs review. "
+                "REVALUE means the quality research is retained but the old valuation is deliberately withheld until the FX-safe DCF refresh completes."
             )
 
             investment_filter = st.radio(
                 "Show",
-                ["Best opportunities", "BUY CANDIDATE", "WAIT", "All"],
+                ["Best opportunities", "BUY CANDIDATE", "WAIT", "REVALUE", "All"],
                 horizontal=True,
                 key="opportunity_investment_filter",
             )
@@ -3925,8 +3943,13 @@ with tab_opportunities:
                 shown_investment = shown_investment[shown_investment["Action"] == "BUY CANDIDATE"]
             elif investment_filter == "WAIT":
                 shown_investment = shown_investment[shown_investment["Action"] == "WAIT"]
+            elif investment_filter == "REVALUE":
+                shown_investment = shown_investment[shown_investment["Action"] == "REVALUE"]
             elif investment_filter == "Best opportunities":
-                shown_investment = shown_investment.head(25)
+                validated = shown_investment[
+                    shown_investment["Action"].isin(["BUY CANDIDATE", "WAIT"])
+                ]
+                shown_investment = validated.head(25) if not validated.empty else shown_investment.head(25)
 
             investment_cols = [
                 "Action", "Ticker", "Company", "Exchange", "Sector",
