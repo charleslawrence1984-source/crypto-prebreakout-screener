@@ -95,7 +95,6 @@ class ScreenerConfig:
     score_threshold: int = 80
     too_late_pct: float = 2.0
     max_rsi: float = 69.0
-    min_gross_profit_pct: float = 30.0
     concurrency: int = 5
 
 
@@ -2028,7 +2027,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Sell target": r["projected_target"],
                 "Stretch target": r["stretch_target"],
                 "Trade verdict": (
-                    "QUALIFIES — 30%+ GROSS TARGET"
+                    "QUALIFIES — PRE-BREAKOUT SETUP"
                     if r["eligible"]
                     else "PASS — " + r["reason"]
                 ),
@@ -2680,7 +2679,7 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
             "action": "BUY",
             "reason": (
                 f"Technical pre-breakout rules pass: score {result.get('score', 0):.1f} "
-                f">= {float(score_threshold):.0f}, positive relative strength, a credible 30%+ target, "
+                f">= {float(score_threshold):.0f}, positive relative strength, constructive pre-breakout structure, "
                 "and execution liquidity passes on Kraken/Crypto.com."
                 + suffix
             ),
@@ -2769,7 +2768,7 @@ def crypto_dashboard_summary(frame: pd.DataFrame, cfg: ScreenerConfig, macro_now
             summary["btc_trend"] = str(df["Market trend"].dropna().iloc[0])
 
         technical = df[
-            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+            (df["Trade verdict"] == "QUALIFIES — PRE-BREAKOUT SETUP")
             & (pd.to_numeric(df["Score"], errors="coerce") >= cfg.score_threshold)
         ].copy()
         if not technical.empty:
@@ -3605,7 +3604,7 @@ with tab_crypto_quick:
                 fmt_price(qa_result["first_take_profit"]),
                 qa_result["first_take_profit_basis"],
             )
-            t2.metric("30% trade target", fmt_optional_price(qa_result["projected_target"]))
+            t2.metric("Projected target", fmt_optional_price(qa_result["projected_target"]))
             gross_upside = qa_result.get("target_upside_pct", np.nan)
             t3.metric(
                 "Gross upside from planned entry",
@@ -3613,7 +3612,7 @@ with tab_crypto_quick:
             )
             t4.metric(
                 "Reward / risk",
-                f"{qa_result['risk_reward']:.2f}:1" if qa_result.get("trade_target_eligible") else "Not qualified",
+                f"{qa_result['risk_reward']:.2f}:1" if qa_result.get("trade_target_eligible") else "Unavailable",
             )
 
             a1, a2, a3, a4, a5 = st.columns(5)
@@ -3648,7 +3647,7 @@ with tab_crypto_quick:
                 f"{qa_result.get('cycle_accumulation_basis', '')}"
             )
             st.caption(
-                f"30% target basis: {qa_result['target_basis']} · "
+                f"Projected target basis: {qa_result['target_basis']} · "
                 f"Next qualifying target: {fmt_optional_price(qa_result['stretch_target'], 'Unavailable')} · "
                 f"Position within available 4Y range (reference only): {cycle_text}"
             )
@@ -3924,7 +3923,7 @@ with tab_crypto_advanced:
         df = attach_prepared_execution_columns(df)
 
         technical_swing_setups = df[
-            (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
+            (df["Trade verdict"] == "QUALIFIES — PRE-BREAKOUT SETUP")
             & (df["Score"] >= cfg.score_threshold)
         ].copy().sort_values("Score", ascending=False)
         rs_qualified_setups = technical_swing_setups[
@@ -3968,7 +3967,7 @@ with tab_crypto_advanced:
             if is_buy:
                 base = (
                     f"Technical BUY: score {row['Score']:.1f} >= {cfg.score_threshold}, "
-                    "30%+ target rule passes, RS vs BTC passes and no 4h rejection-candle gate."
+                    "pre-breakout shape passes, RS vs BTC passes and no 4h rejection-candle gate."
                 )
                 return base + ((" Context warnings: " + ", ".join(warnings) + ".") if warnings else "")
 
@@ -3991,7 +3990,7 @@ with tab_crypto_advanced:
                 and row.get("Candle caution") == "CAUTION"
             ):
                 reasons.append("latest completed 4h candle shows rejection")
-            if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET":
+            if row["Trade verdict"] != "QUALIFIES — PRE-BREAKOUT SETUP":
                 reasons.append(str(row["Trade reason"]))
             if not reasons:
                 reasons.append("technical entry not ready")
@@ -4150,7 +4149,7 @@ with tab_crypto_advanced:
             st.subheader("Swing-trade candidates")
             st.caption(
                 f"All {len(df)} analysed coins are shown. BUY is technical-first: score "
-                f"{cfg.score_threshold}+, the approved pre-breakout shape, a credible 30%+ gross target, "
+                f"{cfg.score_threshold}+, the approved pre-breakout shape, "
                 "positive RS vs BTC for altcoins, and no latest-4h rejection-candle gate. "
                 "Tokenomics, major-CEX breadth, catalysts/event risk, category leadership and macro "
                 "remain visible as context warnings/confidence only; they do not rescue a poor chart "
@@ -4164,7 +4163,7 @@ with tab_crypto_advanced:
                 candle_blocked = len(execution_qualified_setups) - len(candle_qualified_setups)
                 if rs_blocked > 0:
                     st.info(
-                        f"{rs_blocked} technical setup(s) currently qualify on score/target but remain "
+                        f"{rs_blocked} technical setup(s) currently qualify on score/shape but remain "
                         "WAIT because the altcoin is not beating BTC over the 48h RS window."
                     )
                 elif execution_blocked > 0:
@@ -4180,7 +4179,7 @@ with tab_crypto_advanced:
                 else:
                     st.info(
                         f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
-                        "technical BUY rules, 30% gross-target requirement and execution-liquidity gate."
+                        "technical BUY rules and execution-liquidity gate."
                     )
             swing_cols = [
                 "Coin", "Status", "Context confidence", "Known event risk",
@@ -4329,7 +4328,7 @@ with tab_crypto_advanced:
                         "First resistance / partial profit", format="%.8g"
                     ),
                     "Sell target": st.column_config.NumberColumn(
-                        "30% trade target", format="%.8g"
+                        "Projected target", format="%.8g"
                     ),
                     "Stretch target": st.column_config.NumberColumn(format="%.8g"),
                     "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
@@ -4490,7 +4489,7 @@ with tab_crypto_advanced:
 
         t1, t2, t3, t4 = st.columns(4)
         t1.metric("First resistance / partial profit", fmt_price(row["First resistance target"]), row["First resistance basis"])
-        t2.metric("30% trade target", fmt_optional_price(row["Sell target"]))
+        t2.metric("Projected target", fmt_optional_price(row["Sell target"]))
         t3.metric(
             "Gross upside from planned entry",
             f"{row['Target upside %']:.1f}%" if pd.notna(row["Target upside %"]) else "Below requirement",
@@ -4520,7 +4519,7 @@ with tab_crypto_advanced:
             f"{row['Cycle accumulation basis']}"
         )
         st.caption(
-            f"30% target basis: {row['Target basis']} · "
+            f"Projected target basis: {row['Target basis']} · "
             f"Next qualifying target: {fmt_optional_price(row['Stretch target'], 'Unavailable')} · "
             f"Position within available 4Y range (reference only): {cycle_text}"
         )
