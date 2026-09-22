@@ -153,8 +153,18 @@ def tokenomics_context(
     elif not math.isfinite(fdv_mcap):
         risks.append("FDV / market-cap needs review")
 
+    supply_basis = (
+        "Total supply" if math.isfinite(total) and total > 0
+        else "Max supply" if math.isfinite(max_supply) and max_supply > 0
+        else "Unavailable"
+    )
+
     return {
         "tokenomics_gate": tokenomics_gate,
+        "circulating_supply": circulating,
+        "total_supply": total,
+        "max_supply": max_supply,
+        "supply_basis": supply_basis,
         "circulating_pct": round(float(circulating_pct), 1) if math.isfinite(circulating_pct) else np.nan,
         "minimum_circulating_pct": minimum_circulating_pct,
         "fdv_mcap": round(float(fdv_mcap), 2) if math.isfinite(fdv_mcap) else np.nan,
@@ -166,6 +176,7 @@ def tokenomics_context(
         "meme_supply_exception": bool(meme_category),
         "tokenomics_risks": "; ".join(risks),
         "unlock_review": "UNVERIFIED — specialist unlock/vesting data not scored",
+        "vc_unlock_review": "UNVERIFIED — specialist unlock/vesting data not scored",
     }
 
 
@@ -335,6 +346,7 @@ def score_accumulation(
         reason = "The current base and accumulation-quality evidence are not strong enough."
 
     return {
+        "accumulation_model_version": ACCUMULATION_MODEL_VERSION,
         "accumulation_model_status": status,
         "accumulation_quality_score": quality_score,
         "accumulation_quality_components": components,
