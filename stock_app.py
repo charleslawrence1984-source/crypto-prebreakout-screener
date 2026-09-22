@@ -3085,6 +3085,8 @@ def load_investment_validation_coverage() -> Dict:
     for row in priority_rows:
         if str(row.get("Action") or "") != "BUY CANDIDATE":
             continue
+        if safe(row.get("Quality score")) < MIN_INVESTMENT_QUALITY_SCORE:
+            continue
         company_key = canonical_company_key(row.get("Company") or row.get("Ticker") or "")
         unique_buy_keys.add(company_key or str(row.get("Ticker") or ""))
 
@@ -3094,7 +3096,11 @@ def load_investment_validation_coverage() -> Dict:
         "old_buy_pool": int(totals.get("old_buy_candidate", 0) or 0),
         "old_wait_pool": int(totals.get("old_wait", 0) or 0),
         "fx_safe_revalued": int(priority.get("total", 0) or 0),
-        "fx_safe_buys": int(priority_counts.get("BUY CANDIDATE", 0) or 0),
+        "fx_safe_buys": sum(
+            1 for row in priority_rows
+            if str(row.get("Action") or "") == "BUY CANDIDATE"
+            and safe(row.get("Quality score")) >= MIN_INVESTMENT_QUALITY_SCORE
+        ),
         "fx_safe_unique_buys": len(unique_buy_keys),
         "fx_safe_waits": int(priority_counts.get("WAIT", 0) or 0),
     }
