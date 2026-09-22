@@ -750,7 +750,7 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         "valuation_fx_status": valuation_fx_status,
         "valuation_fx_rate": None if np.isnan(valuation_fx_rate) else float(valuation_fx_rate),
         "valuation_fx_pair": valuation_fx_pair,
-        "quote_scale": quote_scale,
+        "quote_scale": float(valuation_fx.get("quote_scale", 1.0) or 1.0),
         "valuation_uncertainty_pct": None if np.isnan(valuation_uncertainty_pct) else round(valuation_uncertainty_pct, 1),
         "investment_valuation_score": round(valuation_score, 1),
         "normalized_fcf_per_share": None if np.isnan(normalized_fcf_per_share) else round(normalized_fcf_per_share, 4),
