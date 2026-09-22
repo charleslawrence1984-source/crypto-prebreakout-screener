@@ -3869,8 +3869,9 @@ with tab_opportunities:
             i3.metric("Markets represented", investment_market_count)
 
             st.caption(
-                "BUY CANDIDATE means the measurable quality and valuation gates pass, but the required manual review still applies. "
-                "WAIT usually means the business quality passes but the price or evidence is not good enough yet."
+                "BUY CANDIDATE means the measurable quality gates, FX-safe DCF valuation and margin-of-safety gate pass, "
+                "but the required manual review still applies. WAIT usually means quality passes but price, valuation FX, "
+                "or evidence is not good enough yet."
             )
 
             investment_filter = st.radio(
@@ -3891,7 +3892,8 @@ with tab_opportunities:
                 "Action", "Ticker", "Company", "Exchange", "Sector",
                 "Price", "Quality score", "Moat score",
                 "Base margin of safety %", "Required margin of safety %",
-                "MOS gap %", "Valuation gate", "Decision reason",
+                "MOS gap %", "Valuation gate", "Valuation FX status",
+                "Financial currency", "Quote currency", "Alternate listings", "Decision reason",
             ]
             visible_investment_cols = [
                 col for col in investment_cols if col in shown_investment.columns
