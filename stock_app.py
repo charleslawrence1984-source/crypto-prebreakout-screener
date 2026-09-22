@@ -13,6 +13,7 @@ from html.parser import HTMLParser
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
+from urllib.parse import urlencode
 
 import numpy as np
 import pandas as pd
@@ -2725,6 +2726,7 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
         "Action": action,
         "Shares": shares,
         "Average cost": average_cost,
+        "Amount invested": average_cost * shares,
         "Price": display_price,
         "Current price": display_price,
         "Return %": return_pct,
@@ -2814,6 +2816,7 @@ def analyse_trade_portfolio_holding(symbol: str, shares: float, average_cost: fl
         "Action": decision.get("action") or "REASSESS",
         "Shares": shares,
         "Average cost": average_cost,
+        "Amount invested": average_cost * shares,
         "Price": display_quote(price),
         "Current price": display_quote(price),
         "Return %": return_pct,
@@ -2878,10 +2881,112 @@ render_module_header(
 
 st.markdown("""
 <style>
+.stock-home-actions-grid {
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+  margin:8px 0 24px 0;
+}
+.stock-home-action-card,
+.stock-summary-card {
+  display:flex;
+  flex-direction:column;
+  color:inherit !important;
+  text-decoration:none !important;
+  background:#ffffff;
+  border:1px solid #e2e8f0;
+  border-radius:16px;
+  transition:border-color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+.stock-home-action-card {
+  min-height:178px;
+  padding:20px;
+}
+.stock-home-action-card:hover,
+.stock-summary-card:hover {
+  border-color:#2f7bf2;
+  box-shadow:0 10px 26px rgba(15,73,160,.10);
+  transform:translateY(-2px);
+}
+.stock-home-action-card:focus-visible,
+.stock-summary-card:focus-visible {
+  outline:3px solid rgba(47,123,242,.25);
+  outline-offset:3px;
+}
+.stock-home-action-title {
+  color:#0a1735;
+  font-size:1.12rem;
+  font-weight:850;
+  margin-bottom:8px;
+}
+.stock-home-action-copy {
+  color:#64748b;
+  line-height:1.5;
+  flex:1 1 auto;
+}
+.stock-home-action-cta {
+  color:#1757ad;
+  font-weight:850;
+  margin-top:14px;
+}
+.stock-summary-grid {
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:10px;
+  margin:10px 0 12px 0;
+}
+.stock-summary-card {
+  min-height:116px;
+  padding:14px;
+}
+.stock-summary-label-row {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:8px;
+  color:#64748b;
+  font-size:.76rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.035em;
+}
+.stock-summary-value {
+  color:#0a1735;
+  font-size:1.85rem;
+  line-height:1;
+  font-weight:900;
+  margin-top:auto;
+  padding-top:18px;
+}
+.stock-info-dot {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:18px;
+  height:18px;
+  flex:0 0 18px;
+  border-radius:50%;
+  border:1px solid #b8c7da;
+  color:#315f9f;
+  background:#f6f9fd;
+  font-size:.70rem;
+  font-weight:900;
+  text-transform:none;
+  cursor:help;
+}
+.stock-focus-panel {
+  scroll-margin-top:18px;
+}
+@media (max-width: 1100px) {
+  .stock-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
 @media (max-width: 700px) {
   .block-container { padding-top: 1rem; padding-left: .7rem; padding-right: .7rem; }
   h1 { font-size: 1.8rem !important; }
   div[data-testid="stMetricValue"] { font-size: 1.3rem; }
+  .stock-home-actions-grid { grid-template-columns:1fr; }
+  .stock-home-action-card { min-height:0; }
+  .stock-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3524,6 +3629,28 @@ def _query_param_text(name: str) -> str:
     return str(value or "")
 
 
+def stock_home_focus_href(focus: str) -> str:
+    """Build a same-page dashboard link without dropping browser-saved watchlist state."""
+    params = {}
+    try:
+        for key, value in st.query_params.items():
+            if key == "stock_focus":
+                continue
+            if isinstance(value, list):
+                value = value[-1] if value else ""
+            if value not in (None, ""):
+                params[str(key)] = str(value)
+    except Exception:
+        params = {}
+
+    focus_value = str(focus or "").strip()
+    if focus_value:
+        params["stock_focus"] = focus_value
+
+    query = urlencode(params)
+    return (f"?{query}" if query else "?") + "#stock-focus"
+
+
 def _encode_browser_state(value) -> str:
     """Compact small watchlist state into the page URL so it survives reruns/redeploys."""
     try:
@@ -3834,9 +3961,6 @@ tab_home, tab1, tab_opportunities, tab2, tab5, tab3, tab4 = st.tabs(
 )
 
 with tab_home:
-    st.markdown("### Your stock dashboard")
-    st.caption("Start with a company, browse what the screener is finding, or check the companies you are already watching.")
-
     home_trade = load_all_trade_opportunities()
     home_investment = load_all_investment_opportunities()
     home_watchlist = load_browser_watchlist()
@@ -3864,21 +3988,87 @@ with tab_home:
     )
     recent_alert_count = len(home_events)
 
-    m1, m2, m3, m4, m5, m6 = st.columns(6)
-    m1.metric("Trade ready", ready_count)
-    m2.metric("Trade WATCH", trade_watch_count)
-    m3.metric("Investment BUY", investment_buy_count)
-    m4.metric(
-        "Investment review",
-        investment_wait_count + investment_refresh_count,
-        help=(
-            f"{investment_refresh_count} currently require FX-safe revaluation."
-            if investment_refresh_count
-            else "Quality candidates currently on WAIT."
-        ),
+    st.markdown("### What do you want to do?")
+    st.caption("Choose a starting point. The whole card is clickable.")
+
+    analyse_href = stock_home_focus_href("analyse")
+    opportunities_href = stock_home_focus_href("opportunities")
+    watchlist_href = stock_home_focus_href("watchlist")
+    st.markdown(
+        f"""
+        <div class="stock-home-actions-grid">
+          <a class="stock-home-action-card" href="{analyse_href}" target="_self" aria-label="Analyse a company">
+            <div class="stock-home-action-title">🔎 Analyse a company</div>
+            <div class="stock-home-action-copy">Search by company name or ticker and get the Trade and Investment decision first.</div>
+            <div class="stock-home-action-cta">Analyse a company →</div>
+          </a>
+          <a class="stock-home-action-card" href="{opportunities_href}" target="_self" aria-label="Find opportunities">
+            <div class="stock-home-action-title">🎯 Find opportunities</div>
+            <div class="stock-home-action-copy">Jump straight to the latest Trade setups and long-term Investment candidates found by the screener.</div>
+            <div class="stock-home-action-cta">View opportunities →</div>
+          </a>
+          <a class="stock-home-action-card" href="{watchlist_href}" target="_self" aria-label="Open my watchlist">
+            <div class="stock-home-action-title">⭐ My watchlist</div>
+            <div class="stock-home-action-copy">See the companies you are tracking, their latest available prices and current Trade setup status.</div>
+            <div class="stock-home-action-cta">Open watchlist →</div>
+          </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-    m5.metric("Watchlist", len(home_watchlist))
-    m6.metric("Recent alerts", recent_alert_count)
+
+    st.markdown("### Your Dashboard")
+    st.caption("Click any category to jump directly to the companies behind the number.")
+
+    st.markdown(
+        f"""
+        <div class="stock-summary-grid">
+          <a class="stock-summary-card" href="{stock_home_focus_href('trade-buy')}" target="_self" aria-label="View Trades to Buy">
+            <div class="stock-summary-label-row">
+              <span>Trades to Buy</span>
+              <span class="stock-info-dot" title="Prepared Trade setups at the ready-to-verify stage. Run Quick Analysis before acting so current price and event gates are checked.">?</span>
+            </div>
+            <div class="stock-summary-value">{ready_count}</div>
+          </a>
+          <a class="stock-summary-card" href="{stock_home_focus_href('trade-watch')}" target="_self" aria-label="View Trades to Watch">
+            <div class="stock-summary-label-row">
+              <span>Trades to Watch</span>
+              <span class="stock-info-dot" title="Developing Trade setups that pass the prepared filters but have not yet reached the confirmation stage.">?</span>
+            </div>
+            <div class="stock-summary-value">{trade_watch_count}</div>
+          </a>
+          <a class="stock-summary-card" href="{stock_home_focus_href('investment-buy')}" target="_self" aria-label="View Investments to Buy">
+            <div class="stock-summary-label-row">
+              <span>Investments to Buy</span>
+              <span class="stock-info-dot" title="Long-term candidates whose quality gates, FX-safe valuation and margin-of-safety requirements are currently passing.">?</span>
+            </div>
+            <div class="stock-summary-value">{investment_buy_count}</div>
+          </a>
+          <a class="stock-summary-card" href="{stock_home_focus_href('investment-watch')}" target="_self" aria-label="View Investments to Watch">
+            <div class="stock-summary-label-row">
+              <span>Investments to Watch</span>
+              <span class="stock-info-dot" title="Quality candidates on WAIT or awaiting revaluation. They are worth monitoring but are not currently validated buys.">?</span>
+            </div>
+            <div class="stock-summary-value">{investment_wait_count + investment_refresh_count}</div>
+          </a>
+          <a class="stock-summary-card" href="{stock_home_focus_href('watchlist')}" target="_self" aria-label="View Watchlist">
+            <div class="stock-summary-label-row">
+              <span>Watchlist</span>
+              <span class="stock-info-dot" title="Companies you have chosen to track so you can monitor what changes without starting the research again.">?</span>
+            </div>
+            <div class="stock-summary-value">{len(home_watchlist)}</div>
+          </a>
+          <a class="stock-summary-card" href="{stock_home_focus_href('alerts')}" target="_self" aria-label="View Recent Alerts">
+            <div class="stock-summary-label-row">
+              <span>Recent Alerts</span>
+              <span class="stock-info-dot" title="Saved Trade or Investment status changes detected on your watchlist during previous refreshes.">?</span>
+            </div>
+            <div class="stock-summary-value">{recent_alert_count}</div>
+          </a>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     stock_freshness = load_stock_freshness_summary()
     st.caption(
@@ -3888,13 +4078,29 @@ with tab_home:
         f"Fundamental change check: {format_freshness_time(stock_freshness['fundamental_check'])}"
     )
 
-    render_live_trade_monitor("home", show_table=True)
+    home_focus = _query_param_text("stock_focus").strip().lower()
+    home_query = ""
+    home_analyse = False
 
-    action1, action2, action3 = st.columns(3)
-    with action1:
-        with st.container(border=True):
-            st.markdown("#### 🔎 Analyse a company")
-            st.write("Search by company name or ticker and get the Trade and Investment decision first.")
+    st.markdown('<div id="stock-focus" class="stock-focus-panel"></div>', unsafe_allow_html=True)
+
+    trade_focus_columns = [
+        "Status", "Ticker", "Company", "Exchange", "Sector",
+        "Technical reason", "Fundamental score", "Technical score",
+        "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
+    ]
+    investment_focus_columns = [
+        "Action", "Ticker", "Company", "Exchange", "Sector",
+        "Price", "Quality score", "Moat score",
+        "Base margin of safety %", "Required margin of safety %",
+        "MOS gap %", "Valuation gate", "Valuation FX status", "Decision reason",
+    ]
+
+    if home_focus == "analyse":
+        st.markdown("#### 🔎 Analyse a company")
+        st.caption("Search by company name or ticker. You do not need to know the exchange code.")
+        q1, q2 = st.columns([4, 1])
+        with q1:
             home_query = st.text_input(
                 "Company",
                 value="",
@@ -3902,6 +4108,7 @@ with tab_home:
                 key="home_company_search",
                 label_visibility="collapsed",
             )
+        with q2:
             home_analyse = st.button(
                 "Analyse company",
                 type="primary",
@@ -3909,40 +4116,113 @@ with tab_home:
                 key="home_analyse_button",
             )
 
-    with action2:
-        with st.container(border=True):
-            st.markdown("#### 🎯 Find opportunities")
-            st.write("The screener combines prepared markets so you do not need to search one exchange at a time.")
-            if ready_count:
-                st.success(f"{ready_count} Trade setup{'s' if ready_count != 1 else ''} ready to verify")
-            elif trade_watch_count:
-                st.info(f"{trade_watch_count} Trade setup{'s' if trade_watch_count != 1 else ''} developing on WATCH")
-            else:
-                st.info("No Trade setup is ready right now.")
-            if investment_buy_count:
-                st.success(f"{investment_buy_count} Investment BUY candidate{'s' if investment_buy_count != 1 else ''}")
-            elif investment_refresh_count:
-                st.info(
-                    f"{investment_refresh_count} Investment candidate"
-                    f"{'s are' if investment_refresh_count != 1 else ' is'} being revalued with the FX-safe DCF model."
-                )
-            elif investment_wait_count:
-                st.info(f"{investment_wait_count} Investment candidate{'s' if investment_wait_count != 1 else ''} on review/WATCH.")
-            st.caption("Open **Opportunities** above to see the full shortlist.")
+    elif home_focus in {"trade-buy", "trade-watch"}:
+        wanted_status = "READY TO VERIFY" if home_focus == "trade-buy" else "WATCH"
+        heading = "Trades to Buy" if home_focus == "trade-buy" else "Trades to Watch"
+        st.markdown(f"#### 🎯 {heading}")
+        if home_focus == "trade-buy":
+            st.caption("These prepared setups are at the ready-to-verify stage. Run Quick Analysis before acting.")
+        else:
+            st.caption("These setups are developing but have not reached confirmation.")
+        shown_trade = (
+            home_trade[home_trade["Status"] == wanted_status].copy()
+            if not home_trade.empty and "Status" in home_trade.columns
+            else pd.DataFrame()
+        )
+        if shown_trade.empty:
+            st.info(f"No {heading.lower()} are available right now.")
+        else:
+            visible = [column for column in trade_focus_columns if column in shown_trade.columns]
+            render_watchlist_selector(
+                shown_trade[visible],
+                key=f"home_focus_{home_focus}_{_query_param_text('wl')[:8]}",
+            )
 
-    with action3:
-        with st.container(border=True):
-            st.markdown("#### ⭐ My watchlist")
-            if home_watchlist:
-                st.write(f"You are following **{len(home_watchlist)}** compan{'y' if len(home_watchlist) == 1 else 'ies'}.")
-                if recent_alert_count:
-                    st.warning(f"{recent_alert_count} recent watchlist change{'s' if recent_alert_count != 1 else ''} saved.")
-                else:
-                    st.info("No saved status changes yet.")
+    elif home_focus in {"investment-buy", "investment-watch"}:
+        if home_focus == "investment-buy":
+            heading = "Investments to Buy"
+            shown_investment = (
+                home_investment[home_investment["Action"] == "BUY CANDIDATE"].copy()
+                if not home_investment.empty and "Action" in home_investment.columns
+                else pd.DataFrame()
+            )
+            st.markdown(f"#### 💼 {heading}")
+            st.caption("These candidates currently pass the long-term quality and validated valuation gates.")
+        else:
+            heading = "Investments to Watch"
+            shown_investment = (
+                home_investment[home_investment["Action"].isin(["WAIT", "REVALUE"])].copy()
+                if not home_investment.empty and "Action" in home_investment.columns
+                else pd.DataFrame()
+            )
+            st.markdown(f"#### 👀 {heading}")
+            st.caption("These candidates are worth monitoring but are not currently validated buys.")
+        if shown_investment.empty:
+            st.info(f"No {heading.lower()} are available right now.")
+        else:
+            visible = [column for column in investment_focus_columns if column in shown_investment.columns]
+            render_watchlist_selector(
+                shown_investment[visible],
+                key=f"home_focus_{home_focus}_{_query_param_text('wl')[:8]}",
+                column_config={
+                    "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                    "Moat score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                    "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                    "MOS gap %": st.column_config.NumberColumn(format="%.1f%%"),
+                },
+            )
+
+    elif home_focus == "opportunities":
+        st.markdown("#### 🎯 Find opportunities")
+        st.caption("The latest prepared Trade and Investment shortlists, brought together in one place.")
+        home_trade_tab, home_investment_tab = st.tabs(["Trade opportunities", "Investment opportunities"])
+        with home_trade_tab:
+            if home_trade.empty:
+                st.info("No prepared Trade opportunities are available right now.")
             else:
-                st.write("Your watchlist is empty.")
-                st.caption("Tick **Watch** beside any company in the screener to start tracking it.")
-            st.caption("Open **Watchlist** above to refresh statuses and manage companies.")
+                visible = [column for column in trade_focus_columns if column in home_trade.columns]
+                render_watchlist_selector(
+                    home_trade[visible].head(50),
+                    key=f"home_focus_opportunities_trade_{_query_param_text('wl')[:8]}",
+                )
+        with home_investment_tab:
+            if home_investment.empty:
+                st.info("No prepared Investment opportunities are available right now.")
+            else:
+                visible = [column for column in investment_focus_columns if column in home_investment.columns]
+                render_watchlist_selector(
+                    home_investment[visible].head(50),
+                    key=f"home_focus_opportunities_investment_{_query_param_text('wl')[:8]}",
+                    column_config={
+                        "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Moat score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
+                        "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "MOS gap %": st.column_config.NumberColumn(format="%.1f%%"),
+                    },
+                )
+
+    elif home_focus == "watchlist":
+        st.markdown("#### ⭐ My watchlist")
+        if home_watchlist:
+            render_live_watchlist_quotes()
+            st.caption("Use the dedicated Watchlist tab for a full status refresh, alert history and removals.")
+        else:
+            st.info("Your watchlist is empty. Tick Watch beside any company in an opportunity table or analysis to add it.")
+
+    elif home_focus == "alerts":
+        st.markdown("#### 🔔 Recent alerts")
+        if home_events:
+            for event in reversed(home_events):
+                st.write(
+                    f"**{event.get('time', '—')} · {event.get('type', 'STATUS')}** — "
+                    f"{event.get('message', '')}"
+                )
+        else:
+            st.info("No saved watchlist status changes yet.")
+
+    render_live_trade_monitor("home", show_table=True)
 
     if home_analyse and home_query:
         resolved = resolve_company_query(home_query)
@@ -3999,7 +4279,7 @@ with tab_home:
                         home_investment_decision["action"],
                         home_investment_decision["reason"],
                     )
-                st.caption("Use **Quick Analysis** above if you want the full trade plan, valuation and detailed evidence.")
+                st.caption("Use Quick Analysis above if you want the full trade plan, valuation and detailed evidence.")
             else:
                 st.error("I couldn't retrieve enough market data for that company.")
 
@@ -4014,7 +4294,6 @@ with tab_home:
     with h3:
         st.markdown("**3 · Watch what matters**")
         st.caption("If it is not ready, add it to your watchlist and track what needs to change.")
-
 
 with tab1:
     st.markdown("### Quick Analysis")
@@ -5259,7 +5538,7 @@ with tab5:
         portfolio_results = pd.DataFrame()
 
     required_portfolio_result_columns = {
-        "Ticker", "Position type", "Average cost", "Current price",
+        "Ticker", "Position type", "Average cost", "Amount invested", "Current price",
         "Market value £", "Cost basis £", "Unrealised P/L £", "Quote currency",
     }
     if (
@@ -5387,7 +5666,7 @@ with tab5:
         else:
             investment_main = investment_results[[
                 "Ticker", "Company", "Action", "Weight %", "Shares", "Average cost",
-                "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
+                "Amount invested", "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
             ]].copy()
             investment_main = investment_main.rename(columns={"Quote currency": "Currency"})
 
@@ -5415,6 +5694,11 @@ with tab5:
                     "Weight %": st.column_config.NumberColumn(format="%.1f%%", width="small"),
                     "Shares": st.column_config.NumberColumn(format="%.4f", width="small"),
                     "Average cost": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Amount invested": st.column_config.NumberColumn(
+                        format="%.2f",
+                        width="small",
+                        help="Shares × broker average cost, shown in the position's quote currency.",
+                    ),
                     "Current price": st.column_config.NumberColumn(format="%.4f", width="small"),
                     "Return %": st.column_config.NumberColumn(format="%+.1f%%", width="small"),
                     "Market value £": st.column_config.NumberColumn(format="£%.2f", width="small"),
@@ -5487,7 +5771,7 @@ with tab5:
 
             trade_main = trade_results[[
                 "Ticker", "Company", "Action", "Shares", "Average cost",
-                "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
+                "Amount invested", "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
             ]].copy().rename(columns={"Quote currency": "Currency"})
 
             styled_trade = trade_main.style.map(
@@ -5504,6 +5788,11 @@ with tab5:
                     "Action": st.column_config.TextColumn(width="medium"),
                     "Shares": st.column_config.NumberColumn(format="%.4f", width="small"),
                     "Average cost": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Amount invested": st.column_config.NumberColumn(
+                        format="%.2f",
+                        width="small",
+                        help="Shares × broker average cost, shown in the position's quote currency.",
+                    ),
                     "Current price": st.column_config.NumberColumn(format="%.4f", width="small"),
                     "Return %": st.column_config.NumberColumn(format="%+.1f%%", width="small"),
                     "Market value £": st.column_config.NumberColumn(format="£%.2f", width="small"),
