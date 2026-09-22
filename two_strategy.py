@@ -119,7 +119,10 @@ def investment_decision(res: dict, owned: bool = False, average_buy_price: float
     if sector_review_required:
         reasons.append("specialist sector review required")
     if hard_gate_pass and not valuation_gate_pass:
-        if required_mos:
+        fx_status = str(res.get("valuation_fx_status") or "").upper()
+        if fx_status and fx_status != "PASS":
+            reasons.append("valuation currency conversion is unavailable or unverified")
+        elif required_mos:
             reasons.append(f"DCF margin of safety is below the required {required_mos:.1f}% hurdle or bear case is not protected")
         else:
             reasons.append("DCF valuation gate not passed")
