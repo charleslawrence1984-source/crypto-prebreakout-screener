@@ -6,6 +6,7 @@ on:
     paths:
       - "crypto_market_pipeline.py"
       - "crypto_universe_rules.py"
+      - "crypto_rule_engine.py"
       - ".github/workflows/crypto-market-pipeline.yml"
   schedule:
     - cron: "*/5 * * * *"
@@ -53,6 +54,7 @@ jobs:
             --min-quote-volume 5000000 \
             --batch-size 150 \
             --max-active 150 \
+            --deep-score-size 60 \
             --concurrency 10
 
       - name: Persist Crypto pipeline state to data branch
