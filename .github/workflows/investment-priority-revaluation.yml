@@ -46,6 +46,54 @@ jobs:
             --min-market-cap-bn 0.5 \
             --workers 2
 
+      - name: Build priority valuation audit
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          import math
+          from pathlib import Path
+          import pandas as pd
+
+          rows = []
+          counts = {}
+          for file in sorted(glob.glob("prepared_priority_investments/*.csv.gz")):
+              frame = pd.read_csv(file, compression="gzip")
+              for _, row in frame.iterrows():
+                  item = {}
+                  for col in [
+                      "Action", "Ticker", "Company", "Price", "Quality score", "Moat score",
+                      "Base margin of safety %", "Required margin of safety %",
+                      "Bear margin of safety %", "Valuation gate",
+                      "Valuation model version", "Valuation FX status",
+                      "Valuation FX rate", "Valuation FX pair",
+                      "Quote currency", "Financial currency", "Decision reason",
+                  ]:
+                      value = row.get(col)
+                      if pd.isna(value):
+                          value = None
+                      elif hasattr(value, "item"):
+                          value = value.item()
+                      item[col] = value
+                  item["Prepared exchange"] = Path(file).name.replace(".csv.gz", "")
+                  rows.append(item)
+                  action = str(item.get("Action") or "UNKNOWN")
+                  counts[action] = counts.get(action, 0) + 1
+
+          payload = {
+              "rows": rows,
+              "counts": counts,
+              "total": len(rows),
+          }
+          Path("prepared_priority_investments/summary.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({"counts": counts, "total": len(rows)}, sort_keys=True))
+          PY
+
       - name: Save priority Investment valuations
         if: always()
         shell: bash
