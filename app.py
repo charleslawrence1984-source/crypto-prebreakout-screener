@@ -3123,7 +3123,7 @@ with tab_crypto_opportunities:
                 shown_swing = shown_swing.head(25)
 
             swing_cols = [
-                "Swing status", "Base", "Exchange", "Swing score", "Price",
+                "Swing status", "Opportunity stage", "Base", "Exchange", "Swing score", "Price",
                 "Planned entry", "Invalidation", "Target", "Target upside %", "R:R",
                 "RS vs BTC %", "RSI", "ATR ratio", "Vol ratio", "Distance %",
                 "Resistance tests", "Coin trend", "Pattern", "Candle caution",
@@ -3184,7 +3184,7 @@ with tab_crypto_opportunities:
                 shown_acc = shown_acc.head(25)
 
             accumulation_cols = [
-                "Accumulation status", "Base", "Exchange", "Accumulation score",
+                "Accumulation status", "Opportunity stage", "Base", "Exchange", "Accumulation score",
                 "Price", "Accumulation low", "Accumulation high",
                 "In accumulation zone", "Coin trend", "RS vs BTC %", "RSI",
                 "Execution venues", "Execution liquidity pass", "Execution reason",
