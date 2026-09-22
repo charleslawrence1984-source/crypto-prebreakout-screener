@@ -1631,9 +1631,9 @@ def scan_cell_style(value, column: str) -> str:
         return ""
 
     if column == "Tests":
-        return green if number >= 2 else amber if number >= 1 else red
+        return green if number >= 3 else amber if number >= 1 else ""
     if column == "RSI":
-        return green if 52 <= number <= 64 else amber if 48 <= number <= 69 else red
+        return green if 45 <= number <= 68 else amber if 38 <= number <= 74 else red
     if column == "ATR ratio":
         return green if number <= 0.95 else amber if number <= 1.10 else red
     if column == "Vol ratio":
@@ -1728,12 +1728,14 @@ def score_setup(
     elif distance_pct > cfg.near_resistance_max_pct:
         shape_rejection = "Too far below resistance"
 
-    # 1) Price structure: higher lows + repeated resistance tests + EMA structure (20 pts)
+    # 1) Price structure: higher lows + resistance interaction + EMA structure (20 pts)
+    # Resistance-test count is evidence, not a hard gate. One clean compression can
+    # be valid; repeated tests add confidence only if the rest of the structure agrees.
     lows_slope = lin_slope(recent["low"])
     higher_lows_component = clamp_score((lows_slope + 0.001) / 0.004)
     test_band = resistance * 0.015
     resistance_tests = int(((hist["high"] >= resistance - test_band) & (hist["high"] <= resistance * 1.001)).sum())
-    test_component = clamp_score((resistance_tests - 1) / 3)
+    test_component = clamp_score(resistance_tests / 4)
     ema_component = 1.0 if price > x["ema20"].iloc[-1] > x["ema50"].iloc[-1] else (0.55 if price > x["ema20"].iloc[-1] else 0.15)
     structure_score = 8 * higher_lows_component + 6 * test_component + 6 * ema_component
 
@@ -1774,18 +1776,17 @@ def score_setup(
     rs_component = clamp_score(((0.65 * rs12 + 0.35 * rs24) + 0.02) / 0.10)
     rs_score = 15 * rs_component
 
-    # 5) Momentum: RSI in the 50-65 zone + improving MACD histogram (10 pts)
+    # 5) Momentum: RSI is measured as a broad momentum/extension feature rather
+    # than assuming a narrow 52-64 "ideal" band. MACD improvement remains useful.
     rsi_now = float(x["rsi"].iloc[-1])
-    if rsi_now > cfg.max_rsi:
-        rsi_component = max(0, 1 - (rsi_now - cfg.max_rsi) / 10)
-    elif 52 <= rsi_now <= 64:
+    if 45 <= rsi_now <= 68:
         rsi_component = 1.0
-    elif 48 <= rsi_now < 52:
-        rsi_component = 0.65
-    elif 64 < rsi_now <= cfg.max_rsi:
-        rsi_component = 0.75
+    elif 38 <= rsi_now < 45 or 68 < rsi_now <= 74:
+        rsi_component = 0.70
+    elif 32 <= rsi_now < 38 or 74 < rsi_now <= 80:
+        rsi_component = 0.40
     else:
-        rsi_component = 0.25
+        rsi_component = 0.15
     mh = x["macd_hist"]
     macd_rising = float(mh.iloc[-1] - mh.iloc[-4])
     macd_scale = max(abs(float(mh.iloc[-10:].std())), price * 1e-5)
@@ -2086,9 +2087,8 @@ def score_setup(
 
     shape_eligible = (
         cfg.near_resistance_min_pct <= distance_pct <= cfg.near_resistance_max_pct
-        and resistance_tests >= 2
-        and rsi_now <= cfg.max_rsi + 3
         and lows_slope > -0.0015
+        and rsi_now <= 80
     )
     trade_target_eligible = math.isfinite(projected_target)
     eligible = shape_eligible and trade_target_eligible
@@ -4998,16 +4998,20 @@ with tab_crypto_advanced:
 
     #### BUY score — pre-breakout swing-trade quality
 
-    - **20 raw pts — Structure:** higher lows, repeated resistance tests, 4h EMA structure.
+    - **20 raw pts — Structure:** higher lows, resistance interaction and 4h EMA structure. The number of resistance tests is measured and scored, not used as a binary pass/fail rule.
     - **15 raw pts — Compression:** ATR contraction and a tightening trading range.
     - **15 raw pts — Volume:** volume dries up during the coil, with preference for stronger volume on up-bars.
     - **15 raw pts — Relative strength:** coin return versus BTC over recent 4h windows.
-    - **10 raw pts — Momentum:** RSI in a constructive zone plus improving MACD histogram.
+    - **10 raw pts — Momentum:** RSI is treated as a broad momentum/extension feature rather than requiring a fixed 52–64 band; improving MACD histogram adds confirmation.
     - **5 raw pts — OBV:** accumulation proxy via rising on-balance volume.
     - **5 raw pts — Daily context:** daily trend constructive without being extremely stretched.
-    - **10 raw pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk.
+    - **10 raw pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk. R:R contributes to ranking but a universal 2:1 threshold is not assumed to be proven.
 
-    Those weights total 95 raw points, which the app now normalises to a genuine **0–100 score**. BUY also has separate hard rules: the setup must still be below and near resistance, show at least two tests, avoid material overextension, and have a technically credible target offering at least **30% gross upside from the planned entry**.
+    Those weights total 95 raw technical points, which the app normalises to a genuine **0–100 technical score**. Swing decisions remain overwhelmingly technical. Context such as macro conditions, catalysts and token events is secondary and must never rescue a poor chart. BUY hard rules are now limited to the parts of the setup that define the mission: the coin must still be genuinely pre-breakout, close enough to resistance to offer an actionable setup, avoid severe momentum overextension, retain constructive structure, and have a technically credible target offering at least **30% gross upside from the planned entry**.
+
+    **Retest rule:** a bullish breakout retest from above and a bounce into broken support from below are treated as different structures. A first retest of major broken support from underneath is a caution / potential exit-liquidity zone, not an automatic long entry. A reclaim becomes stronger only after price closes back above the level, shows acceptance/follow-through and ideally holds a later retest.
+
+    **Evidence rule:** RSI bands, resistance-test count, Fibonacci confluence, exact R:R thresholds, Volume Profile behaviour and first-versus-later retest behaviour are hypotheses to measure and backtest. They should only become hard gates if historical evidence shows that they materially improve expectancy.
 
     #### ACCUMULATE score — bottoming quality
 
