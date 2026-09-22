@@ -1,2 +1,3 @@
 Requested 2026-09-20 after the Quick Analysis redesign was deployed.
 Resume the bounded missing-only Investment fundamentals batch with checkpointing and rate-limit stopping. Preserve all eligibility gates, partial labels and existing prepared results. Continue from the current 638 unresolved eligible fundamentals; do not rescan completed rows.
+FX-safe valuation rebuild 2026-09-22
