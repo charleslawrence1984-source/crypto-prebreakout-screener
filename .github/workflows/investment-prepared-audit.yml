@@ -1,0 +1,135 @@
+name: Investment prepared audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/investment-prepared-audit.yml"
+      - ".github/investment-audit-kick.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: investment-prepared-audit
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pandas
+        run: pip install pandas
+
+      - name: Audit prepared Investment rows
+        run: |
+          python - <<'PY'
+          import glob, json
+          from pathlib import Path
+          import pandas as pd
+
+          current_model = "investment-fx-v2-2026-09-22"
+          totals = {
+              "rows": 0,
+              "old_buy_candidate": 0,
+              "old_wait": 0,
+              "old_pass": 0,
+              "current_buy_candidate": 0,
+              "current_wait": 0,
+              "current_other": 0,
+              "current_model_rows": 0,
+              "stale_model_rows": 0,
+              "hard_gate_pass": 0,
+          }
+          markets = {}
+          stale_buy_symbols = {}
+
+          for file in sorted(glob.glob("prepared_scans/*.csv.gz")):
+              market = Path(file).name.replace(".csv.gz", "")
+              df = pd.read_csv(file, compression="gzip")
+              if df.empty:
+                  continue
+
+              n = len(df)
+              totals["rows"] += n
+              action = df.get("Action", pd.Series("", index=df.index)).fillna("").astype(str)
+              version = df.get("Valuation model version", pd.Series("", index=df.index)).fillna("").astype(str)
+              hard = df.get("Hard gates", pd.Series("", index=df.index)).fillna("").astype(str)
+              current = version.eq(current_model)
+              stale = ~current
+
+              market_counts = {
+                  "rows": n,
+                  "current_model_rows": int(current.sum()),
+                  "stale_model_rows": int(stale.sum()),
+                  "old_buy_candidate": int((stale & action.eq("BUY CANDIDATE")).sum()),
+                  "old_wait": int((stale & action.eq("WAIT")).sum()),
+                  "current_buy_candidate": int((current & action.eq("BUY CANDIDATE")).sum()),
+                  "current_wait": int((current & action.eq("WAIT")).sum()),
+                  "hard_gate_pass": int(hard.eq("PASS").sum()),
+              }
+              markets[market] = market_counts
+
+              totals["current_model_rows"] += market_counts["current_model_rows"]
+              totals["stale_model_rows"] += market_counts["stale_model_rows"]
+              totals["old_buy_candidate"] += market_counts["old_buy_candidate"]
+              totals["old_wait"] += market_counts["old_wait"]
+              totals["old_pass"] += int((stale & action.eq("PASS")).sum())
+              totals["current_buy_candidate"] += market_counts["current_buy_candidate"]
+              totals["current_wait"] += market_counts["current_wait"]
+              totals["current_other"] += int((current & ~action.isin(["BUY CANDIDATE","WAIT"])).sum())
+              totals["hard_gate_pass"] += market_counts["hard_gate_pass"]
+
+              buy_rows = df[stale & action.eq("BUY CANDIDATE")]
+              if not buy_rows.empty:
+                  stale_buy_symbols[market] = buy_rows["Ticker"].dropna().astype(str).tolist()
+
+          priority_rows = 0
+          priority_buys = 0
+          priority_waits = 0
+          for file in sorted(glob.glob("prepared_priority_investments/*.csv.gz")):
+              df = pd.read_csv(file, compression="gzip")
+              priority_rows += len(df)
+              if "Action" in df.columns:
+                  priority_buys += int((df["Action"] == "BUY CANDIDATE").sum())
+                  priority_waits += int((df["Action"] == "WAIT").sum())
+
+          payload = {
+              "totals": totals,
+              "markets": markets,
+              "stale_buy_symbols": stale_buy_symbols,
+              "priority_overlay": {
+                  "rows": priority_rows,
+                  "buy_candidate": priority_buys,
+                  "wait": priority_waits,
+              },
+          }
+          Path("prepared_scans/investment_audit.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(payload["totals"], sort_keys=True))
+          print(json.dumps(payload["priority_overlay"], sort_keys=True))
+          PY
+
+      - name: Save audit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_scans/investment_audit.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Audit prepared Investment valuation coverage"
+          git pull --rebase origin main
+          git push origin HEAD:main
