@@ -12,7 +12,10 @@ import ccxt.async_support as ccxt
 import numpy as np
 import pandas as pd
 
+from crypto_macro import snapshot_age_minutes, snapshot_payload
 from crypto_universe_rules import crypto_universe_exclusion_reason
+
+
 EXCHANGES = {
     "binance": "Binance",
     "okx": "OKX",
@@ -419,6 +422,31 @@ def save_json(payload: dict, path: Path) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def refresh_macro_snapshot(output: Path, max_age_minutes: float = 50.0) -> dict:
+    """Refresh macro data off the user request path and retain the last good snapshot."""
+    path = output / "macro.json"
+    previous = load_manifest(path)
+    if previous and snapshot_age_minutes(previous) <= max_age_minutes:
+        return previous
+    try:
+        refreshed = snapshot_payload(timeout=8.0)
+    except Exception as exc:
+        refreshed = {
+            "available": False,
+            "errors": [f"{type(exc).__name__}: {str(exc)[:250]}"],
+            "generated_at": now_iso(),
+        }
+
+    if not refreshed.get("available") and previous.get("available"):
+        previous["last_refresh_attempt_at"] = now_iso()
+        previous["last_refresh_errors"] = refreshed.get("errors", [])
+        save_json(previous, path)
+        return previous
+
+    save_json(refreshed, path)
+    return refreshed
+
+
 def merge_discovery(existing: pd.DataFrame, fresh: pd.DataFrame, eligible_bases: set) -> pd.DataFrame:
     if not existing.empty:
         existing = existing[existing["Base"].astype(str).isin(eligible_bases)].copy()
@@ -509,10 +537,15 @@ async def run(args) -> int:
     manifest_path = output / "manifest.json"
     manifest = load_manifest(manifest_path)
 
+    # Macro sources are refreshed by the scheduled worker, never while a user is
+    # waiting for the Streamlit page to render.
+    macro_task = asyncio.create_task(asyncio.to_thread(refresh_macro_snapshot, output))
+
     all_markets, universe, audits, universe_errors = await load_all_universes(
         args.quote, args.min_quote_volume
     )
     if universe.empty:
+        await macro_task
         save_json({
             "generated_at": now_iso(),
             "status": "DATA ISSUE",
@@ -560,6 +593,8 @@ async def run(args) -> int:
     runs_per_sweep = math.ceil(total_unique / args.batch_size) if total_unique else 0
     nominal_minutes = runs_per_sweep * 5
 
+    macro_snapshot = await macro_task
+
     audit = {
         "generated_at": now_iso(),
         "quote": args.quote,
@@ -574,6 +609,8 @@ async def run(args) -> int:
         "discovery_coverage_pct": round(coverage_pct, 1),
         "active_candidates": int(len(active)),
         "estimated_full_sweep_minutes_at_5m_cadence": nominal_minutes,
+        "macro_updated_at": macro_snapshot.get("generated_at"),
+        "macro_available": bool(macro_snapshot.get("available")),
         "errors": universe_errors + discovery_errors[:50],
     }
     save_json(audit, output / "audit.json")
@@ -591,6 +628,8 @@ async def run(args) -> int:
         "discovery_coverage_pct": round(coverage_pct, 1),
         "active_candidates": int(len(active)),
         "estimated_full_sweep_minutes": nominal_minutes,
+        "macro_updated_at": macro_snapshot.get("generated_at"),
+        "macro_available": bool(macro_snapshot.get("available")),
         "errors": universe_errors + discovery_errors[:25],
     }
     save_json(manifest, manifest_path)

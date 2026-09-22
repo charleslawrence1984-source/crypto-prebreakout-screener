@@ -4,6 +4,7 @@ import asyncio
 import io
 import json
 import math
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -16,6 +17,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_decision_guidance
+from crypto_macro import snapshot_age_minutes, unavailable_macro
 from crypto_universe_rules import is_crypto_universe_asset
 
 
@@ -97,35 +99,66 @@ def load_crypto_pipeline_state() -> Dict:
         "crypto-data/prepared_crypto/"
     )
 
-    def read_json(name: str) -> dict:
-        try:
-            response = requests.get(raw_base + name, timeout=8)
-            response.raise_for_status()
-            return response.json()
-        except Exception:
-            try:
-                return json.loads((PREPARED_CRYPTO_DIR / name).read_text(encoding="utf-8"))
-            except Exception:
-                return {}
+    names = {
+        "manifest": "manifest.json",
+        "audit": "audit.json",
+        "macro": "macro.json",
+        "active": "active_monitor.csv.gz",
+        "discovery": "discovery.csv.gz",
+    }
 
-    def read_csv(name: str) -> pd.DataFrame:
+    def fetch(name: str) -> bytes | None:
         try:
-            response = requests.get(raw_base + name, timeout=10)
+            response = requests.get(raw_base + name, timeout=3)
             response.raise_for_status()
-            return pd.read_csv(io.BytesIO(response.content), compression="gzip")
+            return response.content
         except Exception:
-            try:
-                return pd.read_csv(PREPARED_CRYPTO_DIR / name, compression="gzip")
-            except Exception:
-                return pd.DataFrame()
+            return None
 
-    manifest = read_json("manifest.json")
-    audit = read_json("audit.json")
-    active = read_csv("active_monitor.csv.gz")
-    discovery = read_csv("discovery.csv.gz")
+    remote = {}
+    with ThreadPoolExecutor(max_workers=len(names)) as executor:
+        futures = {
+            executor.submit(fetch, filename): key
+            for key, filename in names.items()
+        }
+        for future in as_completed(futures):
+            remote[futures[future]] = future.result()
+
+    def read_json(key: str) -> dict:
+        try:
+            payload = remote.get(key)
+            if payload:
+                return json.loads(payload.decode("utf-8"))
+        except Exception:
+            pass
+        try:
+            return json.loads(
+                (PREPARED_CRYPTO_DIR / names[key]).read_text(encoding="utf-8")
+            )
+        except Exception:
+            return {}
+
+    def read_csv(key: str) -> pd.DataFrame:
+        try:
+            payload = remote.get(key)
+            if payload:
+                return pd.read_csv(io.BytesIO(payload), compression="gzip")
+        except Exception:
+            pass
+        try:
+            return pd.read_csv(PREPARED_CRYPTO_DIR / names[key], compression="gzip")
+        except Exception:
+            return pd.DataFrame()
+
+    manifest = read_json("manifest")
+    audit = read_json("audit")
+    macro = read_json("macro")
+    active = read_csv("active")
+    discovery = read_csv("discovery")
     return {
         "manifest": manifest,
         "audit": audit,
+        "macro": macro,
         "active": active,
         "discovery": discovery,
     }
@@ -3230,12 +3263,24 @@ if "previous_flags" not in st.session_state:
 if "last_scan" not in st.session_state:
     st.session_state.last_scan = None
 
-macro = macro_liquidity_regime()
-st.session_state.macro_liquidity = macro
-
 tab_crypto_home, tab_crypto_quick, tab_crypto_opportunities, tab_crypto_watchlist, tab_crypto_advanced = st.tabs(
     ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Advanced Crypto"]
 )
+
+# Draw the module navigation before any remote data is requested. A cold macro
+# refresh previously ran here and could block the entire page for 60-90 seconds,
+# making Crypto look blank. The scheduled pipeline now supplies the macro snapshot;
+# a live refresh remains available in Advanced Crypto.
+pipeline_state = load_crypto_pipeline_state()
+prepared_macro = pipeline_state.get("macro") or {}
+macro_override = st.session_state.get("macro_liquidity_override") or {}
+if macro_override.get("regime"):
+    macro = macro_override
+elif prepared_macro.get("regime"):
+    macro = prepared_macro
+else:
+    macro = unavailable_macro(["Prepared macro snapshot is initialising."])
+st.session_state.macro_liquidity = macro
 
 with tab_crypto_home:
     st.markdown("### Your crypto dashboard")
@@ -3243,7 +3288,6 @@ with tab_crypto_home:
 
     crypto_summary = crypto_dashboard_summary(st.session_state.scan_df, cfg, macro)
     crypto_watchlist = load_crypto_watchlist()
-    pipeline_state = load_crypto_pipeline_state()
     pipeline_manifest = pipeline_state["manifest"]
     pipeline_active = pipeline_state["active"]
 
@@ -3453,9 +3497,8 @@ with tab_crypto_home:
 with tab_crypto_opportunities:
     st.markdown("### Opportunities")
 
-    pipeline_state_opps = load_crypto_pipeline_state()
-    pipeline_active_opps = pipeline_state_opps["active"]
-    pipeline_manifest_opps = pipeline_state_opps["manifest"]
+    pipeline_active_opps = pipeline_state["active"]
+    pipeline_manifest_opps = pipeline_state["manifest"]
     with st.expander("🌐 Background discovery monitor", expanded=False):
         st.caption(
             "This is the 24/7 all-market discovery layer, not a BUY list. "
@@ -4047,6 +4090,27 @@ with tab_crypto_advanced:
     st.caption("The full pre-breakout engine, macro analysis, scan controls, charts and research detail live here.")
 
     st.subheader("Macro liquidity regime")
+    macro_refresh_col, macro_status_col = st.columns([1, 4])
+    with macro_refresh_col:
+        refresh_macro_now = st.button(
+            "Refresh macro now",
+            use_container_width=True,
+            key="refresh_crypto_macro",
+        )
+    with macro_status_col:
+        macro_age = snapshot_age_minutes(macro)
+        if math.isfinite(macro_age):
+            st.caption(f"Macro snapshot age: {macro_age:.0f} minutes.")
+        else:
+            st.caption("Macro snapshot is still initialising. Crypto remains usable and macro will not block trades.")
+
+    if refresh_macro_now:
+        with st.spinner("Refreshing macro-liquidity inputs…"):
+            refreshed_macro = macro_liquidity_regime()
+            refreshed_macro["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+            st.session_state.macro_liquidity_override = refreshed_macro
+        st.rerun()
+
     if macro.get("available"):
         ml1, ml2, ml3, ml4 = st.columns(4)
         ml1.metric("Liquidity score", f"{macro['score']:.1f}/100")
