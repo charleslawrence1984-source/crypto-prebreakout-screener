@@ -2308,13 +2308,13 @@
     "vienna": {
       "coverage_symbols": 152,
       "dispatch_counts": {
-        "BLCK.VI": 104,
-        "ETN.VI": 104,
-        "FTNT.VI": 104,
-        "KKRO.VI": 104,
-        "MCK.VI": 104,
-        "MPWR.VI": 104,
-        "TTEC.VI": 103
+        "BLCK.VI": 105,
+        "ETN.VI": 105,
+        "FTNT.VI": 105,
+        "KKRO.VI": 105,
+        "MCK.VI": 105,
+        "MPWR.VI": 105,
+        "TTEC.VI": 104
       },
       "eligible_symbols": 159,
       "errors": [
@@ -2357,21 +2357,21 @@
     "xetra": {
       "coverage_symbols": 155,
       "dispatch_counts": {
-        "3SM.DE": 102,
-        "6RV.DE": 102,
-        "AP4N.DE": 102,
-        "AT4.DE": 102,
-        "C7N.DE": 102,
-        "CFZ.DE": 102,
-        "D6I.DE": 102,
-        "ET9.DE": 102,
-        "H3V.DE": 102,
-        "HFF.DE": 102,
-        "JYS1.DE": 102,
-        "LGI.DE": 102,
-        "R902.DE": 102,
-        "SMP0.DE": 101,
-        "STD.DE": 101
+        "3SM.DE": 103,
+        "6RV.DE": 103,
+        "AP4N.DE": 103,
+        "AT4.DE": 103,
+        "C7N.DE": 103,
+        "CFZ.DE": 103,
+        "D6I.DE": 103,
+        "ET9.DE": 103,
+        "H3V.DE": 103,
+        "HFF.DE": 103,
+        "JYS1.DE": 103,
+        "LGI.DE": 103,
+        "R902.DE": 103,
+        "SMP0.DE": 102,
+        "STD.DE": 102
       },
       "eligible_symbols": 170,
       "errors": [
@@ -2420,7 +2420,7 @@
           "symbol": "H3V.DE"
         },
         {
-          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
+          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
           "symbol": "HFF.DE"
         },
         {
@@ -2446,5 +2446,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-22T11:37:49.235098+00:00"
+  "updated_at": "2026-09-22T12:41:34.502409+00:00"
 }
