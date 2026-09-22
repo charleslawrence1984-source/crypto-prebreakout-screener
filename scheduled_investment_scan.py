@@ -142,6 +142,19 @@ def main() -> int:
                 # Remove companies that have left the current eligible universe so a
                 # completed manifest and its prepared file describe the same snapshot.
                 existing = existing[existing["Ticker"].astype(str).isin(eligible_set)]
+
+                # A valuation-model change can make every old DCF unsafe.  Drop stale
+                # rows so gap-fill actively rebuilds them rather than preserving a
+                # false BUY until the normal rotation eventually reaches the ticker.
+                current_model = getattr(stock_app, "VALUATION_MODEL_VERSION", None)
+                if current_model:
+                    if "Valuation model version" in existing.columns:
+                        existing = existing[
+                            existing["Valuation model version"].astype(str).eq(str(current_model))
+                        ].copy()
+                    else:
+                        existing = existing.iloc[0:0].copy()
+
                 existing_symbols = set(existing["Ticker"].dropna().astype(str))
 
             cursor = int(previous.get("next_cursor", 0) or 0) % len(eligible)
