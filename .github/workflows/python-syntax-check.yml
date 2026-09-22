@@ -6,6 +6,8 @@ on:
     paths:
       - "app.py"
       - "pre_pump_research.py"
+      - "crypto_rule_engine.py"
+      - "crypto_market_pipeline.py"
       - ".github/workflows/python-syntax-check.yml"
   workflow_dispatch:
 
@@ -18,4 +20,4 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile Python files
-        run: python -m py_compile app.py pre_pump_research.py
+        run: python -m py_compile app.py pre_pump_research.py crypto_rule_engine.py crypto_market_pipeline.py
