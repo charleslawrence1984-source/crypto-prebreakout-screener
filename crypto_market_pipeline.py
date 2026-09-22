@@ -812,7 +812,6 @@ async def deep_score_batch(
                             universe_size=50,
                             min_quote_volume=5_000_000,
                             score_threshold=80,
-                            min_gross_profit_pct=30.0,
                         )
                         result = score_setup(df4, dfd, btc4, cfg, dfw=dfw, btcd=btcd)
                         context = tokenomics_context(
