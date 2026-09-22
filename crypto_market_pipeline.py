@@ -1018,21 +1018,26 @@ def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
         accumulation["_status_rank"] = accumulation["Accumulation status"].map(
             {"ACCUMULATE": 0, "WATCH": 1}
         ).fillna(2)
-        accumulation["_ready_rank"] = np.where(
-            accumulation.get("Accumulation verdict", "").fillna("").astype(str).eq("ACCUMULATION READY"),
-            0,
-            1,
-        )
+        accumulation["_ready_rank"] = accumulation.get(
+            "Accumulation verdict", ""
+        ).fillna("").astype(str).map({
+            "ACCUMULATE": 0,
+            "QUALITY WATCH": 1,
+            "BASE DEVELOPING": 2,
+            "PASS": 3,
+        }).fillna(4)
         accumulation["_execution_rank"] = np.where(
             accumulation.get("Execution liquidity pass", False).fillna(False).astype(bool), 0, 1
         )
+        model_state = accumulation.get("Accumulation verdict", "").fillna("").astype(str)
         accumulation["Opportunity stage"] = np.select(
             [
                 accumulation["Accumulation status"].eq("ACCUMULATE"),
-                accumulation.get("Accumulation verdict", "").fillna("").astype(str).eq("ACCUMULATION READY"),
+                model_state.eq("QUALITY WATCH"),
+                model_state.eq("BASE DEVELOPING"),
             ],
-            ["READY", "LIQUIDITY / PLATFORM WATCH"],
-            default="BASE DEVELOPING",
+            ["READY", "QUALITY WATCH", "BASE DEVELOPING"],
+            default="WATCH",
         )
         accumulation = accumulation.sort_values(
             ["_status_rank", "_ready_rank", "_execution_rank", "Accumulation score", "24h quote volume"],
