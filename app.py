@@ -2709,6 +2709,34 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
         "reason": result.get("reason", "The current pre-breakout shape does not meet the approved setup rules."),
     }
 
+
+def crypto_accumulation_decision(result: Dict) -> Dict:
+    verdict = str(result.get("accumulation_verdict", "NOT READY TO ACCUMULATE"))
+    execution_pass = bool(result.get("execution_liquidity_pass", False))
+    if verdict == "ACCUMULATION READY" and execution_pass:
+        return {
+            "action": "ACCUMULATE",
+            "reason": "The confirmed daily base and accumulation zone meet the model rules, and execution liquidity passes on Kraken/Crypto.com.",
+        }
+    if verdict == "ACCUMULATION READY" and not execution_pass:
+        return {
+            "action": "WAIT",
+            "reason": (
+                "The accumulation structure is technically ready, but "
+                + str(result.get("execution_reason") or "execution liquidity is not confirmed on Kraken/Crypto.com")
+                + "."
+            ),
+        }
+    if verdict.startswith("WATCH"):
+        return {
+            "action": "WAIT",
+            "reason": "The longer-term base is developing but is not ready yet.",
+        }
+    return {
+        "action": "PASS",
+        "reason": "The current daily base does not meet the accumulation rules.",
+    }
+
 def render_crypto_decision_card(title: str, action: str, reason: str) -> None:
     action_upper = str(action or "UNAVAILABLE").upper()
     if action_upper in {"BUY", "ACCUMULATE"}:
@@ -3011,18 +3039,9 @@ with tab_crypto_home:
                     st.toast("Added to crypto watchlist" if watch_now else "Removed from crypto watchlist")
 
             trade_decision = crypto_trade_decision(home_result, macro, cfg.score_threshold)
-            accumulation_verdict = str(
-                home_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
-            )
-            if accumulation_verdict == "ACCUMULATION READY":
-                accumulation_action = "ACCUMULATE"
-                accumulation_reason = "The confirmed daily base and accumulation score currently meet the model rules."
-            elif accumulation_verdict.startswith("WATCH"):
-                accumulation_action = "WAIT"
-                accumulation_reason = "The longer-term base is developing but is not ready yet."
-            else:
-                accumulation_action = "PASS"
-                accumulation_reason = "The current daily base does not meet the accumulation rules."
+            accumulation_decision = crypto_accumulation_decision(home_result)
+            accumulation_action = accumulation_decision["action"]
+            accumulation_reason = accumulation_decision["reason"]
 
             dc1, dc2 = st.columns(2)
             with dc1:
@@ -3108,6 +3127,8 @@ with tab_crypto_opportunities:
                 "Planned entry", "Invalidation", "Target", "Target upside %", "R:R",
                 "RS vs BTC %", "RSI", "ATR ratio", "Vol ratio", "Distance %",
                 "Resistance tests", "Coin trend", "Pattern", "Candle caution",
+                "Execution venues", "Execution liquidity pass", "Execution reason",
+                "Cross-exchange quote volume", "Kraken available", "Crypto.com available",
                 "Swing reason", "deep_scored_at",
             ]
             visible_swing_cols = [col for col in swing_cols if col in shown_swing.columns]
@@ -3166,6 +3187,8 @@ with tab_crypto_opportunities:
                 "Accumulation status", "Base", "Exchange", "Accumulation score",
                 "Price", "Accumulation low", "Accumulation high",
                 "In accumulation zone", "Coin trend", "RS vs BTC %", "RSI",
+                "Execution venues", "Execution liquidity pass", "Execution reason",
+                "Cross-exchange quote volume", "Kraken available", "Crypto.com available",
                 "4Y cycle position %", "Project freshness", "deep_scored_at",
             ]
             visible_acc_cols = [
@@ -3311,24 +3334,9 @@ with tab_crypto_quick:
                 macro_now,
             )
             trade_decision = crypto_trade_decision(qa_result, macro_now, cfg.score_threshold)
-            accumulation_verdict = str(
-                qa_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
-            )
-            if accumulation_verdict == "ACCUMULATION READY":
-                accumulation_action = "ACCUMULATE"
-                accumulation_reason = (
-                    "The confirmed daily base and accumulation score currently meet the model rules."
-                )
-            elif accumulation_verdict.startswith("WATCH"):
-                accumulation_action = "WAIT"
-                accumulation_reason = (
-                    "The longer-term base is developing but is not ready yet."
-                )
-            else:
-                accumulation_action = "PASS"
-                accumulation_reason = (
-                    "The current daily base does not meet the accumulation rules."
-                )
+            accumulation_decision = crypto_accumulation_decision(qa_result)
+            accumulation_action = accumulation_decision["action"]
+            accumulation_reason = accumulation_decision["reason"]
 
             decision_left, decision_right = st.columns(2)
             with decision_left:
@@ -3766,12 +3774,8 @@ with tab_crypto_portfolio:
                         result = dict(result or {})
                         result["symbol"] = symbol
                         trade_decision = crypto_trade_decision(result, macro, cfg.score_threshold)
-                        acc_verdict = str(result.get("accumulation_verdict", "NOT READY TO ACCUMULATE"))
-                        acc_action = (
-                            "ACCUMULATE" if acc_verdict == "ACCUMULATION READY"
-                            else "WAIT" if acc_verdict.startswith("WATCH")
-                            else "PASS"
-                        )
+                        acc_decision = crypto_accumulation_decision(result)
+                        acc_action = acc_decision["action"]
                         price = _safe_float(result.get("price"), np.nan)
                         qty = float(holding["Quantity"])
                         avg = float(holding["Average cost"])
@@ -4733,19 +4737,9 @@ with tab_crypto_advanced_accumulation:
                     analyse_individual_coin(cfg, advanced_acc_coin.strip())
                 )
                 acc_result = dict(acc_result or {})
-                verdict = str(acc_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE"))
-                action = (
-                    "ACCUMULATE" if verdict == "ACCUMULATION READY"
-                    else "WAIT" if verdict.startswith("WATCH")
-                    else "PASS"
-                )
-                reason = (
-                    "Confirmed daily base and accumulation zone meet the approved rules."
-                    if action == "ACCUMULATE"
-                    else "The base is developing but is not yet confirmed."
-                    if action == "WAIT"
-                    else "The current structure does not meet the accumulation rules."
-                )
+                acc_decision = crypto_accumulation_decision(acc_result)
+                action = acc_decision["action"]
+                reason = acc_decision["reason"]
                 render_crypto_decision_card("ACCUMULATION DECISION", action, reason)
                 am1, am2, am3, am4 = st.columns(4)
                 am1.metric("Accumulation score", f"{acc_result.get('bottom_score', 0):.1f}/100")
