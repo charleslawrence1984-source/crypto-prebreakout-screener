@@ -2308,13 +2308,13 @@
     "vienna": {
       "coverage_symbols": 152,
       "dispatch_counts": {
-        "BLCK.VI": 108,
-        "ETN.VI": 108,
-        "FTNT.VI": 108,
-        "KKRO.VI": 108,
-        "MCK.VI": 108,
-        "MPWR.VI": 108,
-        "TTEC.VI": 107
+        "BLCK.VI": 109,
+        "ETN.VI": 109,
+        "FTNT.VI": 109,
+        "KKRO.VI": 109,
+        "MCK.VI": 109,
+        "MPWR.VI": 109,
+        "TTEC.VI": 108
       },
       "eligible_symbols": 159,
       "errors": [
@@ -2385,5 +2385,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-22T15:30:56.575106+00:00"
+  "updated_at": "2026-09-22T15:36:46.319826+00:00"
 }
