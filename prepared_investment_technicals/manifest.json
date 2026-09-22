@@ -2308,13 +2308,13 @@
     "vienna": {
       "coverage_symbols": 152,
       "dispatch_counts": {
-        "BLCK.VI": 103,
-        "ETN.VI": 103,
-        "FTNT.VI": 103,
-        "KKRO.VI": 103,
-        "MCK.VI": 103,
-        "MPWR.VI": 103,
-        "TTEC.VI": 102
+        "BLCK.VI": 104,
+        "ETN.VI": 104,
+        "FTNT.VI": 104,
+        "KKRO.VI": 104,
+        "MCK.VI": 104,
+        "MPWR.VI": 104,
+        "TTEC.VI": 103
       },
       "eligible_symbols": 159,
       "errors": [
@@ -2357,21 +2357,21 @@
     "xetra": {
       "coverage_symbols": 155,
       "dispatch_counts": {
-        "3SM.DE": 101,
-        "6RV.DE": 101,
-        "AP4N.DE": 101,
-        "AT4.DE": 101,
-        "C7N.DE": 101,
-        "CFZ.DE": 101,
-        "D6I.DE": 101,
-        "ET9.DE": 101,
-        "H3V.DE": 101,
-        "HFF.DE": 101,
-        "JYS1.DE": 101,
-        "LGI.DE": 101,
-        "R902.DE": 101,
-        "SMP0.DE": 100,
-        "STD.DE": 100
+        "3SM.DE": 102,
+        "6RV.DE": 102,
+        "AP4N.DE": 102,
+        "AT4.DE": 102,
+        "C7N.DE": 102,
+        "CFZ.DE": 102,
+        "D6I.DE": 102,
+        "ET9.DE": 102,
+        "H3V.DE": 102,
+        "HFF.DE": 102,
+        "JYS1.DE": 102,
+        "LGI.DE": 102,
+        "R902.DE": 102,
+        "SMP0.DE": 101,
+        "STD.DE": 101
       },
       "eligible_symbols": 170,
       "errors": [
@@ -2404,7 +2404,7 @@
           "symbol": "C7N.DE"
         },
         {
-          "error": "1y: 77 rows, insufficient usable history/indicators; 2y: 77 rows, insufficient usable history/indicators",
+          "error": "1y: 78 rows, insufficient usable history/indicators; 2y: 78 rows, insufficient usable history/indicators",
           "symbol": "CFZ.DE"
         },
         {
@@ -2420,7 +2420,7 @@
           "symbol": "H3V.DE"
         },
         {
-          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
+          "error": "1y: 23 rows, insufficient usable history/indicators; 2y: 23 rows, insufficient usable history/indicators",
           "symbol": "HFF.DE"
         },
         {
@@ -2446,5 +2446,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-22T10:38:14.334150+00:00"
+  "updated_at": "2026-09-22T11:37:46.842282+00:00"
 }
