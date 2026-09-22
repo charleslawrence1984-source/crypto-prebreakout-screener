@@ -2961,135 +2961,147 @@ with tab_crypto_home:
         st.caption("If the setup is not ready, add it to your crypto watchlist rather than chasing the price.")
 
 with tab_crypto_opportunities:
-    st.markdown("### Opportunities")
-
-    pipeline_active_opps = pipeline_state["active"]
-    pipeline_manifest_opps = pipeline_state["manifest"]
-    with st.expander("🌐 Background discovery monitor", expanded=False):
-        st.caption(
-            "This is the 24/7 all-market discovery layer, not a BUY list. "
-            "Coins shown here have been prioritised for deeper CL Signal analysis."
-        )
-        if pipeline_active_opps.empty:
-            st.info("The background discovery monitor is initialising.")
-        else:
-            monitor_cols = [
-                "Monitor state", "Base", "Exchange", "Current price",
-                "Live distance to resistance %", "discovery_rank",
-                "rs_vs_btc_48h_pct", "24h quote volume", "Eligible exchanges",
-            ]
-            monitor_cols = [
-                column for column in monitor_cols if column in pipeline_active_opps.columns
-            ]
-            monitor_view = pipeline_active_opps[monitor_cols].copy()
-            if "discovery_rank" in monitor_view.columns:
-                monitor_view = monitor_view.rename(columns={"discovery_rank": "Discovery rank"})
-            st.dataframe(monitor_view, hide_index=True, use_container_width=True)
-        if pipeline_manifest_opps:
-            st.caption(
-                f"Coverage {float(pipeline_manifest_opps.get('discovery_coverage_pct', 0) or 0):.1f}% · "
-                f"{int(pipeline_manifest_opps.get('unique_eligible_coins', 0) or 0)} eligible unique coins · "
-                f"estimated full sweep ~{int(pipeline_manifest_opps.get('estimated_full_sweep_minutes', 0) or 0)} minutes."
-            )
+    st.subheader("Opportunities")
     st.caption(
-        "A cleaner view of the latest Crypto scan. Run a fresh scan from **Advanced Crypto** "
-        "when you want to update the market data."
+        "The background rule engine continuously scans the eligible crypto universe and feeds this page automatically. "
+        "You do not need to run an Advanced scan first."
     )
-    if st.session_state.last_scan is not None and not st.session_state.scan_df.empty:
-        opp_scan_time = st.session_state.last_scan.astimezone().strftime("%d %b %Y %H:%M:%S %Z")
-        opp_selected = int(st.session_state.scan_df.attrs.get("markets_selected", len(st.session_state.scan_df)))
-        opp_completed = int(st.session_state.scan_df.attrs.get("markets_completed", len(st.session_state.scan_df)))
-        st.caption(
-            f"Last market-wide scan: {opp_scan_time} · "
-            f"{opp_completed}/{opp_selected} selected markets completed"
-        )
 
-    opportunity_scan = st.session_state.scan_df.copy()
-    if opportunity_scan.empty:
-        st.info(
-            "No Crypto scan results are loaded yet. Open **Advanced Crypto** and run a scan "
-            "to populate this page."
-        )
-    else:
-        opportunity_scan = apply_ta_context_overlay(opportunity_scan, macro)
+    swing_feed_tab, accumulation_feed_tab = st.tabs(
+        ["Swing opportunities", "Accumulation opportunities"]
+    )
 
-        technical_opportunities = opportunity_scan[
-            (opportunity_scan["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
-            & (pd.to_numeric(opportunity_scan["Score"], errors="coerce") >= cfg.score_threshold)
-        ].copy()
-
-        if not technical_opportunities.empty:
-            swing_buy_mask = (
-                ((technical_opportunities["Coin"] == "BTC")
-                 | (pd.to_numeric(technical_opportunities["RS vs BTC %"], errors="coerce") > 0))
-                & technical_opportunities["Tokenomics gate"].eq("PASS")
-                & technical_opportunities["Major CEX gate"].eq("PASS")
-                & technical_opportunities["Candle caution"].ne("CAUTION")
-                & technical_opportunities["Context confidence"].ne("LOW")
-                & technical_opportunities["Known event risk"].ne("HIGH")
+    with swing_feed_tab:
+        swing_opportunities = prepared_swing_feed.copy()
+        if swing_opportunities.empty:
+            st.info(
+                "No prepared Swing BUY/WATCH setups are available yet. "
+                "The background pipeline may still be building its first deep-score sweep."
             )
-            if not macro.get("allows_new_swing_risk", True):
-                swing_buy_mask = swing_buy_mask & False
-            technical_opportunities["Status"] = np.where(swing_buy_mask, "BUY", "WAIT")
-            technical_opportunities = technical_opportunities.sort_values(
-                ["Status", "Score"], ascending=[True, False]
+        else:
+            buy_count = int((swing_opportunities["Swing status"] == "BUY").sum())
+            watch_count = int((swing_opportunities["Swing status"] == "WATCH").sum())
+            scored_count = int(pipeline_manifest.get("deep_scores_current", 0) or 0)
+
+            s1, s2, s3 = st.columns(3)
+            s1.metric("BUY", buy_count)
+            s2.metric("WATCH", watch_count)
+            s3.metric("Coins deep-scored", scored_count)
+
+            swing_filter = st.radio(
+                "Show",
+                ["Best opportunities", "BUY", "WATCH", "All"],
+                horizontal=True,
+                key="crypto_opportunity_swing_filter",
+            )
+            shown_swing = swing_opportunities.copy()
+            if swing_filter == "BUY":
+                shown_swing = shown_swing[shown_swing["Swing status"] == "BUY"]
+            elif swing_filter == "WATCH":
+                shown_swing = shown_swing[shown_swing["Swing status"] == "WATCH"]
+            elif swing_filter == "Best opportunities":
+                shown_swing = shown_swing.head(25)
+
+            swing_cols = [
+                "Swing status", "Base", "Exchange", "Swing score", "Price",
+                "Planned entry", "Invalidation", "Target", "Target upside %", "R:R",
+                "RS vs BTC %", "RSI", "ATR ratio", "Vol ratio", "Distance %",
+                "Resistance tests", "Coin trend", "Pattern", "Candle caution",
+                "Swing reason", "deep_scored_at",
+            ]
+            visible_swing_cols = [col for col in swing_cols if col in shown_swing.columns]
+            st.dataframe(
+                shown_swing[visible_swing_cols],
+                hide_index=True,
+                use_container_width=True,
+            )
+            st.caption(
+                "BUY means the approved technical-first Swing rules pass in the scheduled rule engine. "
+                "WATCH means the setup is developing or close, but is not actionable yet. "
+                "Use Quick Analysis for the freshest single-coin confirmation before acting."
             )
 
-        accumulation_opportunities = opportunity_scan[
-            opportunity_scan["Accumulation verdict"] == "ACCUMULATION READY"
-        ].copy().sort_values("Accumulation score", ascending=False)
+    with accumulation_feed_tab:
+        accumulation_opportunities = prepared_accumulation_feed.copy()
+        if accumulation_opportunities.empty:
+            st.info(
+                "No prepared Accumulation READY/WATCH setups are available yet. "
+                "The rotating deep-score sweep is still building coverage or no current bases meet the rules."
+            )
+        else:
+            ready_count = int(
+                (accumulation_opportunities["Accumulation status"] == "ACCUMULATE").sum()
+            )
+            watch_count = int(
+                (accumulation_opportunities["Accumulation status"] == "WATCH").sum()
+            )
+            a1, a2, a3 = st.columns(3)
+            a1.metric("READY", ready_count)
+            a2.metric("WATCH", watch_count)
+            a3.metric(
+                "Deep-score coverage",
+                int(pipeline_manifest.get("deep_scores_current", 0) or 0),
+            )
 
-        om1, om2, om3 = st.columns(3)
-        om1.metric(
-            "Swing BUY",
-            int((technical_opportunities["Status"] == "BUY").sum())
-            if not technical_opportunities.empty else 0,
-        )
-        om2.metric(
-            "Swing WAIT",
-            int((technical_opportunities["Status"] == "WAIT").sum())
-            if not technical_opportunities.empty else 0,
-        )
-        om3.metric("Accumulation ready", len(accumulation_opportunities))
+            accumulation_filter = st.radio(
+                "Show",
+                ["Best opportunities", "READY", "WATCH", "All"],
+                horizontal=True,
+                key="crypto_opportunity_accumulation_filter",
+            )
+            shown_acc = accumulation_opportunities.copy()
+            if accumulation_filter == "READY":
+                shown_acc = shown_acc[
+                    shown_acc["Accumulation status"] == "ACCUMULATE"
+                ]
+            elif accumulation_filter == "WATCH":
+                shown_acc = shown_acc[
+                    shown_acc["Accumulation status"] == "WATCH"
+                ]
+            elif accumulation_filter == "Best opportunities":
+                shown_acc = shown_acc.head(25)
 
-        swing_view, accumulation_view = st.tabs(["Swing opportunities", "Accumulation"])
+            accumulation_cols = [
+                "Accumulation status", "Base", "Exchange", "Accumulation score",
+                "Price", "Accumulation low", "Accumulation high",
+                "In accumulation zone", "Coin trend", "RS vs BTC %", "RSI",
+                "4Y cycle position %", "Project freshness", "deep_scored_at",
+            ]
+            visible_acc_cols = [
+                col for col in accumulation_cols if col in shown_acc.columns
+            ]
+            st.dataframe(
+                shown_acc[visible_acc_cols],
+                hide_index=True,
+                use_container_width=True,
+            )
+            st.caption(
+                "Accumulation is a separate strategy from Swing. READY requires the confirmed base/zone rules; "
+                "WATCH means the longer-term structure is developing."
+            )
 
-        with swing_view:
-            if technical_opportunities.empty:
-                st.info("No swing setup currently reaches the technical opportunity threshold.")
-            else:
-                swing_cols = [
-                    "Status", "Coin", "Score", "Price", "RS vs BTC %",
-                    "Trade verdict", "Trade reason", "Tokenomics gate",
-                    "Major CEX gate", "Context confidence", "Known event risk",
-                    "Distance %", "Target upside %",
+    with st.expander("Background scan coverage", expanded=False):
+        manifest = pipeline_state.get("manifest", {})
+        active = pipeline_state.get("active", pd.DataFrame())
+        discovery = pipeline_state.get("discovery", pd.DataFrame())
+        if manifest:
+            st.write(
+                f"Eligible coins: **{int(manifest.get('unique_eligible_coins', 0) or 0)}** · "
+                f"Discovery coverage: **{float(manifest.get('discovery_coverage_pct', 0) or 0):.1f}%** · "
+                f"Active fast-monitor candidates: **{int(manifest.get('active_candidates', 0) or 0)}** · "
+                f"Deep-scored: **{int(manifest.get('deep_scores_current', 0) or 0)}**"
+            )
+        if not active.empty:
+            st.caption("The active monitor is the fast technical discovery layer feeding repeated deep analysis.")
+            cols = [
+                col for col in [
+                    "Monitor state", "Base", "Exchange", "Current price",
+                    "Live distance to resistance %", "discovery_rank",
+                    "rs_vs_btc_48h_pct", "24h quote volume",
                 ]
-                visible_swing_cols = [
-                    col for col in swing_cols if col in technical_opportunities.columns
-                ]
-                st.dataframe(
-                    technical_opportunities[visible_swing_cols],
-                    hide_index=True,
-                    use_container_width=True,
-                )
-
-        with accumulation_view:
-            if accumulation_opportunities.empty:
-                st.info("No accumulation setup is currently marked ACCUMULATION READY.")
-            else:
-                accumulation_cols = [
-                    "Coin", "Accumulation score", "Price", "Accumulation low",
-                    "Accumulation high", "Coin trend", "Tokenomics gate",
-                    "Project freshness",
-                ]
-                visible_accumulation_cols = [
-                    col for col in accumulation_cols if col in accumulation_opportunities.columns
-                ]
-                st.dataframe(
-                    accumulation_opportunities[visible_accumulation_cols],
-                    hide_index=True,
-                    use_container_width=True,
-                )
+                if col in active.columns
+            ]
+            st.dataframe(active[cols].head(50), hide_index=True, use_container_width=True)
 
 
 with tab_crypto_watchlist:
