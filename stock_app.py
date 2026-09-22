@@ -3038,9 +3038,21 @@ def canonical_company_key(name: str) -> str:
     listed companies are not accidentally merged.
     """
     tokens = re.findall(r"[a-z0-9]+", str(name or "").lower())
-    while tokens and tokens[-1] in _LEGAL_COMPANY_SUFFIXES:
-        tokens.pop()
-    # Some legal forms appear in pairs, e.g. "AB (publ)".
+
+    # Punctuated legal forms such as S.A. / N.V. become separate one-letter
+    # tokens under punctuation stripping, so collapse the common endings first.
+    legal_pairs = {
+        ("s", "a"), ("n", "v"), ("a", "s"), ("s", "p", "a"),
+    }
+    changed = True
+    while changed and tokens:
+        changed = False
+        for pair in sorted(legal_pairs, key=len, reverse=True):
+            if len(tokens) >= len(pair) and tuple(tokens[-len(pair):]) == pair:
+                del tokens[-len(pair):]
+                changed = True
+                break
+
     while tokens and tokens[-1] in _LEGAL_COMPANY_SUFFIXES:
         tokens.pop()
     return "".join(tokens)
