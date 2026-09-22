@@ -1,0 +1,54 @@
+{
+  "exchanges": {
+    "nasdaq": {
+      "changed_symbols": [
+        "ITRN",
+        "LOPE",
+        "HRMY",
+        "CRUS",
+        "NTAP",
+        "NSSC",
+        "IDXX",
+        "IDCC"
+      ],
+      "new_symbols": []
+    },
+    "nyse": {
+      "changed_symbols": [
+        "DECK",
+        "RMD",
+        "GGG"
+      ],
+      "new_symbols": []
+    },
+    "otc": {
+      "changed_symbols": [
+        "FRRFF",
+        "EVGGF",
+        "RTLLF",
+        "MNSAF",
+        "SPXCF",
+        "HOCPF",
+        "HEHSF",
+        "PBTDF"
+      ],
+      "new_symbols": []
+    },
+    "xetra": {
+      "changed_symbols": [
+        "3SM.DE",
+        "KBX.DE"
+      ],
+      "new_symbols": []
+    },
+    "gettex": {
+      "changed_symbols": [
+        "OSK.MU",
+        "9QQ.MU",
+        "61L0.MU",
+        "5JB.MU"
+      ],
+      "new_symbols": []
+    }
+  }
+}
