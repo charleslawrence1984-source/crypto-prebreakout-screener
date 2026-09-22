@@ -21,7 +21,15 @@ EXCHANGES = {
     "binance": "Binance",
     "okx": "OKX",
     "bybit": "Bybit",
+    "kraken": "Kraken",
+    "cryptocom": "Crypto.com",
 }
+
+EXECUTION_EXCHANGES = {
+    "kraken": "Kraken",
+    "cryptocom": "Crypto.com",
+}
+EXECUTION_USD_QUOTES = {"USD", "USDT", "USDC"}
 
 
 def safe(value, default=np.nan) -> float:
@@ -84,8 +92,16 @@ def last_price(ticker: dict) -> float:
 async def load_exchange_snapshot(
     exchange_id: str,
     quote: str,
-    min_quote_volume: float,
-) -> Tuple[pd.DataFrame, dict]:
+    market_data_min_quote_volume: float,
+) -> Tuple[pd.DataFrame, dict, dict]:
+    """
+    Load one venue.
+
+    The market-data floor is intentionally much lower than the BUY liquidity
+    requirement. Discovery needs to see a coin before it is already a large,
+    obvious market; execution safety is checked later using combined liquidity
+    and the user's Kraken/Crypto.com venues.
+    """
     exchange = make_exchange(exchange_id)
     label = EXCHANGES[exchange_id]
     try:
@@ -95,6 +111,8 @@ async def load_exchange_snapshot(
         tickers = await asyncio.wait_for(exchange.fetch_tickers(), timeout=60)
 
         rows = []
+        execution_listed_bases = set()
+        execution_usd_volume_by_base: Dict[str, float] = {}
         counts = {
             "active_spot_total": 0,
             "quote_matched": 0,
@@ -103,19 +121,17 @@ async def load_exchange_snapshot(
             "tokenized_security_excluded": 0,
             "invalid_symbol_excluded": 0,
             "volume_unavailable": 0,
-            "below_liquidity": 0,
-            "eligible": 0,
+            "below_market_data_floor": 0,
+            "market_data_eligible": 0,
         }
 
         for symbol, market in markets.items():
             if not market.get("spot") or market.get("active") is False:
                 continue
             counts["active_spot_total"] += 1
-            if str(market.get("quote") or "").upper() != quote:
-                continue
-            counts["quote_matched"] += 1
 
             base = str(market.get("base") or "").upper()
+            market_quote = str(market.get("quote") or "").upper()
             exclusion = crypto_universe_exclusion_reason(base, exchange_id)
             if exclusion == "stable_or_cash":
                 counts["stablecoin_excluded"] += 1
@@ -131,16 +147,31 @@ async def load_exchange_snapshot(
                 continue
 
             ticker = tickers.get(symbol) or {}
+
+            if exchange_id in EXECUTION_EXCHANGES:
+                execution_listed_bases.add(base)
+                if market_quote in EXECUTION_USD_QUOTES:
+                    execution_qv = quote_volume(ticker)
+                    if math.isfinite(execution_qv):
+                        execution_usd_volume_by_base[base] = (
+                            execution_usd_volume_by_base.get(base, 0.0)
+                            + float(execution_qv)
+                        )
+
+            if market_quote != quote:
+                continue
+            counts["quote_matched"] += 1
+
             qv = quote_volume(ticker)
             price = last_price(ticker)
             if not math.isfinite(qv):
                 counts["volume_unavailable"] += 1
                 continue
-            if qv < min_quote_volume:
-                counts["below_liquidity"] += 1
+            if qv < market_data_min_quote_volume:
+                counts["below_market_data_floor"] += 1
                 continue
 
-            counts["eligible"] += 1
+            counts["market_data_eligible"] += 1
             rows.append({
                 "Base": base,
                 "Symbol": symbol,
@@ -155,21 +186,35 @@ async def load_exchange_snapshot(
         counts["exchange"] = label
         counts["exchange_id"] = exchange_id
         counts["quote"] = quote
-        counts["min_quote_volume"] = min_quote_volume
-        return frame, counts
+        counts["market_data_min_quote_volume"] = market_data_min_quote_volume
+        execution_meta = {
+            "exchange_id": exchange_id,
+            "exchange": label,
+            "listed_bases": execution_listed_bases,
+            "usd_volume_by_base": execution_usd_volume_by_base,
+        }
+        return frame, counts, execution_meta
     finally:
         await exchange.close()
 
 
-async def load_all_universes(quote: str, min_quote_volume: float):
+async def load_all_universes(
+    quote: str,
+    market_data_min_quote_volume: float,
+    discovery_min_combined_volume: float,
+    buy_min_combined_volume: float,
+    buy_min_execution_volume: float,
+):
     tasks = [
-        load_exchange_snapshot(exchange_id, quote, min_quote_volume)
+        load_exchange_snapshot(exchange_id, quote, market_data_min_quote_volume)
         for exchange_id in EXCHANGES
     ]
     results = await asyncio.gather(*tasks, return_exceptions=True)
     frames = []
     audits = []
     errors = []
+    execution_meta_by_id = {}
+
     for exchange_id, result in zip(EXCHANGES, results):
         if isinstance(result, Exception):
             errors.append(f"{exchange_id}: {type(result).__name__}: {result}")
@@ -180,10 +225,11 @@ async def load_all_universes(quote: str, min_quote_volume: float):
                 "error": f"{type(result).__name__}: {str(result)[:300]}",
             })
             continue
-        frame, audit = result
+        frame, audit, execution_meta = result
         frames.append(frame)
         audit["status"] = "CURRENT"
         audits.append(audit)
+        execution_meta_by_id[exchange_id] = execution_meta
 
     combined = pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
     if combined.empty:
@@ -192,19 +238,73 @@ async def load_all_universes(quote: str, min_quote_volume: float):
     combined = combined.sort_values(
         ["Base", "24h quote volume"], ascending=[True, False]
     )
-    # One underlying coin enters the rotating discovery queue once. Use its most
-    # liquid eligible market as the analysis venue, but retain all venue coverage.
+
     grouped = []
+    pre_discovery_unique = int(combined["Base"].nunique())
     for base, group in combined.groupby("Base", sort=True):
+        cross_volume = float(
+            pd.to_numeric(group["24h quote volume"], errors="coerce").fillna(0).sum()
+        )
+        if cross_volume < discovery_min_combined_volume:
+            continue
+
         best = group.iloc[0].to_dict()
         best["Eligible exchange count"] = int(group["Exchange id"].nunique())
         best["Eligible exchanges"] = ", ".join(sorted(group["Exchange"].unique()))
-        best["Cross-exchange quote volume"] = float(group["24h quote volume"].sum())
+        best["Cross-exchange quote volume"] = cross_volume
+
+        execution_venues = []
+        execution_volumes = {}
+        for execution_id, execution_label in EXECUTION_EXCHANGES.items():
+            meta = execution_meta_by_id.get(execution_id, {})
+            listed = base in meta.get("listed_bases", set())
+            volume = safe(meta.get("usd_volume_by_base", {}).get(base), 0.0)
+            best[f"{execution_label} available"] = bool(listed)
+            best[f"{execution_label} USD-like 24h volume"] = float(volume)
+            if listed:
+                execution_venues.append(execution_label)
+            execution_volumes[execution_label] = float(volume)
+
+        max_execution_volume = max(execution_volumes.values(), default=0.0)
+        execution_available = bool(execution_venues)
+        execution_liquidity_pass = (
+            execution_available
+            and cross_volume >= buy_min_combined_volume
+            and max_execution_volume >= buy_min_execution_volume
+        )
+
+        best["Execution available"] = execution_available
+        best["Execution venues"] = ", ".join(execution_venues)
+        best["Execution venue count"] = len(execution_venues)
+        best["Execution max USD-like 24h volume"] = max_execution_volume
+        best["Execution liquidity pass"] = bool(execution_liquidity_pass)
+        if not execution_available:
+            best["Execution reason"] = "Not listed on Kraken or Crypto.com"
+        elif cross_volume < buy_min_combined_volume:
+            best["Execution reason"] = (
+                f"Combined liquidity below USD {buy_min_combined_volume/1_000_000:.1f}m BUY floor"
+            )
+        elif max_execution_volume < buy_min_execution_volume:
+            best["Execution reason"] = (
+                f"Kraken/Crypto.com liquidity below USD {buy_min_execution_volume/1_000_000:.1f}m BUY floor"
+            )
+        else:
+            best["Execution reason"] = "Execution liquidity passes"
+
         grouped.append(best)
 
-    deduped = pd.DataFrame(grouped).sort_values(
-        "Cross-exchange quote volume", ascending=False
-    ).reset_index(drop=True)
+    deduped = pd.DataFrame(grouped)
+    if not deduped.empty:
+        deduped = deduped.sort_values(
+            "Cross-exchange quote volume", ascending=False
+        ).reset_index(drop=True)
+
+    for audit in audits:
+        audit["pre_discovery_unique_coins"] = pre_discovery_unique
+        audit["discovery_min_combined_volume"] = discovery_min_combined_volume
+        audit["buy_min_combined_volume"] = buy_min_combined_volume
+        audit["buy_min_execution_volume"] = buy_min_execution_volume
+
     return combined, deduped, audits, errors
 
 
@@ -536,11 +636,13 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
     base = str(item.get("Base") or "")
     rs_pass = base == "BTC" or safe(result.get("rs_vs_btc_pct"), -999) > 0
     score = safe(result.get("score"), 0)
+    execution_pass = bool(item.get("Execution liquidity pass"))
     swing_ready = (
         bool(result.get("eligible"))
         and score >= 80
         and rs_pass
         and not bool(result.get("candle_caution"))
+        and execution_pass
     )
     if swing_ready:
         swing_status = "BUY"
@@ -550,9 +652,9 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         swing_status = "PASS"
 
     accumulation_verdict = str(result.get("accumulation_verdict") or "")
-    if accumulation_verdict == "ACCUMULATION READY":
+    if accumulation_verdict == "ACCUMULATION READY" and execution_pass:
         accumulation_status = "ACCUMULATE"
-    elif accumulation_verdict.startswith("WATCH") or safe(result.get("bottom_score"), 0) >= 50:
+    elif accumulation_verdict == "ACCUMULATION READY" or accumulation_verdict.startswith("WATCH") or safe(result.get("bottom_score"), 0) >= 50:
         accumulation_status = "WATCH"
     else:
         accumulation_status = "PASS"
@@ -565,11 +667,25 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "24h quote volume": item.get("24h quote volume"),
         "Eligible exchange count": item.get("Eligible exchange count"),
         "Eligible exchanges": item.get("Eligible exchanges"),
+        "Cross-exchange quote volume": item.get("Cross-exchange quote volume"),
+        "Kraken available": item.get("Kraken available", False),
+        "Crypto.com available": item.get("Crypto.com available", False),
+        "Kraken USD-like 24h volume": item.get("Kraken USD-like 24h volume", 0.0),
+        "Crypto.com USD-like 24h volume": item.get("Crypto.com USD-like 24h volume", 0.0),
+        "Execution available": item.get("Execution available", False),
+        "Execution venues": item.get("Execution venues", ""),
+        "Execution max USD-like 24h volume": item.get("Execution max USD-like 24h volume", 0.0),
+        "Execution liquidity pass": item.get("Execution liquidity pass", False),
+        "Execution reason": item.get("Execution reason", ""),
         "deep_scored_at": now_iso(),
         "Swing status": swing_status,
         "Swing score": result.get("score"),
         "Swing eligible": bool(result.get("eligible")),
-        "Swing reason": result.get("reason"),
+        "Swing reason": (
+            result.get("reason")
+            if execution_pass
+            else f"{result.get('reason', '')}; execution: {item.get('Execution reason', 'not ready')}"
+        ),
         "Price": result.get("price"),
         "Entry low": result.get("entry_low"),
         "Entry high": result.get("entry_high"),
@@ -736,7 +852,11 @@ async def run(args) -> int:
     macro_task = asyncio.create_task(asyncio.to_thread(refresh_macro_snapshot, output))
 
     all_markets, universe, audits, universe_errors = await load_all_universes(
-        args.quote, args.min_quote_volume
+        args.quote,
+        args.market_data_min_quote_volume,
+        args.discovery_min_combined_volume,
+        args.buy_min_combined_volume,
+        args.buy_min_execution_volume,
     )
     if universe.empty:
         await macro_task
@@ -829,7 +949,10 @@ async def run(args) -> int:
     audit = {
         "generated_at": now_iso(),
         "quote": args.quote,
-        "minimum_24h_quote_volume": args.min_quote_volume,
+        "market_data_min_24h_quote_volume": args.market_data_min_quote_volume,
+        "discovery_min_combined_24h_volume": args.discovery_min_combined_volume,
+        "buy_min_combined_24h_volume": args.buy_min_combined_volume,
+        "buy_min_execution_24h_volume": args.buy_min_execution_volume,
         "exchange_counts": audits,
         "eligible_market_rows": int(len(all_markets)),
         "unique_eligible_coins": int(total_unique),
@@ -854,7 +977,10 @@ async def run(args) -> int:
         "updated_at": now_iso(),
         "status": "CURRENT" if not universe_errors else "PARTIAL",
         "quote": args.quote,
-        "min_quote_volume": args.min_quote_volume,
+        "market_data_min_quote_volume": args.market_data_min_quote_volume,
+        "discovery_min_combined_volume": args.discovery_min_combined_volume,
+        "buy_min_combined_volume": args.buy_min_combined_volume,
+        "buy_min_execution_volume": args.buy_min_execution_volume,
         "eligible_market_rows": int(len(all_markets)),
         "unique_eligible_coins": int(total_unique),
         "discovery_cursor": next_cursor,
@@ -882,7 +1008,10 @@ def main() -> int:
         description="CL Signal all-market Crypto discovery and active monitor."
     )
     parser.add_argument("--quote", default="USDT")
-    parser.add_argument("--min-quote-volume", type=float, default=5_000_000)
+    parser.add_argument("--market-data-min-quote-volume", type=float, default=250_000)
+    parser.add_argument("--discovery-min-combined-volume", type=float, default=1_000_000)
+    parser.add_argument("--buy-min-combined-volume", type=float, default=5_000_000)
+    parser.add_argument("--buy-min-execution-volume", type=float, default=1_000_000)
     parser.add_argument("--batch-size", type=int, default=150)
     parser.add_argument("--max-active", type=int, default=150)
     parser.add_argument("--deep-score-size", type=int, default=60)
