@@ -3059,7 +3059,7 @@ def canonical_company_key(name: str) -> str:
     return "".join(tokens)
 
 
-@st.cache_data(ttl=120, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def load_investment_validation_coverage() -> Dict:
     audit_path = PREPARED_SCAN_DIR / "investment_audit.json"
     priority_path = PRIORITY_INVESTMENT_DIR / "summary.json"
@@ -3079,6 +3079,15 @@ def load_investment_validation_coverage() -> Dict:
 
     totals = audit.get("totals", {}) if isinstance(audit, dict) else {}
     priority_counts = priority.get("counts", {}) if isinstance(priority, dict) else {}
+
+    priority_rows = priority.get("rows", []) if isinstance(priority, dict) else []
+    unique_buy_keys = set()
+    for row in priority_rows:
+        if str(row.get("Action") or "") != "BUY CANDIDATE":
+            continue
+        company_key = canonical_company_key(row.get("Company") or row.get("Ticker") or "")
+        unique_buy_keys.add(company_key or str(row.get("Ticker") or ""))
+
     return {
         "prepared_rows": int(totals.get("rows", 0) or 0),
         "hard_gate_pass": int(totals.get("hard_gate_pass", 0) or 0),
@@ -3086,11 +3095,12 @@ def load_investment_validation_coverage() -> Dict:
         "old_wait_pool": int(totals.get("old_wait", 0) or 0),
         "fx_safe_revalued": int(priority.get("total", 0) or 0),
         "fx_safe_buys": int(priority_counts.get("BUY CANDIDATE", 0) or 0),
+        "fx_safe_unique_buys": len(unique_buy_keys),
         "fx_safe_waits": int(priority_counts.get("WAIT", 0) or 0),
     }
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=30, show_spinner=False)
 def load_all_investment_opportunities() -> pd.DataFrame:
     """Combine prepared Investment results across exchanges into a simple opportunity feed."""
     frames = []
@@ -3996,8 +4006,9 @@ with tab_opportunities:
                     f"{validation['hard_gate_pass']:,} pass hard quality gates · "
                     f"{validation['old_buy_pool']:,} prior BUY candidates awaiting/under FX-safe review · "
                     f"{validation['fx_safe_revalued']:,} priority names currently FX-safe revalued · "
-                    f"{validation['fx_safe_buys']:,} validated BUY"
-                    f"{'s' if validation['fx_safe_buys'] != 1 else ''}."
+                    f"{validation.get('fx_safe_unique_buys', validation['fx_safe_buys']):,} validated unique BUY"
+                    f"{'s' if validation.get('fx_safe_unique_buys', validation['fx_safe_buys']) != 1 else ''} "
+                    f"({validation['fx_safe_buys']:,} listing-level BUY rows)."
                 )
 
             st.caption(
