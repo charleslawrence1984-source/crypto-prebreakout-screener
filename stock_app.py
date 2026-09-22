@@ -3059,6 +3059,37 @@ def canonical_company_key(name: str) -> str:
     return "".join(tokens)
 
 
+@st.cache_data(ttl=120, show_spinner=False)
+def load_investment_validation_coverage() -> Dict:
+    audit_path = PREPARED_SCAN_DIR / "investment_audit.json"
+    priority_path = PRIORITY_INVESTMENT_DIR / "summary.json"
+
+    audit = {}
+    priority = {}
+    try:
+        if audit_path.exists():
+            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+    except Exception:
+        audit = {}
+    try:
+        if priority_path.exists():
+            priority = json.loads(priority_path.read_text(encoding="utf-8"))
+    except Exception:
+        priority = {}
+
+    totals = audit.get("totals", {}) if isinstance(audit, dict) else {}
+    priority_counts = priority.get("counts", {}) if isinstance(priority, dict) else {}
+    return {
+        "prepared_rows": int(totals.get("rows", 0) or 0),
+        "hard_gate_pass": int(totals.get("hard_gate_pass", 0) or 0),
+        "old_buy_pool": int(totals.get("old_buy_candidate", 0) or 0),
+        "old_wait_pool": int(totals.get("old_wait", 0) or 0),
+        "fx_safe_revalued": int(priority.get("total", 0) or 0),
+        "fx_safe_buys": int(priority_counts.get("BUY CANDIDATE", 0) or 0),
+        "fx_safe_waits": int(priority_counts.get("WAIT", 0) or 0),
+    }
+
+
 @st.cache_data(ttl=300, show_spinner=False)
 def load_all_investment_opportunities() -> pd.DataFrame:
     """Combine prepared Investment results across exchanges into a simple opportunity feed."""
@@ -3956,6 +3987,18 @@ with tab_opportunities:
             i2.metric("WAIT / REVIEW", wait_count)
             i3.metric("FX revaluation pending", refresh_count)
             i4.metric("Markets represented", investment_market_count)
+
+            validation = load_investment_validation_coverage()
+            if validation.get("prepared_rows"):
+                st.caption(
+                    "Validation coverage · "
+                    f"{validation['prepared_rows']:,} prepared companies · "
+                    f"{validation['hard_gate_pass']:,} pass hard quality gates · "
+                    f"{validation['old_buy_pool']:,} prior BUY candidates awaiting/under FX-safe review · "
+                    f"{validation['fx_safe_revalued']:,} priority names currently FX-safe revalued · "
+                    f"{validation['fx_safe_buys']:,} validated BUY"
+                    f"{'s' if validation['fx_safe_buys'] != 1 else ''}."
+                )
 
             st.caption(
                 "BUY CANDIDATE means the measurable quality gates, FX-safe DCF valuation and margin-of-safety gate pass. "
