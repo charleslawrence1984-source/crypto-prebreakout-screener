@@ -5210,8 +5210,19 @@ with tab5:
     else:
         portfolio_results = pd.DataFrame()
 
-    if not portfolio_results.empty and "Position type" not in portfolio_results.columns:
-        portfolio_results["Position type"] = "INVESTMENT"
+    required_portfolio_result_columns = {
+        "Ticker", "Position type", "Average cost", "Current price",
+        "Market value £", "Cost basis £", "Unrealised P/L £", "Quote currency",
+    }
+    if (
+        not portfolio_results.empty
+        and not required_portfolio_result_columns.issubset(portfolio_results.columns)
+    ):
+        # Results created by the previous portfolio layout are deliberately
+        # discarded so stale None values / old REDUCE-REBALANCE actions cannot
+        # leak into the redesigned page.
+        st.session_state.pop("portfolio_results", None)
+        portfolio_results = pd.DataFrame()
 
     investment_results = (
         portfolio_results[portfolio_results["Position type"] == "INVESTMENT"].copy()
@@ -5359,7 +5370,7 @@ with tab5:
                     "Return %": st.column_config.NumberColumn(format="%+.1f%%", width="small"),
                     "Market value £": st.column_config.NumberColumn(format="£%.2f", width="small"),
                     "Unrealised P/L £": st.column_config.NumberColumn(format="£%+.2f", width="small"),
-                    "Currency": st.column_config.TextColumn(width="small"),
+                    "Currency": st.column_config.TextColumn(width="medium"),
                 },
             )
 
