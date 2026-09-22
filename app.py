@@ -4077,13 +4077,21 @@ with tab_crypto_advanced:
         )
         accumulation_candidates["Reason"] = accumulation_candidates.apply(
             lambda row: (
-                "Meets accumulation rules" if row["Status"] == "ACCUMULATE"
+                "Meets accumulation rules and Kraken/Crypto.com execution liquidity passes"
+                if row["Status"] == "ACCUMULATE"
                 else (
                     (f"Base score {row['Accumulation score']:.1f} below 70. "
                      if row["Accumulation score"] < 70 else "")
-                    + ("Price outside the confirmed daily base accumulation zone."
-                       if not row["In accumulation zone"]
-                       else "")
+                    + ("Price outside the confirmed daily base accumulation zone. "
+                       if not row["In accumulation zone"] else "")
+                    + (
+                        str(row.get("Execution reason") or "Execution liquidity not confirmed.")
+                        if (
+                            row["Accumulation verdict"] == "ACCUMULATION READY"
+                            and not _boolish(row.get("Execution liquidity pass", False))
+                        )
+                        else ""
+                    )
                 )
             ), axis=1,
         )
@@ -4176,11 +4184,17 @@ with tab_crypto_advanced:
             )
             if swing_setups.empty:
                 rs_blocked = len(technical_swing_setups) - len(rs_qualified_setups)
-                candle_blocked = len(rs_qualified_setups) - len(candle_qualified_setups)
+                execution_blocked = len(rs_qualified_setups) - len(execution_qualified_setups)
+                candle_blocked = len(execution_qualified_setups) - len(candle_qualified_setups)
                 if rs_blocked > 0:
                     st.info(
                         f"{rs_blocked} technical setup(s) currently qualify on score/target but remain "
                         "WAIT because the altcoin is not beating BTC over the 48h RS window."
+                    )
+                elif execution_blocked > 0:
+                    st.info(
+                        f"{execution_blocked} technically-qualified setup(s) remain WAIT because "
+                        "Kraken/Crypto.com execution liquidity has not passed."
                     )
                 elif candle_blocked > 0:
                     st.info(
@@ -4190,7 +4204,7 @@ with tab_crypto_advanced:
                 else:
                     st.info(
                         f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
-                        "technical BUY rules and 30% gross-target requirement."
+                        "technical BUY rules, 30% gross-target requirement and execution-liquidity gate."
                     )
             swing_cols = [
                 "Coin", "Status", "Context confidence", "Known event risk",
@@ -4652,7 +4666,7 @@ with tab_crypto_advanced:
     - **5 raw pts — Daily context:** daily trend constructive without being extremely stretched.
     - **10 raw pts — Entry / R:R:** distance to resistance and projected reward versus invalidation risk. R:R contributes to ranking but a universal 2:1 threshold is not assumed to be proven.
 
-    Those weights total 95 raw technical points, which the app normalises to a genuine **0–100 technical score**. Swing decisions remain overwhelmingly technical. Context such as macro conditions, catalysts and token events is secondary and must never rescue a poor chart. BUY hard rules are now limited to the parts of the setup that define the mission: the coin must still be genuinely pre-breakout, close enough to resistance to offer an actionable setup, avoid severe momentum overextension, retain constructive structure, and have a technically credible target offering at least **30% gross upside from the planned entry**.
+    Those weights total 95 raw technical points, which the app normalises to a genuine **0–100 technical score**. Swing decisions remain overwhelmingly technical. Context such as macro conditions, catalysts and token events is secondary and must never rescue a poor chart. A personal BUY also requires the separate execution-safety gate: at least **$5m combined market liquidity**, at least **$1m USD-like 24h liquidity on Kraken or Crypto.com**, and availability on at least one of those two execution platforms. Discovery uses lower thresholds so this execution rule cannot hide early setups.
 
     **Retest rule:** a bullish breakout retest from above and a bounce into broken support from below are treated as different structures. A first retest of major broken support from underneath is a caution / potential exit-liquidity zone, not an automatic long entry. A reclaim becomes stronger only after price closes back above the level, shows acceptance/follow-through and ideally holds a later retest.
 
@@ -4666,11 +4680,11 @@ with tab_crypto_advanced:
     - **15 pts — RSI recovery:** daily momentum is recovering from a constructive level.
     - **10 pts — Daily OBV:** volume flow is improving.
 
-    ACCUMULATE also requires the score to reach 70 and price to be inside the confirmed daily base zone. Long-range weekly support and the four-year price range remain visible as technical reference only; they do not trigger ACCUMULATE.
+    ACCUMULATE also requires the score to reach 70, price to be inside the confirmed daily base zone, and the same Kraken/Crypto.com execution-safety check to pass. A technically-ready base that fails execution safety remains WATCH rather than disappearing from discovery.
 
     #### Macro-liquidity regime — primary cycle framework
 
-    The scanner no longer assumes crypto must follow a fixed four-year cycle. New swing BUY signals are overlaid with a macro-liquidity regime built from **US M2 (20 pts), Fed net liquidity (15), Chicago Fed financial conditions (20), 10Y real-yield direction (15), the broad US dollar (15), and stablecoin supply growth (15)**. Scores below 42 are treated as a macro headwind and technically qualified swings remain WAIT until liquidity improves.
+    The scanner no longer assumes crypto must follow a fixed four-year cycle. The macro-liquidity regime uses **US M2 (20 pts), Fed net liquidity (15), Chicago Fed financial conditions (20), 10Y real-yield direction (15), the broad US dollar (15), and stablecoin supply growth (15)**. Weak macro is displayed as context/headwind; it does not override an otherwise valid technical setup.
             """
         )
 
