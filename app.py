@@ -113,6 +113,9 @@ def load_crypto_pipeline_state() -> Dict:
         "macro": "macro.json",
         "active": "active_monitor.csv.gz",
         "discovery": "discovery.csv.gz",
+        "scores": "deep_scores.csv.gz",
+        "swing": "swing_opportunities.csv.gz",
+        "accumulation": "accumulation_opportunities.csv.gz",
     }
 
     def fetch(name: str) -> bytes | None:
@@ -163,12 +166,18 @@ def load_crypto_pipeline_state() -> Dict:
     macro = read_json("macro")
     active = read_csv("active")
     discovery = read_csv("discovery")
+    scores = read_csv("scores")
+    swing = read_csv("swing")
+    accumulation = read_csv("accumulation")
     return {
         "manifest": manifest,
         "audit": audit,
         "macro": macro,
         "active": active,
         "discovery": discovery,
+        "scores": scores,
+        "swing": swing,
+        "accumulation": accumulation,
     }
 
 
