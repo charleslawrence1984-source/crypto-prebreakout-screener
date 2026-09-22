@@ -2957,9 +2957,20 @@ st.markdown("""
   gap:10px;
   margin:10px 0 12px 0;
 }
+.live-trade-summary-grid {
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:10px;
+  margin:10px 0 12px 0;
+}
 .stock-summary-card {
   min-height:116px;
   padding:14px;
+}
+.stock-summary-card.is-active {
+  border-color:#2f7bf2;
+  background:#f7faff;
+  box-shadow:0 8px 22px rgba(15,73,160,.08);
 }
 .stock-summary-label-row {
   display:flex;
@@ -3000,7 +3011,8 @@ st.markdown("""
   scroll-margin-top:18px;
 }
 @media (max-width: 1100px) {
-  .stock-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .stock-summary-grid,
+  .live-trade-summary-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
 }
 @media (max-width: 700px) {
   .block-container { padding-top: 1rem; padding-left: .7rem; padding-right: .7rem; }
@@ -3008,7 +3020,8 @@ st.markdown("""
   div[data-testid="stMetricValue"] { font-size: 1.3rem; }
   .stock-home-actions-grid { grid-template-columns:1fr; }
   .stock-home-action-card { min-height:0; }
-  .stock-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .stock-summary-grid,
+  .live-trade-summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }
 </style>
 """, unsafe_allow_html=True)
@@ -3277,12 +3290,66 @@ def render_live_trade_monitor(key_prefix: str = "home", show_table: bool = True)
         return
 
     counts = live["Live state"].value_counts()
-    lm1, lm2, lm3, lm4, lm5 = st.columns(5)
-    lm1.metric("ENTRY ZONE", int(counts.get("ENTRY ZONE", 0)))
-    lm2.metric("Ready to verify", int(counts.get("READY TO VERIFY", 0)))
-    lm3.metric("WATCH", int(counts.get("WATCH", 0)))
-    lm4.metric("Extended", int(counts.get("EXTENDED", 0)))
-    lm5.metric("Invalidated", int(counts.get("INVALIDATED", 0)))
+    live_focus = _query_param_text("live_trade_focus").strip().upper()
+    allowed_live_focus = {
+        "ENTRY ZONE", "READY TO VERIFY", "WATCH", "EXTENDED", "INVALIDATED"
+    }
+    if live_focus not in allowed_live_focus:
+        live_focus = ""
+
+    live_cards = [
+        (
+            "ENTRY ZONE",
+            "Entry Zone",
+            int(counts.get("ENTRY ZONE", 0)),
+            "Current price is still inside the approved live entry tolerance. This is the closest live state to an actionable setup, but current news/event checks still matter.",
+        ),
+        (
+            "READY TO VERIFY",
+            "Ready to Verify",
+            int(counts.get("READY TO VERIFY", 0)),
+            "The completed-candle setup remains valid, but the current live price or opening conditions still need verification before a new entry.",
+        ),
+        (
+            "WATCH",
+            "Trades to Watch",
+            int(counts.get("WATCH", 0)),
+            "The setup is developing, but a required completed-daily-candle confirmation has not happened yet.",
+        ),
+        (
+            "EXTENDED",
+            "Extended",
+            int(counts.get("EXTENDED", 0)),
+            "Price has moved too far from the approved entry, or the remaining upside / reward-risk no longer meets the Trade gates. Do not chase.",
+        ),
+        (
+            "INVALIDATED",
+            "Invalidated",
+            int(counts.get("INVALIDATED", 0)),
+            "The live price or opening conditions have broken the current setup's structural risk rules, so the setup is no longer valid for a new entry.",
+        ),
+    ]
+
+    card_html = []
+    for state, label, count, help_text in live_cards:
+        active_class = " is-active" if live_focus == state else ""
+        card_html.append(
+            f"""
+            <a class="stock-summary-card{active_class}" href="{stock_live_trade_href(state)}" target="_self" aria-label="View {label}">
+              <div class="stock-summary-label-row">
+                <span>{label}</span>
+                <span class="stock-info-dot" title="{help_text}">?</span>
+              </div>
+              <div class="stock-summary-value">{count}</div>
+            </a>
+            """
+        )
+
+    st.caption("Click any live status to see the companies currently in that group.")
+    st.markdown(
+        '<div class="live-trade-summary-grid">' + "".join(card_html) + "</div>",
+        unsafe_allow_html=True,
+    )
 
     quote_times = [
         pd.Timestamp(value.get("quote_time"))
@@ -3322,10 +3389,27 @@ def render_live_trade_monitor(key_prefix: str = "home", show_table: bool = True)
             "DATA STALE": 5,
         }
         display["_order"] = display["Live state"].map(order).fillna(9)
-        display = display.sort_values(["_order", "Technical score"] if "Technical score" in display.columns else ["_order"]).drop(columns="_order")
-        with st.expander("See live Trade candidates", expanded=False):
-            styled = display.style.map(action_cell_style, subset=["Live state"])
-            st.dataframe(styled, hide_index=True, use_container_width=True)
+        display = display.sort_values(
+            ["_order", "Technical score"] if "Technical score" in display.columns else ["_order"]
+        ).drop(columns="_order")
+
+        st.markdown('<div id="live-trade-focus"></div>', unsafe_allow_html=True)
+        if live_focus:
+            selected = display[display["Live state"] == live_focus].copy()
+            selected_label = next(
+                (label for state, label, _, _ in live_cards if state == live_focus),
+                live_focus.title(),
+            )
+            st.markdown(f"##### {selected_label}")
+            if selected.empty:
+                st.info(f"No companies are currently in {selected_label}.")
+            else:
+                styled = selected.style.map(action_cell_style, subset=["Live state"])
+                st.dataframe(styled, hide_index=True, use_container_width=True)
+        else:
+            with st.expander("See all live Trade candidates", expanded=False):
+                styled = display.style.map(action_cell_style, subset=["Live state"])
+                st.dataframe(styled, hide_index=True, use_container_width=True)
 
 
 @st.fragment(run_every="5m")
@@ -3671,6 +3755,28 @@ def stock_home_focus_href(focus: str) -> str:
 
     query = urlencode(params)
     return (f"?{query}" if query else "?") + "#stock-focus"
+
+
+def stock_live_trade_href(live_state: str) -> str:
+    """Link a live-monitor summary card to its filtered candidates without losing page state."""
+    params = {}
+    try:
+        for key, value in st.query_params.items():
+            if key == "live_trade_focus":
+                continue
+            if isinstance(value, list):
+                value = value[-1] if value else ""
+            if value not in (None, ""):
+                params[str(key)] = str(value)
+    except Exception:
+        params = {}
+
+    state = str(live_state or "").strip().upper()
+    if state:
+        params["live_trade_focus"] = state
+
+    query = urlencode(params)
+    return (f"?{query}" if query else "?") + "#live-trade-focus"
 
 
 def _encode_browser_state(value) -> str:
