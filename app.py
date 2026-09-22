@@ -39,6 +39,8 @@ EXCHANGES = {
     "Binance": "binance",
     "Bybit": "bybit",
     "OKX": "okx",
+    "Kraken": "kraken",
+    "Crypto.com": "cryptocom",
 }
 
 MAJOR_CEX = {
@@ -50,6 +52,7 @@ MAJOR_CEX = {
     "Gate": "gate",
     "Bitget": "bitget",
     "MEXC": "mexc",
+    "Crypto.com": "cryptocom",
 }
 
 
@@ -113,6 +116,7 @@ def load_crypto_pipeline_state() -> Dict:
         "macro": "macro.json",
         "active": "active_monitor.csv.gz",
         "discovery": "discovery.csv.gz",
+        "universe": "universe.csv.gz",
         "scores": "deep_scores.csv.gz",
         "swing": "swing_opportunities.csv.gz",
         "accumulation": "accumulation_opportunities.csv.gz",
@@ -166,6 +170,7 @@ def load_crypto_pipeline_state() -> Dict:
     macro = read_json("macro")
     active = read_csv("active")
     discovery = read_csv("discovery")
+    universe = read_csv("universe")
     scores = read_csv("scores")
     swing = read_csv("swing")
     accumulation = read_csv("accumulation")
@@ -175,6 +180,7 @@ def load_crypto_pipeline_state() -> Dict:
         "macro": macro,
         "active": active,
         "discovery": discovery,
+        "universe": universe,
         "scores": scores,
         "swing": swing,
         "accumulation": accumulation,
