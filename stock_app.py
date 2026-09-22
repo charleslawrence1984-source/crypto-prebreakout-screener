@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import datetime
 import io
 import json
 import math
@@ -18,6 +19,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from streamlit_cookies_controller import CookieController
 from cl_signal_ui import render_module_header, render_decision_guidance
 import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
@@ -66,6 +68,14 @@ INVESTMENT_UNIVERSES = EXCHANGE_UNIVERSES.copy()
 
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
 
+PORTFOLIO_COOKIE_NAME = "cl_signal_stock_portfolio_v1"
+PORTFOLIO_COOKIE_DAYS = 3650
+PORTFOLIO_SYMBOL_ALIASES = {
+    # User-friendly broker tickers -> Yahoo Finance symbols.
+    "MGNS": "MGNS.L",
+    "BCHN": "BCHN.SW",
+}
+
 
 @dataclass
 class Scores:
@@ -81,6 +91,67 @@ def safe(v, default=np.nan):
         return x if math.isfinite(x) else default
     except Exception:
         return default
+
+
+def normalise_portfolio_holdings(frame: pd.DataFrame | None) -> pd.DataFrame:
+    """Return only the three user-owned portfolio fields in a stable shape."""
+    columns = ["Ticker", "Shares", "Average cost"]
+    if frame is None:
+        return pd.DataFrame(columns=columns)
+
+    out = frame.copy()
+    for column in columns:
+        if column not in out.columns:
+            out[column] = "" if column == "Ticker" else 0.0
+    out = out[columns].copy()
+    out["Ticker"] = out["Ticker"].fillna("").astype(str).str.strip().str.upper()
+    out["Shares"] = pd.to_numeric(out["Shares"], errors="coerce").fillna(0.0)
+    out["Average cost"] = pd.to_numeric(out["Average cost"], errors="coerce").fillna(0.0)
+
+    active = (
+        out["Ticker"].ne("")
+        | out["Shares"].ne(0)
+        | out["Average cost"].ne(0)
+    )
+    return out.loc[active].reset_index(drop=True)
+
+
+def portfolio_holdings_payload(frame: pd.DataFrame | None) -> str:
+    clean = normalise_portfolio_holdings(frame)
+    return json.dumps(
+        clean.to_dict(orient="records"),
+        separators=(",", ":"),
+        ensure_ascii=True,
+    )
+
+
+def portfolio_holdings_from_payload(payload: str | None) -> pd.DataFrame | None:
+    if payload is None:
+        return None
+    try:
+        records = json.loads(payload)
+        if not isinstance(records, list):
+            return None
+        return normalise_portfolio_holdings(pd.DataFrame(records))
+    except Exception:
+        return None
+
+
+def resolve_portfolio_symbol(symbol: str) -> str:
+    """Resolve a broker-style ticker to the Yahoo symbol used for market data."""
+    raw = str(symbol or "").strip().upper()
+    if not raw:
+        return raw
+    if raw in PORTFOLIO_SYMBOL_ALIASES:
+        return PORTFOLIO_SYMBOL_ALIASES[raw]
+    try:
+        resolved = resolve_company_query(raw)
+        candidate = str(resolved.get("symbol") or "").strip().upper()
+        if candidate:
+            return candidate
+    except Exception:
+        pass
+    return raw
 
 
 def action_cell_style(value) -> str:
@@ -2495,9 +2566,12 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
     Trading 212 display the same price in GBP. Convert only for the internal
     comparison/cost-basis maths, then keep the user-facing value in broker units.
     """
-    symbol = str(symbol).strip().upper()
+    input_symbol = str(symbol).strip().upper()
+    symbol = resolve_portfolio_symbol(input_symbol)
     price = latest_portfolio_price(symbol)
     if np.isnan(price) or price <= 0:
+        if symbol != input_symbol:
+            raise ValueError(f"current price unavailable (resolved {input_symbol} to {symbol})")
         raise ValueError("current price unavailable")
 
     fund = valuation_fundamental_analysis(symbol, price)
@@ -2546,8 +2620,8 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
         reasons.append("one or more measurable thesis checks needs review")
 
     return {
-        "Ticker": symbol,
-        "Company": fund.get("name") or symbol,
+        "Ticker": input_symbol,
+        "Company": fund.get("name") or input_symbol,
         "Action": action,
         "Shares": shares,
         "Average cost": average_cost if average_cost > 0 else np.nan,
@@ -4729,15 +4803,43 @@ with tab5:
         "For example, if Trading 212 shows MGNS at £42.18, enter 42.18 — the app handles Yahoo's pence quote internally."
     )
 
+    portfolio_cookie = CookieController(key="cl_signal_portfolio_cookie_controller")
+    persisted_portfolio_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
+
+    if "portfolio_editor_version" not in st.session_state:
+        st.session_state["portfolio_editor_version"] = 0
+    if "portfolio_holdings_store" not in st.session_state:
+        st.session_state["portfolio_holdings_store"] = pd.DataFrame([
+            {"Ticker": "", "Shares": 0.0, "Average cost": 0.0},
+        ])
+        st.session_state["_portfolio_cookie_loaded"] = False
+        st.session_state["_portfolio_user_modified"] = False
+
+    # Cookie components populate after the browser connects. If a saved
+    # portfolio arrives on a later rerun, load it once and rebuild the editor.
+    if (
+        persisted_portfolio_payload is not None
+        and not st.session_state.get("_portfolio_cookie_loaded", False)
+        and not st.session_state.get("_portfolio_user_modified", False)
+    ):
+        saved_portfolio = portfolio_holdings_from_payload(persisted_portfolio_payload)
+        if saved_portfolio is not None:
+            st.session_state["portfolio_holdings_store"] = saved_portfolio
+            st.session_state["portfolio_editor_version"] += 1
+            st.session_state["_portfolio_saved_payload"] = persisted_portfolio_payload
+        st.session_state["_portfolio_cookie_loaded"] = True
+
     uploaded_portfolio = st.file_uploader(
         "Import holdings CSV (optional)",
         type=["csv"],
         key="portfolio_csv_upload",
         help="Required columns: Ticker, Shares and Average cost.",
     )
-    portfolio_seed = pd.DataFrame([
-        {"Ticker": "", "Shares": 0.0, "Average cost": 0.0},
-    ])
+
+    portfolio_seed = normalise_portfolio_holdings(
+        st.session_state.get("portfolio_holdings_store")
+    )
+    upload_identity = "saved"
     if uploaded_portfolio is not None:
         try:
             imported = pd.read_csv(uploaded_portfolio)
@@ -4757,7 +4859,10 @@ with tab5:
             missing_columns = {"Ticker", "Shares", "Average cost"} - set(imported.columns)
             if missing_columns:
                 raise ValueError("missing columns: " + ", ".join(sorted(missing_columns)))
-            portfolio_seed = imported[["Ticker", "Shares", "Average cost"]].copy()
+            portfolio_seed = normalise_portfolio_holdings(
+                imported[["Ticker", "Shares", "Average cost"]]
+            )
+            upload_identity = f"{uploaded_portfolio.name}_{getattr(uploaded_portfolio, 'size', 0)}"
         except Exception as exc:
             st.error(f"The portfolio CSV could not be loaded: {exc}")
 
@@ -4765,22 +4870,26 @@ with tab5:
         st.session_state.pop("portfolio_results", None)
         st.session_state.pop("portfolio_errors", None)
 
-    upload_identity = (
-        f"{uploaded_portfolio.name}_{getattr(uploaded_portfolio, 'size', 0)}"
-        if uploaded_portfolio is not None
-        else "manual"
+    def portfolio_editor_changed():
+        clear_portfolio_results()
+        st.session_state["_portfolio_dirty"] = True
+        st.session_state["_portfolio_user_modified"] = True
+
+    editor_key = (
+        f"portfolio_editor_{upload_identity}_"
+        f"{st.session_state.get('portfolio_editor_version', 0)}"
     )
     edited_holdings = st.data_editor(
         portfolio_seed,
         num_rows="dynamic",
         hide_index=True,
         use_container_width=True,
-        key=f"portfolio_editor_{upload_identity}",
-        on_change=clear_portfolio_results,
+        key=editor_key,
+        on_change=portfolio_editor_changed,
         column_config={
             "Ticker": st.column_config.TextColumn(
                 "Ticker",
-                help="Use the Yahoo ticker, including suffixes such as .L or .TO.",
+                help="Broker ticker is fine. The app resolves exchange suffixes such as .L or .SW when market data needs them.",
             ),
             "Shares": st.column_config.NumberColumn("Shares", min_value=0.0, format="%.4f"),
             "Average cost": st.column_config.NumberColumn(
@@ -4791,6 +4900,17 @@ with tab5:
             ),
         },
     )
+
+    current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
+    if st.session_state.pop("_portfolio_dirty", False):
+        portfolio_cookie.set(
+            PORTFOLIO_COOKIE_NAME,
+            current_portfolio_payload,
+            expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
+        )
+        st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
+        st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
+        st.session_state["_portfolio_cookie_loaded"] = True
 
     d1, d2 = st.columns(2)
     with d1:
@@ -4815,6 +4935,17 @@ with tab5:
     )
 
     if analyse_portfolio_clicked:
+        current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
+        portfolio_cookie.set(
+            PORTFOLIO_COOKIE_NAME,
+            current_portfolio_payload,
+            expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
+        )
+        st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
+        st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
+        st.session_state["_portfolio_cookie_loaded"] = True
+        st.session_state["_portfolio_user_modified"] = True
+
         clean_holdings = edited_holdings.copy()
         clean_holdings["Ticker"] = clean_holdings["Ticker"].fillna("").astype(str).str.strip().str.upper()
         clean_holdings = clean_holdings[clean_holdings["Ticker"] != ""]
@@ -4972,7 +5103,8 @@ with tab5:
             )
 
     st.caption(
-        "Holdings remain in the current browser session. Download the CSV after editing so you can restore the portfolio after an app restart or redeployment."
+        "Holdings save automatically in this browser and stay here until you delete them. "
+        "Download the CSV only as a backup or to move the portfolio to another browser or device."
     )
 
 
