@@ -138,22 +138,41 @@ def main() -> int:
                     existing = pd.DataFrame()
             existing_symbols = set()
             eligible_set = set(eligible)
+            stale_priority = {}
             if not existing.empty and "Ticker" in existing.columns:
                 # Remove companies that have left the current eligible universe so a
                 # completed manifest and its prepared file describe the same snapshot.
                 existing = existing[existing["Ticker"].astype(str).isin(eligible_set)]
 
-                # A valuation-model change can make every old DCF unsafe.  Drop stale
-                # rows so gap-fill actively rebuilds them rather than preserving a
-                # false BUY until the normal rotation eventually reaches the ticker.
+                # During a valuation-model migration, revalue the old shortlist first
+                # instead of sending the provider through the entire market alphabetically.
                 current_model = getattr(stock_app, "VALUATION_MODEL_VERSION", None)
                 if current_model:
                     if "Valuation model version" in existing.columns:
-                        existing = existing[
-                            existing["Valuation model version"].astype(str).eq(str(current_model))
-                        ].copy()
+                        stale_mask = ~existing["Valuation model version"].astype(str).eq(str(current_model))
                     else:
-                        existing = existing.iloc[0:0].copy()
+                        stale_mask = pd.Series(True, index=existing.index)
+
+                    stale_rows = existing[stale_mask].copy()
+                    if not stale_rows.empty:
+                        stale_rows["_priority_action"] = stale_rows.get(
+                            "Action", pd.Series("", index=stale_rows.index)
+                        ).map({"BUY CANDIDATE": 0, "WAIT": 1}).fillna(2)
+                        stale_rows["_priority_quality"] = pd.to_numeric(
+                            stale_rows.get("Quality score"), errors="coerce"
+                        ).fillna(-1)
+                        stale_rows = stale_rows.sort_values(
+                            ["_priority_action", "_priority_quality"],
+                            ascending=[True, False],
+                        )
+                        stale_priority = {
+                            str(symbol): rank
+                            for rank, symbol in enumerate(
+                                stale_rows["Ticker"].dropna().astype(str).tolist()
+                            )
+                        }
+
+                    existing = existing[~stale_mask].copy()
 
                 existing_symbols = set(existing["Ticker"].dropna().astype(str))
 
@@ -172,7 +191,14 @@ def main() -> int:
                     symbol: previous.get("gap_fill_dispatch_counts", {}).get(symbol, 0)
                     for symbol in missing_symbols
                 }
-                missing_symbols.sort(key=lambda symbol: attempts[symbol])
+                # Old BUY/WAIT candidates are migrated before lower-priority market rows.
+                missing_symbols.sort(
+                    key=lambda symbol: (
+                        0 if symbol in stale_priority else 1,
+                        stale_priority.get(symbol, 10**9),
+                        attempts[symbol],
+                    )
+                )
                 if args.max_symbols_per_exchange > 0:
                     scan_symbols = missing_symbols[: args.max_symbols_per_exchange]
                 else:
