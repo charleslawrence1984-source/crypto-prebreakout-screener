@@ -3461,13 +3461,28 @@ with tab_home:
         int((home_investment["Action"] == "WAIT").sum())
         if not home_investment.empty and "Action" in home_investment.columns else 0
     )
+    investment_refresh_count = (
+        int(home_investment.get(
+            "Valuation FX status",
+            pd.Series("", index=home_investment.index),
+        ).astype(str).str.upper().eq("REFRESH REQUIRED").sum())
+        if not home_investment.empty else 0
+    )
     recent_alert_count = len(home_events)
 
     m1, m2, m3, m4, m5, m6 = st.columns(6)
     m1.metric("Trade ready", ready_count)
     m2.metric("Trade WATCH", trade_watch_count)
     m3.metric("Investment BUY", investment_buy_count)
-    m4.metric("Investment WAIT", investment_wait_count)
+    m4.metric(
+        "Investment review",
+        investment_wait_count,
+        help=(
+            f"{investment_refresh_count} currently require FX-safe revaluation."
+            if investment_refresh_count
+            else "Quality candidates currently on WAIT."
+        ),
+    )
     m5.metric("Watchlist", len(home_watchlist))
     m6.metric("Recent alerts", recent_alert_count)
 
@@ -3512,6 +3527,13 @@ with tab_home:
                 st.info("No Trade setup is ready right now.")
             if investment_buy_count:
                 st.success(f"{investment_buy_count} Investment BUY candidate{'s' if investment_buy_count != 1 else ''}")
+            elif investment_refresh_count:
+                st.info(
+                    f"{investment_refresh_count} Investment candidate"
+                    f"{'s are' if investment_refresh_count != 1 else ' is'} being revalued with the FX-safe DCF model."
+                )
+            elif investment_wait_count:
+                st.info(f"{investment_wait_count} Investment candidate{'s' if investment_wait_count != 1 else ''} on review/WATCH.")
             st.caption("Open **Opportunities** above to see the full shortlist.")
 
     with action3:
@@ -3872,12 +3894,19 @@ with tab_opportunities:
         else:
             buy_count = int((investment_opportunities["Action"] == "BUY CANDIDATE").sum())
             wait_count = int((investment_opportunities["Action"] == "WAIT").sum())
+            refresh_count = int(
+                investment_opportunities.get(
+                    "Valuation FX status",
+                    pd.Series("", index=investment_opportunities.index),
+                ).astype(str).str.upper().eq("REFRESH REQUIRED").sum()
+            )
             investment_market_count = int(investment_opportunities["Exchange"].nunique())
 
-            i1, i2, i3 = st.columns(3)
+            i1, i2, i3, i4 = st.columns(4)
             i1.metric("BUY CANDIDATE", buy_count)
-            i2.metric("WAIT", wait_count)
-            i3.metric("Markets represented", investment_market_count)
+            i2.metric("WAIT / REVIEW", wait_count)
+            i3.metric("FX revaluation pending", refresh_count)
+            i4.metric("Markets represented", investment_market_count)
 
             st.caption(
                 "BUY CANDIDATE means the measurable quality gates, FX-safe DCF valuation and margin-of-safety gate pass, "
