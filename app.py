@@ -3932,6 +3932,7 @@ with tab_crypto_advanced:
 
         macro_now = st.session_state.get("macro_liquidity") or {}
         df = apply_ta_context_overlay(df, macro_now)
+        df = attach_prepared_execution_columns(df)
 
         technical_swing_setups = df[
             (df["Trade verdict"] == "QUALIFIES — 30%+ GROSS TARGET")
@@ -3941,15 +3942,18 @@ with tab_crypto_advanced:
             (technical_swing_setups["Coin"] == "BTC")
             | (technical_swing_setups["RS vs BTC %"] > 0)
         ].copy()
-        # Final BUY status is technical-first. Tokenomics, CEX breadth, macro,
-        # catalysts and general context remain visible as warnings/confidence only.
-        # The latest completed 4h rejection candle remains an execution-risk gate.
-        candle_qualified_setups = rs_qualified_setups[
-            rs_qualified_setups["Candle caution"] != "CAUTION"
+        execution_qualified_setups = rs_qualified_setups[
+            rs_qualified_setups["Execution liquidity pass"] == True
+        ].copy()
+        # Technical quality drives the setup; personal BUY also requires execution
+        # safety on Kraken/Crypto.com and no latest completed 4h rejection candle.
+        candle_qualified_setups = execution_qualified_setups[
+            execution_qualified_setups["Candle caution"] != "CAUTION"
         ].copy()
         swing_setups = candle_qualified_setups.copy()
         accumulation_setups = df[
-            df["Accumulation verdict"] == "ACCUMULATION READY"
+            (df["Accumulation verdict"] == "ACCUMULATION READY")
+            & (df["Execution liquidity pass"] == True)
         ].copy().sort_values("Accumulation score", ascending=False)
 
         # Tables retain potential candidates even when no actionable setups exist.
@@ -3991,6 +3995,11 @@ with tab_crypto_advanced:
                 reasons.append("not beating BTC over the 48h RS window")
             if (
                 row["Symbol"] in set(rs_qualified_setups["Symbol"])
+                and not _boolish(row.get("Execution liquidity pass", False))
+            ):
+                reasons.append(str(row.get("Execution reason") or "execution liquidity not confirmed on Kraken/Crypto.com"))
+            if (
+                row["Symbol"] in set(execution_qualified_setups["Symbol"])
                 and row.get("Candle caution") == "CAUTION"
             ):
                 reasons.append("latest completed 4h candle shows rejection")
@@ -4189,6 +4198,8 @@ with tab_crypto_advanced:
                 "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
                 "Pattern", "Triangle score", "Triangle touches", "Triangle compression %",
                 "Candle caution", "Last 4h candle",
+                "Execution venues", "Execution liquidity pass", "Execution reason",
+                "Cross-exchange quote volume", "Kraken available", "Crypto.com available",
                 "SMA regime", "SMA50", "SMA200", "Price vs SMA50 %", "Price vs SMA200 %",
                 "BB 4h regime", "BB 4h width %", "BB 4h width percentile", "BB 4h position %",
                 "BB Daily regime", "4h Channel", "4h Channel pos %", "4h Channel support",
