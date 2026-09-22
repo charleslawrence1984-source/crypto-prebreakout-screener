@@ -110,10 +110,8 @@
         "CL-USD.SW",
         "COIN-USD.SW",
         "CRM-USD.SW",
-        "CRWD-USD.SW",
         "CVX-USD.SW",
         "DIS-USD.SW",
-        "DXCM-USD.SW",
         "EPH-EUR.SW",
         "GE-USD.SW",
         "GLW-USD.SW",
@@ -146,6 +144,7 @@
         "NTR-USD.SW",
         "NVDA-USD.SW",
         "ORCL-USD.SW",
+        "OXY-USD.SW",
         "PAAS-USD.SW",
         "PFE-USD.SW",
         "PG-USD.SW",
@@ -160,6 +159,7 @@
         "V-USD.SW",
         "VZ-USD.SW",
         "WDAY-USD.SW",
+        "WFC-USD.SW",
         "XOM-USD.SW",
         "ZM-USD.SW"
       ]
@@ -269,8 +269,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-21T22:55:48+01:00",
+  "recorded_at": "2026-09-22T22:56:52+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-21T22:28:40+01:00",
+  "source_fundamentals_updated_at": "2026-09-22T22:27:23+01:00",
   "total_unresolved": 186
 }
