@@ -20,6 +20,7 @@ import plotly.graph_objects as go
 import requests
 import streamlit as st
 from streamlit_cookies_controller import CookieController
+from streamlit_local_storage import LocalStorage
 from cl_signal_ui import render_module_header, render_decision_guidance
 import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
@@ -69,6 +70,7 @@ INVESTMENT_UNIVERSES = EXCHANGE_UNIVERSES.copy()
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
 
 PORTFOLIO_COOKIE_NAME = "cl_signal_stock_portfolio_v1"
+PORTFOLIO_LOCAL_STORAGE_KEY = "cl_signal_stock_portfolio_v2"
 PORTFOLIO_COOKIE_DAYS = 3650
 INVESTMENT_STOCK_TARGET_PCT = 5.0
 INVESTMENT_SECTOR_TARGET_PCT = 20.0
@@ -141,11 +143,11 @@ def portfolio_holdings_payload(frame: pd.DataFrame | None) -> str:
     )
 
 
-def portfolio_holdings_from_payload(payload: str | None) -> pd.DataFrame | None:
+def portfolio_holdings_from_payload(payload) -> pd.DataFrame | None:
     if payload is None:
         return None
     try:
-        records = json.loads(payload)
+        records = json.loads(payload) if isinstance(payload, str) else payload
         if not isinstance(records, list):
             return None
         return normalise_portfolio_holdings(pd.DataFrame(records))
@@ -4987,7 +4989,20 @@ with tab5:
         )
 
         portfolio_cookie = CookieController(key="cl_signal_portfolio_cookie_controller")
-        persisted_portfolio_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
+        portfolio_local_storage = LocalStorage()
+        persisted_local_payload = portfolio_local_storage.getItem(
+            PORTFOLIO_LOCAL_STORAGE_KEY,
+            key="cl_signal_portfolio_local_storage_get",
+        )
+        persisted_cookie_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
+        # Browser localStorage is the primary persistence layer. Keep the
+        # existing cookie as a migration/fallback path for portfolios saved
+        # before this change.
+        persisted_portfolio_payload = (
+            persisted_local_payload
+            if persisted_local_payload not in (None, "")
+            else persisted_cookie_payload
+        )
 
         if "portfolio_editor_version" not in st.session_state:
             st.session_state["portfolio_editor_version"] = 0
@@ -5102,7 +5117,18 @@ with tab5:
         )
 
         current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
-        if st.session_state.pop("_portfolio_dirty", False):
+        seed_portfolio_payload = portfolio_holdings_payload(portfolio_seed)
+        editor_changed = (
+            st.session_state.pop("_portfolio_dirty", False)
+            or current_portfolio_payload != seed_portfolio_payload
+        )
+        if editor_changed:
+            # Save to browser localStorage so positions survive closing the tab
+            # or browser. Keep the cookie copy as a secondary fallback.
+            portfolio_local_storage.setItem(
+                PORTFOLIO_LOCAL_STORAGE_KEY,
+                current_portfolio_payload,
+            )
             portfolio_cookie.set(
                 PORTFOLIO_COOKIE_NAME,
                 current_portfolio_payload,
@@ -5111,6 +5137,7 @@ with tab5:
             st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
             st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
             st.session_state["_portfolio_cookie_loaded"] = True
+            st.session_state["_portfolio_user_modified"] = True
 
         d1, d2 = st.columns(2)
         with d1:
@@ -5136,6 +5163,10 @@ with tab5:
 
         if analyse_portfolio_clicked:
             current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
+            portfolio_local_storage.setItem(
+                PORTFOLIO_LOCAL_STORAGE_KEY,
+                current_portfolio_payload,
+            )
             portfolio_cookie.set(
                 PORTFOLIO_COOKIE_NAME,
                 current_portfolio_payload,
@@ -5482,7 +5513,7 @@ with tab5:
                 )
 
     st.caption(
-        "Positions save automatically in this browser and stay here until you delete them. "
+        "Positions save automatically to this browser and should restore after you close and reopen the app on the same browser/device. "
         "Download the CSV only as a backup or to move the portfolios to another browser or device."
     )
 
