@@ -2592,22 +2592,40 @@ def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFram
     return out, {"updated": updated, "missing": missing, "rate_limit_errors": rate_limit_errors}
 
 
-@st.cache_data(ttl=900, show_spinner=False)
+@st.cache_data(ttl=120, show_spinner=False)
 def latest_portfolio_price(symbol: str) -> float:
-    """Retrieve a recent quoted price for a portfolio holding."""
+    """Retrieve the latest independent market quote for a portfolio holding.
+
+    Prefer recent intraday trade data over fast_info because fast_info can lag
+    or temporarily surface stale values for some non-US listings. Fall back to
+    the latest daily close, then fast_info only if history is unavailable.
+    """
     ticker = yf.Ticker(symbol)
-    price = np.nan
+
+    for period, interval in (("5d", "5m"), ("10d", "1d")):
+        try:
+            history = ticker.history(
+                period=period,
+                interval=interval,
+                auto_adjust=False,
+                prepost=False,
+            )
+            if history is not None and not history.empty and "Close" in history.columns:
+                closes = pd.to_numeric(history["Close"], errors="coerce").dropna()
+                if not closes.empty:
+                    price = safe(closes.iloc[-1])
+                    if not np.isnan(price) and price > 0:
+                        return price
+        except Exception:
+            continue
+
     try:
         price = safe(ticker.fast_info.get("last_price"))
+        if not np.isnan(price) and price > 0:
+            return price
     except Exception:
         pass
-    if np.isnan(price) or price <= 0:
-        history = ticker.history(period="5d", interval="1d", auto_adjust=False)
-        if history is not None and not history.empty and "Close" in history.columns:
-            closes = pd.to_numeric(history["Close"], errors="coerce").dropna()
-            if not closes.empty:
-                price = safe(closes.iloc[-1])
-    return price
+    return np.nan
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -2639,7 +2657,6 @@ def currency_to_gbp_rate(currency: str) -> float:
     return np.nan
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
 def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -> dict:
     """Run the long-term framework for one existing investment position.
 
@@ -2730,7 +2747,6 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
     }
 
 
-@st.cache_data(ttl=900, show_spinner=False)
 def analyse_trade_portfolio_holding(symbol: str, shares: float, average_cost: float) -> dict:
     """Run the owned-position trade framework without mixing it into investment allocation."""
     input_symbol = str(symbol).strip().upper()
@@ -5385,6 +5401,7 @@ with tab5:
 
             st.caption(
                 "Action = investment quality/valuation decision. Weight = diversification only. "
+                "Current price is fetched independently from recent market data each time you review the portfolio. "
                 "Target: ≤5% per stock."
             )
             st.dataframe(
