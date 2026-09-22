@@ -14,6 +14,7 @@ import pandas as pd
 
 from crypto_macro import snapshot_age_minutes, snapshot_payload
 from crypto_universe_rules import crypto_universe_exclusion_reason
+from crypto_rule_engine import ScreenerConfig, score_setup
 
 
 EXCHANGES = {
@@ -531,6 +532,199 @@ def active_monitor(
     return pd.DataFrame(out)
 
 
+def flatten_deep_score(item: dict, result: dict) -> dict:
+    base = str(item.get("Base") or "")
+    rs_pass = base == "BTC" or safe(result.get("rs_vs_btc_pct"), -999) > 0
+    score = safe(result.get("score"), 0)
+    swing_ready = (
+        bool(result.get("eligible"))
+        and score >= 80
+        and rs_pass
+        and not bool(result.get("candle_caution"))
+    )
+    if swing_ready:
+        swing_status = "BUY"
+    elif bool(result.get("eligible")) or score >= 65:
+        swing_status = "WATCH"
+    else:
+        swing_status = "PASS"
+
+    accumulation_verdict = str(result.get("accumulation_verdict") or "")
+    if accumulation_verdict == "ACCUMULATION READY":
+        accumulation_status = "ACCUMULATE"
+    elif accumulation_verdict.startswith("WATCH") or safe(result.get("bottom_score"), 0) >= 50:
+        accumulation_status = "WATCH"
+    else:
+        accumulation_status = "PASS"
+
+    return {
+        "Base": base,
+        "Symbol": item.get("Symbol"),
+        "Exchange": item.get("Exchange"),
+        "Exchange id": item.get("Exchange id"),
+        "24h quote volume": item.get("24h quote volume"),
+        "Eligible exchange count": item.get("Eligible exchange count"),
+        "Eligible exchanges": item.get("Eligible exchanges"),
+        "deep_scored_at": now_iso(),
+        "Swing status": swing_status,
+        "Swing score": result.get("score"),
+        "Swing eligible": bool(result.get("eligible")),
+        "Swing reason": result.get("reason"),
+        "Price": result.get("price"),
+        "Entry low": result.get("entry_low"),
+        "Entry high": result.get("entry_high"),
+        "Planned entry": result.get("planned_entry"),
+        "Invalidation": result.get("invalidation"),
+        "Target": result.get("projected_target"),
+        "Target upside %": result.get("target_upside_pct"),
+        "R:R": result.get("risk_reward"),
+        "Resistance": result.get("resistance"),
+        "Distance %": result.get("distance_pct"),
+        "Resistance tests": result.get("resistance_tests"),
+        "RSI": result.get("rsi"),
+        "ATR ratio": result.get("atr_ratio"),
+        "Vol ratio": result.get("volume_ratio"),
+        "RS vs BTC %": result.get("rs_vs_btc_pct"),
+        "RS vs BTC 96h %": result.get("rs_vs_btc_96h_pct"),
+        "Coin trend": result.get("coin_trend"),
+        "Market trend": result.get("market_trend"),
+        "SMA regime": result.get("sma_regime"),
+        "Candle caution": "CAUTION" if result.get("candle_caution") else "CLEAR",
+        "Last 4h candle": result.get("candle_pattern"),
+        "Pattern": result.get("triangle_label"),
+        "BB 4h regime": result.get("bb_4h_regime"),
+        "BB 4h width percentile": result.get("bb_4h_width_percentile"),
+        "4h Channel": result.get("channel_4h_direction"),
+        "Project freshness": result.get("project_freshness"),
+        "History days": result.get("history_days"),
+        "Accumulation status": accumulation_status,
+        "Accumulation score": result.get("bottom_score"),
+        "Accumulation verdict": result.get("accumulation_verdict"),
+        "Accumulation low": result.get("accumulation_low"),
+        "Accumulation high": result.get("accumulation_high"),
+        "In accumulation zone": bool(result.get("in_accumulation_zone")),
+        "4Y cycle position %": result.get("cycle_position_pct"),
+    }
+
+
+async def deep_score_batch(
+    universe: pd.DataFrame,
+    bases: List[str],
+    quote: str,
+    concurrency: int = 8,
+):
+    if not bases:
+        return [], []
+
+    subset = universe[universe["Base"].astype(str).isin(set(bases))].copy()
+    grouped = {
+        exchange_id: group.to_dict(orient="records")
+        for exchange_id, group in subset.groupby("Exchange id")
+    }
+    rows = []
+    errors = []
+
+    async def score_exchange(exchange_id: str, items: list):
+        exchange = make_exchange(exchange_id)
+        sem = asyncio.Semaphore(concurrency)
+        local = []
+        try:
+            await asyncio.wait_for(exchange.load_markets(), timeout=45)
+            btc_symbol = f"BTC/{quote}"
+            btc4_raw, btcd_raw = await asyncio.gather(
+                asyncio.wait_for(exchange.fetch_ohlcv(btc_symbol, timeframe="4h", limit=180), timeout=30),
+                asyncio.wait_for(exchange.fetch_ohlcv(btc_symbol, timeframe="1d", limit=365), timeout=30),
+            )
+            btc4 = ohlcv_frame(btc4_raw)
+            btcd = ohlcv_frame(btcd_raw)
+
+            async def one(item):
+                async with sem:
+                    symbol = str(item["Symbol"])
+                    try:
+                        raw4, rawd, raww = await asyncio.gather(
+                            asyncio.wait_for(exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180), timeout=30),
+                            asyncio.wait_for(exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365), timeout=30),
+                            asyncio.wait_for(exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220), timeout=30),
+                        )
+                        df4 = ohlcv_frame(raw4)
+                        dfd = ohlcv_frame(rawd)
+                        dfw = ohlcv_frame(raww)
+                        cfg = ScreenerConfig(
+                            exchange_id=exchange_id,
+                            quote=quote,
+                            universe_size=50,
+                            min_quote_volume=5_000_000,
+                            score_threshold=80,
+                            min_gross_profit_pct=30.0,
+                        )
+                        result = score_setup(df4, dfd, btc4, cfg, dfw=dfw, btcd=btcd)
+                        return flatten_deep_score(item, result)
+                    except Exception as exc:
+                        errors.append(
+                            f"deep/{exchange_id}/{symbol}: {type(exc).__name__}: {str(exc)[:180]}"
+                        )
+                        return None
+
+            scored = await asyncio.gather(*(one(item) for item in items))
+            local.extend([row for row in scored if row])
+        finally:
+            await exchange.close()
+        return local
+
+    results = await asyncio.gather(
+        *(score_exchange(exchange_id, items) for exchange_id, items in grouped.items()),
+        return_exceptions=True,
+    )
+    for exchange_id, result in zip(grouped, results):
+        if isinstance(result, Exception):
+            errors.append(f"deep/{exchange_id}: {type(result).__name__}: {result}")
+        else:
+            rows.extend(result)
+    return rows, errors
+
+
+def merge_deep_scores(existing: pd.DataFrame, fresh: pd.DataFrame, eligible_bases: set) -> pd.DataFrame:
+    if not existing.empty:
+        existing = existing[existing["Base"].astype(str).isin(eligible_bases)].copy()
+    if fresh.empty:
+        return existing
+    if existing.empty:
+        return fresh.reset_index(drop=True)
+    refreshed = set(fresh["Base"].astype(str))
+    existing = existing[~existing["Base"].astype(str).isin(refreshed)]
+    return pd.concat([fresh, existing], ignore_index=True)
+
+
+def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    if scores.empty:
+        return pd.DataFrame(), pd.DataFrame()
+
+    swing = scores[scores["Swing status"].isin(["BUY", "WATCH"])].copy()
+    if not swing.empty:
+        swing["_status_rank"] = swing["Swing status"].map({"BUY": 0, "WATCH": 1}).fillna(2)
+        swing = swing.sort_values(
+            ["_status_rank", "Swing score", "24h quote volume"],
+            ascending=[True, False, False],
+            na_position="last",
+        ).drop(columns=["_status_rank"])
+
+    accumulation = scores[
+        scores["Accumulation status"].isin(["ACCUMULATE", "WATCH"])
+    ].copy()
+    if not accumulation.empty:
+        accumulation["_status_rank"] = accumulation["Accumulation status"].map(
+            {"ACCUMULATE": 0, "WATCH": 1}
+        ).fillna(2)
+        accumulation = accumulation.sort_values(
+            ["_status_rank", "Accumulation score", "24h quote volume"],
+            ascending=[True, False, False],
+            na_position="last",
+        ).drop(columns=["_status_rank"])
+
+    return swing.reset_index(drop=True), accumulation.reset_index(drop=True)
+
+
 async def run(args) -> int:
     output = Path(args.output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -584,6 +778,43 @@ async def run(args) -> int:
     active = active_monitor(merged, all_markets, args.max_active)
     save_csv(active, output / "active_monitor.csv.gz")
 
+    # Deep scoring uses the exact same shared rule engine as Quick Analysis.
+    # Prioritise the strongest active Swing candidates while also rotating through
+    # the current discovery batch so Accumulation coverage is not breakout-biased.
+    active_priority = (
+        active.sort_values(["discovery_rank", "24h quote volume"], ascending=[False, False])["Base"]
+        .astype(str).head(max(1, args.deep_score_size // 2)).tolist()
+        if not active.empty else []
+    )
+    rotating_priority = [str(base) for base in batch[: max(1, args.deep_score_size // 2)]]
+    deep_bases = []
+    for base in active_priority + rotating_priority:
+        if base not in deep_bases:
+            deep_bases.append(base)
+        if len(deep_bases) >= args.deep_score_size:
+            break
+
+    deep_rows, deep_errors = await deep_score_batch(
+        universe,
+        deep_bases,
+        args.quote,
+        concurrency=max(2, min(args.concurrency, 8)),
+    )
+    deep_fresh = pd.DataFrame(deep_rows)
+    deep_existing = load_csv(output / "deep_scores.csv.gz")
+    deep_scores = merge_deep_scores(deep_existing, deep_fresh, set(bases))
+    if not deep_scores.empty:
+        deep_scores = deep_scores.sort_values(
+            ["deep_scored_at", "Swing score"],
+            ascending=[False, False],
+            na_position="last",
+        ).reset_index(drop=True)
+    save_csv(deep_scores, output / "deep_scores.csv.gz")
+
+    swing_feed, accumulation_feed = prepared_opportunity_feeds(deep_scores)
+    save_csv(swing_feed, output / "swing_opportunities.csv.gz")
+    save_csv(accumulation_feed, output / "accumulation_opportunities.csv.gz")
+
     total_unique = len(bases)
     scanned_unique = (
         int((merged["status"] == "SCANNED").sum())
@@ -608,10 +839,14 @@ async def run(args) -> int:
         "discovery_rows_current": scanned_unique,
         "discovery_coverage_pct": round(coverage_pct, 1),
         "active_candidates": int(len(active)),
+        "deep_score_batch": int(len(deep_bases)),
+        "deep_scores_current": int(len(deep_scores)),
+        "swing_opportunities": int(len(swing_feed)),
+        "accumulation_opportunities": int(len(accumulation_feed)),
         "estimated_full_sweep_minutes_at_5m_cadence": nominal_minutes,
         "macro_updated_at": macro_snapshot.get("generated_at"),
         "macro_available": bool(macro_snapshot.get("available")),
-        "errors": universe_errors + discovery_errors[:50],
+        "errors": universe_errors + discovery_errors[:30] + deep_errors[:30],
     }
     save_json(audit, output / "audit.json")
 
@@ -627,10 +862,14 @@ async def run(args) -> int:
         "discovery_batch_bases": batch,
         "discovery_coverage_pct": round(coverage_pct, 1),
         "active_candidates": int(len(active)),
+        "deep_score_batch": int(len(deep_bases)),
+        "deep_scores_current": int(len(deep_scores)),
+        "swing_opportunities": int(len(swing_feed)),
+        "accumulation_opportunities": int(len(accumulation_feed)),
         "estimated_full_sweep_minutes": nominal_minutes,
         "macro_updated_at": macro_snapshot.get("generated_at"),
         "macro_available": bool(macro_snapshot.get("available")),
-        "errors": universe_errors + discovery_errors[:25],
+        "errors": universe_errors + discovery_errors[:15] + deep_errors[:15],
     }
     save_json(manifest, manifest_path)
 
@@ -646,6 +885,7 @@ def main() -> int:
     parser.add_argument("--min-quote-volume", type=float, default=5_000_000)
     parser.add_argument("--batch-size", type=int, default=150)
     parser.add_argument("--max-active", type=int, default=150)
+    parser.add_argument("--deep-score-size", type=int, default=60)
     parser.add_argument("--concurrency", type=int, default=10)
     parser.add_argument("--output-dir", default="prepared_crypto")
     args = parser.parse_args()
