@@ -5459,7 +5459,7 @@ with tab5:
                     "Return %": st.column_config.NumberColumn(format="%+.1f%%", width="small"),
                     "Market value £": st.column_config.NumberColumn(format="£%.2f", width="small"),
                     "Unrealised P/L £": st.column_config.NumberColumn(format="£%+.2f", width="small"),
-                    "Currency": st.column_config.TextColumn(width="small"),
+                    "Currency": st.column_config.TextColumn(width="medium"),
                 },
             )
 
