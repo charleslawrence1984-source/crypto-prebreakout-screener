@@ -21,7 +21,7 @@ import streamlit as st
 from cl_signal_ui import render_module_header, render_decision_guidance
 import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
-from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION
+from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
 from two_strategy import investment_decision
 from trade_rules import (
     FundamentalSnapshot,
@@ -3148,6 +3148,7 @@ def load_all_investment_opportunities() -> pd.DataFrame:
 
     output = pd.concat(frames, ignore_index=True)
     output["Quality score"] = pd.to_numeric(output.get("Quality score"), errors="coerce")
+    output["Moat score"] = pd.to_numeric(output.get("Moat score"), errors="coerce")
     output["Base margin of safety %"] = pd.to_numeric(
         output.get("Base margin of safety %"), errors="coerce"
     )
@@ -3171,6 +3172,20 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     fx_pass = output["Valuation FX status"].astype(str).str.upper().eq("PASS")
 
     stale_or_invalid = ~(current_model & fx_pass)
+
+    # Enforce the new quality-first rule immediately even on already prepared
+    # FX-safe rows, so stale action labels cannot remain BUY until the next scan.
+    low_quality = (
+        current_model
+        & fx_pass
+        & output["Quality score"].lt(MIN_INVESTMENT_QUALITY_SCORE)
+    )
+    output.loc[low_quality, "Action"] = "PASS"
+    output.loc[low_quality, "Valuation gate"] = "PASS"
+    output.loc[low_quality, "Decision reason"] = (
+        "investment quality score below the minimum 70 threshold"
+    )
+
     output.loc[stale_or_invalid, "Action"] = "REVALUE"
     output.loc[stale_or_invalid, "Valuation gate"] = "REVALUE"
     output.loc[stale_or_invalid, "Valuation FX status"] = "REFRESH REQUIRED"
@@ -3197,8 +3212,8 @@ def load_all_investment_opportunities() -> pd.DataFrame:
         "Valuation FX status", pd.Series("", index=output.index)
     ).astype(str).str.upper().eq("PASS").map({True: 0, False: 1})
     output = output.sort_values(
-        ["_action_order", "_fx_order", "MOS gap %", "Quality score"],
-        ascending=[True, True, False, False],
+        ["_action_order", "_fx_order", "Quality score", "Moat score", "MOS gap %"],
+        ascending=[True, True, False, False, False],
         na_position="last",
     )
 
@@ -3211,6 +3226,7 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     )
     output["Alternate listings"] = output["_company_key"].map(alternatives)
     output = output.drop_duplicates(subset=["_company_key"], keep="first")
+    output = output[output["Action"].isin(["BUY CANDIDATE", "WAIT", "REVALUE"])].copy()
     output = output.drop(columns=["_action_order", "_fx_order", "_company_key"])
     return output.reset_index(drop=True)
 
@@ -4012,8 +4028,8 @@ with tab_opportunities:
                 )
 
             st.caption(
-                "BUY CANDIDATE means the measurable quality gates, FX-safe DCF valuation and margin-of-safety gate pass. "
-                "WAIT is a current, validated valuation that is not yet cheap enough or needs review. "
+                "BUY CANDIDATE requires Investment Quality 70+, the measurable hard gates, FX-safe DCF valuation and margin-of-safety gate to pass. "
+                "Quality comes before valuation: cheapness cannot rescue a sub-70 business. WAIT is a current, validated valuation that is not yet cheap enough or needs review. "
                 "REVALUE means the quality research is retained but the old valuation is deliberately withheld until the FX-safe DCF refresh completes."
             )
 
