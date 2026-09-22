@@ -9,6 +9,7 @@ import yfinance as yf
 
 
 BASE_REQUIRED_RETURN = 0.09
+VALUATION_MODEL_VERSION = "investment-fx-v2-2026-09-22"
 
 CYCLICAL_TERMS = (
     "oil", "gas", "coal", "steel", "copper", "aluminum", "aluminium",
@@ -149,6 +150,86 @@ def _dcf_per_share(
     terminal = fcf * (1 + terminal_growth) / (discount_rate - terminal_growth)
     pv += terminal / ((1 + discount_rate) ** years)
     return pv
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _financial_to_quote_fx(financial_currency: str, quote_currency: str) -> dict:
+    """
+    Return quote-currency units per one financial-currency unit.
+
+    DCF cash flows are expressed in the company's financial-statement currency.
+    Share prices can be quoted in another currency on secondary listings.  The
+    valuation must be converted before comparing intrinsic value with price.
+    GBp/GBX are handled as pence (100 pence per GBP).
+    """
+    source = str(financial_currency or "").strip().upper()
+    raw_target = str(quote_currency or "").strip()
+    target_upper = raw_target.upper()
+    minor_scale = 100.0 if raw_target == "GBp" or target_upper == "GBX" else 1.0
+    target = "GBP" if raw_target == "GBp" or target_upper == "GBX" else target_upper
+
+    if not source or not target:
+        return {
+            "rate": np.nan,
+            "status": "MISSING CURRENCY",
+            "pair": "",
+            "source": source,
+            "target": target,
+            "quote_scale": minor_scale,
+        }
+
+    if source == target:
+        return {
+            "rate": minor_scale,
+            "status": "PASS",
+            "pair": f"{source}/{target}",
+            "source": source,
+            "target": target,
+            "quote_scale": minor_scale,
+        }
+
+    def last_close(pair: str) -> float:
+        try:
+            hist = yf.Ticker(pair).history(period="10d", interval="1d", auto_adjust=False)
+            if hist is None or hist.empty or "Close" not in hist.columns:
+                return np.nan
+            closes = pd.to_numeric(hist["Close"], errors="coerce").dropna()
+            return np.nan if closes.empty else safe(closes.iloc[-1])
+        except Exception:
+            return np.nan
+
+    direct_pair = f"{source}{target}=X"
+    direct = last_close(direct_pair)
+    if not np.isnan(direct) and direct > 0:
+        return {
+            "rate": direct * minor_scale,
+            "status": "PASS",
+            "pair": direct_pair,
+            "source": source,
+            "target": target,
+            "quote_scale": minor_scale,
+        }
+
+    inverse_pair = f"{target}{source}=X"
+    inverse = last_close(inverse_pair)
+    if not np.isnan(inverse) and inverse > 0:
+        return {
+            "rate": (1.0 / inverse) * minor_scale,
+            "status": "PASS",
+            "pair": inverse_pair + " (inverse)",
+            "source": source,
+            "target": target,
+            "quote_scale": minor_scale,
+        }
+
+    return {
+        "rate": np.nan,
+        "status": "FX UNAVAILABLE",
+        "pair": f"{source}->{target}",
+        "source": source,
+        "target": target,
+        "quote_scale": minor_scale,
+    }
 
 
 def _score_band(value, bands):
@@ -512,17 +593,15 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     ]
 
     # --- DCF / margin of safety ---
-    # Financial statements are reported in major currency units, while some
-    # exchanges (notably London) quote shares in minor units such as GBp.
+    # Financial statements and secondary-listing share prices can use different
+    # currencies. Convert DCF/share into the quote currency before comparing with
+    # market price. If FX cannot be verified, valuation must fail safe to WAIT.
     quote_currency = str(fund.get("quote_currency") or "")
     financial_currency = str(fund.get("financial_currency") or "")
-    quote_scale = 1.0
-    if quote_currency.upper() in ("GBP", "GBX") and financial_currency.upper() == "GBP":
-        # yfinance often reports London quotes as GBp/GBX while statements are GBP.
-        # Treat an uppercase GBP quote as already major units; GBX is definitely pence.
-        quote_scale = 100.0 if quote_currency.upper() == "GBX" else 1.0
-    if quote_currency == "GBp" and financial_currency.upper() == "GBP":
-        quote_scale = 100.0
+    valuation_fx = _financial_to_quote_fx(financial_currency, quote_currency)
+    valuation_fx_rate = safe(valuation_fx.get("rate"))
+    valuation_fx_status = str(valuation_fx.get("status") or "FX UNAVAILABLE")
+    valuation_fx_pair = str(valuation_fx.get("pair") or "")
 
     terminal_base = 0.025
     if base_growth <= 0.02:
@@ -535,10 +614,17 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     base_value = _dcf_per_share(normalized_fcf_per_share, base_growth, terminal_base, BASE_REQUIRED_RETURN, moat_confidence)
     bear_value = _dcf_per_share(normalized_fcf_per_share, bear_growth, max(0.01, terminal_base - 0.01), BASE_REQUIRED_RETURN, "LOW")
     bull_value = _dcf_per_share(normalized_fcf_per_share, bull_growth, min(0.032, terminal_base + 0.004), BASE_REQUIRED_RETURN, "HIGH")
-    if quote_scale != 1.0:
-        base_value = base_value * quote_scale if not np.isnan(base_value) else base_value
-        bear_value = bear_value * quote_scale if not np.isnan(bear_value) else bear_value
-        bull_value = bull_value * quote_scale if not np.isnan(bull_value) else bull_value
+
+    if valuation_fx_status == "PASS" and not np.isnan(valuation_fx_rate) and valuation_fx_rate > 0:
+        base_value = base_value * valuation_fx_rate if not np.isnan(base_value) else base_value
+        bear_value = bear_value * valuation_fx_rate if not np.isnan(bear_value) else bear_value
+        bull_value = bull_value * valuation_fx_rate if not np.isnan(bull_value) else bull_value
+    else:
+        # Never compare financial-currency intrinsic value with a price quoted in
+        # another/unverified currency.  Missing FX therefore cannot become BUY.
+        base_value = np.nan
+        bear_value = np.nan
+        bull_value = np.nan
 
     base_mos = 0.15 if moat_confidence == "HIGH" else 0.25 if moat_confidence == "MEDIUM" else 0.35
     valuation_uncertainty_pct = np.nan
@@ -552,7 +638,8 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
     mos_bear = np.nan if np.isnan(bear_value) or bear_value <= 0 or price <= 0 else 1 - price / bear_value
 
     valuation_gate_pass = (
-        not np.isnan(mos_base)
+        valuation_fx_status == "PASS"
+        and not np.isnan(mos_base)
         and mos_base >= required_mos
         and not np.isnan(mos_bear)
         and mos_bear >= 0
@@ -659,6 +746,10 @@ def long_term_analysis(symbol: str, price: float, fund_snapshot: dict | None = N
         "dcf_discount_rate_pct": round(BASE_REQUIRED_RETURN * 100, 1),
         "quote_currency": quote_currency,
         "financial_currency": financial_currency,
+        "valuation_model_version": VALUATION_MODEL_VERSION,
+        "valuation_fx_status": valuation_fx_status,
+        "valuation_fx_rate": None if np.isnan(valuation_fx_rate) else float(valuation_fx_rate),
+        "valuation_fx_pair": valuation_fx_pair,
         "quote_scale": quote_scale,
         "valuation_uncertainty_pct": None if np.isnan(valuation_uncertainty_pct) else round(valuation_uncertainty_pct, 1),
         "investment_valuation_score": round(valuation_score, 1),
