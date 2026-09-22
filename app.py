@@ -3616,17 +3616,23 @@ with tab_crypto_quick:
                 f"{qa_result['risk_reward']:.2f}:1" if qa_result.get("trade_target_eligible") else "Not qualified",
             )
 
-            a1, a2, a3, a4 = st.columns(4)
-            a1.metric("Bottoming signal", qa_result["bottom_status"], f"{qa_result['bottom_score']:.1f}/100")
+            a1, a2, a3, a4, a5 = st.columns(5)
+            a1.metric(
+                "Accumulation quality",
+                f"{qa_result.get('accumulation_quality_score', 0):.1f}/100",
+                qa_result.get("accumulation_model_status", "PASS"),
+            )
             a2.metric(
-                "Daily base accumulation zone",
+                "Base score",
+                f"{qa_result.get('accumulation_base_score', qa_result.get('bottom_score', 0)):.1f}/100",
+                qa_result.get("bottom_status", ""),
+            )
+            a3.metric(
+                "Daily base zone",
                 f"{fmt_price(qa_result['accumulation_low'])} – {fmt_price(qa_result['accumulation_high'])}",
             )
-            a3.metric("Inside daily base zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
-            a4.metric(
-                "Long-term accumulation verdict",
-                qa_result["accumulation_verdict"],
-            )
+            a4.metric("Inside base zone", "Yes" if qa_result["in_accumulation_zone"] else "No")
+            a5.metric("Tokenomics", qa_result.get("tokenomics_gate", "UNKNOWN"))
             cycle_position = qa_result.get("cycle_position_pct", np.nan)
             cycle_text = f"{cycle_position:.1f}%" if pd.notna(cycle_position) else "Unavailable"
             cycle_low = qa_result.get("cycle_accumulation_low", np.nan)
@@ -3774,7 +3780,8 @@ with tab_crypto_portfolio:
                             "Swing": trade_decision["action"],
                             "Swing score": result.get("score", np.nan),
                             "Accumulation": acc_action,
-                            "Accumulation score": result.get("bottom_score", np.nan),
+                            "Accumulation score": result.get("accumulation_quality_score", np.nan),
+                            "Base score": result.get("accumulation_base_score", result.get("bottom_score", np.nan)),
                             "RS vs BTC %": result.get("rs_vs_btc_pct", np.nan),
                         })
                     except Exception as exc:
@@ -3934,8 +3941,7 @@ with tab_crypto_advanced:
         ].copy()
         swing_setups = candle_qualified_setups.copy()
         accumulation_setups = df[
-            (df["Accumulation verdict"] == "ACCUMULATION READY")
-            & (df["Execution liquidity pass"] == True)
+            df["Accumulation verdict"] == "ACCUMULATE"
         ].copy().sort_values("Accumulation score", ascending=False)
 
         # Tables retain potential candidates even when no actionable setups exist.
@@ -4053,33 +4059,21 @@ with tab_crypto_advanced:
             "_bb_rank", "_channel_rank", "_freshness_rank"
         ])
         accumulation_candidates = df.copy()
-        accumulation_candidates["Status"] = np.where(
-            accumulation_candidates["Symbol"].isin(accumulation_setups["Symbol"]),
-            "ACCUMULATE", "WAIT",
-        )
-        accumulation_candidates["Reason"] = accumulation_candidates.apply(
-            lambda row: (
-                "Meets accumulation rules and Kraken/Crypto.com execution liquidity passes"
-                if row["Status"] == "ACCUMULATE"
-                else (
-                    (f"Base score {row['Accumulation score']:.1f} below 70. "
-                     if row["Accumulation score"] < 70 else "")
-                    + ("Price outside the confirmed daily base accumulation zone. "
-                       if not row["In accumulation zone"] else "")
-                    + (
-                        str(row.get("Execution reason") or "Execution liquidity not confirmed.")
-                        if (
-                            row["Accumulation verdict"] == "ACCUMULATION READY"
-                            and not _boolish(row.get("Execution liquidity pass", False))
-                        )
-                        else ""
-                    )
-                )
-            ), axis=1,
-        )
+        accumulation_candidates["Status"] = accumulation_candidates["Accumulation verdict"].map({
+            "ACCUMULATE": "ACCUMULATE",
+            "QUALITY WATCH": "WATCH",
+            "BASE DEVELOPING": "WATCH",
+            "PASS": "PASS",
+        }).fillna("PASS")
+        accumulation_candidates["Reason"] = accumulation_candidates.get(
+            "Accumulation reason", ""
+        ).fillna("").astype(str)
+        accumulation_candidates["_status_rank"] = accumulation_candidates["Status"].map({
+            "ACCUMULATE": 0, "WATCH": 1, "PASS": 2
+        }).fillna(3)
         accumulation_candidates = accumulation_candidates.sort_values(
-            ["Status", "Accumulation score"], ascending=[True, False]
-        )
+            ["_status_rank", "Accumulation score"], ascending=[True, False]
+        ).drop(columns=["_status_rank"])
 
         current_flags = set(swing_setups["Symbol"].tolist()) | set(
             accumulation_setups["Symbol"].tolist()
@@ -4345,16 +4339,18 @@ with tab_crypto_advanced:
         with accumulation_tab:
             st.subheader("Accumulation candidates")
             st.caption(
-                "All analysed coins are ranked by their separate accumulation score. "
-                "ACCUMULATE requires at least 70 and price inside the confirmed daily "
-                "base accumulation zone. Long-range weekly support and the 4Y range are "
-                "reference-only and do not trigger the decision."
+                "Accumulation is ranked by the full quality model, not just the bottom/base score. "
+                "ACCUMULATE requires a confirmed technical base, quality score 70+, tokenomics PASS "
+                "and Kraken/Crypto.com execution liquidity. Weekly support and the 4Y range remain reference-only."
             )
             if accumulation_setups.empty:
                 st.info("No coin currently meets the confirmed accumulation rules.")
             accumulation_cols = [
                 "Coin", "Status", "Category leader", "Leader categories",
-                "Project freshness", "History days", "Freshness score", "Coin trend", "Market trend", "Major CEX quality", "Major CEX count", "Major CEX listings", "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks", "Accumulation score", "Reason", "Price", "Accumulation signal",
+                "Project freshness", "History days", "Freshness score", "Coin trend", "Market trend",
+                "Major CEX quality", "Major CEX count", "Major CEX listings",
+                "Tokenomics gate", "Circulating %", "FDV / MCap", "Tokenomics risks",
+                "Accumulation score", "Accumulation base score", "Reason", "Price", "Accumulation signal",
                 "Accumulation low", "Accumulation high", "In accumulation zone",
                 "Cycle accumulation low", "Cycle accumulation high",
                 "In cycle accumulation zone", "4Y cycle position %",
@@ -4654,15 +4650,19 @@ with tab_crypto_advanced:
 
     **Evidence rule:** RSI bands, resistance-test count, Fibonacci confluence, exact R:R thresholds, Volume Profile behaviour and first-versus-later retest behaviour are hypotheses to measure and backtest. They should only become hard gates if historical evidence shows that they materially improve expectancy.
 
-    #### ACCUMULATE score — bottoming quality
+    #### ACCUMULATION quality model
 
-    - **30 pts — Base proximity:** price is near its 60-day low.
-    - **25 pts — Higher lows:** the recent daily low is improving versus the prior base.
-    - **20 pts — Trend flattening:** the daily 20 EMA is stabilising or turning up.
-    - **15 pts — RSI recovery:** daily momentum is recovering from a constructive level.
-    - **10 pts — Daily OBV:** volume flow is improving.
+    The old 100-point bottom score is now retained as a **Base Score**, not the final decision. The full Accumulation Quality Score is:
+    - **40 pts — Base / structure**
+    - **20 pts — Tokenomics**
+    - **15 pts — Long-term RS vs BTC (30/90/180d)**
+    - **10 pts — Major-exchange legitimacy**
+    - **10 pts — Category leadership**
+    - **5 pts — Project freshness**
 
-    ACCUMULATE also requires the score to reach 70, price to be inside the confirmed daily base zone, and the same Kraken/Crypto.com execution-safety check to pass. A technically-ready base that fails execution safety remains WATCH rather than disappearing from discovery.
+    **ACCUMULATE** requires: Base Score ≥70, price inside the confirmed daily base zone, Quality Score ≥70, tokenomics PASS, and Kraken/Crypto.com execution liquidity PASS. Otherwise a technically interesting coin is classified as **QUALITY WATCH** or **BASE DEVELOPING** rather than being treated as ready.
+
+    The 4Y range and weekly support remain reference-only. Specialist unlock/vesting data is explicitly marked UNVERIFIED and is not guessed or silently scored.
 
     #### Macro-liquidity regime — primary cycle framework
 
@@ -4696,12 +4696,15 @@ with tab_crypto_advanced_accumulation:
     with st.expander("Accumulation rule framework", expanded=False):
         st.markdown(
             """
-- **Separate from Swing:** a coin can be a Swing BUY and an Accumulation PASS, or vice versa.
-- **Base quality:** price location near a meaningful daily base, improving higher lows and trend flattening.
-- **Momentum recovery:** RSI recovery is supporting evidence rather than a stand-alone reason to accumulate.
-- **Volume flow:** daily OBV/participation should improve rather than confirm continued distribution.
-- **Zone discipline:** READY requires the model's confirmed accumulation zone; being far below an old ATH is not enough.
-- **Long-range context:** weekly support and long-range position are reference context, not automatic buy triggers.
+- **40 pts — Base / structure:** existing technical base model (proximity, higher lows, trend flattening, RSI recovery and daily OBV).
+- **20 pts — Tokenomics:** circulating supply and FDV/market-cap quality. Normal minimum is 25% circulating; the 10% meme exception is applied only where CoinGecko category evidence explicitly identifies a meme-related leader.
+- **15 pts — Long-term RS vs BTC:** weighted 30/90/180-day relative performance. Severe persistent underperformance lowers quality but is not a stand-alone veto.
+- **10 pts — Exchange legitimacy:** breadth across the major venues monitored by the platform.
+- **10 pts — Category leadership:** CoinGecko top-3 category leadership is rewarded, but non-leaders can still qualify.
+- **5 pts — Project freshness:** newer/recent projects receive a modest preference; this remains a lower-weight hypothesis rather than a hard rule.
+- **Hard READY gates:** base score ≥70, price inside the confirmed daily accumulation zone, full quality score ≥70, tokenomics PASS, and Kraken/Crypto.com execution liquidity PASS.
+- **Long-range reference only:** weekly support and 4Y range position are still shown but do not create an ACCUMULATE signal.
+- **Unlocks:** specialist unlock/vesting data is not currently scored. It remains explicitly marked UNVERIFIED rather than guessed.
             """
         )
 
@@ -4709,10 +4712,14 @@ with tab_crypto_advanced_accumulation:
         st.info("No prepared Accumulation READY/WATCH setups are available yet.")
     else:
         acc_cols = [
-            "Accumulation status", "Base", "Exchange", "Accumulation score",
+            "Accumulation status", "Opportunity stage", "Base", "Exchange",
+            "Accumulation score", "Accumulation base score", "Accumulation verdict",
+            "Tokenomics gate", "Circulating %", "FDV / MCap",
+            "Category leader", "Major venue listing count", "Major venue listings",
             "Price", "Accumulation low", "Accumulation high", "In accumulation zone",
             "Coin trend", "RS vs BTC %", "RSI", "4Y cycle position %",
-            "Project freshness", "deep_scored_at",
+            "Project freshness", "Execution venues", "Execution liquidity pass",
+            "Accumulation reason", "deep_scored_at",
         ]
         st.dataframe(
             acc_feed[[col for col in acc_cols if col in acc_feed.columns]].head(100),
@@ -4748,19 +4755,27 @@ with tab_crypto_advanced_accumulation:
                 action = acc_decision["action"]
                 reason = acc_decision["reason"]
                 render_crypto_decision_card("ACCUMULATION DECISION", action, reason)
-                am1, am2, am3, am4 = st.columns(4)
-                am1.metric("Accumulation score", f"{acc_result.get('bottom_score', 0):.1f}/100")
-                am2.metric("Current price", fmt_price(acc_result.get("price", np.nan)))
-                am3.metric(
-                    "Zone",
-                    f"{fmt_price(acc_result.get('accumulation_low', np.nan))} – {fmt_price(acc_result.get('accumulation_high', np.nan))}",
+                am1, am2, am3, am4, am5 = st.columns(5)
+                am1.metric(
+                    "Quality score",
+                    f"{acc_result.get('accumulation_quality_score', 0):.1f}/100",
                 )
-                cycle_pos = _safe_float(acc_result.get("cycle_position_pct"), np.nan)
-                am4.metric(
-                    "Long-range position",
-                    "—" if not math.isfinite(cycle_pos) else f"{cycle_pos:.1f}%",
+                am2.metric(
+                    "Base score",
+                    f"{acc_result.get('accumulation_base_score', acc_result.get('bottom_score', 0)):.1f}/100",
                 )
-                comps = acc_result.get("bottom_components", {})
+                am3.metric("Tokenomics", acc_result.get("tokenomics_gate", "UNKNOWN"))
+                am4.metric("Current price", fmt_price(acc_result.get("price", np.nan)))
+                am5.metric(
+                    "Inside base zone",
+                    "Yes" if acc_result.get("in_accumulation_zone") else "No",
+                )
+                st.caption(
+                    "Accumulation zone: "
+                    f"{fmt_price(acc_result.get('accumulation_low', np.nan))} – "
+                    f"{fmt_price(acc_result.get('accumulation_high', np.nan))}"
+                )
+                comps = acc_result.get("accumulation_quality_components", {})
                 if comps:
                     comp_df = pd.DataFrame({
                         "Factor": list(comps.keys()),
