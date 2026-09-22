@@ -20,6 +20,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 from streamlit_cookies_controller import CookieController
 from streamlit_local_storage import LocalStorage
 from cl_signal_ui import render_module_header, render_decision_guidance
@@ -5518,12 +5519,22 @@ with tab5:
             "The same ticker can exist once in each portfolio."
         )
 
-        portfolio_cookie = CookieController(key="cl_signal_portfolio_cookie_controller")
-        portfolio_local_storage = LocalStorage(key="cl_signal_portfolio_local_storage_init")
-        persisted_local_payload = portfolio_local_storage.getItem(
-            PORTFOLIO_LOCAL_STORAGE_KEY
-        )
-        persisted_cookie_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
+        # Browser persistence must only initialise inside a real Streamlit session.
+        # Scheduled GitHub Actions import this module for the technical engine and
+        # have no browser/session context.
+        browser_runtime_active = get_script_run_ctx() is not None
+        if browser_runtime_active:
+            portfolio_cookie = CookieController(key="cl_signal_portfolio_cookie_controller")
+            portfolio_local_storage = LocalStorage(key="cl_signal_portfolio_local_storage_init")
+            persisted_local_payload = portfolio_local_storage.getItem(
+                PORTFOLIO_LOCAL_STORAGE_KEY
+            )
+            persisted_cookie_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
+        else:
+            portfolio_cookie = None
+            portfolio_local_storage = None
+            persisted_local_payload = None
+            persisted_cookie_payload = None
         # Browser localStorage is the primary persistence layer. Keep the
         # existing cookie as a migration/fallback path for portfolios saved
         # before this change.
@@ -5654,16 +5665,18 @@ with tab5:
         if editor_changed:
             # Save to browser localStorage so positions survive closing the tab
             # or browser. Keep the cookie copy as a secondary fallback.
-            portfolio_local_storage.setItem(
-                PORTFOLIO_LOCAL_STORAGE_KEY,
-                current_portfolio_payload,
-                key="cl_signal_portfolio_local_storage_autosave",
-            )
-            portfolio_cookie.set(
-                PORTFOLIO_COOKIE_NAME,
-                current_portfolio_payload,
-                expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
-            )
+            if portfolio_local_storage is not None:
+                portfolio_local_storage.setItem(
+                    PORTFOLIO_LOCAL_STORAGE_KEY,
+                    current_portfolio_payload,
+                    key="cl_signal_portfolio_local_storage_autosave",
+                )
+            if portfolio_cookie is not None:
+                portfolio_cookie.set(
+                    PORTFOLIO_COOKIE_NAME,
+                    current_portfolio_payload,
+                    expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
+                )
             st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
             st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
             st.session_state["_portfolio_cookie_loaded"] = True
@@ -5693,16 +5706,18 @@ with tab5:
 
         if analyse_portfolio_clicked:
             current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
-            portfolio_local_storage.setItem(
-                PORTFOLIO_LOCAL_STORAGE_KEY,
-                current_portfolio_payload,
-                key="cl_signal_portfolio_local_storage_review",
-            )
-            portfolio_cookie.set(
-                PORTFOLIO_COOKIE_NAME,
-                current_portfolio_payload,
-                expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
-            )
+            if portfolio_local_storage is not None:
+                portfolio_local_storage.setItem(
+                    PORTFOLIO_LOCAL_STORAGE_KEY,
+                    current_portfolio_payload,
+                    key="cl_signal_portfolio_local_storage_review",
+                )
+            if portfolio_cookie is not None:
+                portfolio_cookie.set(
+                    PORTFOLIO_COOKIE_NAME,
+                    current_portfolio_payload,
+                    expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
+                )
             st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
             st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
             st.session_state["_portfolio_cookie_loaded"] = True
