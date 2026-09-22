@@ -37,6 +37,7 @@ st.set_page_config(page_title="CL Signal · Stocks", page_icon="📈", layout="w
 
 PRIORITY_DEFAULT = ""
 PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
+PRIORITY_INVESTMENT_DIR = Path(__file__).resolve().parent / "prepared_priority_investments"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
 TRADE_TECHNICAL_DIR = Path(__file__).resolve().parent / "prepared_trade_technicals"
 TRADE_RULEBOOK_BUILD = "2026.09.18.12"
@@ -3071,11 +3072,29 @@ def load_all_investment_opportunities() -> pd.DataFrame:
             frame = pd.read_csv(path, compression="gzip")
         except Exception:
             continue
+
+        # A small priority-revaluation lane can refresh the current shortlist
+        # independently of the much larger market-wide backfill.  Priority rows
+        # replace the same ticker from the broad prepared file.
+        priority_path = PRIORITY_INVESTMENT_DIR / f"{kind}.csv.gz"
+        if priority_path.exists():
+            try:
+                priority = pd.read_csv(priority_path, compression="gzip")
+            except Exception:
+                priority = pd.DataFrame()
+            if not priority.empty and "Ticker" in priority.columns:
+                priority_symbols = set(priority["Ticker"].dropna().astype(str))
+                if "Ticker" in frame.columns:
+                    frame = frame[
+                        ~frame["Ticker"].astype(str).isin(priority_symbols)
+                    ].copy()
+                frame = pd.concat([frame, priority], ignore_index=True)
+
         if frame.empty or "Action" not in frame.columns:
             continue
 
         frame = frame[
-            frame["Action"].isin(["BUY CANDIDATE", "WAIT"])
+            frame["Action"].isin(["BUY CANDIDATE", "WAIT", "REVALUE"])
             & frame.get("Hard gates", pd.Series("", index=frame.index)).eq("PASS")
         ].copy()
         if frame.empty:
