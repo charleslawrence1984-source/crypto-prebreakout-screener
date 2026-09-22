@@ -24,7 +24,7 @@ from cl_signal_ui import render_module_header, render_decision_guidance
 import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
-from two_strategy import investment_decision
+from two_strategy import investment_decision, trade_decision
 from trade_rules import (
     FundamentalSnapshot,
     build_fundamental_snapshot,
@@ -70,6 +70,8 @@ HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
 
 PORTFOLIO_COOKIE_NAME = "cl_signal_stock_portfolio_v1"
 PORTFOLIO_COOKIE_DAYS = 3650
+INVESTMENT_STOCK_TARGET_PCT = 5.0
+INVESTMENT_SECTOR_TARGET_PCT = 20.0
 PORTFOLIO_SYMBOL_ALIASES = {
     # User-friendly broker tickers -> Yahoo Finance symbols.
     "MGNS": "MGNS.L",
@@ -94,27 +96,41 @@ def safe(v, default=np.nan):
 
 
 def normalise_portfolio_holdings(frame: pd.DataFrame | None) -> pd.DataFrame:
-    """Return only the three user-owned portfolio fields in a stable shape."""
-    columns = ["Ticker", "Shares", "Average cost"]
+    """Return user-owned position fields in a stable, backward-compatible shape."""
+    columns = ["Ticker", "Position type", "Shares", "Average cost"]
     if frame is None:
         return pd.DataFrame(columns=columns)
 
     out = frame.copy()
-    for column in columns:
-        if column not in out.columns:
-            out[column] = "" if column == "Ticker" else 0.0
+    if "Ticker" not in out.columns:
+        out["Ticker"] = ""
+    if "Position type" not in out.columns:
+        out["Position type"] = "INVESTMENT"
+    if "Shares" not in out.columns:
+        out["Shares"] = 0.0
+    if "Average cost" not in out.columns:
+        out["Average cost"] = 0.0
+
     out = out[columns].copy()
     out["Ticker"] = out["Ticker"].fillna("").astype(str).str.strip().str.upper()
+    out["Position type"] = (
+        out["Position type"]
+        .fillna("INVESTMENT")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+        .map(lambda value: "TRADE" if value == "TRADE" else "INVESTMENT")
+    )
     out["Shares"] = pd.to_numeric(out["Shares"], errors="coerce").fillna(0.0)
     out["Average cost"] = pd.to_numeric(out["Average cost"], errors="coerce").fillna(0.0)
 
+    # Position type defaults to INVESTMENT, so do not let that alone keep a blank row.
     active = (
         out["Ticker"].ne("")
         | out["Shares"].ne(0)
         | out["Average cost"].ne(0)
     )
     return out.loc[active].reset_index(drop=True)
-
 
 def portfolio_holdings_payload(frame: pd.DataFrame | None) -> str:
     clean = normalise_portfolio_holdings(frame)
@@ -169,28 +185,92 @@ def action_cell_style(value) -> str:
 
 
 def portfolio_action_cell_style(value) -> str:
-    """Colour owned-position actions by urgency."""
+    """Colour long-term investment actions without mixing in allocation warnings."""
     action = str(value).strip().upper()
-    if action in {"ADD CANDIDATE", "HOLD"}:
+    if action in {"BUY MORE", "ADD CANDIDATE", "HOLD"}:
         return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
     if action == "REASSESS":
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
-    if action in {"REVIEW FOR SALE", "REDUCE / REBALANCE"}:
+    if action == "REVIEW FOR SALE":
+        return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+    return ""
+
+
+def trade_portfolio_action_cell_style(value) -> str:
+    """Colour owned trade actions by execution urgency."""
+    action = str(value).strip().upper()
+    if action in {"HOLD", "EXIT / TARGET REACHED"}:
+        return "background-color: #d8f3dc; color: #16351c; font-weight: 700"
+    if action == "REASSESS":
+        return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
+    if action in {"EXIT / REASSESS", "EXIT"}:
         return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
     return ""
 
 
 def allocation_cell_style(value) -> str:
-    """Highlight position concentration using portfolio weight."""
+    """Colour an investment holding against the user's 5% single-stock ceiling."""
     weight = safe(value)
     if np.isnan(weight):
         return ""
-    if weight > 25:
+    if weight > INVESTMENT_STOCK_TARGET_PCT:
         return "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
-    if weight > 15:
+    if weight >= INVESTMENT_STOCK_TARGET_PCT * 0.8:
         return "background-color: #fff3bf; color: #5f4500; font-weight: 700"
     return "background-color: #d8f3dc; color: #16351c; font-weight: 600"
 
+
+def allocation_status_colour(weight_pct: float, target_pct: float) -> str:
+    """Green below 80% of the ceiling, amber near it, red above it."""
+    weight = safe(weight_pct)
+    if np.isnan(weight):
+        return "#9ca3af"
+    if weight > target_pct:
+        return "#ef4444"
+    if weight >= target_pct * 0.8:
+        return "#f59e0b"
+    return "#22c55e"
+
+
+def portfolio_donut(frame: pd.DataFrame, label_column: str, title: str, target_pct: float) -> go.Figure:
+    """Build a compact donut chart whose colours communicate concentration only."""
+    chart_data = frame[[label_column, "Market value £"]].copy()
+    chart_data["Market value £"] = pd.to_numeric(chart_data["Market value £"], errors="coerce")
+    chart_data = chart_data.dropna(subset=["Market value £"])
+    chart_data = chart_data[chart_data["Market value £"] > 0]
+    total = chart_data["Market value £"].sum()
+    if total <= 0:
+        return go.Figure()
+
+    chart_data["Weight %"] = chart_data["Market value £"] / total * 100
+    colours = [
+        allocation_status_colour(weight, target_pct)
+        for weight in chart_data["Weight %"]
+    ]
+
+    fig = go.Figure(go.Pie(
+        labels=chart_data[label_column],
+        values=chart_data["Market value £"],
+        hole=0.58,
+        sort=False,
+        textinfo="label+percent",
+        marker=dict(colors=colours, line=dict(color="white", width=2)),
+        hovertemplate="%{label}<br>Value: £%{value:,.2f}<br>Weight: %{percent}<extra></extra>",
+    ))
+    fig.add_annotation(
+        text=f"Target<br>≤{target_pct:.0f}%",
+        x=0.5,
+        y=0.5,
+        showarrow=False,
+        font=dict(size=16),
+    )
+    fig.update_layout(
+        title=dict(text=title, x=0.5, xanchor="center"),
+        height=360,
+        margin=dict(l=10, r=10, t=55, b=10),
+        showlegend=False,
+    )
+    return fig
 
 def pct(v):
     x = safe(v)
@@ -2559,12 +2639,11 @@ def currency_to_gbp_rate(currency: str) -> float:
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -> dict:
-    """Run the long-term framework for one existing portfolio position.
+    """Run the long-term framework for one existing investment position.
 
     Average cost is entered exactly as the broker displays it. For London
     shares Yahoo commonly quotes prices in GBp (pence), while brokers such as
-    Trading 212 display the same price in GBP. Convert only for the internal
-    comparison/cost-basis maths, then keep the user-facing value in broker units.
+    Trading 212 display the same price in GBP. Convert only for internal maths.
     """
     input_symbol = str(symbol).strip().upper()
     symbol = resolve_portfolio_symbol(input_symbol)
@@ -2594,7 +2673,7 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
     elif decision["action"] == "REASSESS":
         action = "REASSESS"
     elif lt.get("valuation_gate_pass"):
-        action = "ADD CANDIDATE"
+        action = "BUY MORE"
     else:
         action = "HOLD"
 
@@ -2612,20 +2691,23 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
         dcf_bear = dcf_bear / 100 if dcf_bear is not None and not np.isnan(safe(dcf_bear)) else dcf_bear
 
     reasons = list(decision.get("reasons") or [])
-    if action == "ADD CANDIDATE":
-        reasons.insert(0, "hard gates and the strict DCF add-price gate currently pass")
+    if action == "BUY MORE":
+        reasons.insert(0, "the investment still passes the quality and valuation gates for adding")
     elif action == "HOLD":
-        reasons.insert(0, "measurable thesis gates remain intact, but the current price does not qualify for adding")
+        reasons.insert(0, "the measurable thesis remains intact, but the current price does not qualify for adding")
     elif action == "REASSESS" and not reasons:
         reasons.append("one or more measurable thesis checks needs review")
 
     return {
         "Ticker": input_symbol,
+        "Resolved ticker": symbol,
+        "Position type": "INVESTMENT",
         "Company": fund.get("name") or input_symbol,
         "Action": action,
         "Shares": shares,
-        "Average cost": average_cost if average_cost > 0 else np.nan,
+        "Average cost": average_cost,
         "Price": display_price,
+        "Current price": display_price,
         "Return %": return_pct,
         "Market value £": market_value_gbp,
         "Cost basis £": cost_value_gbp,
@@ -2643,6 +2725,93 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
         "Country": fund.get("exchange_country") or "Unknown",
         "Review reason": "; ".join(dict.fromkeys(reason for reason in reasons if reason)),
         "Manual review required": lt.get("qualitative_review_items", ""),
+    }
+
+
+@st.cache_data(ttl=900, show_spinner=False)
+def analyse_trade_portfolio_holding(symbol: str, shares: float, average_cost: float) -> dict:
+    """Run the owned-position trade framework without mixing it into investment allocation."""
+    input_symbol = str(symbol).strip().upper()
+    symbol = resolve_portfolio_symbol(input_symbol)
+    tech = technical_analysis(symbol)
+    if not tech:
+        raise ValueError("trade technical data unavailable")
+
+    price = safe(tech.get("price"))
+    if np.isnan(price) or price <= 0:
+        raise ValueError("current price unavailable")
+
+    fund = valuation_fundamental_analysis(symbol, price)
+    quote_currency = str(fund.get("quote_currency") or "")
+    is_pence_quote = quote_currency in {"GBp", "GBX"}
+    quote_average_cost = average_cost * 100 if average_cost > 0 and is_pence_quote else average_cost
+    display_currency = "GBP" if is_pence_quote else (quote_currency or "Unknown")
+
+    trade_context = {
+        **tech,
+        **fund,
+        "one_year_hold_score": fund.get("hold_score", 0),
+        "valuation_score": fund.get("valuation_score", 0),
+        "price": price,
+    }
+    decision = trade_decision(
+        trade_context,
+        owned=True,
+        average_buy_price=quote_average_cost if quote_average_cost > 0 else None,
+    )
+
+    def display_quote(value):
+        x = safe(value)
+        if np.isnan(x):
+            return np.nan
+        return x / 100 if is_pence_quote else x
+
+    gbp_rate = currency_to_gbp_rate(quote_currency)
+    market_value_gbp = price * shares * gbp_rate if not np.isnan(gbp_rate) else np.nan
+    cost_value_gbp = quote_average_cost * shares * gbp_rate if quote_average_cost > 0 and not np.isnan(gbp_rate) else np.nan
+    pnl_gbp = market_value_gbp - cost_value_gbp if not np.isnan(cost_value_gbp) else np.nan
+    return_pct = (price / quote_average_cost - 1) * 100 if quote_average_cost > 0 else np.nan
+
+    reasons = list(decision.get("reasons") or [])
+    if decision.get("action") == "HOLD" and not reasons:
+        reasons.append("price remains above invalidation and the owned-trade hold checks remain intact")
+    if decision.get("action") == "EXIT / TARGET REACHED":
+        reasons.insert(0, "the modelled profit target has been reached")
+    if decision.get("action") == "EXIT / REASSESS":
+        reasons.insert(0, "price is at or below the trade invalidation level")
+
+    preferred_low = display_quote(tech.get("preferred_low"))
+    preferred_high = display_quote(tech.get("preferred_high"))
+    entry_zone = (
+        f"{preferred_low:.4f}–{preferred_high:.4f}"
+        if not np.isnan(preferred_low) and not np.isnan(preferred_high)
+        else "—"
+    )
+
+    return {
+        "Ticker": input_symbol,
+        "Resolved ticker": symbol,
+        "Position type": "TRADE",
+        "Company": fund.get("name") or input_symbol,
+        "Action": decision.get("action") or "REASSESS",
+        "Shares": shares,
+        "Average cost": average_cost,
+        "Price": display_quote(price),
+        "Current price": display_quote(price),
+        "Return %": return_pct,
+        "Market value £": market_value_gbp,
+        "Cost basis £": cost_value_gbp,
+        "Unrealised P/L £": pnl_gbp,
+        "Quote currency": display_currency,
+        "Sector": fund.get("sector") or "Unknown",
+        "Industry": fund.get("industry") or "Unknown",
+        "Country": fund.get("exchange_country") or "Unknown",
+        "Technical score": tech.get("trade_score", np.nan),
+        "R:R": tech.get("rr", np.nan),
+        "Entry zone": entry_zone,
+        "Target": display_quote(tech.get("swing_target")),
+        "Invalidation": display_quote(tech.get("invalidation")),
+        "Trade reason": "; ".join(dict.fromkeys(reason for reason in reasons if reason)),
     }
 
 def chart(result: Dict) -> go.Figure:
@@ -4797,314 +4966,513 @@ with tab4:
 
 
 with tab5:
-    st.subheader("Portfolio Review")
+    st.subheader("Portfolio")
     st.caption(
-        "Enter one row per holding. Enter Average cost exactly as your broker shows it. "
-        "For example, if Trading 212 shows MGNS at £42.18, enter 42.18 — the app handles Yahoo's pence quote internally."
+        "Keep long-term investments and active trades separate. "
+        "Investment diversification is calculated from INVESTMENT positions only."
     )
 
-    portfolio_cookie = CookieController(key="cl_signal_portfolio_cookie_controller")
-    persisted_portfolio_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
+    # Create these containers now so the investment dashboard stays visually at
+    # the very top even though the editor and review logic execute before it is filled.
+    investment_top = st.container()
+    position_manager = st.container()
+    investment_holdings_area = st.container()
+    trading_portfolio_area = st.container()
 
-    if "portfolio_editor_version" not in st.session_state:
-        st.session_state["portfolio_editor_version"] = 0
-    if "portfolio_holdings_store" not in st.session_state:
-        st.session_state["portfolio_holdings_store"] = pd.DataFrame([
-            {"Ticker": "", "Shares": 0.0, "Average cost": 0.0},
-        ])
-        st.session_state["_portfolio_cookie_loaded"] = False
-        st.session_state["_portfolio_user_modified"] = False
-
-    # Cookie components populate after the browser connects. If a saved
-    # portfolio arrives on a later rerun, load it once and rebuild the editor.
-    if (
-        persisted_portfolio_payload is not None
-        and not st.session_state.get("_portfolio_cookie_loaded", False)
-        and not st.session_state.get("_portfolio_user_modified", False)
-    ):
-        saved_portfolio = portfolio_holdings_from_payload(persisted_portfolio_payload)
-        if saved_portfolio is not None:
-            st.session_state["portfolio_holdings_store"] = saved_portfolio
-            st.session_state["portfolio_editor_version"] += 1
-            st.session_state["_portfolio_saved_payload"] = persisted_portfolio_payload
-        st.session_state["_portfolio_cookie_loaded"] = True
-
-    uploaded_portfolio = st.file_uploader(
-        "Import holdings CSV (optional)",
-        type=["csv"],
-        key="portfolio_csv_upload",
-        help="Required columns: Ticker, Shares and Average cost.",
-    )
-
-    portfolio_seed = normalise_portfolio_holdings(
-        st.session_state.get("portfolio_holdings_store")
-    )
-    upload_identity = "saved"
-    if uploaded_portfolio is not None:
-        try:
-            imported = pd.read_csv(uploaded_portfolio)
-            aliases = {
-                "ticker": "Ticker",
-                "symbol": "Ticker",
-                "shares": "Shares",
-                "quantity": "Shares",
-                "average cost": "Average cost",
-                "average_cost": "Average cost",
-                "avg cost": "Average cost",
-                "avg_cost": "Average cost",
-            }
-            imported = imported.rename(
-                columns={column: aliases.get(str(column).strip().lower(), column) for column in imported.columns}
-            )
-            missing_columns = {"Ticker", "Shares", "Average cost"} - set(imported.columns)
-            if missing_columns:
-                raise ValueError("missing columns: " + ", ".join(sorted(missing_columns)))
-            portfolio_seed = normalise_portfolio_holdings(
-                imported[["Ticker", "Shares", "Average cost"]]
-            )
-            upload_identity = f"{uploaded_portfolio.name}_{getattr(uploaded_portfolio, 'size', 0)}"
-        except Exception as exc:
-            st.error(f"The portfolio CSV could not be loaded: {exc}")
-
-    def clear_portfolio_results():
-        st.session_state.pop("portfolio_results", None)
-        st.session_state.pop("portfolio_errors", None)
-
-    def portfolio_editor_changed():
-        clear_portfolio_results()
-        st.session_state["_portfolio_dirty"] = True
-        st.session_state["_portfolio_user_modified"] = True
-
-    editor_key = (
-        f"portfolio_editor_{upload_identity}_"
-        f"{st.session_state.get('portfolio_editor_version', 0)}"
-    )
-    edited_holdings = st.data_editor(
-        portfolio_seed,
-        num_rows="dynamic",
-        hide_index=True,
-        use_container_width=True,
-        key=editor_key,
-        on_change=portfolio_editor_changed,
-        column_config={
-            "Ticker": st.column_config.TextColumn(
-                "Ticker",
-                help="Broker ticker is fine. The app resolves exchange suffixes such as .L or .SW when market data needs them.",
-            ),
-            "Shares": st.column_config.NumberColumn("Shares", min_value=0.0, format="%.4f"),
-            "Average cost": st.column_config.NumberColumn(
-                "Average cost (broker)",
-                min_value=0.0,
-                format="%.4f",
-                help="Enter the average price exactly as your broker displays it, e.g. 42.18 for a £42.18 UK share or 487.50 for CHF 487.50.",
-            ),
-        },
-    )
-
-    current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
-    if st.session_state.pop("_portfolio_dirty", False):
-        portfolio_cookie.set(
-            PORTFOLIO_COOKIE_NAME,
-            current_portfolio_payload,
-            expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
-        )
-        st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
-        st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
-        st.session_state["_portfolio_cookie_loaded"] = True
-
-    d1, d2 = st.columns(2)
-    with d1:
-        analyse_portfolio_clicked = st.button(
-            "Review Portfolio",
-            type="primary",
-            use_container_width=True,
-        )
-    with d2:
-        st.download_button(
-            "Download Holdings CSV",
-            data=edited_holdings.to_csv(index=False).encode("utf-8"),
-            file_name="stock_portfolio_holdings.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-
-    st.info(
-        "Portfolio actions: ADD CANDIDATE means the same strict hard-gate and DCF entry tests pass again; "
-        "HOLD means the measurable thesis remains intact but the price is not cheap enough to add; "
-        "REASSESS flags deterioration or specialist review; REVIEW FOR SALE flags extreme overvaluation for review, not an automatic order."
-    )
-
-    if analyse_portfolio_clicked:
-        current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
-        portfolio_cookie.set(
-            PORTFOLIO_COOKIE_NAME,
-            current_portfolio_payload,
-            expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
-        )
-        st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
-        st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
-        st.session_state["_portfolio_cookie_loaded"] = True
-        st.session_state["_portfolio_user_modified"] = True
-
-        clean_holdings = edited_holdings.copy()
-        clean_holdings["Ticker"] = clean_holdings["Ticker"].fillna("").astype(str).str.strip().str.upper()
-        clean_holdings = clean_holdings[clean_holdings["Ticker"] != ""]
-        duplicate_tickers = clean_holdings.loc[
-            clean_holdings["Ticker"].duplicated(keep=False), "Ticker"
-        ].unique().tolist()
-
-        results = []
-        errors = []
-        if clean_holdings.empty:
-            errors.append("Add at least one holding before running the review.")
-        if duplicate_tickers:
-            errors.append("Use one row per ticker. Duplicate rows: " + ", ".join(duplicate_tickers))
-
-        if not errors:
-            progress = st.progress(0)
-            total_rows = len(clean_holdings)
-            with st.spinner("Reviewing current prices, financial evidence and valuation…"):
-                for position, (_, holding) in enumerate(clean_holdings.iterrows(), start=1):
-                    ticker = holding["Ticker"]
-                    shares = safe(holding.get("Shares"), 0.0)
-                    average_cost = safe(holding.get("Average cost"), 0.0)
-                    if shares <= 0:
-                        errors.append(f"{ticker}: shares must be greater than zero")
-                    else:
-                        try:
-                            results.append(analyse_portfolio_holding(ticker, shares, average_cost))
-                        except Exception as exc:
-                            errors.append(f"{ticker}: {exc.__class__.__name__}: {str(exc)[:180]}")
-                    progress.progress(position / total_rows)
-            progress.empty()
-
-        st.session_state["portfolio_results"] = pd.DataFrame(results)
-        st.session_state["portfolio_errors"] = errors
-
-    portfolio_errors = st.session_state.get("portfolio_errors", [])
-    for error in portfolio_errors:
-        st.warning(error)
-
-    portfolio_results = st.session_state.get("portfolio_results")
-    if isinstance(portfolio_results, pd.DataFrame) and not portfolio_results.empty:
-        portfolio_results = portfolio_results.copy()
-        all_values_converted = portfolio_results["Market value £"].notna().all()
-        total_value = portfolio_results["Market value £"].sum() if all_values_converted else np.nan
-        total_cost_known = portfolio_results["Cost basis £"].notna().all()
-        total_cost = portfolio_results["Cost basis £"].sum() if total_cost_known else np.nan
-        total_pnl = total_value - total_cost if not np.isnan(total_value) and not np.isnan(total_cost) else np.nan
-        total_return = total_pnl / total_cost * 100 if not np.isnan(total_pnl) and total_cost > 0 else np.nan
-
-        if not np.isnan(total_value) and total_value > 0:
-            portfolio_results["Weight %"] = portfolio_results["Market value £"] / total_value * 100
-
-            for row_index, row in portfolio_results.iterrows():
-                weight = safe(row.get("Weight %"))
-                current_action = str(row.get("Action") or "")
-                reason = str(row.get("Review reason") or "").strip()
-                concentration_reason = ""
-                if weight > 25:
-                    concentration_reason = (
-                        f"position is {weight:.1f}% of the portfolio; review reducing or rebalancing "
-                        "to control single-stock concentration"
-                    )
-                    if current_action in {"ADD CANDIDATE", "HOLD"}:
-                        portfolio_results.at[row_index, "Action"] = "REDUCE / REBALANCE"
-                elif weight > 15 and current_action == "ADD CANDIDATE":
-                    concentration_reason = (
-                        f"position is already {weight:.1f}% of the portfolio; do not add before "
-                        "reviewing concentration"
-                    )
-                    portfolio_results.at[row_index, "Action"] = "HOLD"
-                if concentration_reason:
-                    portfolio_results.at[row_index, "Review reason"] = "; ".join(
-                        item for item in (concentration_reason, reason) if item
-                    )
-        else:
-            portfolio_results["Weight %"] = np.nan
-
-        add_count = int((portfolio_results["Action"] == "ADD CANDIDATE").sum())
-        review_count = int(
-            portfolio_results["Action"].isin(
-                ["REASSESS", "REVIEW FOR SALE", "REDUCE / REBALANCE"]
-            ).sum()
-        )
-        m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Portfolio value", "—" if np.isnan(total_value) else f"£{total_value:,.2f}")
-        m2.metric(
-            "Unrealised return",
-            "—" if np.isnan(total_return) else f"{total_return:.1f}%",
-            None if np.isnan(total_pnl) else f"£{total_pnl:,.2f}",
-        )
-        m3.metric("Add candidates", add_count)
-        m4.metric("Actions to review", review_count)
-
-        if not all_values_converted:
-            st.warning(
-                "At least one quote currency could not be converted to GBP. Portfolio totals, weights and concentration checks are hidden for safety."
-            )
-
-        display_columns = [
-            "Ticker", "Company", "Action", "Weight %", "Shares", "Average cost", "Price",
-            "Return %", "Market value £", "Unrealised P/L £", "Quote currency", "Quality score",
-            "Hard gates", "Base intrinsic value", "Bear intrinsic value", "Base margin of safety %",
-            "Required margin of safety %", "Bear margin of safety %", "Sector", "Industry", "Country",
-            "Review reason", "Manual review required",
-        ]
-        styled_portfolio = portfolio_results[display_columns].style.map(
-            portfolio_action_cell_style,
-            subset=["Action"],
-        ).map(
-            allocation_cell_style,
-            subset=["Weight %"],
-        )
+    with position_manager:
+        st.markdown("### Manage positions")
         st.caption(
-            "Action status: 🟢 ADD CANDIDATE / HOLD · 🟠 REASSESS · "
-            "🔴 REVIEW FOR SALE / REDUCE / REBALANCE. "
-            "Position weight: 🟢 ≤15% · 🟠 >15% · 🔴 >25%."
+            "Choose INVESTMENT for your long-term portfolio or TRADE for a time-limited technical position. "
+            "The same ticker can exist once in each portfolio."
         )
-        st.dataframe(
-            styled_portfolio,
+
+        portfolio_cookie = CookieController(key="cl_signal_portfolio_cookie_controller")
+        persisted_portfolio_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
+
+        if "portfolio_editor_version" not in st.session_state:
+            st.session_state["portfolio_editor_version"] = 0
+        if "portfolio_holdings_store" not in st.session_state:
+            st.session_state["portfolio_holdings_store"] = pd.DataFrame([
+                {"Ticker": "", "Position type": "INVESTMENT", "Shares": 0.0, "Average cost": 0.0},
+            ])
+            st.session_state["_portfolio_cookie_loaded"] = False
+            st.session_state["_portfolio_user_modified"] = False
+
+        if (
+            persisted_portfolio_payload is not None
+            and not st.session_state.get("_portfolio_cookie_loaded", False)
+            and not st.session_state.get("_portfolio_user_modified", False)
+        ):
+            saved_portfolio = portfolio_holdings_from_payload(persisted_portfolio_payload)
+            if saved_portfolio is not None:
+                st.session_state["portfolio_holdings_store"] = saved_portfolio
+                st.session_state["portfolio_editor_version"] += 1
+                st.session_state["_portfolio_saved_payload"] = persisted_portfolio_payload
+            st.session_state["_portfolio_cookie_loaded"] = True
+
+        uploaded_portfolio = st.file_uploader(
+            "Import positions CSV (optional)",
+            type=["csv"],
+            key="portfolio_csv_upload",
+            help="Required columns: Ticker, Shares and Average cost. Position type is optional and defaults to INVESTMENT.",
+        )
+
+        portfolio_seed = normalise_portfolio_holdings(
+            st.session_state.get("portfolio_holdings_store")
+        )
+        if portfolio_seed.empty:
+            portfolio_seed = pd.DataFrame([
+                {"Ticker": "", "Position type": "INVESTMENT", "Shares": 0.0, "Average cost": 0.0},
+            ])
+
+        upload_identity = "saved"
+        if uploaded_portfolio is not None:
+            try:
+                imported = pd.read_csv(uploaded_portfolio)
+                aliases = {
+                    "ticker": "Ticker",
+                    "symbol": "Ticker",
+                    "position type": "Position type",
+                    "position_type": "Position type",
+                    "type": "Position type",
+                    "shares": "Shares",
+                    "quantity": "Shares",
+                    "average cost": "Average cost",
+                    "average_cost": "Average cost",
+                    "avg cost": "Average cost",
+                    "avg_cost": "Average cost",
+                }
+                imported = imported.rename(
+                    columns={column: aliases.get(str(column).strip().lower(), column) for column in imported.columns}
+                )
+                missing_columns = {"Ticker", "Shares", "Average cost"} - set(imported.columns)
+                if missing_columns:
+                    raise ValueError("missing columns: " + ", ".join(sorted(missing_columns)))
+                portfolio_seed = normalise_portfolio_holdings(imported)
+                if portfolio_seed.empty:
+                    portfolio_seed = pd.DataFrame([
+                        {"Ticker": "", "Position type": "INVESTMENT", "Shares": 0.0, "Average cost": 0.0},
+                    ])
+                upload_identity = f"{uploaded_portfolio.name}_{getattr(uploaded_portfolio, 'size', 0)}"
+            except Exception as exc:
+                st.error(f"The portfolio CSV could not be loaded: {exc}")
+
+        def clear_portfolio_results():
+            st.session_state.pop("portfolio_results", None)
+            st.session_state.pop("portfolio_errors", None)
+
+        def portfolio_editor_changed():
+            clear_portfolio_results()
+            st.session_state["_portfolio_dirty"] = True
+            st.session_state["_portfolio_user_modified"] = True
+
+        editor_key = (
+            f"portfolio_editor_{upload_identity}_"
+            f"{st.session_state.get('portfolio_editor_version', 0)}"
+        )
+        edited_holdings = st.data_editor(
+            portfolio_seed,
+            num_rows="dynamic",
             hide_index=True,
             use_container_width=True,
+            key=editor_key,
+            on_change=portfolio_editor_changed,
             column_config={
-                "Weight %": st.column_config.NumberColumn(format="%.1f%%"),
-                "Shares": st.column_config.NumberColumn(format="%.4f"),
-                "Average cost": st.column_config.NumberColumn(format="%.4f"),
-                "Price": st.column_config.NumberColumn(format="%.4f"),
-                "Return %": st.column_config.NumberColumn(format="%.1f%%"),
-                "Market value £": st.column_config.NumberColumn(format="£%.2f"),
-                "Unrealised P/L £": st.column_config.NumberColumn(format="£%.2f"),
-                "Quality score": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f"),
-                "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
-                "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
-                "Bear margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                "Ticker": st.column_config.TextColumn(
+                    "Ticker",
+                    width="small",
+                    help="Broker ticker is fine. The app resolves exchange suffixes such as .L or .SW when market data needs them.",
+                ),
+                "Position type": st.column_config.SelectboxColumn(
+                    "Position type",
+                    options=["INVESTMENT", "TRADE"],
+                    required=True,
+                    width="medium",
+                    help="INVESTMENT counts toward the long-term diversification charts. TRADE is tracked separately.",
+                ),
+                "Shares": st.column_config.NumberColumn("Shares", min_value=0.0, format="%.4f", width="small"),
+                "Average cost": st.column_config.NumberColumn(
+                    "Average cost (broker)",
+                    min_value=0.0,
+                    format="%.4f",
+                    width="medium",
+                    help="Enter the average price exactly as your broker displays it, e.g. 42.18 for a £42.18 UK share or 487.50 for CHF 487.50.",
+                ),
             },
         )
 
-        if all_values_converted and total_value > 0:
-            sector_allocation = (
-                portfolio_results.groupby("Sector", dropna=False)["Market value £"]
-                .sum()
-                .sort_values(ascending=False)
-                .rename("Market value £")
-                .reset_index()
+        current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
+        if st.session_state.pop("_portfolio_dirty", False):
+            portfolio_cookie.set(
+                PORTFOLIO_COOKIE_NAME,
+                current_portfolio_payload,
+                expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
             )
-            sector_allocation["Weight %"] = sector_allocation["Market value £"] / total_value * 100
-            st.subheader("Sector allocation")
+            st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
+            st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
+            st.session_state["_portfolio_cookie_loaded"] = True
+
+        d1, d2 = st.columns(2)
+        with d1:
+            analyse_portfolio_clicked = st.button(
+                "Review Portfolios",
+                type="primary",
+                use_container_width=True,
+            )
+        with d2:
+            st.download_button(
+                "Download Positions CSV",
+                data=normalise_portfolio_holdings(edited_holdings).to_csv(index=False).encode("utf-8"),
+                file_name="stock_portfolio_positions.csv",
+                mime="text/csv",
+                use_container_width=True,
+            )
+
+        st.info(
+            "Investment actions and diversification are separate. BUY MORE / HOLD / REASSESS / REVIEW FOR SALE "
+            "come from the investment framework. A red allocation slice only means the position or sector is above "
+            "your diversification target; it does not turn the company into a sell."
+        )
+
+        if analyse_portfolio_clicked:
+            current_portfolio_payload = portfolio_holdings_payload(edited_holdings)
+            portfolio_cookie.set(
+                PORTFOLIO_COOKIE_NAME,
+                current_portfolio_payload,
+                expires=datetime.datetime.now() + datetime.timedelta(days=PORTFOLIO_COOKIE_DAYS),
+            )
+            st.session_state["portfolio_holdings_store"] = normalise_portfolio_holdings(edited_holdings)
+            st.session_state["_portfolio_saved_payload"] = current_portfolio_payload
+            st.session_state["_portfolio_cookie_loaded"] = True
+            st.session_state["_portfolio_user_modified"] = True
+
+            clean_holdings = normalise_portfolio_holdings(edited_holdings)
+            duplicate_rows = clean_holdings.loc[
+                clean_holdings.duplicated(subset=["Ticker", "Position type"], keep=False),
+                ["Ticker", "Position type"],
+            ]
+
+            results = []
+            errors = []
+            if clean_holdings.empty:
+                errors.append("Add at least one position before running the review.")
+            if not duplicate_rows.empty:
+                duplicate_text = ", ".join(
+                    f"{row['Ticker']} ({row['Position type']})"
+                    for _, row in duplicate_rows.drop_duplicates().iterrows()
+                )
+                errors.append(
+                    "Use one row per ticker per position type. "
+                    "The same ticker may appear once as INVESTMENT and once as TRADE. "
+                    "Duplicates: " + duplicate_text
+                )
+
+            if not errors:
+                progress = st.progress(0)
+                total_rows = len(clean_holdings)
+                with st.spinner("Updating current prices, returns and portfolio decisions…"):
+                    for position, (_, holding) in enumerate(clean_holdings.iterrows(), start=1):
+                        ticker = holding["Ticker"]
+                        position_type = str(holding.get("Position type") or "INVESTMENT").upper()
+                        shares = safe(holding.get("Shares"), 0.0)
+                        average_cost = safe(holding.get("Average cost"), 0.0)
+
+                        if shares <= 0:
+                            errors.append(f"{ticker} ({position_type}): shares must be greater than zero")
+                        elif average_cost <= 0:
+                            errors.append(
+                                f"{ticker} ({position_type}): average cost must be greater than zero so return and P/L can be calculated"
+                            )
+                        else:
+                            try:
+                                if position_type == "TRADE":
+                                    result = analyse_trade_portfolio_holding(ticker, shares, average_cost)
+                                else:
+                                    result = analyse_portfolio_holding(ticker, shares, average_cost)
+                                results.append(result)
+                            except Exception as exc:
+                                errors.append(
+                                    f"{ticker} ({position_type}): {exc.__class__.__name__}: {str(exc)[:180]}"
+                                )
+                        progress.progress(position / total_rows)
+                progress.empty()
+
+            st.session_state["portfolio_results"] = pd.DataFrame(results)
+            st.session_state["portfolio_errors"] = errors
+
+        portfolio_errors = st.session_state.get("portfolio_errors", [])
+        for error in portfolio_errors:
+            st.warning(error)
+
+    portfolio_results = st.session_state.get("portfolio_results")
+    if isinstance(portfolio_results, pd.DataFrame):
+        portfolio_results = portfolio_results.copy()
+    else:
+        portfolio_results = pd.DataFrame()
+
+    if not portfolio_results.empty and "Position type" not in portfolio_results.columns:
+        portfolio_results["Position type"] = "INVESTMENT"
+
+    investment_results = (
+        portfolio_results[portfolio_results["Position type"] == "INVESTMENT"].copy()
+        if not portfolio_results.empty
+        else pd.DataFrame()
+    )
+    trade_results = (
+        portfolio_results[portfolio_results["Position type"] == "TRADE"].copy()
+        if not portfolio_results.empty
+        else pd.DataFrame()
+    )
+
+    # ---------------------------
+    # Investment Portfolio — top
+    # ---------------------------
+    with investment_top:
+        st.markdown("## Investment Portfolio")
+        st.caption(
+            "Your long-term diversification philosophy: no individual stock above 5% and no sector above 20%. "
+            "Allocation colours are separate from the investment action."
+        )
+
+        if investment_results.empty:
+            st.info(
+                "Add or review an INVESTMENT position to populate the allocation charts. "
+                "TRADE positions never count toward these diversification percentages."
+            )
+        else:
+            all_values_converted = investment_results["Market value £"].notna().all()
+            total_value = investment_results["Market value £"].sum() if all_values_converted else np.nan
+            total_cost_known = investment_results["Cost basis £"].notna().all()
+            total_cost = investment_results["Cost basis £"].sum() if total_cost_known else np.nan
+            total_pnl = (
+                total_value - total_cost
+                if not np.isnan(total_value) and not np.isnan(total_cost)
+                else np.nan
+            )
+            total_return = (
+                total_pnl / total_cost * 100
+                if not np.isnan(total_pnl) and total_cost > 0
+                else np.nan
+            )
+
+            if all_values_converted and total_value > 0:
+                investment_results["Weight %"] = investment_results["Market value £"] / total_value * 100
+            else:
+                investment_results["Weight %"] = np.nan
+
+            buy_more_count = int((investment_results["Action"] == "BUY MORE").sum())
+            review_count = int(
+                investment_results["Action"].isin(["REASSESS", "REVIEW FOR SALE"]).sum()
+            )
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Portfolio value", "—" if np.isnan(total_value) else f"£{total_value:,.2f}")
+            m2.metric(
+                "Unrealised return",
+                "—" if np.isnan(total_return) else f"{total_return:+.1f}%",
+                None if np.isnan(total_pnl) else f"£{total_pnl:+,.2f}",
+            )
+            m3.metric("Buy more", buy_more_count)
+            m4.metric("Actions to review", review_count)
+
+            if all_values_converted and total_value > 0:
+                sector_allocation = (
+                    investment_results.groupby("Sector", dropna=False)["Market value £"]
+                    .sum()
+                    .sort_values(ascending=False)
+                    .rename("Market value £")
+                    .reset_index()
+                )
+                sector_allocation["Sector"] = sector_allocation["Sector"].fillna("Unknown")
+
+                pie1, pie2 = st.columns(2, gap="large")
+                with pie1:
+                    st.plotly_chart(
+                        portfolio_donut(
+                            investment_results,
+                            "Ticker",
+                            "Allocation by company",
+                            INVESTMENT_STOCK_TARGET_PCT,
+                        ),
+                        use_container_width=True,
+                        config={"displayModeBar": False},
+                    )
+                with pie2:
+                    st.plotly_chart(
+                        portfolio_donut(
+                            sector_allocation,
+                            "Sector",
+                            "Allocation by sector",
+                            INVESTMENT_SECTOR_TARGET_PCT,
+                        ),
+                        use_container_width=True,
+                        config={"displayModeBar": False},
+                    )
+
+                st.caption(
+                    "🟢 comfortably within target · 🟠 approaching the target · 🔴 above the long-term target. "
+                    "Red is a diversification warning, not a sell signal. While the portfolio is being built, "
+                    "new contributions can improve the balance without changing the underlying investment action."
+                )
+            else:
+                st.warning(
+                    "At least one quote currency could not be converted to GBP, so allocation percentages and charts are hidden."
+                )
+
+    # ---------------------------
+    # Investment holdings table
+    # ---------------------------
+    with investment_holdings_area:
+        st.markdown("### Investment holdings")
+        if investment_results.empty:
+            st.caption("No reviewed INVESTMENT positions yet.")
+        else:
+            investment_main = investment_results[[
+                "Ticker", "Company", "Action", "Weight %", "Shares", "Average cost",
+                "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
+            ]].copy()
+            investment_main = investment_main.rename(columns={"Quote currency": "Currency"})
+
+            styled_investment = investment_main.style.map(
+                portfolio_action_cell_style,
+                subset=["Action"],
+            ).map(
+                allocation_cell_style,
+                subset=["Weight %"],
+            )
+
+            st.caption(
+                "Action = investment quality/valuation decision. Weight = diversification only. "
+                "Target: ≤5% per stock."
+            )
             st.dataframe(
-                sector_allocation,
+                styled_investment,
                 hide_index=True,
                 use_container_width=True,
                 column_config={
-                    "Market value £": st.column_config.NumberColumn(format="£%.2f"),
-                    "Weight %": st.column_config.ProgressColumn(min_value=0, max_value=100, format="%.1f%%"),
+                    "Ticker": st.column_config.TextColumn(width="small"),
+                    "Company": st.column_config.TextColumn(width="large"),
+                    "Action": st.column_config.TextColumn(width="medium"),
+                    "Weight %": st.column_config.NumberColumn(format="%.1f%%", width="small"),
+                    "Shares": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Average cost": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Current price": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Return %": st.column_config.NumberColumn(format="%+.1f%%", width="small"),
+                    "Market value £": st.column_config.NumberColumn(format="£%.2f", width="small"),
+                    "Unrealised P/L £": st.column_config.NumberColumn(format="£%+.2f", width="small"),
+                    "Currency": st.column_config.TextColumn(width="small"),
                 },
             )
 
+            with st.expander("Investment analysis details"):
+                detail_columns = [
+                    "Ticker", "Quality score", "Hard gates", "Base intrinsic value",
+                    "Bear intrinsic value", "Base margin of safety %",
+                    "Required margin of safety %", "Bear margin of safety %",
+                    "Sector", "Industry", "Country", "Review reason", "Manual review required",
+                ]
+                st.dataframe(
+                    investment_results[detail_columns],
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Quality score": st.column_config.ProgressColumn(
+                            min_value=0, max_value=100, format="%.1f", width="medium"
+                        ),
+                        "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "Bear margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                        "Review reason": st.column_config.TextColumn(width="large"),
+                        "Manual review required": st.column_config.TextColumn(width="large"),
+                    },
+                )
+
+    # ---------------------------
+    # Trading Portfolio
+    # ---------------------------
+    with trading_portfolio_area:
+        st.markdown("## Trading Portfolio")
+        st.caption(
+            "Active trades are tracked separately and never alter the Investment Portfolio's 5% stock or 20% sector allocation."
+        )
+
+        if trade_results.empty:
+            st.info("No reviewed TRADE positions yet.")
+        else:
+            trade_values_known = trade_results["Market value £"].notna().all()
+            trade_cost_known = trade_results["Cost basis £"].notna().all()
+            trade_value = trade_results["Market value £"].sum() if trade_values_known else np.nan
+            trade_cost = trade_results["Cost basis £"].sum() if trade_cost_known else np.nan
+            trade_pnl = (
+                trade_value - trade_cost
+                if not np.isnan(trade_value) and not np.isnan(trade_cost)
+                else np.nan
+            )
+            trade_return = (
+                trade_pnl / trade_cost * 100
+                if not np.isnan(trade_pnl) and trade_cost > 0
+                else np.nan
+            )
+            trade_exit_count = int(
+                trade_results["Action"].isin(["EXIT / REASSESS", "EXIT / TARGET REACHED"]).sum()
+            )
+
+            t1, t2, t3 = st.columns(3)
+            t1.metric("Active trade value", "—" if np.isnan(trade_value) else f"£{trade_value:,.2f}")
+            t2.metric(
+                "Trade return",
+                "—" if np.isnan(trade_return) else f"{trade_return:+.1f}%",
+                None if np.isnan(trade_pnl) else f"£{trade_pnl:+,.2f}",
+            )
+            t3.metric("Exit / review signals", trade_exit_count)
+
+            trade_main = trade_results[[
+                "Ticker", "Company", "Action", "Shares", "Average cost",
+                "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
+            ]].copy().rename(columns={"Quote currency": "Currency"})
+
+            styled_trade = trade_main.style.map(
+                trade_portfolio_action_cell_style,
+                subset=["Action"],
+            )
+            st.dataframe(
+                styled_trade,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Ticker": st.column_config.TextColumn(width="small"),
+                    "Company": st.column_config.TextColumn(width="large"),
+                    "Action": st.column_config.TextColumn(width="medium"),
+                    "Shares": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Average cost": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Current price": st.column_config.NumberColumn(format="%.4f", width="small"),
+                    "Return %": st.column_config.NumberColumn(format="%+.1f%%", width="small"),
+                    "Market value £": st.column_config.NumberColumn(format="£%.2f", width="small"),
+                    "Unrealised P/L £": st.column_config.NumberColumn(format="£%+.2f", width="small"),
+                    "Currency": st.column_config.TextColumn(width="small"),
+                },
+            )
+
+            with st.expander("Trade plan details", expanded=True):
+                trade_detail = trade_results[[
+                    "Ticker", "Technical score", "R:R", "Entry zone", "Target",
+                    "Invalidation", "Sector", "Industry", "Trade reason",
+                ]]
+                st.dataframe(
+                    trade_detail,
+                    hide_index=True,
+                    use_container_width=True,
+                    column_config={
+                        "Technical score": st.column_config.ProgressColumn(
+                            min_value=0, max_value=100, format="%.1f", width="medium"
+                        ),
+                        "R:R": st.column_config.NumberColumn(format="%.2f", width="small"),
+                        "Trade reason": st.column_config.TextColumn(width="large"),
+                    },
+                )
+
     st.caption(
-        "Holdings save automatically in this browser and stay here until you delete them. "
-        "Download the CSV only as a backup or to move the portfolio to another browser or device."
+        "Positions save automatically in this browser and stay here until you delete them. "
+        "Download the CSV only as a backup or to move the portfolios to another browser or device."
     )
 
 
