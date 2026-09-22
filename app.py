@@ -20,6 +20,11 @@ from cl_signal_ui import render_module_header, render_decision_guidance
 from crypto_macro import snapshot_age_minutes, unavailable_macro
 from crypto_universe_rules import is_crypto_universe_asset
 from crypto_rule_engine import score_setup as shared_score_setup
+from crypto_accumulation_model import (
+    ACCUMULATION_MODEL_VERSION,
+    score_accumulation,
+    tokenomics_context as shared_tokenomics_context,
+)
 from pre_pump_research import (
     build_feature_frame,
     feature_comparison,
@@ -866,73 +871,9 @@ def tokenomics_from_market(
     snapshot: Dict[str, Dict],
     category_leaders: Optional[Dict[str, List[str]]] = None,
 ) -> Dict:
+    """Use the shared tokenomics context so app and background accumulation agree."""
     base = str(symbol).split("/")[0].upper()
-    item = snapshot.get(base) or {}
-
-    circulating = _safe_float(item.get("circulating_supply"), np.nan)
-    total = _safe_float(item.get("total_supply"), np.nan)
-    max_supply = _safe_float(item.get("max_supply"), np.nan)
-    market_cap = _safe_float(item.get("market_cap"), np.nan)
-    fdv = _safe_float(item.get("fully_diluted_valuation"), np.nan)
-
-    denominator = total if math.isfinite(total) and total > 0 else max_supply
-    supply_basis = "Total supply" if math.isfinite(total) and total > 0 else (
-        "Max supply" if math.isfinite(max_supply) and max_supply > 0 else "Unavailable"
-    )
-
-    circulating_pct = (
-        circulating / denominator * 100
-        if math.isfinite(circulating)
-        and math.isfinite(denominator)
-        and denominator > 0
-        else np.nan
-    )
-    fdv_mcap = (
-        fdv / market_cap
-        if math.isfinite(fdv) and fdv > 0
-        and math.isfinite(market_cap) and market_cap > 0
-        else np.nan
-    )
-
-    if math.isfinite(circulating_pct):
-        gate = "PASS" if circulating_pct >= 25.0 else "FAIL"
-    else:
-        gate = "UNKNOWN"
-
-    risks = []
-    if math.isfinite(circulating_pct) and circulating_pct < 25.0:
-        risks.append("Low float <25%")
-    if math.isfinite(fdv_mcap) and fdv_mcap >= 4.0:
-        risks.append("High FDV / low-float risk")
-    if not item:
-        risks.append("Tokenomics data unverified")
-
-    coin_id = item.get("id") or ""
-    leader_categories = (
-        (category_leaders or {}).get(coin_id, [])
-        if coin_id else []
-    )
-    if category_leaders:
-        category_leader = "TOP 3" if leader_categories else "NOT TOP 3"
-    else:
-        category_leader = "UNKNOWN"
-
-    return {
-        "tokenomics_gate": gate,
-        "circulating_supply": circulating,
-        "total_supply": total,
-        "max_supply": max_supply,
-        "supply_basis": supply_basis,
-        "circulating_pct": round(float(circulating_pct), 1) if math.isfinite(circulating_pct) else np.nan,
-        "market_cap": market_cap,
-        "fdv": fdv,
-        "fdv_mcap": round(float(fdv_mcap), 2) if math.isfinite(fdv_mcap) else np.nan,
-        "tokenomics_risks": "; ".join(risks),
-        "coingecko_id": coin_id,
-        "category_leader": category_leader,
-        "leader_categories": ", ".join(leader_categories),
-        "vc_unlock_review": "UNVERIFIED — specialist unlock/allocation data required",
-    }
+    return shared_tokenomics_context(base, snapshot, category_leaders)
 
 
 def ohlcv_to_df(rows: list) -> pd.DataFrame:
@@ -1835,6 +1776,7 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
         cex_presence, cex_errors = await major_cex_presence()
         result.update(exchange_listing_info(symbol, cex_presence))
         result.update(prepared_execution_info(symbol.split("/")[0]))
+        result = apply_full_accumulation_model(result)
         result["major_cex_errors"] = cex_errors
         cmcal_events, cmcal_status = await asyncio.to_thread(
             coinmarketcal_upcoming_events,
@@ -1923,6 +1865,8 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                         tokenomics_from_market(symbol, tokenomics_snapshot, category_leaders)
                     )
                     result.update(exchange_listing_info(symbol, cex_presence))
+                    result.update(prepared_execution_info(symbol.split("/")[0]))
+                    result = apply_full_accumulation_model(result)
                     result.update(catalyst_info(symbol, cmcal_index, cmcal_status))
                     return result
                 except Exception as e:
@@ -1965,7 +1909,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
             return empty, raw, errors
 
         def opportunity_rank(result: Dict) -> Tuple[int, float]:
-            accumulation_ready = result.get("accumulation_verdict") == "ACCUMULATION READY"
+            accumulation_ready = result.get("accumulation_model_status") == "ACCUMULATE"
             if result.get("eligible") and accumulation_ready:
                 category = 4
             elif result.get("eligible"):
@@ -1987,7 +1931,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Symbol": r["symbol"],
                 "Opportunity": (
                     "BUY" if r["eligible"] and r["score"] >= cfg.score_threshold
-                    else "ACCUMULATE" if r["accumulation_verdict"] == "ACCUMULATION READY"
+                    else "ACCUMULATE" if r.get("accumulation_model_status") == "ACCUMULATE"
                     else "WAIT"
                 ),
                 "Score": r["score"],
@@ -2092,7 +2036,12 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Target basis": r["target_basis"],
                 "4Y cycle position %": r["cycle_position_pct"],
                 "Accumulation signal": r["bottom_status"],
-                "Accumulation score": r["bottom_score"],
+                "Accumulation score": r.get("accumulation_quality_score", np.nan),
+                "Accumulation base score": r.get("accumulation_base_score", r["bottom_score"]),
+                "Accumulation quality pass": r.get("accumulation_quality_pass", False),
+                "Accumulation tokenomics pass": r.get("accumulation_tokenomics_pass", False),
+                "Accumulation reason": r.get("accumulation_reason", ""),
+                "Accumulation model version": r.get("accumulation_model_version", ACCUMULATION_MODEL_VERSION),
                 "Accumulation low": r["accumulation_low"],
                 "Accumulation high": r["accumulation_high"],
                 "In accumulation zone": r["in_accumulation_zone"],
@@ -2100,7 +2049,8 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Cycle accumulation high": r["cycle_accumulation_high"],
                 "In cycle accumulation zone": r["in_cycle_accumulation_zone"],
                 "Cycle accumulation basis": r["cycle_accumulation_basis"],
-                "Accumulation verdict": r["accumulation_verdict"],
+                "Accumulation verdict": r.get("accumulation_model_status", "PASS"),
+                "Base verdict": r["accumulation_verdict"],
                 "Previous cycle-high reference": r["previous_cycle_high_reference"],
                 "24h quote vol": r["quote_volume_24h"],
                 "_components": r["components"],
@@ -2555,6 +2505,9 @@ def prepared_execution_info(base: str) -> Dict:
             "execution_reason": "Background execution-liquidity check not available yet",
             "kraken_available": False,
             "cryptocom_available": False,
+            "major_venue_listing_count": 0,
+            "major_venue_listings": "",
+            "major_venues_checked": 0,
             "cross_exchange_quote_volume": np.nan,
             "execution_max_quote_volume": np.nan,
         }
@@ -2568,6 +2521,9 @@ def prepared_execution_info(base: str) -> Dict:
             "execution_reason": "Coin is not yet in the prepared discovery universe",
             "kraken_available": False,
             "cryptocom_available": False,
+            "major_venue_listing_count": 0,
+            "major_venue_listings": "",
+            "major_venues_checked": 0,
             "cross_exchange_quote_volume": np.nan,
             "execution_max_quote_volume": np.nan,
         }
@@ -2582,6 +2538,9 @@ def prepared_execution_info(base: str) -> Dict:
         "cryptocom_available": _boolish(row.get("Crypto.com available", False)),
         "kraken_quote_volume": _safe_float(row.get("Kraken USD-like 24h volume"), 0.0),
         "cryptocom_quote_volume": _safe_float(row.get("Crypto.com USD-like 24h volume"), 0.0),
+        "major_venue_listing_count": int(_safe_float(row.get("Major venue listing count"), 0)),
+        "major_venue_listings": str(row.get("Major venue listings", "") or ""),
+        "major_venues_checked": int(_safe_float(row.get("Major venues checked"), 0)),
         "cross_exchange_quote_volume": _safe_float(row.get("Cross-exchange quote volume"), np.nan),
         "execution_max_quote_volume": _safe_float(row.get("Execution max USD-like 24h volume"), np.nan),
     }
@@ -2621,6 +2580,47 @@ def attach_prepared_execution_columns(df: pd.DataFrame) -> pd.DataFrame:
     if "Execution liquidity pass" in out.columns:
         out["Execution liquidity pass"] = out["Execution liquidity pass"].map(_boolish)
     return out
+
+
+def apply_full_accumulation_model(result: Dict) -> Dict:
+    if not result:
+        return result
+    context = {
+        "tokenomics_gate": result.get("tokenomics_gate", "UNKNOWN"),
+        "circulating_pct": result.get("circulating_pct", np.nan),
+        "minimum_circulating_pct": result.get("minimum_circulating_pct", 25.0),
+        "fdv_mcap": result.get("fdv_mcap", np.nan),
+        "market_cap": result.get("market_cap", np.nan),
+        "fdv": result.get("fdv", np.nan),
+        "coingecko_id": result.get("coingecko_id", ""),
+        "category_leader": result.get("category_leader", "UNKNOWN"),
+        "leader_categories": result.get("leader_categories", ""),
+        "meme_supply_exception": result.get("meme_supply_exception", False),
+        "tokenomics_risks": result.get("tokenomics_risks", ""),
+        "unlock_review": result.get(
+            "unlock_review",
+            result.get("vc_unlock_review", "UNVERIFIED — specialist unlock/vesting data not scored"),
+        ),
+        "major_venue_listing_count": result.get(
+            "major_venue_listing_count",
+            result.get("major_cex_count", 0),
+        ),
+        "major_venue_listings": result.get(
+            "major_venue_listings",
+            result.get("major_cex_list", ""),
+        ),
+        "major_venues_checked": result.get(
+            "major_venues_checked",
+            result.get("major_cex_checked", 0),
+        ),
+    }
+    model = score_accumulation(
+        result,
+        context,
+        bool(result.get("execution_liquidity_pass", False)),
+    )
+    result.update(model)
+    return result
 
 
 def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float = 80.0) -> Dict:
@@ -2711,31 +2711,13 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
 
 
 def crypto_accumulation_decision(result: Dict) -> Dict:
-    verdict = str(result.get("accumulation_verdict", "NOT READY TO ACCUMULATE"))
-    execution_pass = bool(result.get("execution_liquidity_pass", False))
-    if verdict == "ACCUMULATION READY" and execution_pass:
-        return {
-            "action": "ACCUMULATE",
-            "reason": "The confirmed daily base and accumulation zone meet the model rules, and execution liquidity passes on Kraken/Crypto.com.",
-        }
-    if verdict == "ACCUMULATION READY" and not execution_pass:
-        return {
-            "action": "WAIT",
-            "reason": (
-                "The accumulation structure is technically ready, but "
-                + str(result.get("execution_reason") or "execution liquidity is not confirmed on Kraken/Crypto.com")
-                + "."
-            ),
-        }
-    if verdict.startswith("WATCH"):
-        return {
-            "action": "WAIT",
-            "reason": "The longer-term base is developing but is not ready yet.",
-        }
-    return {
-        "action": "PASS",
-        "reason": "The current daily base does not meet the accumulation rules.",
-    }
+    status = str(result.get("accumulation_model_status") or "PASS").upper()
+    reason = str(result.get("accumulation_reason") or "Accumulation evidence is incomplete.")
+    if status == "ACCUMULATE":
+        return {"action": "ACCUMULATE", "reason": reason}
+    if status in {"QUALITY WATCH", "BASE DEVELOPING"}:
+        return {"action": "WAIT", "reason": reason}
+    return {"action": "PASS", "reason": reason}
 
 def render_crypto_decision_card(title: str, action: str, reason: str) -> None:
     action_upper = str(action or "UNAVAILABLE").upper()
