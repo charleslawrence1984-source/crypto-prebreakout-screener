@@ -4989,10 +4989,9 @@ with tab5:
         )
 
         portfolio_cookie = CookieController(key="cl_signal_portfolio_cookie_controller")
-        portfolio_local_storage = LocalStorage()
+        portfolio_local_storage = LocalStorage(key="cl_signal_portfolio_local_storage_init")
         persisted_local_payload = portfolio_local_storage.getItem(
-            PORTFOLIO_LOCAL_STORAGE_KEY,
-            key="cl_signal_portfolio_local_storage_get",
+            PORTFOLIO_LOCAL_STORAGE_KEY
         )
         persisted_cookie_payload = portfolio_cookie.get(PORTFOLIO_COOKIE_NAME)
         # Browser localStorage is the primary persistence layer. Keep the
@@ -5128,6 +5127,7 @@ with tab5:
             portfolio_local_storage.setItem(
                 PORTFOLIO_LOCAL_STORAGE_KEY,
                 current_portfolio_payload,
+                key="cl_signal_portfolio_local_storage_autosave",
             )
             portfolio_cookie.set(
                 PORTFOLIO_COOKIE_NAME,
@@ -5166,6 +5166,7 @@ with tab5:
             portfolio_local_storage.setItem(
                 PORTFOLIO_LOCAL_STORAGE_KEY,
                 current_portfolio_payload,
+                key="cl_signal_portfolio_local_storage_review",
             )
             portfolio_cookie.set(
                 PORTFOLIO_COOKIE_NAME,
