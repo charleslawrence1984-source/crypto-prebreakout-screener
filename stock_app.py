@@ -2488,19 +2488,31 @@ def currency_to_gbp_rate(currency: str) -> float:
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -> dict:
-    """Run the long-term framework for one existing portfolio position."""
+    """Run the long-term framework for one existing portfolio position.
+
+    Average cost is entered exactly as the broker displays it. For London
+    shares Yahoo commonly quotes prices in GBp (pence), while brokers such as
+    Trading 212 display the same price in GBP. Convert only for the internal
+    comparison/cost-basis maths, then keep the user-facing value in broker units.
+    """
     symbol = str(symbol).strip().upper()
     price = latest_portfolio_price(symbol)
     if np.isnan(price) or price <= 0:
         raise ValueError("current price unavailable")
 
     fund = valuation_fundamental_analysis(symbol, price)
+    quote_currency = str(fund.get("quote_currency") or "")
+    is_pence_quote = quote_currency in {"GBp", "GBX"}
+    quote_average_cost = average_cost * 100 if average_cost > 0 and is_pence_quote else average_cost
+    display_price = price / 100 if is_pence_quote else price
+    display_currency = "GBP" if is_pence_quote else (quote_currency or "Unknown")
+
     lt = long_term_analysis(symbol, price, fund)
     merged = {**fund, **lt, "price": price}
     decision = investment_decision(
         merged,
         owned=True,
-        average_buy_price=average_cost if average_cost > 0 else None,
+        average_buy_price=quote_average_cost if quote_average_cost > 0 else None,
     )
 
     if decision["action"] == "SELL":
@@ -2512,13 +2524,18 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
     else:
         action = "HOLD"
 
-    quote_currency = str(fund.get("quote_currency") or "")
     gbp_rate = currency_to_gbp_rate(quote_currency)
     native_value = price * shares
     market_value_gbp = native_value * gbp_rate if not np.isnan(gbp_rate) else np.nan
-    cost_value_gbp = average_cost * shares * gbp_rate if average_cost > 0 and not np.isnan(gbp_rate) else np.nan
+    cost_value_gbp = quote_average_cost * shares * gbp_rate if quote_average_cost > 0 and not np.isnan(gbp_rate) else np.nan
     pnl_gbp = market_value_gbp - cost_value_gbp if not np.isnan(cost_value_gbp) else np.nan
-    return_pct = (price / average_cost - 1) * 100 if average_cost > 0 else np.nan
+    return_pct = (price / quote_average_cost - 1) * 100 if quote_average_cost > 0 else np.nan
+
+    dcf_base = lt.get("dcf_base")
+    dcf_bear = lt.get("dcf_bear")
+    if is_pence_quote:
+        dcf_base = dcf_base / 100 if dcf_base is not None and not np.isnan(safe(dcf_base)) else dcf_base
+        dcf_bear = dcf_bear / 100 if dcf_bear is not None and not np.isnan(safe(dcf_bear)) else dcf_bear
 
     reasons = list(decision.get("reasons") or [])
     if action == "ADD CANDIDATE":
@@ -2534,16 +2551,16 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
         "Action": action,
         "Shares": shares,
         "Average cost": average_cost if average_cost > 0 else np.nan,
-        "Price": price,
+        "Price": display_price,
         "Return %": return_pct,
         "Market value £": market_value_gbp,
         "Cost basis £": cost_value_gbp,
         "Unrealised P/L £": pnl_gbp,
-        "Quote currency": quote_currency or "Unknown",
+        "Quote currency": display_currency,
         "Quality score": lt.get("investment_quality_score", lt.get("long_term_score", np.nan)),
         "Hard gates": "PASS" if lt.get("hard_gate_pass") else "FAIL",
-        "Base intrinsic value": lt.get("dcf_base"),
-        "Bear intrinsic value": lt.get("dcf_bear"),
+        "Base intrinsic value": dcf_base,
+        "Bear intrinsic value": dcf_bear,
         "Base margin of safety %": lt.get("margin_of_safety_base_pct"),
         "Required margin of safety %": lt.get("required_margin_of_safety_pct"),
         "Bear margin of safety %": lt.get("margin_of_safety_bear_pct"),
@@ -2553,7 +2570,6 @@ def analyse_portfolio_holding(symbol: str, shares: float, average_cost: float) -
         "Review reason": "; ".join(dict.fromkeys(reason for reason in reasons if reason)),
         "Manual review required": lt.get("qualitative_review_items", ""),
     }
-
 
 def chart(result: Dict) -> go.Figure:
     d = result["history"].tail(120)
@@ -4709,8 +4725,8 @@ with tab4:
 with tab5:
     st.subheader("Portfolio Review")
     st.caption(
-        "Enter one row per holding. Average cost must use the same quoted units as Yahoo "
-        "(for example, pence for a London share quoted in GBp). No broker connection is required."
+        "Enter one row per holding. Enter Average cost exactly as your broker shows it. "
+        "For example, if Trading 212 shows MGNS at £42.18, enter 42.18 — the app handles Yahoo's pence quote internally."
     )
 
     uploaded_portfolio = st.file_uploader(
@@ -4768,10 +4784,10 @@ with tab5:
             ),
             "Shares": st.column_config.NumberColumn("Shares", min_value=0.0, format="%.4f"),
             "Average cost": st.column_config.NumberColumn(
-                "Average cost",
+                "Average cost (broker)",
                 min_value=0.0,
                 format="%.4f",
-                help="Your average price per share in the stock's quoted currency/units.",
+                help="Enter the average price exactly as your broker displays it, e.g. 42.18 for a £42.18 UK share or 487.50 for CHF 487.50.",
             ),
         },
     )
