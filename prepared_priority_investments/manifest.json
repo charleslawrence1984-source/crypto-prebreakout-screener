@@ -1,0 +1,255 @@
+{
+  "exchanges": {
+    "gettex": {
+      "diagnostics": {
+        "below_min_market_cap": 0,
+        "error_samples": [
+          "61L0.MU @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "5JB.MU @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "9QQ.MU @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "OSK.MU @ long-term analysis: NameError: name 'quote_scale' is not defined"
+        ],
+        "market_cap_failures": 0,
+        "other_errors": 4,
+        "price_failures": 0,
+        "rate_limit_errors": 0,
+        "requested": 4,
+        "symbol_outcomes": {
+          "5JB.MU": {
+            "message": "5JB.MU @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "61L0.MU": {
+            "message": "61L0.MU @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "9QQ.MU": {
+            "message": "9QQ.MU @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "OSK.MU": {
+            "message": "OSK.MU @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          }
+        }
+      },
+      "error": "RuntimeError: scan returned no results: {'requested': 4, 'rate_limit_errors': 0, 'other_errors': 4, 'price_failures': 0, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': [\"61L0.MU @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"5JB.MU @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"9QQ.MU @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"OSK.MU @ long-term analysis: NameError: name 'quote_scale' is not defined\"]}",
+      "failed_at": "2026-09-22T16:36:28+01:00",
+      "label": "Gettex",
+      "requested_this_run": 4,
+      "returned_this_run": 0,
+      "started_at": "2026-09-22T16:36:19+01:00",
+      "status": "failed"
+    },
+    "nasdaq": {
+      "diagnostics": {
+        "below_min_market_cap": 0,
+        "error_samples": [
+          "CRUS @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "HRMY @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "IDXX @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "IDCC @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "LOPE @ long-term analysis: NameError: name 'quote_scale' is not defined"
+        ],
+        "market_cap_failures": 0,
+        "other_errors": 8,
+        "price_failures": 0,
+        "rate_limit_errors": 0,
+        "requested": 8,
+        "symbol_outcomes": {
+          "CRUS": {
+            "message": "CRUS @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "HRMY": {
+            "message": "HRMY @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "IDCC": {
+            "message": "IDCC @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "IDXX": {
+            "message": "IDXX @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "ITRN": {
+            "message": "ITRN @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "LOPE": {
+            "message": "LOPE @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "NSSC": {
+            "message": "NSSC @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "NTAP": {
+            "message": "NTAP @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          }
+        }
+      },
+      "error": "RuntimeError: scan returned no results: {'requested': 8, 'rate_limit_errors': 0, 'other_errors': 8, 'price_failures': 0, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': [\"CRUS @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"HRMY @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"IDXX @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"IDCC @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"LOPE @ long-term anal",
+      "failed_at": "2026-09-22T16:35:45+01:00",
+      "label": "NASDAQ",
+      "requested_this_run": 8,
+      "returned_this_run": 0,
+      "started_at": "2026-09-22T16:35:25+01:00",
+      "status": "failed"
+    },
+    "nyse": {
+      "diagnostics": {
+        "below_min_market_cap": 0,
+        "error_samples": [
+          "GGG @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "DECK @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "RMD @ long-term analysis: NameError: name 'quote_scale' is not defined"
+        ],
+        "market_cap_failures": 0,
+        "other_errors": 3,
+        "price_failures": 0,
+        "rate_limit_errors": 0,
+        "requested": 3,
+        "symbol_outcomes": {
+          "DECK": {
+            "message": "DECK @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "GGG": {
+            "message": "GGG @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "RMD": {
+            "message": "RMD @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          }
+        }
+      },
+      "error": "RuntimeError: scan returned no results: {'requested': 3, 'rate_limit_errors': 0, 'other_errors': 3, 'price_failures': 0, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': [\"GGG @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"DECK @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"RMD @ long-term analysis: NameError: name 'quote_scale' is not defined\"]}",
+      "failed_at": "2026-09-22T16:35:54+01:00",
+      "label": "NYSE",
+      "requested_this_run": 3,
+      "returned_this_run": 0,
+      "started_at": "2026-09-22T16:35:45+01:00",
+      "status": "failed"
+    },
+    "otc": {
+      "diagnostics": {
+        "below_min_market_cap": 0,
+        "error_samples": [
+          "FRRFF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "EVGGF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "HOCPF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "HEHSF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "MNSAF @ long-term analysis: NameError: name 'quote_scale' is not defined"
+        ],
+        "market_cap_failures": 0,
+        "other_errors": 8,
+        "price_failures": 0,
+        "rate_limit_errors": 0,
+        "requested": 8,
+        "symbol_outcomes": {
+          "EVGGF": {
+            "message": "EVGGF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "FRRFF": {
+            "message": "FRRFF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "HEHSF": {
+            "message": "HEHSF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "HOCPF": {
+            "message": "HOCPF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "MNSAF": {
+            "message": "MNSAF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "PBTDF": {
+            "message": "PBTDF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "RTLLF": {
+            "message": "RTLLF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "SPXCF": {
+            "message": "SPXCF @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          }
+        }
+      },
+      "error": "RuntimeError: scan returned no results: {'requested': 8, 'rate_limit_errors': 0, 'other_errors': 8, 'price_failures': 0, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': [\"FRRFF @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"EVGGF @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"HOCPF @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"HEHSF @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"MNSAF @ long-term",
+      "failed_at": "2026-09-22T16:36:14+01:00",
+      "label": "OTC Markets",
+      "requested_this_run": 8,
+      "returned_this_run": 0,
+      "started_at": "2026-09-22T16:35:54+01:00",
+      "status": "failed"
+    },
+    "xetra": {
+      "diagnostics": {
+        "below_min_market_cap": 0,
+        "error_samples": [
+          "3SM.DE @ long-term analysis: NameError: name 'quote_scale' is not defined",
+          "KBX.DE @ long-term analysis: NameError: name 'quote_scale' is not defined"
+        ],
+        "market_cap_failures": 0,
+        "other_errors": 2,
+        "price_failures": 0,
+        "rate_limit_errors": 0,
+        "requested": 2,
+        "symbol_outcomes": {
+          "3SM.DE": {
+            "message": "3SM.DE @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          },
+          "KBX.DE": {
+            "message": "KBX.DE @ long-term analysis: NameError: name 'quote_scale' is not defined",
+            "rate_limited": false,
+            "status": "error"
+          }
+        }
+      },
+      "error": "RuntimeError: scan returned no results: {'requested': 2, 'rate_limit_errors': 0, 'other_errors': 2, 'price_failures': 0, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': [\"3SM.DE @ long-term analysis: NameError: name 'quote_scale' is not defined\", \"KBX.DE @ long-term analysis: NameError: name 'quote_scale' is not defined\"]}",
+      "failed_at": "2026-09-22T16:36:19+01:00",
+      "label": "Deutsche B\u00f6rse Xetra",
+      "requested_this_run": 2,
+      "returned_this_run": 0,
+      "started_at": "2026-09-22T16:36:14+01:00",
+      "status": "failed"
+    }
+  },
+  "schema_version": 1,
+  "updated_at": "2026-09-22T16:36:28+01:00"
+}
