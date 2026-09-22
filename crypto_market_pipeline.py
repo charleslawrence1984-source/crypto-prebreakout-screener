@@ -812,6 +812,78 @@ def merge_deep_scores(existing: pd.DataFrame, fresh: pd.DataFrame, eligible_base
     return pd.concat([fresh, existing], ignore_index=True)
 
 
+def refresh_execution_metadata(scores: pd.DataFrame, universe: pd.DataFrame) -> pd.DataFrame:
+    """
+    Refresh execution/listing metadata for every cached deep-score row on every run.
+
+    This prevents older technical scores from carrying blank Kraken/Crypto.com fields
+    after a universe/liquidity-rule migration. Technical timestamps can remain older
+    until their rotation slot is rescored, but execution safety always reflects the
+    latest universe snapshot.
+    """
+    if scores.empty or universe.empty:
+        return scores
+
+    execution_cols = [
+        "Base",
+        "Cross-exchange quote volume",
+        "Kraken available",
+        "Crypto.com available",
+        "Kraken USD-like 24h volume",
+        "Crypto.com USD-like 24h volume",
+        "Execution available",
+        "Execution venues",
+        "Execution venue count",
+        "Execution max USD-like 24h volume",
+        "Execution liquidity pass",
+        "Execution reason",
+    ]
+    available = [col for col in execution_cols if col in universe.columns]
+    meta = universe[available].copy()
+    meta["Base"] = meta["Base"].astype(str)
+
+    out = scores.copy()
+    refresh_cols = [col for col in available if col != "Base"]
+    out = out.drop(columns=refresh_cols, errors="ignore")
+    out["Base"] = out["Base"].astype(str)
+    out = out.merge(meta, on="Base", how="left")
+
+    exec_pass = out.get("Execution liquidity pass", False)
+    if isinstance(exec_pass, pd.Series):
+        exec_pass = exec_pass.fillna(False).astype(bool)
+    else:
+        exec_pass = pd.Series(False, index=out.index)
+
+    score = pd.to_numeric(out.get("Swing score"), errors="coerce").fillna(0)
+    rs = pd.to_numeric(out.get("RS vs BTC %"), errors="coerce").fillna(-999)
+    eligible = out.get("Swing eligible", False)
+    if isinstance(eligible, pd.Series):
+        eligible = eligible.fillna(False).astype(bool)
+    else:
+        eligible = pd.Series(False, index=out.index)
+    candle_clear = out.get("Candle caution", "CLEAR").astype(str).ne("CAUTION")
+    btc_or_rs = out["Base"].eq("BTC") | rs.gt(0)
+
+    buy_mask = eligible & score.ge(80) & btc_or_rs & candle_clear & exec_pass
+    watch_mask = eligible | score.ge(65)
+    out["Swing status"] = np.select(
+        [buy_mask, watch_mask],
+        ["BUY", "WATCH"],
+        default="PASS",
+    )
+
+    acc_verdict = out.get("Accumulation verdict", "").fillna("").astype(str)
+    acc_score = pd.to_numeric(out.get("Accumulation score"), errors="coerce").fillna(0)
+    acc_ready = acc_verdict.eq("ACCUMULATION READY")
+    acc_watch = acc_ready | acc_verdict.str.startswith("WATCH") | acc_score.ge(50)
+    out["Accumulation status"] = np.select(
+        [acc_ready & exec_pass, acc_watch],
+        ["ACCUMULATE", "WATCH"],
+        default="PASS",
+    )
+    return out
+
+
 def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
     if scores.empty:
         return pd.DataFrame(), pd.DataFrame()
@@ -819,11 +891,31 @@ def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
     swing = scores[scores["Swing status"].isin(["BUY", "WATCH"])].copy()
     if not swing.empty:
         swing["_status_rank"] = swing["Swing status"].map({"BUY": 0, "WATCH": 1}).fillna(2)
+        swing["_shape_rank"] = np.where(
+            swing.get("Swing eligible", False).fillna(False).astype(bool), 0, 1
+        )
+        swing["_execution_rank"] = np.where(
+            swing.get("Execution liquidity pass", False).fillna(False).astype(bool), 0, 1
+        )
+        swing["Opportunity stage"] = np.select(
+            [
+                swing["Swing status"].eq("BUY"),
+                swing.get("Swing eligible", False).fillna(False).astype(bool)
+                & swing.get("Execution liquidity pass", False).fillna(False).astype(bool),
+                swing.get("Swing eligible", False).fillna(False).astype(bool),
+            ],
+            [
+                "READY",
+                "TECHNICAL WATCH",
+                "LIQUIDITY / PLATFORM WATCH",
+            ],
+            default="EARLY WATCH",
+        )
         swing = swing.sort_values(
-            ["_status_rank", "Swing score", "24h quote volume"],
-            ascending=[True, False, False],
+            ["_status_rank", "_shape_rank", "_execution_rank", "Swing score", "24h quote volume"],
+            ascending=[True, True, True, False, False],
             na_position="last",
-        ).drop(columns=["_status_rank"])
+        ).drop(columns=["_status_rank", "_shape_rank", "_execution_rank"])
 
     accumulation = scores[
         scores["Accumulation status"].isin(["ACCUMULATE", "WATCH"])
@@ -832,11 +924,27 @@ def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
         accumulation["_status_rank"] = accumulation["Accumulation status"].map(
             {"ACCUMULATE": 0, "WATCH": 1}
         ).fillna(2)
+        accumulation["_ready_rank"] = np.where(
+            accumulation.get("Accumulation verdict", "").fillna("").astype(str).eq("ACCUMULATION READY"),
+            0,
+            1,
+        )
+        accumulation["_execution_rank"] = np.where(
+            accumulation.get("Execution liquidity pass", False).fillna(False).astype(bool), 0, 1
+        )
+        accumulation["Opportunity stage"] = np.select(
+            [
+                accumulation["Accumulation status"].eq("ACCUMULATE"),
+                accumulation.get("Accumulation verdict", "").fillna("").astype(str).eq("ACCUMULATION READY"),
+            ],
+            ["READY", "LIQUIDITY / PLATFORM WATCH"],
+            default="BASE DEVELOPING",
+        )
         accumulation = accumulation.sort_values(
-            ["_status_rank", "Accumulation score", "24h quote volume"],
-            ascending=[True, False, False],
+            ["_status_rank", "_ready_rank", "_execution_rank", "Accumulation score", "24h quote volume"],
+            ascending=[True, True, True, False, False],
             na_position="last",
-        ).drop(columns=["_status_rank"])
+        ).drop(columns=["_status_rank", "_ready_rank", "_execution_rank"])
 
     return swing.reset_index(drop=True), accumulation.reset_index(drop=True)
 
@@ -923,6 +1031,7 @@ async def run(args) -> int:
     deep_fresh = pd.DataFrame(deep_rows)
     deep_existing = load_csv(output / "deep_scores.csv.gz")
     deep_scores = merge_deep_scores(deep_existing, deep_fresh, set(bases))
+    deep_scores = refresh_execution_metadata(deep_scores, universe)
     if not deep_scores.empty:
         deep_scores = deep_scores.sort_values(
             ["deep_scored_at", "Swing score"],
