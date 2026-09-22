@@ -3063,18 +3063,29 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     )
 
     # Old prepared rows used a DCF that could compare different currencies.
-    # Never surface those rows as current opportunities.
-    if "Valuation model version" in output.columns:
-        output = output[
-            output["Valuation model version"].astype(str).eq(VALUATION_MODEL_VERSION)
-        ].copy()
-    else:
-        return pd.DataFrame()
+    # Keep them visible as research candidates while the corrected model rebuilds,
+    # but never allow stale/unverified valuation data to remain a BUY.
+    if "Valuation model version" not in output.columns:
+        output["Valuation model version"] = ""
+    current_model = output["Valuation model version"].astype(str).eq(VALUATION_MODEL_VERSION)
 
-    if "Valuation FX status" in output.columns:
-        invalid_fx = ~output["Valuation FX status"].astype(str).str.upper().eq("PASS")
-        output.loc[invalid_fx, "Action"] = "WAIT"
-        output.loc[invalid_fx, "Valuation gate"] = "WAIT"
+    if "Valuation FX status" not in output.columns:
+        output["Valuation FX status"] = ""
+    fx_pass = output["Valuation FX status"].astype(str).str.upper().eq("PASS")
+
+    stale_or_invalid = ~(current_model & fx_pass)
+    output.loc[stale_or_invalid, "Action"] = "WAIT"
+    output.loc[stale_or_invalid, "Valuation gate"] = "WAIT"
+    output.loc[stale_or_invalid, "Valuation FX status"] = "REFRESH REQUIRED"
+    output.loc[stale_or_invalid, "Base intrinsic value"] = np.nan
+    output.loc[stale_or_invalid, "Bear intrinsic value"] = np.nan
+    output.loc[stale_or_invalid, "Bull intrinsic value"] = np.nan
+    output.loc[stale_or_invalid, "Base margin of safety %"] = np.nan
+    output.loc[stale_or_invalid, "Bear margin of safety %"] = np.nan
+    output.loc[stale_or_invalid, "MOS gap %"] = np.nan
+    output.loc[stale_or_invalid, "Decision reason"] = (
+        "FX-safe valuation refresh required; quality evidence retained, valuation decision withheld"
+    )
 
     output["_action_order"] = output["Action"].map({"BUY CANDIDATE": 0, "WAIT": 1}).fillna(9)
     output["_company_key"] = (
