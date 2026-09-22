@@ -1834,6 +1834,7 @@ async def analyse_individual_coin(cfg: ScreenerConfig, query: str) -> Tuple[str,
         result.update(tokenomics)
         cex_presence, cex_errors = await major_cex_presence()
         result.update(exchange_listing_info(symbol, cex_presence))
+        result.update(prepared_execution_info(symbol.split("/")[0]))
         result["major_cex_errors"] = cex_errors
         cmcal_events, cmcal_status = await asyncio.to_thread(
             coinmarketcal_upcoming_events,
@@ -2535,6 +2536,93 @@ def set_crypto_watchlist_symbol(symbol: str, enabled: bool) -> None:
     save_crypto_watchlist(ordered)
 
 
+def _boolish(value) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"true", "1", "yes", "y"}
+
+
+def prepared_execution_info(base: str) -> Dict:
+    """Latest background liquidity/listing check for the user's execution venues."""
+    base = str(base or "").strip().upper()
+    state = load_crypto_pipeline_state()
+    universe = state.get("universe", pd.DataFrame())
+    if universe is None or universe.empty or "Base" not in universe.columns:
+        return {
+            "execution_available": False,
+            "execution_liquidity_pass": False,
+            "execution_venues": "",
+            "execution_reason": "Background execution-liquidity check not available yet",
+            "kraken_available": False,
+            "cryptocom_available": False,
+            "cross_exchange_quote_volume": np.nan,
+            "execution_max_quote_volume": np.nan,
+        }
+
+    match = universe[universe["Base"].astype(str).str.upper() == base]
+    if match.empty:
+        return {
+            "execution_available": False,
+            "execution_liquidity_pass": False,
+            "execution_venues": "",
+            "execution_reason": "Coin is not yet in the prepared discovery universe",
+            "kraken_available": False,
+            "cryptocom_available": False,
+            "cross_exchange_quote_volume": np.nan,
+            "execution_max_quote_volume": np.nan,
+        }
+
+    row = match.iloc[0]
+    return {
+        "execution_available": _boolish(row.get("Execution available", False)),
+        "execution_liquidity_pass": _boolish(row.get("Execution liquidity pass", False)),
+        "execution_venues": str(row.get("Execution venues", "") or ""),
+        "execution_reason": str(row.get("Execution reason", "") or ""),
+        "kraken_available": _boolish(row.get("Kraken available", False)),
+        "cryptocom_available": _boolish(row.get("Crypto.com available", False)),
+        "kraken_quote_volume": _safe_float(row.get("Kraken USD-like 24h volume"), 0.0),
+        "cryptocom_quote_volume": _safe_float(row.get("Crypto.com USD-like 24h volume"), 0.0),
+        "cross_exchange_quote_volume": _safe_float(row.get("Cross-exchange quote volume"), np.nan),
+        "execution_max_quote_volume": _safe_float(row.get("Execution max USD-like 24h volume"), np.nan),
+    }
+
+
+def attach_prepared_execution_columns(df: pd.DataFrame) -> pd.DataFrame:
+    if df is None or df.empty:
+        return df
+    state = load_crypto_pipeline_state()
+    universe = state.get("universe", pd.DataFrame())
+    if universe is None or universe.empty or "Base" not in universe.columns:
+        out = df.copy()
+        out["Execution liquidity pass"] = False
+        out["Execution venues"] = ""
+        out["Execution reason"] = "Background execution-liquidity check not available yet"
+        return out
+
+    cols = [
+        "Base", "Cross-exchange quote volume", "Kraken available",
+        "Crypto.com available", "Kraken USD-like 24h volume",
+        "Crypto.com USD-like 24h volume", "Execution available",
+        "Execution venues", "Execution max USD-like 24h volume",
+        "Execution liquidity pass", "Execution reason",
+    ]
+    available_cols = [col for col in cols if col in universe.columns]
+    meta = universe[available_cols].copy()
+    meta["Base"] = meta["Base"].astype(str).str.upper()
+    out = df.copy()
+    if "Coin" in out.columns:
+        out["_Execution base"] = out["Coin"].astype(str).str.upper()
+    elif "Base" in out.columns:
+        out["_Execution base"] = out["Base"].astype(str).str.upper()
+    else:
+        out["_Execution base"] = ""
+    out = out.merge(meta, left_on="_Execution base", right_on="Base", how="left", suffixes=("", "_exec"))
+    out = out.drop(columns=["_Execution base", "Base_exec"], errors="ignore")
+    if "Execution liquidity pass" in out.columns:
+        out["Execution liquidity pass"] = out["Execution liquidity pass"].map(_boolish)
+    return out
+
+
 def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float = 80.0) -> Dict:
     if not result or "score" not in result:
         return {"action": "UNAVAILABLE", "reason": "Not enough market data to score this coin."}
@@ -2566,11 +2654,13 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
     score_pass = _safe_float(result.get("score"), 0.0) >= float(score_threshold)
     rs_pass = base == "BTC" or _safe_float(result.get("rs_vs_btc_pct"), -999) > 0
     candle_pass = not bool(result.get("candle_caution"))
+    execution_pass = bool(result.get("execution_liquidity_pass", False))
 
-    # Swing BUY is driven by the technical setup. Tokenomics, CEX breadth, macro,
+    # Swing BUY is driven by the technical setup, but a personal BUY also requires
+    # safe execution liquidity on Kraken or Crypto.com. Tokenomics, CEX breadth, macro,
     # catalysts and general context are warnings/confidence only; they do not rescue
     # a poor chart and they do not veto an otherwise valid technical setup.
-    if result.get("eligible") and score_pass and rs_pass and candle_pass:
+    if result.get("eligible") and score_pass and rs_pass and candle_pass and execution_pass:
         warnings = []
         if result.get("tokenomics_gate") != "PASS":
             warnings.append("tokenomics risk/unknown")
@@ -2590,8 +2680,8 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
             "action": "BUY",
             "reason": (
                 f"Technical pre-breakout rules pass: score {result.get('score', 0):.1f} "
-                f">= {float(score_threshold):.0f}, positive relative strength, constructive execution setup "
-                "and a credible 30%+ target."
+                f">= {float(score_threshold):.0f}, positive relative strength, a credible 30%+ target, "
+                "and execution liquidity passes on Kraken/Crypto.com."
                 + suffix
             ),
         }
@@ -2604,6 +2694,11 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
             reasons.append("not beating BTC")
         if not candle_pass:
             reasons.append("4h candle rejection caution")
+        if not execution_pass:
+            reasons.append(
+                result.get("execution_reason")
+                or "execution liquidity not confirmed on Kraken/Crypto.com"
+            )
         return {
             "action": "WAIT",
             "reason": "The pre-breakout shape exists, but " + ", ".join(reasons or ["the technical entry is not ready"]) + ".",
@@ -2710,9 +2805,9 @@ st.markdown("""
 with st.sidebar:
     st.header("Scan settings")
     exchange_name = st.selectbox("Exchange", list(EXCHANGES.keys()), index=2)
-    universe_size = st.select_slider("Top liquid coins to scan", options=[25, 50, 75, 100, 150, 200, 250], value=200)
-    st.caption("Scan up to 250 liquid coins. Fewer may qualify for your volume filter.")
-    min_vol_m = st.number_input("Minimum 24h quote volume ($m)", min_value=1.0, max_value=500.0, value=5.0, step=1.0)
+    universe_size = st.select_slider("Manual live refresh limit", options=[25, 50, 75, 100, 150, 200, 250], value=200)
+    st.caption("This controls only the optional Advanced Trade live refresh; it is not the size of the automatic discovery universe.")
+    min_vol_m = st.number_input("Manual refresh pair-volume floor ($m)", min_value=1.0, max_value=500.0, value=5.0, step=1.0)
     threshold = st.slider("Minimum BUY score", 80, 95, 80, 1)
     max_distance = st.slider("Maximum distance below resistance (%)", 1.0, 8.0, 5.0, 0.25)
     max_rsi = st.slider("Maximum RSI", 60, 75, 69, 1)
