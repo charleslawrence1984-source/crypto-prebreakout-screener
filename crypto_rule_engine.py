@@ -20,7 +20,6 @@ class ScreenerConfig:
     score_threshold: int = 80
     too_late_pct: float = 2.0
     max_rsi: float = 69.0
-    min_gross_profit_pct: float = 30.0
     concurrency: int = 5
 
 
@@ -923,26 +922,27 @@ def score_setup(
         credible_targets.append(float(triangle_target))
     credible_targets = sorted(set(credible_targets))
 
-    minimum_trade_target = planned_entry * (1 + cfg.min_gross_profit_pct / 100)
+    # Target selection is informational/ranking evidence, not a minimum-upside gate.
+    # Use the nearest technically credible target above the planned entry.
     qualifying_targets = [
         level for level in credible_targets
-        if level >= minimum_trade_target
+        if level > planned_entry
     ]
     projected_target = qualifying_targets[0] if qualifying_targets else np.nan
     stretch_target = qualifying_targets[1] if len(qualifying_targets) > 1 else np.nan
 
     if math.isfinite(projected_target):
         target_basis = (
-            "Major weekly resistance meeting the 30% rule"
+            "Nearest major weekly resistance"
             if any(abs(projected_target - level) < max(level * 1e-8, 1e-12) for level in weekly_target_levels)
-            else "Ascending-triangle measured move meeting the 30% rule"
+            else "Ascending-triangle measured move"
             if math.isfinite(triangle_target)
             and abs(projected_target - triangle_target) < max(triangle_target * 1e-8, 1e-12)
-            else "4h measured move meeting the 30% rule"
+            else "4h measured move"
         )
         target_upside_pct = (projected_target - planned_entry) / planned_entry * 100
     else:
-        target_basis = "No credible target meets the 30% gross-profit rule"
+        target_basis = "No credible projected target currently available"
         target_upside_pct = np.nan
 
     downside_to_invalidation_pct = max(
@@ -968,14 +968,16 @@ def score_setup(
         and rsi_now <= 80
     )
     trade_target_eligible = math.isfinite(projected_target)
-    eligible = shape_eligible and trade_target_eligible
+    # A projected target is useful for R:R and planning, but is no longer a hard
+    # eligibility requirement. The Swing mission is setup quality + entry readiness.
+    eligible = shape_eligible
 
-    if eligible:
-        result_reason = "Pre-breakout candidate with at least 30% gross target upside"
-    elif not shape_eligible:
-        result_reason = shape_rejection or "Shape filter not met"
+    if eligible and trade_target_eligible:
+        result_reason = "Pre-breakout candidate with a technically credible projected target"
+    elif eligible:
+        result_reason = "Pre-breakout candidate; projected target currently unavailable"
     else:
-        result_reason = "Pre-breakout shape found, but no credible 30% gross-profit target"
+        result_reason = shape_rejection or "Shape filter not met"
 
     # Accumulation is now driven by the actual daily base structure. Long-range
     # weekly support and the four-year range are reference context only and do
@@ -1028,7 +1030,6 @@ def score_setup(
         "stretch_target": stretch_target,
         "target_upside_pct": round(float(target_upside_pct), 2) if math.isfinite(target_upside_pct) else np.nan,
         "target_basis": target_basis,
-        "minimum_gross_profit_pct": cfg.min_gross_profit_pct,
         "entry_basis": entry_basis,
         "coin_trend": coin_trend_info["trend"],
         "coin_trend_daily": coin_trend_info["daily"],
