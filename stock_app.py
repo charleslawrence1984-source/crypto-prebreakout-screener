@@ -20,7 +20,7 @@ import streamlit as st
 from cl_signal_ui import render_module_header, render_decision_guidance
 import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
-from strategy_scores_v3 import long_term_analysis
+from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION
 from two_strategy import investment_decision
 from trade_rules import (
     FundamentalSnapshot,
@@ -2206,6 +2206,12 @@ def _investment_company_result(
                 "Required margin of safety %": lt.get("required_margin_of_safety_pct"),
                 "Bear margin of safety %": lt.get("margin_of_safety_bear_pct"),
                 "Valuation gate": "PASS" if lt.get("valuation_gate_pass") else "WAIT",
+                "Valuation model version": lt.get("valuation_model_version", VALUATION_MODEL_VERSION),
+                "Valuation FX status": lt.get("valuation_fx_status", "FX UNAVAILABLE"),
+                "Valuation FX rate": lt.get("valuation_fx_rate"),
+                "Valuation FX pair": lt.get("valuation_fx_pair", ""),
+                "Quote currency": lt.get("quote_currency", fund.get("quote_currency", "")),
+                "Financial currency": lt.get("financial_currency", fund.get("financial_currency", "")),
                 "Resilience": lt.get("resilience_score", np.nan),
                 "Reinvestment": lt.get("reinvestment_score", np.nan),
                 "Capital allocation": lt.get("capital_allocation_score", np.nan),
@@ -2373,6 +2379,16 @@ def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFram
     missing = 0
     for idx, row in out.iterrows():
         symbol = str(row.get("Ticker") or "")
+        if str(row.get("Valuation model version") or "") != VALUATION_MODEL_VERSION:
+            out.at[idx, "Action"] = "WAIT"
+            out.at[idx, "Valuation gate"] = "WAIT"
+            out.at[idx, "Decision reason"] = "valuation model is stale; full FX-safe valuation refresh required"
+            continue
+        if str(row.get("Valuation FX status") or "").upper() != "PASS":
+            out.at[idx, "Action"] = "WAIT"
+            out.at[idx, "Valuation gate"] = "WAIT"
+            out.at[idx, "Decision reason"] = "valuation currency conversion is unavailable or unverified"
+            continue
         price = safe(prices.get(symbol))
         if np.isnan(price) or price <= 0:
             missing += 1
@@ -3041,15 +3057,52 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     output["Required margin of safety %"] = pd.to_numeric(
         output.get("Required margin of safety %"), errors="coerce"
     )
+    # Positive means the achieved margin of safety exceeds the required hurdle.
     output["MOS gap %"] = (
-        output["Required margin of safety %"] - output["Base margin of safety %"]
+        output["Base margin of safety %"] - output["Required margin of safety %"]
     )
+
+    # Old prepared rows used a DCF that could compare different currencies.
+    # Never surface those rows as current opportunities.
+    if "Valuation model version" in output.columns:
+        output = output[
+            output["Valuation model version"].astype(str).eq(VALUATION_MODEL_VERSION)
+        ].copy()
+    else:
+        return pd.DataFrame()
+
+    if "Valuation FX status" in output.columns:
+        invalid_fx = ~output["Valuation FX status"].astype(str).str.upper().eq("PASS")
+        output.loc[invalid_fx, "Action"] = "WAIT"
+        output.loc[invalid_fx, "Valuation gate"] = "WAIT"
+
     output["_action_order"] = output["Action"].map({"BUY CANDIDATE": 0, "WAIT": 1}).fillna(9)
+    output["_company_key"] = (
+        output.get("Company", output["Ticker"])
+        .fillna(output["Ticker"])
+        .astype(str)
+        .str.lower()
+        .str.replace(r"[^a-z0-9]+", "", regex=True)
+    )
+    output["_fx_order"] = output.get(
+        "Valuation FX status", pd.Series("", index=output.index)
+    ).astype(str).str.upper().eq("PASS").map({True: 0, False: 1})
     output = output.sort_values(
-        ["_action_order", "MOS gap %", "Quality score"],
-        ascending=[True, True, False],
+        ["_action_order", "_fx_order", "MOS gap %", "Quality score"],
+        ascending=[True, True, False, False],
         na_position="last",
-    ).drop(columns="_action_order")
+    )
+
+    # One underlying company should appear once even when OTC/Gettex/etc. expose
+    # multiple secondary listings. Preserve the alternatives for execution choice.
+    alternatives = (
+        output.groupby("_company_key", dropna=False)["Ticker"]
+        .apply(lambda s: ", ".join(dict.fromkeys(str(x) for x in s if str(x))))
+        .to_dict()
+    )
+    output["Alternate listings"] = output["_company_key"].map(alternatives)
+    output = output.drop_duplicates(subset=["_company_key"], keep="first")
+    output = output.drop(columns=["_action_order", "_fx_order", "_company_key"])
     return output.reset_index(drop=True)
 
 
