@@ -3081,7 +3081,7 @@ def set_crypto_watchlist_symbol(symbol: str, enabled: bool) -> None:
     save_crypto_watchlist(ordered)
 
 
-def crypto_trade_decision(result: Dict, macro_now: Dict) -> Dict:
+def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float = 80.0) -> Dict:
     if not result or "score" not in result:
         return {"action": "UNAVAILABLE", "reason": "Not enough market data to score this coin."}
 
@@ -3108,46 +3108,57 @@ def crypto_trade_decision(result: Dict, macro_now: Dict) -> Dict:
         }),
         macro_now,
     )
+
+    score_pass = _safe_float(result.get("score"), 0.0) >= float(score_threshold)
     rs_pass = base == "BTC" or _safe_float(result.get("rs_vs_btc_pct"), -999) > 0
-    if (
-        result.get("eligible")
-        and rs_pass
-        and result.get("tokenomics_gate") == "PASS"
-        and result.get("major_cex_gate") == "PASS"
-        and not result.get("candle_caution")
-        and overlay.get("Context confidence") != "LOW"
-        and overlay.get("Known event risk") != "HIGH"
-        and macro_now.get("allows_new_swing_risk", True)
-    ):
+    candle_pass = not bool(result.get("candle_caution"))
+
+    # Swing BUY is driven by the technical setup. Tokenomics, CEX breadth, macro,
+    # catalysts and general context are warnings/confidence only; they do not rescue
+    # a poor chart and they do not veto an otherwise valid technical setup.
+    if result.get("eligible") and score_pass and rs_pass and candle_pass:
+        warnings = []
+        if result.get("tokenomics_gate") != "PASS":
+            warnings.append("tokenomics risk/unknown")
+        if result.get("major_cex_gate") != "PASS":
+            warnings.append("limited major-exchange breadth")
+        if overlay.get("Context confidence") == "LOW":
+            warnings.append("low context confidence")
+        if overlay.get("Known event risk") == "HIGH":
+            warnings.append("known event risk")
+        if not macro_now.get("allows_new_swing_risk", True):
+            warnings.append("macro liquidity headwind")
+        suffix = (
+            " Context warnings: " + ", ".join(warnings) + "."
+            if warnings else ""
+        )
         return {
             "action": "BUY",
-            "reason": "The pre-breakout setup, relative strength, tokenomics, exchange breadth, context and macro gates currently pass.",
+            "reason": (
+                f"Technical pre-breakout rules pass: score {result.get('score', 0):.1f} "
+                f">= {float(score_threshold):.0f}, positive relative strength, constructive execution setup "
+                "and a credible 30%+ target."
+                + suffix
+            ),
         }
 
     if result.get("eligible"):
         reasons = []
+        if not score_pass:
+            reasons.append(f"technical score below {float(score_threshold):.0f}")
         if not rs_pass:
             reasons.append("not beating BTC")
-        if result.get("tokenomics_gate") != "PASS":
-            reasons.append("tokenomics gate not passed")
-        if result.get("major_cex_gate") != "PASS":
-            reasons.append("major-exchange breadth not passed")
-        if result.get("candle_caution"):
+        if not candle_pass:
             reasons.append("4h candle rejection caution")
-        if overlay.get("Context confidence") == "LOW" or overlay.get("Known event risk") == "HIGH":
-            reasons.append("context/event-risk gate")
-        if not macro_now.get("allows_new_swing_risk", True):
-            reasons.append("macro liquidity")
         return {
             "action": "WAIT",
-            "reason": "The technical setup is developing, but " + ", ".join(reasons or ["one or more confirmation gates"]) + " still needs to improve.",
+            "reason": "The pre-breakout shape exists, but " + ", ".join(reasons or ["the technical entry is not ready"]) + ".",
         }
 
     return {
         "action": "PASS",
         "reason": result.get("reason", "The current pre-breakout shape does not meet the approved setup rules."),
     }
-
 
 def render_crypto_decision_card(title: str, action: str, reason: str) -> None:
     action_upper = str(action or "UNAVAILABLE").upper()
@@ -3473,7 +3484,7 @@ with tab_crypto_home:
                     set_crypto_watchlist_symbol(home_symbol.split("/")[0], watch_now)
                     st.toast("Added to crypto watchlist" if watch_now else "Removed from crypto watchlist")
 
-            trade_decision = crypto_trade_decision(home_result, macro)
+            trade_decision = crypto_trade_decision(home_result, macro, cfg.score_threshold)
             accumulation_verdict = str(
                 home_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
             )
@@ -3761,7 +3772,7 @@ with tab_crypto_quick:
                 }),
                 macro_now,
             )
-            trade_decision = crypto_trade_decision(qa_result, macro_now)
+            trade_decision = crypto_trade_decision(qa_result, macro_now, cfg.score_threshold)
             accumulation_verdict = str(
                 qa_result.get("accumulation_verdict", "NOT READY TO ACCUMULATE")
             )
@@ -4426,25 +4437,13 @@ with tab_crypto_advanced:
             (technical_swing_setups["Coin"] == "BTC")
             | (technical_swing_setups["RS vs BTC %"] > 0)
         ].copy()
-        tokenomics_qualified_setups = rs_qualified_setups[
-            rs_qualified_setups["Tokenomics gate"] == "PASS"
+        # Final BUY status is technical-first. Tokenomics, CEX breadth, macro,
+        # catalysts and general context remain visible as warnings/confidence only.
+        # The latest completed 4h rejection candle remains an execution-risk gate.
+        candle_qualified_setups = rs_qualified_setups[
+            rs_qualified_setups["Candle caution"] != "CAUTION"
         ].copy()
-        cex_qualified_setups = tokenomics_qualified_setups[
-            tokenomics_qualified_setups["Major CEX gate"] == "PASS"
-        ].copy()
-        candle_qualified_setups = cex_qualified_setups[
-            cex_qualified_setups["Candle caution"] != "CAUTION"
-        ].copy()
-        context_qualified_setups = candle_qualified_setups[
-            (candle_qualified_setups["Context confidence"] != "LOW")
-            & (candle_qualified_setups["Known event risk"] != "HIGH")
-        ].copy()
-        macro_allows_new_risk = bool(macro_now.get("allows_new_swing_risk", True))
-        swing_setups = (
-            context_qualified_setups
-            if macro_allows_new_risk
-            else context_qualified_setups.iloc[0:0].copy()
-        )
+        swing_setups = candle_qualified_setups.copy()
         accumulation_setups = df[
             df["Accumulation verdict"] == "ACCUMULATION READY"
         ].copy().sort_values("Accumulation score", ascending=False)
@@ -4456,104 +4455,49 @@ with tab_crypto_advanced:
         )
         swing_candidates["Macro regime"] = macro_now.get("regime", "DATA LIMITED")
         swing_candidates["Macro score"] = macro_now.get("score", np.nan)
-        swing_candidates["Reason"] = swing_candidates.apply(
-            lambda row: (
-                "Meets technical rules and macro liquidity allows new swing risk"
-                if row["Status"] == "BUY"
-                else (
-                    (
-                        "Technical setup qualifies, but the altcoin is not beating BTC over the "
-                        "48-hour relative-strength window. "
-                        if (
-                            row["Symbol"] in set(technical_swing_setups["Symbol"])
-                            and row["Coin"] != "BTC"
-                            and row["RS vs BTC %"] <= 0
-                        )
-                        else ""
-                    )
-                    + (
-                        (
-                            "Technical setup qualifies, but tokenomics need review: "
-                            + (
-                                "circulating float is below the 25% rule. "
-                                if row.get("Tokenomics gate") == "FAIL"
-                                else "circulating/total supply could not be verified. "
-                            )
-                        )
-                        if (
-                            row["Symbol"] in set(rs_qualified_setups["Symbol"])
-                            and row.get("Tokenomics gate") != "PASS"
-                        )
-                        else ""
-                    )
-                    + (
-                        (
-                            f"Major-exchange breadth is {row.get('Major CEX quality', 'DATA LIMITED')} "
-                            f"({int(row.get('Major CEX count', 0))} major CEX listing(s)); "
-                            "at least 2 verified major CEX listings are required for BUY. "
-                        )
-                        if (
-                            row["Symbol"] in set(tokenomics_qualified_setups["Symbol"])
-                            and row.get("Major CEX gate") != "PASS"
-                        )
-                        else ""
-                    )
-                    + (
-                        (
-                            "Latest completed 4h candle is a red shooting star near the setup zone; "
-                            "buyers were rejected higher up, so wait for confirmation. "
-                        )
-                        if (
-                            row["Symbol"] in set(cex_qualified_setups["Symbol"])
-                            and row.get("Candle caution") == "CAUTION"
-                        )
-                        else ""
-                    )
-                    + (
-                        (
-                            f"TA limitation overlay is {row.get('Context confidence', 'MEDIUM')}: "
-                            + (
-                                f"known event risk is {row.get('Known event risk', 'UNKNOWN')}. "
-                                if row.get("Known event risk") == "HIGH"
-                                else ""
-                            )
-                            + (
-                                f"Conflicts: {row.get('Conflicts', '')}. "
-                                if row.get("Context confidence") == "LOW" and row.get("Conflicts")
-                                else ""
-                            )
-                        )
-                        if (
-                            row["Symbol"] in set(candle_qualified_setups["Symbol"])
-                            and (
-                                row.get("Context confidence") == "LOW"
-                                or row.get("Known event risk") == "HIGH"
-                            )
-                        )
-                        else ""
-                    )
-                    + (
-                        f"Technical setup qualifies, but macro liquidity is "
-                        f"{macro_now.get('regime', 'DATA LIMITED')} "
-                        f"({macro_now.get('score', np.nan):.1f}/100). "
-                        if (
-                            row["Symbol"] in set(context_qualified_setups["Symbol"])
-                            and not macro_allows_new_risk
-                            and pd.notna(macro_now.get("score", np.nan))
-                        )
-                        else ""
-                    )
-                    + (
-                        f"Score {row['Score']:.1f} below {cfg.score_threshold}. "
-                        if row["Score"] < cfg.score_threshold else ""
-                    )
-                    + (
-                        row["Trade reason"]
-                        if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET" else ""
-                    )
+        def swing_candidate_reason(row: pd.Series) -> str:
+            is_buy = row["Status"] == "BUY"
+            warnings = []
+            if row.get("Tokenomics gate") != "PASS":
+                warnings.append("tokenomics risk/unknown")
+            if row.get("Major CEX gate") != "PASS":
+                warnings.append("limited major-CEX breadth")
+            if row.get("Context confidence") == "LOW":
+                warnings.append("low context confidence")
+            if row.get("Known event risk") == "HIGH":
+                warnings.append("known event risk")
+            if not macro_now.get("allows_new_swing_risk", True):
+                warnings.append(f"macro {macro_now.get('regime', 'DATA LIMITED')}")
+
+            if is_buy:
+                base = (
+                    f"Technical BUY: score {row['Score']:.1f} >= {cfg.score_threshold}, "
+                    "30%+ target rule passes, RS vs BTC passes and no 4h rejection-candle gate."
                 )
-            ), axis=1,
-        )
+                return base + ((" Context warnings: " + ", ".join(warnings) + ".") if warnings else "")
+
+            reasons = []
+            if row["Score"] < cfg.score_threshold:
+                reasons.append(f"score {row['Score']:.1f} below {cfg.score_threshold}")
+            if (
+                row["Symbol"] in set(technical_swing_setups["Symbol"])
+                and row["Coin"] != "BTC"
+                and row["RS vs BTC %"] <= 0
+            ):
+                reasons.append("not beating BTC over the 48h RS window")
+            if (
+                row["Symbol"] in set(rs_qualified_setups["Symbol"])
+                and row.get("Candle caution") == "CAUTION"
+            ):
+                reasons.append("latest completed 4h candle shows rejection")
+            if row["Trade verdict"] != "QUALIFIES — 30%+ GROSS TARGET":
+                reasons.append(str(row["Trade reason"]))
+            if not reasons:
+                reasons.append("technical entry not ready")
+            suffix = (" Context notes: " + ", ".join(warnings) + ".") if warnings else ""
+            return "WAIT: " + "; ".join(reasons) + "." + suffix
+
+        swing_candidates["Reason"] = swing_candidates.apply(swing_candidate_reason, axis=1)
         swing_candidates["_confidence_rank"] = swing_candidates["Context confidence"].map(
             {"HIGH": 0, "MEDIUM": 1, "LOW": 2}
         ).fillna(3)
@@ -4708,64 +4652,32 @@ with tab_crypto_advanced:
         with swing_tab:
             st.subheader("Swing-trade candidates")
             st.caption(
-                f"All {len(df)} analysed coins are shown. BUY requires a trade score of "
-                f"{cfg.score_threshold}+ and the existing shape and 30% gross-target rules. "
-                "A technical qualifier is only promoted to BUY when an altcoin is beating BTC over "
-                "the 48h relative-strength window, circulating supply is at least 25% of total/max "
-                "supply, the coin is verified on at least 2 major CEXs, and the macro-liquidity "
-                "regime is not deteriorating/contracting. "
-                "Unknown tokenomics remain WAIT rather than passing by assumption. "
-                "WAIT candidates remain visible with their reasons. "
-                "The first columns show the trade plan: current price, planned entry, stop/exit, "
-                "price target, projected ROI and reward/risk. A red shooting star on the latest "
-                "completed 4h candle forces an otherwise-qualified setup to WAIT for confirmation. "
-                "The TA limitation overlay also keeps LOW-confidence / high-event-risk setups at WAIT "
-                "when too many signals conflict or a known risk event could invalidate the chart. "
-                "Green = preferred, amber = borderline, red = weak or extended."
+                f"All {len(df)} analysed coins are shown. BUY is technical-first: score "
+                f"{cfg.score_threshold}+, the approved pre-breakout shape, a credible 30%+ gross target, "
+                "positive RS vs BTC for altcoins, and no latest-4h rejection-candle gate. "
+                "Tokenomics, major-CEX breadth, catalysts/event risk, category leadership and macro "
+                "remain visible as context warnings/confidence only; they do not rescue a poor chart "
+                "and do not veto an otherwise valid technical BUY. Liquidity/tradeability is already "
+                "handled upstream by the eligible-market universe filters. WAIT candidates remain visible "
+                "with their technical reasons. Green = preferred, amber = borderline, red = weak or extended."
             )
             if swing_setups.empty:
                 rs_blocked = len(technical_swing_setups) - len(rs_qualified_setups)
-                tokenomics_blocked = len(rs_qualified_setups) - len(tokenomics_qualified_setups)
-                cex_blocked = len(tokenomics_qualified_setups) - len(cex_qualified_setups)
-                candle_blocked = len(cex_qualified_setups) - len(candle_qualified_setups)
-                context_blocked = len(candle_qualified_setups) - len(context_qualified_setups)
+                candle_blocked = len(rs_qualified_setups) - len(candle_qualified_setups)
                 if rs_blocked > 0:
                     st.info(
-                        f"{rs_blocked} technical setup(s) currently qualify technically but remain "
+                        f"{rs_blocked} technical setup(s) currently qualify on score/target but remain "
                         "WAIT because the altcoin is not beating BTC over the 48h RS window."
-                    )
-                elif tokenomics_blocked > 0:
-                    st.info(
-                        f"{tokenomics_blocked} technical setup(s) currently qualify technically "
-                        "but remain WAIT because the 25% circulating-supply tokenomics gate "
-                        "fails or cannot be verified."
-                    )
-                elif cex_blocked > 0:
-                    st.info(
-                        f"{cex_blocked} otherwise-qualified setup(s) remain WAIT because they "
-                        "do not have at least 2 verified listings across the major CEX basket."
                     )
                 elif candle_blocked > 0:
                     st.info(
                         f"{candle_blocked} otherwise-qualified setup(s) remain WAIT because the "
-                        "latest completed 4h candle is a red shooting star."
-                    )
-                elif context_blocked > 0:
-                    st.info(
-                        f"{context_blocked} otherwise-qualified setup(s) remain WAIT because the "
-                        "TA limitation overlay is LOW confidence or a known high-risk event is present."
-                    )
-                elif not context_qualified_setups.empty and not macro_allows_new_risk:
-                    st.info(
-                        f"{len(context_qualified_setups)} technical setup(s) currently meet the "
-                        f"{cfg.score_threshold}+, 30% target, relative-strength, tokenomics, "
-                        "major-CEX, candle and conflict rules, but macro liquidity is "
-                        f"{macro_now.get('regime', 'DATA LIMITED')}; they remain WAIT."
+                        "latest completed 4h candle is a red shooting star / rejection candle."
                     )
                 else:
                     st.info(
                         f"No swing-trade setup currently meets the {cfg.score_threshold}+ "
-                        "BUY rules and 30% gross-target requirement."
+                        "technical BUY rules and 30% gross-target requirement."
                     )
             swing_cols = [
                 "Coin", "Status", "Context confidence", "Known event risk",
@@ -5195,7 +5107,7 @@ with tab_crypto_advanced:
     - **HIGH context confidence:** strong agreement with few/no material conflicts.
     - **MEDIUM:** usable setup, but one or more signals or event conditions deserve caution.
     - **LOW:** too many conflicts or a known high-risk event; an otherwise technical BUY remains WAIT.
-    - **Known event risk:** explicit unlock/vesting-style risk events are treated as HIGH risk; near-dated catalysts are treated as event-volatility caution.
+    - **Known event risk:** explicit unlock/vesting-style events are shown as HIGH context risk; near-dated catalysts are shown as event-volatility caution. They are context warnings rather than automatic swing vetoes unless a separate hard liquidity/tradeability rule fails.
     - **News coverage:** the full scan can only see structured known events. Unexpected breaking news cannot be predicted.
     - **Sentiment coverage:** the full scan currently uses proxies rather than pretending it has complete market-wide social sentiment.
     - **Invalidation remains mandatory:** no confidence label removes the need to exit when the trade thesis fails.
