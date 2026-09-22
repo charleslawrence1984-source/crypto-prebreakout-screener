@@ -15,6 +15,13 @@ import pandas as pd
 from crypto_macro import snapshot_age_minutes, snapshot_payload
 from crypto_universe_rules import crypto_universe_exclusion_reason
 from crypto_rule_engine import ScreenerConfig, score_setup
+from crypto_accumulation_model import (
+    ACCUMULATION_MODEL_VERSION,
+    fetch_coingecko_category_leaders,
+    fetch_coingecko_tokenomics,
+    score_accumulation,
+    tokenomics_context,
+)
 
 
 EXCHANGES = {
@@ -111,6 +118,7 @@ async def load_exchange_snapshot(
         tickers = await asyncio.wait_for(exchange.fetch_tickers(), timeout=60)
 
         rows = []
+        all_listed_bases = set()
         execution_listed_bases = set()
         execution_usd_volume_by_base: Dict[str, float] = {}
         counts = {
@@ -147,6 +155,7 @@ async def load_exchange_snapshot(
                 continue
 
             ticker = tickers.get(symbol) or {}
+            all_listed_bases.add(base)
 
             if exchange_id in EXECUTION_EXCHANGES:
                 execution_listed_bases.add(base)
@@ -191,6 +200,7 @@ async def load_exchange_snapshot(
             "exchange_id": exchange_id,
             "exchange": label,
             "listed_bases": execution_listed_bases,
+            "all_listed_bases": all_listed_bases,
             "usd_volume_by_base": execution_usd_volume_by_base,
         }
         return frame, counts, execution_meta
@@ -252,6 +262,15 @@ async def load_all_universes(
         best["Eligible exchange count"] = int(group["Exchange id"].nunique())
         best["Eligible exchanges"] = ", ".join(sorted(group["Exchange"].unique()))
         best["Cross-exchange quote volume"] = cross_volume
+
+        major_venue_list = []
+        for venue_id, venue_label in EXCHANGES.items():
+            meta = execution_meta_by_id.get(venue_id, {})
+            if base in meta.get("all_listed_bases", set()):
+                major_venue_list.append(venue_label)
+        best["Major venue listing count"] = len(major_venue_list)
+        best["Major venue listings"] = ", ".join(major_venue_list)
+        best["Major venues checked"] = len(execution_meta_by_id)
 
         execution_venues = []
         execution_volumes = {}
@@ -651,10 +670,10 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
     else:
         swing_status = "PASS"
 
-    accumulation_verdict = str(result.get("accumulation_verdict") or "")
-    if accumulation_verdict == "ACCUMULATION READY" and execution_pass:
+    accumulation_model_status = str(result.get("accumulation_model_status") or "PASS")
+    if accumulation_model_status == "ACCUMULATE":
         accumulation_status = "ACCUMULATE"
-    elif accumulation_verdict == "ACCUMULATION READY" or accumulation_verdict.startswith("WATCH") or safe(result.get("bottom_score"), 0) >= 50:
+    elif accumulation_model_status in {"QUALITY WATCH", "BASE DEVELOPING"}:
         accumulation_status = "WATCH"
     else:
         accumulation_status = "PASS"
@@ -667,6 +686,9 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "24h quote volume": item.get("24h quote volume"),
         "Eligible exchange count": item.get("Eligible exchange count"),
         "Eligible exchanges": item.get("Eligible exchanges"),
+        "Major venue listing count": item.get("Major venue listing count", 0),
+        "Major venue listings": item.get("Major venue listings", ""),
+        "Major venues checked": item.get("Major venues checked", 0),
         "Cross-exchange quote volume": item.get("Cross-exchange quote volume"),
         "Kraken available": item.get("Kraken available", False),
         "Crypto.com available": item.get("Crypto.com available", False),
@@ -714,8 +736,24 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "Project freshness": result.get("project_freshness"),
         "History days": result.get("history_days"),
         "Accumulation status": accumulation_status,
-        "Accumulation score": result.get("bottom_score"),
-        "Accumulation verdict": result.get("accumulation_verdict"),
+        "Accumulation model version": result.get("accumulation_model_version", ACCUMULATION_MODEL_VERSION),
+        "Accumulation score": result.get("accumulation_quality_score"),
+        "Accumulation base score": result.get("accumulation_base_score", result.get("bottom_score")),
+        "Accumulation verdict": result.get("accumulation_model_status"),
+        "Accumulation reason": result.get("accumulation_reason"),
+        "Accumulation quality pass": result.get("accumulation_quality_pass", False),
+        "Accumulation tokenomics pass": result.get("accumulation_tokenomics_pass", False),
+        "Accumulation components": json.dumps(result.get("accumulation_quality_components", {}), sort_keys=True),
+        "Tokenomics gate": result.get("tokenomics_gate", "UNKNOWN"),
+        "Circulating %": result.get("circulating_pct"),
+        "Minimum circulating %": result.get("minimum_circulating_pct"),
+        "FDV / MCap": result.get("fdv_mcap"),
+        "Tokenomics risks": result.get("tokenomics_risks", ""),
+        "Unlock review": result.get("unlock_review", ""),
+        "Category leader": result.get("category_leader", "UNKNOWN"),
+        "Leader categories": result.get("leader_categories", ""),
+        "Meme supply exception": result.get("meme_supply_exception", False),
+        "Base verdict": result.get("accumulation_verdict"),
         "Accumulation low": result.get("accumulation_low"),
         "Accumulation high": result.get("accumulation_high"),
         "In accumulation zone": bool(result.get("in_accumulation_zone")),
@@ -727,6 +765,8 @@ async def deep_score_batch(
     universe: pd.DataFrame,
     bases: List[str],
     quote: str,
+    tokenomics_snapshot: Dict[str, Dict],
+    category_leaders: Dict[str, List[str]],
     concurrency: int = 8,
 ):
     if not bases:
@@ -775,6 +815,20 @@ async def deep_score_batch(
                             min_gross_profit_pct=30.0,
                         )
                         result = score_setup(df4, dfd, btc4, cfg, dfw=dfw, btcd=btcd)
+                        context = tokenomics_context(
+                            str(item.get("Base") or ""),
+                            tokenomics_snapshot,
+                            category_leaders,
+                        )
+                        context["major_venue_listing_count"] = item.get("Major venue listing count", 0)
+                        context["major_venue_listings"] = item.get("Major venue listings", "")
+                        context["major_venues_checked"] = item.get("Major venues checked", 0)
+                        accumulation = score_accumulation(
+                            result,
+                            context,
+                            bool(item.get("Execution liquidity pass")),
+                        )
+                        result.update(accumulation)
                         return flatten_deep_score(item, result)
                     except Exception as exc:
                         errors.append(
@@ -803,6 +857,12 @@ async def deep_score_batch(
 def merge_deep_scores(existing: pd.DataFrame, fresh: pd.DataFrame, eligible_bases: set) -> pd.DataFrame:
     if not existing.empty:
         existing = existing[existing["Base"].astype(str).isin(eligible_bases)].copy()
+        if "Accumulation model version" in existing.columns:
+            existing = existing[
+                existing["Accumulation model version"].astype(str) == ACCUMULATION_MODEL_VERSION
+            ].copy()
+        else:
+            existing = existing.iloc[0:0].copy()
     if fresh.empty:
         return existing
     if existing.empty:
@@ -826,6 +886,9 @@ def refresh_execution_metadata(scores: pd.DataFrame, universe: pd.DataFrame) -> 
 
     execution_cols = [
         "Base",
+        "Major venue listing count",
+        "Major venue listings",
+        "Major venues checked",
         "Cross-exchange quote volume",
         "Kraken available",
         "Crypto.com available",
@@ -872,13 +935,44 @@ def refresh_execution_metadata(scores: pd.DataFrame, universe: pd.DataFrame) -> 
         default="PASS",
     )
 
-    acc_verdict = out.get("Accumulation verdict", "").fillna("").astype(str)
     acc_score = pd.to_numeric(out.get("Accumulation score"), errors="coerce").fillna(0)
-    acc_ready = acc_verdict.eq("ACCUMULATION READY")
-    acc_watch = acc_ready | acc_verdict.str.startswith("WATCH") | acc_score.ge(50)
+    acc_base_score = pd.to_numeric(out.get("Accumulation base score"), errors="coerce").fillna(0)
+    acc_quality_pass = out.get("Accumulation quality pass", False)
+    if isinstance(acc_quality_pass, pd.Series):
+        acc_quality_pass = acc_quality_pass.fillna(False).astype(bool)
+    else:
+        acc_quality_pass = pd.Series(False, index=out.index)
+    acc_tokenomics_pass = out.get("Accumulation tokenomics pass", False)
+    if isinstance(acc_tokenomics_pass, pd.Series):
+        acc_tokenomics_pass = acc_tokenomics_pass.fillna(False).astype(bool)
+    else:
+        acc_tokenomics_pass = pd.Series(False, index=out.index)
+    in_zone = out.get("In accumulation zone", False)
+    if isinstance(in_zone, pd.Series):
+        in_zone = in_zone.fillna(False).astype(bool)
+    else:
+        in_zone = pd.Series(False, index=out.index)
+
+    acc_base_ready = acc_base_score.ge(70) & in_zone
+    acc_ready = acc_base_ready & acc_quality_pass & acc_tokenomics_pass & exec_pass
+    acc_watch = (
+        acc_base_ready
+        | acc_base_score.ge(50)
+        | in_zone
+        | acc_score.ge(55)
+    )
     out["Accumulation status"] = np.select(
-        [acc_ready & exec_pass, acc_watch],
+        [acc_ready, acc_watch],
         ["ACCUMULATE", "WATCH"],
+        default="PASS",
+    )
+    out["Accumulation verdict"] = np.select(
+        [
+            acc_ready,
+            acc_base_ready & ~acc_ready,
+            ~acc_base_ready & acc_watch,
+        ],
+        ["ACCUMULATE", "QUALITY WATCH", "BASE DEVELOPING"],
         default="PASS",
     )
     return out
@@ -1022,10 +1116,19 @@ async def run(args) -> int:
         if len(deep_bases) >= args.deep_score_size:
             break
 
+    tokenomics_task = asyncio.to_thread(fetch_coingecko_tokenomics)
+    categories_task = asyncio.to_thread(fetch_coingecko_category_leaders)
+    tokenomics_snapshot, category_leaders = await asyncio.gather(
+        tokenomics_task,
+        categories_task,
+    )
+
     deep_rows, deep_errors = await deep_score_batch(
         universe,
         deep_bases,
         args.quote,
+        tokenomics_snapshot,
+        category_leaders,
         concurrency=max(2, min(args.concurrency, 8)),
     )
     deep_fresh = pd.DataFrame(deep_rows)
