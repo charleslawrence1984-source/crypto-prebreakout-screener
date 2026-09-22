@@ -4206,7 +4206,31 @@ with tab_home:
     elif home_focus == "watchlist":
         st.markdown("#### ⭐ My watchlist")
         if home_watchlist:
-            render_live_watchlist_quotes()
+            home_watch_symbols = tuple(dict.fromkeys(str(value).upper() for value in home_watchlist))
+            home_watch_quotes = fetch_live_trade_quotes(home_watch_symbols)
+            home_trade_by_symbol = {
+                str(row.get("Ticker") or "").upper(): row
+                for row in home_trade.to_dict(orient="records")
+            } if not home_trade.empty else {}
+            home_watch_rows = []
+            for symbol in home_watch_symbols:
+                quote = home_watch_quotes.get(symbol, {})
+                active_row = home_trade_by_symbol.get(symbol)
+                home_watch_rows.append({
+                    "Ticker": symbol,
+                    "Company": watchlist_company_name(symbol),
+                    "Live price": safe(quote.get("price")),
+                    "Quote status": (
+                        "LIVE / DELAYED" if quote.get("fresh")
+                        else "LATEST SESSION" if quote
+                        else "DATA STALE"
+                    ),
+                    "Trade setup": (
+                        _overnight_trade_state(pd.Series(active_row))
+                        if active_row else "NO ACTIVE TRADE SETUP"
+                    ),
+                })
+            st.dataframe(pd.DataFrame(home_watch_rows), hide_index=True, use_container_width=True)
             st.caption("Use the dedicated Watchlist tab for a full status refresh, alert history and removals.")
         else:
             st.info("Your watchlist is empty. Tick Watch beside any company in an opportunity table or analysis to add it.")
