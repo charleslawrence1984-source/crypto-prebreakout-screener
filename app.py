@@ -2716,7 +2716,7 @@ with st.sidebar:
         index=1,
         format_func=lambda x: f"Manual · previous setting {x} min",
         disabled=True,
-        help="The formal Advanced Crypto scan is manual. The 24/7 all-market discovery pipeline updates every 5 minutes.",
+        help="The background crypto rule engine updates automatically. Advanced Trade lets you run an optional live refresh.",
     )
     st.caption("24/7 discovery refreshes every 5 min. Full CL Signal strategy scans run only when you press **Run scan now**.")
     sound_alerts = st.checkbox("Sound alert for new flags", value=False, help="Browser autoplay usually works after you have interacted with the page once.")
@@ -2763,7 +2763,7 @@ tab_crypto_advanced = tab_crypto_advanced_trade
 # Draw the module navigation before any remote data is requested. A cold macro
 # refresh previously ran here and could block the entire page for 60-90 seconds,
 # making Crypto look blank. The scheduled pipeline now supplies the macro snapshot;
-# a live refresh remains available in Advanced Crypto.
+# an optional live refresh remains available in Advanced Trade.
 pipeline_state = load_crypto_pipeline_state()
 prepared_macro = pipeline_state.get("macro") or {}
 macro_override = st.session_state.get("macro_liquidity_override") or {}
@@ -3780,12 +3780,12 @@ with tab_crypto_advanced:
 
     @st.fragment
     def live_scan():
-        # Formal scans are intentionally manual. The persistent all-market pipeline
-        # continues updating independently every five minutes.
-        # The 24/7 prepared Crypto pipeline now handles background freshness.
-        # Do not launch the expensive formal scanner from a hidden Streamlit tab:
+        # The scheduled all-market rule engine is the primary source for Home and Opportunities.
+        # Advanced Trade keeps an optional manual refresh for on-demand inspection.
+        # The prepared Crypto pipeline handles background freshness and opportunity feeds.
+        # Do not launch the expensive on-demand scanner from a hidden Streamlit tab:
         # st.tabs renders every tab, so doing that can make Crypto Home appear blank
-        # while a full market scan runs. The formal strategy scan is manual-only.
+        # while a full market scan runs. The on-demand refresh remains manual.
         should_scan = bool(manual_scan)
         if should_scan:
             status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
