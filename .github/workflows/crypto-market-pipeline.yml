@@ -51,7 +51,10 @@ jobs:
         run: |
           python crypto_market_pipeline.py \
             --quote USDT \
-            --min-quote-volume 5000000 \
+            --market-data-min-quote-volume 250000 \
+            --discovery-min-combined-volume 1000000 \
+            --buy-min-combined-volume 5000000 \
+            --buy-min-execution-volume 1000000 \
             --batch-size 150 \
             --max-active 150 \
             --deep-score-size 60 \
