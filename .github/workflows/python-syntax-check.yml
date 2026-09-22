@@ -9,6 +9,10 @@ on:
       - "crypto_rule_engine.py"
       - "crypto_market_pipeline.py"
       - "crypto_accumulation_model.py"
+      - "stock_app.py"
+      - "strategy_scores_v3.py"
+      - "two_strategy.py"
+      - "scheduled_investment_scan.py"
       - ".github/workflows/python-syntax-check.yml"
   workflow_dispatch:
 
@@ -21,4 +25,4 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile Python files
-        run: python -m py_compile app.py pre_pump_research.py crypto_rule_engine.py crypto_market_pipeline.py crypto_accumulation_model.py
+        run: python -m py_compile app.py pre_pump_research.py crypto_rule_engine.py crypto_market_pipeline.py crypto_accumulation_model.py stock_app.py strategy_scores_v3.py two_strategy.py scheduled_investment_scan.py
