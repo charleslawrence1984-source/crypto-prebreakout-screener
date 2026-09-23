@@ -3946,8 +3946,59 @@ with tab_crypto_portfolio:
 
 with tab_crypto_advanced:
     st.markdown("### Advanced Trade")
-    st.caption("Deep Swing analysis, live refresh controls, charts and technical evidence. Home and Opportunities are fed automatically by the scheduled background rule engine.")
+    st.caption(
+        "Deep analysis of the same all-market Swing results shown in Opportunities. "
+        "A separate selected-exchange diagnostic scan remains available further down for chart/data troubleshooting."
+    )
 
+    st.subheader("Current all-market Swing results")
+    st.caption(
+        "This table uses the exact same prepared all-market feed as **Opportunities**, so status, "
+        "score and entry timing should match there. It is the primary source of truth for the screener."
+    )
+    advanced_prepared = prepared_swing_feed.copy()
+    if advanced_prepared.empty:
+        st.info("The prepared all-market Swing feed is still initialising.")
+    else:
+        advanced_filter = st.radio(
+            "Show",
+            ["Best opportunities", "BUY", "WATCH", "All"],
+            horizontal=True,
+            key="crypto_advanced_prepared_filter",
+        )
+        advanced_shown = advanced_prepared.copy()
+        if advanced_filter == "BUY":
+            advanced_shown = advanced_shown[advanced_shown["Swing status"] == "BUY"]
+        elif advanced_filter == "WATCH":
+            advanced_shown = advanced_shown[advanced_shown["Swing status"] == "WATCH"]
+        elif advanced_filter == "Best opportunities":
+            advanced_shown = advanced_shown.head(25)
+
+        advanced_prepared_cols = [
+            "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange",
+            "Swing score", "Price", "Planned entry", "Invalidation", "Target",
+            "Target upside %", "Current target upside %", "R:R", "Current R:R",
+            "Move completed %", "Breakout age hours", "Breakout extension %",
+            "Breakout extension ATR", "Historical overhead", "Nearest overhead %",
+            "Price discovery", "Clear air", "Bullish retest", "RS vs BTC %",
+            "RSI", "ATR ratio", "Vol ratio", "Distance %", "Resistance tests",
+            "Coin trend", "Pattern", "Candle caution", "Execution venues",
+            "Execution liquidity pass", "Execution reason", "Swing reason", "deep_scored_at",
+        ]
+        advanced_visible_cols = [
+            col for col in advanced_prepared_cols if col in advanced_shown.columns
+        ]
+        st.dataframe(
+            advanced_shown[advanced_visible_cols],
+            hide_index=True,
+            use_container_width=True,
+        )
+        st.caption(
+            "Use this all-market table when comparing candidates. The selected-exchange diagnostic below "
+            "can differ because exchange-specific candles and a later snapshot can change resistance, RSI or timing."
+        )
+
+    st.divider()
     st.subheader("Macro liquidity regime")
     macro_refresh_col, macro_status_col = st.columns([1, 4])
     with macro_refresh_col:
@@ -4001,11 +4052,24 @@ with tab_crypto_advanced:
             "statistics remain reference-only."
         )
 
+    st.subheader("Selected-exchange diagnostic")
+    st.caption(
+        f"Optional live scan of the sidebar exchange (**{exchange_name}**). This is for drill-down and diagnostics, "
+        "not a second opportunity list. Exchange-specific candles and scan time can make its values differ from "
+        "the all-market source of truth above."
+    )
     manual_col, info_col = st.columns([1, 4])
     with manual_col:
-        manual_scan = st.button("Run scan now", type="primary", use_container_width=True)
+        manual_scan = st.button(
+            "Run exchange diagnostic",
+            type="secondary",
+            use_container_width=True,
+        )
     with info_col:
-        st.info("A flag means the setup matches the pre-breakout rules. It is not a prediction or a guarantee of a pump.")
+        st.info(
+            "For candidate selection use the all-market table above. Run this only when you want a fresh "
+            "exchange-specific technical inspection or chart."
+        )
 
     @st.fragment
     def live_scan():
@@ -4310,9 +4374,11 @@ with tab_crypto_advanced:
         swing_tab, accumulation_tab = st.tabs(["Swing trades", "Accumulation"])
 
         with swing_tab:
-            st.subheader("Swing-trade candidates")
+            st.subheader(f"{exchange_name} diagnostic candidates")
             st.caption(
-                f"All {len(df)} analysed coins are shown. BUY is technical-first: score "
+                f"These {len(df)} rows come from the optional **{exchange_name}** live diagnostic and may differ "
+                "from Opportunities because they use exchange-specific candles and a different timestamp. "
+                f"Within this diagnostic, BUY is technical-first: score "
                 f"{cfg.score_threshold}+, actionable entry timing (pre-breakout, fresh breakout or bullish retest), "
                 "positive RS vs BTC for altcoins, and no latest-4h rejection-candle gate. "
                 "Tokenomics, major-CEX breadth, catalysts/event risk, category leadership and macro "
