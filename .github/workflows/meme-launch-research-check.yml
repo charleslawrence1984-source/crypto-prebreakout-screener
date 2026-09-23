@@ -1,0 +1,27 @@
+name: Meme launch research check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "meme_launch_research.py"
+      - "test_meme_launch_research.py"
+      - "meme_launch_research_spec.md"
+      - ".github/workflows/meme-launch-research-check.yml"
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research test dependencies
+        run: pip install numpy pandas pytest
+      - name: Compile research module
+        run: python -m py_compile meme_launch_research.py
+      - name: Run launch research tests
+        run: pytest -q test_meme_launch_research.py
