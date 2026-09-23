@@ -1,0 +1,37 @@
+name: Crypto app smoke check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app.py"
+      - "crypto_rule_engine.py"
+      - "crypto_market_pipeline.py"
+      - ".github/workflows/crypto-app-smoke-check.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Execute app in bare mode
+        shell: bash
+        run: |
+          set -o pipefail
+          timeout 90s python app.py 2>&1 | tee /tmp/crypto-app-smoke.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
+            exit "$code"
+          fi
+          if grep -E "Traceback \(most recent call last\)|KeyError:|NameError:|AttributeError:|TypeError:" /tmp/crypto-app-smoke.log; then
+            echo "Runtime exception detected"
+            exit 1
+          fi
