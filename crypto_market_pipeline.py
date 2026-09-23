@@ -830,6 +830,8 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "Ideal pullback high": result.get("ideal_pullback_high"),
         "Ideal pullback basis": result.get("ideal_pullback_basis", ""),
         "Invalidation": result.get("invalidation"),
+        "Invalidation basis": result.get("invalidation_basis", ""),
+        "Structural invalidation": result.get("structural_invalidation"),
         "Target": result.get("projected_target"),
         "Target upside %": result.get("target_upside_pct"),
         "R:R": result.get("risk_reward"),
