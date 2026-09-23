@@ -321,10 +321,15 @@ def entry_timing_context(
         breakout_level * 0.012,
         atr_now * 0.50 if math.isfinite(atr_now) and atr_now > 0 else 0.0,
     )
+
+    # A retest must be recent. Using the minimum low from the entire post-breakout
+    # history incorrectly marked coins as "retesting" long after they had already
+    # left the level behind.
+    recent_retest_window = post_breakout.tail(min(4, len(post_breakout)))
     retest_seen = (
         age_bars >= 1
-        and not post_breakout.empty
-        and _safe_float(post_breakout["low"].min(), breakout_level * 2)
+        and not recent_retest_window.empty
+        and _safe_float(recent_retest_window["low"].min(), breakout_level * 2)
         <= breakout_level + retest_tolerance
     )
     recent_closes = pd.to_numeric(x["close"].iloc[-2:], errors="coerce").dropna()
@@ -333,18 +338,42 @@ def entry_timing_context(
         and bool((recent_closes >= breakout_level * 0.997).all())
         and price >= breakout_level
     )
-    bullish_retest = bool(retest_seen and acceptance)
+    retest_atr_limit = 2.25 if clear_air else 1.50
+    bullish_retest = bool(
+        retest_seen
+        and acceptance
+        and (
+            not math.isfinite(atr_extension)
+            or atr_extension <= retest_atr_limit
+        )
+    )
 
-    if bullish_retest and (not math.isfinite(atr_extension) or atr_extension <= 1.50):
+    # Once price has lost the broken resistance, the breakout is no longer a
+    # fresh long entry. It becomes a reclaim/acceptance problem instead.
+    if price < breakout_level * 0.997:
+        state = "RECLAIM NEEDED"
+        actionable = False
+    elif bullish_retest:
         state = "RETEST"
         actionable = True
-    elif age_bars <= 2 and (not math.isfinite(atr_extension) or atr_extension <= (2.25 if clear_air else 1.75)):
+    elif age_bars <= 2 and (
+        not math.isfinite(atr_extension)
+        or atr_extension <= (2.25 if clear_air else 1.75)
+    ):
         state = "FRESH BREAKOUT"
         actionable = True
-    elif price_discovery and age_bars <= 3 and (not math.isfinite(atr_extension) or atr_extension <= 2.50):
+    elif price_discovery and age_bars <= 6 and (
+        not math.isfinite(atr_extension)
+        or atr_extension <= 2.50
+    ):
+        # Give genuine clear-air/price-discovery breaks a wider freshness window
+        # than ordinary resistance breaks, while still rejecting material extension.
         state = "FRESH BREAKOUT"
         actionable = True
-    elif age_bars <= 6 and (not math.isfinite(atr_extension) or atr_extension <= 3.0):
+    elif age_bars <= 6 and (
+        not math.isfinite(atr_extension)
+        or atr_extension <= 3.0
+    ):
         state = "EXTENDED"
         actionable = False
     else:
@@ -880,6 +909,8 @@ def score_setup(
         shape_rejection = "Too late / original breakout move already mature"
     elif timing["entry_timing"] == "EXTENDED":
         shape_rejection = "Extended after breakout — wait for a reset or bullish retest"
+    elif timing["entry_timing"] == "RECLAIM NEEDED":
+        shape_rejection = "Broken resistance was lost — reclaim and acceptance required"
     elif distance_pct < -0.05 and timing["entry_timing"] not in {"FRESH BREAKOUT", "RETEST"}:
         shape_rejection = "Already above resistance without an actionable fresh-breakout state"
     elif distance_pct > cfg.near_resistance_max_pct:
@@ -1313,8 +1344,8 @@ def score_setup(
         result_reason = "Pre-breakout candidate with a technically credible projected target"
     elif eligible:
         result_reason = "Pre-breakout candidate; projected target currently unavailable"
-    elif timing_state in {"EXTENDED", "TOO LATE"}:
-        result_reason = shape_rejection or "Strong setup, but the original entry has already moved"
+    elif timing_state in {"EXTENDED", "TOO LATE", "RECLAIM NEEDED"}:
+        result_reason = shape_rejection or "Strong setup, but entry timing is not actionable"
     else:
         result_reason = shape_rejection or "Shape filter not met"
 
