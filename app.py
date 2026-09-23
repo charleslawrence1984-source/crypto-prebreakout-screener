@@ -1997,7 +1997,15 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Daily Channel": r.get("channel_daily_direction", "UNAVAILABLE"),
                 "Daily Channel pos %": r.get("channel_daily_position", np.nan),
                 "Price": r["price"],
-                "Entry Price": (r["entry_low"] + r["entry_high"]) / 2,
+                "Entry mode": r.get("entry_mode", ""),
+                "Entry Price": (
+                    r.get("planned_entry", np.nan)
+                    if r.get("entry_mode") not in {"NO ACTIVE ENTRY", "REFERENCE ONLY"}
+                    else np.nan
+                ),
+                "Ideal pullback entry": r.get("ideal_pullback_entry", np.nan),
+                "Ideal pullback low": r.get("ideal_pullback_low", np.nan),
+                "Ideal pullback high": r.get("ideal_pullback_high", np.nan),
                 "Exit / Stop": r["invalidation"],
                 "Price Target": r["projected_target"],
                 "ROI %": r["target_upside_pct"],
@@ -2194,9 +2202,14 @@ def make_chart(
             ))
     fig.add_hline(y=float(row["Breakout"]), line_dash="dash", annotation_text="Breakout / resistance")
     fig.add_hline(y=float(row["Invalidation"]), line_dash="dot", annotation_text="Invalidation")
+    entry_zone_label = (
+        "Active entry zone"
+        if str(row.get("Entry mode", "")) not in {"NO ACTIVE ENTRY", "REFERENCE ONLY"}
+        else "Reference pullback zone"
+    )
     fig.add_hrect(
         y0=float(row["Entry low"]), y1=float(row["Entry high"]),
-        opacity=0.12, line_width=0, fillcolor="#2ecc71", annotation_text="Pre-breakout entry zone",
+        opacity=0.12, line_width=0, fillcolor="#2ecc71", annotation_text=entry_zone_label,
     )
     if "Accumulation low" in row and "Accumulation high" in row:
         daily_zone_low = float(row["Accumulation low"])
@@ -3205,7 +3218,9 @@ with tab_crypto_opportunities:
 
             swing_cols = [
                 "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange", "Swing score", "Price",
-                "Planned entry", "Invalidation", "Target", "Target upside %", "Current target upside %",
+                "Entry mode", "Active entry", "Active entry low", "Active entry high",
+                "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
+                "Invalidation", "Target", "Target upside %", "Current target upside %",
                 "R:R", "Current R:R", "Move completed %", "Breakout age hours",
                 "Breakout extension %", "Breakout extension ATR", "Historical overhead",
                 "Nearest overhead %", "Price discovery", "Clear air", "Bullish retest",
@@ -3692,6 +3707,7 @@ with tab_crypto_quick:
             qa_row = pd.Series({
                 "Breakout": chart_breakout,
                 "Invalidation": qa_result["invalidation"],
+                "Entry mode": qa_result.get("entry_mode", ""),
                 "Entry low": qa_result["entry_low"],
                 "Entry high": qa_result["entry_high"],
                 "Accumulation low": qa_result["accumulation_low"],
@@ -3723,16 +3739,35 @@ with tab_crypto_quick:
                     key=qa_chart_key,
                 )
 
-            l1, l2, l3, l4 = st.columns(4)
-            l1.metric("Planned entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}", qa_result["entry_basis"])
-            detected_breakout = _safe_float(qa_result.get("breakout_level"), np.nan)
+            entry_mode = str(qa_result.get("entry_mode") or "")
+            active_entry_available = entry_mode not in {"NO ACTIVE ENTRY", "REFERENCE ONLY"}
+            l1, l2, l3, l4, l5 = st.columns(5)
+            l1.metric(
+                "Active entry",
+                fmt_price(qa_result.get("planned_entry")) if active_entry_available else "No active entry",
+                entry_mode or "Unavailable",
+            )
             l2.metric(
+                "Active entry zone",
+                (
+                    f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}"
+                    if active_entry_available else "Wait for timing reset"
+                ),
+                qa_result.get("entry_basis", ""),
+            )
+            l3.metric(
+                "Ideal pullback",
+                fmt_price(qa_result.get("ideal_pullback_entry")),
+                qa_result.get("ideal_pullback_basis", "Reference"),
+            )
+            detected_breakout = _safe_float(qa_result.get("breakout_level"), np.nan)
+            l4.metric(
                 "Breakout level",
                 fmt_price(detected_breakout) if math.isfinite(detected_breakout) else fmt_price(qa_result["resistance"]),
                 "Detected broken resistance" if math.isfinite(detected_breakout) else "Current resistance",
             )
-            l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
-            l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
+            l5.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
+            st.caption(f"Invalidation: **{fmt_price(qa_result['invalidation'])}**")
 
             t1, t2, t3, t4 = st.columns(4)
             t1.metric(
@@ -3976,8 +4011,9 @@ with tab_crypto_advanced:
 
         advanced_prepared_cols = [
             "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange",
-            "Swing score", "Price", "Planned entry", "Invalidation", "Target",
-            "Target upside %", "Current target upside %", "R:R", "Current R:R",
+            "Swing score", "Price", "Entry mode", "Active entry", "Active entry low",
+            "Active entry high", "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
+            "Invalidation", "Target", "Target upside %", "Current target upside %", "R:R", "Current R:R",
             "Move completed %", "Breakout age hours", "Breakout extension %",
             "Breakout extension ATR", "Historical overhead", "Nearest overhead %",
             "Price discovery", "Clear air", "Bullish retest", "RS vs BTC %",
@@ -4412,8 +4448,9 @@ with tab_crypto_advanced:
                         "technical BUY rules and execution-liquidity gate."
                     )
             swing_cols = [
-                "Coin", "Status", "Entry timing", "Context confidence", "Known event risk",
-                "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
+                "Coin", "Status", "Entry timing", "Entry mode", "Context confidence", "Known event risk",
+                "Price", "Entry Price", "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
+                "Exit / Stop", "Price Target", "ROI %", "R:R",
                 "Breakout age hours", "Breakout extension %", "Breakout extension ATR",
                 "Historical overhead", "Nearest overhead %", "Price discovery", "Clear air",
                 "Bullish retest", "Current target upside %", "Current R:R", "Move completed %",
@@ -4545,7 +4582,10 @@ with tab_crypto_advanced:
                     ),
                     "R:R": st.column_config.NumberColumn(format="%.2f"),
                     "Price": st.column_config.NumberColumn("Current Price", format="%.8g"),
-                    "Entry Price": st.column_config.NumberColumn("Entry Price", format="%.8g"),
+                    "Entry Price": st.column_config.NumberColumn("Active Entry", format="%.8g"),
+                    "Ideal pullback entry": st.column_config.NumberColumn("Ideal Pullback Entry", format="%.8g"),
+                    "Ideal pullback low": st.column_config.NumberColumn(format="%.8g"),
+                    "Ideal pullback high": st.column_config.NumberColumn(format="%.8g"),
                     "Exit / Stop": st.column_config.NumberColumn("Exit / Stop", format="%.8g"),
                     "Price Target": st.column_config.NumberColumn("Price Target", format="%.8g"),
                     "ROI %": st.column_config.NumberColumn("ROI %", format="%.2f%%"),
@@ -4717,7 +4757,11 @@ with tab_crypto_advanced:
         channel4.metric("Channel R:R", row.get("4h Channel R:R", "Unavailable"))
 
         m1, m2, m3, m4 = st.columns(4)
-        m1.metric("Pre-breakout entry zone", f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}", row["Entry basis"])
+        m1.metric(
+            "Entry zone",
+            f"{fmt_price(row['Entry low'])} – {fmt_price(row['Entry high'])}",
+            f"{row.get('Entry mode', '')} · {row['Entry basis']}",
+        )
         m2.metric("Breakout level", fmt_price(row["Breakout"]))
         m3.metric("Invalidation", fmt_price(row["Invalidation"]))
         m4.metric("Risk / reward", f"{row['R:R']:.2f}:1")
