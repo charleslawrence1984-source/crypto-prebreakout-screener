@@ -85,7 +85,7 @@
       "symbols": []
     },
     "six": {
-      "count": 74,
+      "count": 70,
       "label": "SIX Swiss Exchange",
       "symbols": [
         "AAPL-USD.SW",
@@ -122,9 +122,7 @@
         "HD-USD.SW",
         "HOOD-USD.SW",
         "HPQ-USD.SW",
-        "IBM-USD.SW",
         "INTC-USD.SW",
-        "IONQ-USD.SW",
         "JPM-USD.SW",
         "KO-USD.SW",
         "MA-USD.SW",
@@ -150,10 +148,8 @@
         "PG-USD.SW",
         "PLTR-USD.SW",
         "QCOM-USD.SW",
-        "RKLB-USD.SW",
         "SNAP-USD.SW",
         "SPCX-USD.SW",
-        "TTWO-USD.SW",
         "UBER-USD.SW",
         "UUUU-USD.SW",
         "V-USD.SW",
@@ -269,8 +265,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-22T22:56:52+01:00",
+  "recorded_at": "2026-09-23T10:11:53+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-22T22:27:23+01:00",
-  "total_unresolved": 186
+  "source_fundamentals_updated_at": "2026-09-23T10:01:21+01:00",
+  "total_unresolved": 182
 }
