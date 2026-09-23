@@ -4489,17 +4489,24 @@ with tab_crypto_advanced:
                     "RS vs BTC %", "RS vs BTC 96h %",
                     "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
                     "Triangle resistance", "Triangle support", "Triangle target", "Triangle detail",
-                    "Entry basis", "Invalidation", "Sell target", "Stretch target", "Target upside %", "Target basis",
+                    "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
                 ]
                 # Build the display from columns that actually exist, then only
                 # apply Styler subsets that are present in that display. Pandas
                 # raises KeyError at render time when a subset names a missing
                 # column, so every formatting rule must be schema-safe.
-                visible_swing_cols = [
+                # Preserve display order while removing duplicate column names.
+                # Pandas Styler.map() raises KeyError when either the columns or
+                # index are non-unique, even when every requested subset exists.
+                visible_swing_cols = list(dict.fromkeys(
                     column for column in swing_cols
                     if column in swing_candidates.columns
-                ]
-                swing_display = swing_candidates[visible_swing_cols].copy()
+                ))
+                swing_display = (
+                    swing_candidates.loc[:, visible_swing_cols]
+                    .copy()
+                    .reset_index(drop=True)
+                )
                 styled_swing = swing_display.style
 
                 if "Context confidence" in swing_display.columns:
