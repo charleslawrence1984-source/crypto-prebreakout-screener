@@ -2007,6 +2007,8 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Ideal pullback low": r.get("ideal_pullback_low", np.nan),
                 "Ideal pullback high": r.get("ideal_pullback_high", np.nan),
                 "Exit / Stop": r["invalidation"],
+                "Invalidation basis": r.get("invalidation_basis", ""),
+                "Structural invalidation": r.get("structural_invalidation", np.nan),
                 "Price Target": r["projected_target"],
                 "ROI %": r["target_upside_pct"],
                 "To resistance %": r["distance_pct"],
@@ -3220,7 +3222,8 @@ with tab_crypto_opportunities:
                 "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange", "Swing score", "Price",
                 "Entry mode", "Active entry", "Active entry low", "Active entry high",
                 "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
-                "Invalidation", "Target", "Target upside %", "Current target upside %",
+                "Invalidation", "Invalidation basis", "Structural invalidation",
+                "Target", "Target upside %", "Current target upside %",
                 "R:R", "Current R:R", "Move completed %", "Breakout age hours",
                 "Breakout extension %", "Breakout extension ATR", "Historical overhead",
                 "Nearest overhead %", "Price discovery", "Clear air", "Bullish retest",
@@ -3767,7 +3770,11 @@ with tab_crypto_quick:
                 "Detected broken resistance" if math.isfinite(detected_breakout) else "Current resistance",
             )
             l5.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
-            st.caption(f"Invalidation: **{fmt_price(qa_result['invalidation'])}**")
+            st.caption(
+                f"Active invalidation: **{fmt_price(qa_result['invalidation'])}** · "
+                f"{qa_result.get('invalidation_basis', '')} · "
+                f"Structural reference: **{fmt_price(qa_result.get('structural_invalidation'))}**"
+            )
 
             t1, t2, t3, t4 = st.columns(4)
             t1.metric(
@@ -4013,7 +4020,8 @@ with tab_crypto_advanced:
             "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange",
             "Swing score", "Price", "Entry mode", "Active entry", "Active entry low",
             "Active entry high", "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
-            "Invalidation", "Target", "Target upside %", "Current target upside %", "R:R", "Current R:R",
+            "Invalidation", "Invalidation basis", "Structural invalidation",
+            "Target", "Target upside %", "Current target upside %", "R:R", "Current R:R",
             "Move completed %", "Breakout age hours", "Breakout extension %",
             "Breakout extension ATR", "Historical overhead", "Nearest overhead %",
             "Price discovery", "Clear air", "Bullish retest", "RS vs BTC %",
@@ -4450,7 +4458,8 @@ with tab_crypto_advanced:
             swing_cols = [
                 "Coin", "Status", "Entry timing", "Entry mode", "Context confidence", "Known event risk",
                 "Price", "Entry Price", "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
-                "Exit / Stop", "Price Target", "ROI %", "R:R",
+                "Exit / Stop", "Invalidation basis", "Structural invalidation",
+                "Price Target", "ROI %", "R:R",
                 "Breakout age hours", "Breakout extension %", "Breakout extension ATR",
                 "Historical overhead", "Nearest overhead %", "Price discovery", "Clear air",
                 "Bullish retest", "Current target upside %", "Current R:R", "Move completed %",
@@ -4586,7 +4595,8 @@ with tab_crypto_advanced:
                     "Ideal pullback entry": st.column_config.NumberColumn("Ideal Pullback Entry", format="%.8g"),
                     "Ideal pullback low": st.column_config.NumberColumn(format="%.8g"),
                     "Ideal pullback high": st.column_config.NumberColumn(format="%.8g"),
-                    "Exit / Stop": st.column_config.NumberColumn("Exit / Stop", format="%.8g"),
+                    "Exit / Stop": st.column_config.NumberColumn("Active invalidation", format="%.8g"),
+                    "Structural invalidation": st.column_config.NumberColumn("Structural invalidation", format="%.8g"),
                     "Price Target": st.column_config.NumberColumn("Price Target", format="%.8g"),
                     "ROI %": st.column_config.NumberColumn("ROI %", format="%.2f%%"),
                     "4h Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
