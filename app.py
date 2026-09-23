@@ -2989,11 +2989,13 @@ prepared_deep_scores = pipeline_state.get("scores", pd.DataFrame()).copy()
 # Opportunities and Advanced Trade must present the same primary Swing feed.
 # Keep the shared columns in one place so the two pages cannot drift apart again.
 PRIMARY_SWING_COLUMNS = [
-    "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange", "Swing score", "Price",
+    "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange", "Swing score",
+    "Score band", "BUY score threshold", "Price",
     "Entry mode", "Active entry", "Active entry low", "Active entry high",
     "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
     "Invalidation", "Invalidation basis", "Structural invalidation",
-    "Target", "Target upside %", "Current target upside %",
+    "First technical target", "First-target upside %", "Stretch / runner target",
+    "Target basis", "Runner plan",
     "R:R", "Current R:R", "Move completed %", "Breakout age hours",
     "Breakout extension %", "Breakout extension ATR", "Historical overhead",
     "Nearest overhead %", "Price discovery", "Clear air", "Bullish retest",
@@ -3248,7 +3250,8 @@ with tab_crypto_opportunities:
             )
             feed_updated = str(pipeline_manifest.get("updated_at") or "Unavailable")
             st.caption(
-                "BUY means the approved technical-first Swing rules pass in the scheduled rule engine. "
+                "BUY currently means the technical-first Swing rules pass, including the provisional 80 score threshold. "
+                "The 80 cutoff is being retained for consistency while score-band outcomes are calibrated; it is not treated as a proven market law. "
                 "WATCH means the setup is developing or close, but is not actionable yet. "
                 f"Primary feed snapshot: **{feed_updated}**."
             )
@@ -3789,7 +3792,7 @@ with tab_crypto_quick:
                 fmt_price(qa_result["first_take_profit"]),
                 qa_result["first_take_profit_basis"],
             )
-            t2.metric("Projected target", fmt_optional_price(qa_result["projected_target"]))
+            t2.metric("First technical target", fmt_optional_price(qa_result["projected_target"]))
             gross_upside = qa_result.get("target_upside_pct", np.nan)
             t3.metric(
                 "Gross upside from planned entry",
@@ -3798,6 +3801,11 @@ with tab_crypto_quick:
             t4.metric(
                 "Reward / risk",
                 f"{qa_result['risk_reward']:.2f}:1" if qa_result.get("trade_target_eligible") else "Unavailable",
+            )
+            st.caption(
+                "The first technical target is the next credible resistance / measured-move area, not a mandatory final exit. "
+                "If price accepts above it with the setup intact, the trade should be reassessed for the stretch/runner target. "
+                "The current BUY score threshold of 80 is provisional and remains under outcome calibration."
             )
 
             a1, a2, a3, a4, a5 = st.columns(5)
@@ -3832,8 +3840,8 @@ with tab_crypto_quick:
                 f"{qa_result.get('cycle_accumulation_basis', '')}"
             )
             st.caption(
-                f"Projected target basis: {qa_result['target_basis']} · "
-                f"Next qualifying target: {fmt_optional_price(qa_result['stretch_target'], 'Unavailable')} · "
+                f"First technical target basis: {qa_result['target_basis']} · "
+                f"Stretch / runner target: {fmt_optional_price(qa_result['stretch_target'], 'Recalculate after Target 1 acceptance')} · "
                 f"Position within available 4Y range (reference only): {cycle_text}"
             )
 
@@ -4481,7 +4489,7 @@ with tab_crypto_advanced:
                     "RS vs BTC %", "RS vs BTC 96h %",
                     "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %",
                     "Triangle resistance", "Triangle support", "Triangle target", "Triangle detail",
-                    "Entry basis", "Invalidation", "Sell target", "Target upside %", "Target basis",
+                    "Entry basis", "Invalidation", "Sell target", "Stretch target", "Target upside %", "Target basis",
                 ]
                 styled_swing = swing_candidates[swing_cols].style
                 styled_swing = styled_swing.map(
@@ -4605,7 +4613,7 @@ with tab_crypto_advanced:
                             "First resistance / partial profit", format="%.8g"
                         ),
                         "Sell target": st.column_config.NumberColumn(
-                            "Projected target", format="%.8g"
+                            "First technical target", format="%.8g"
                         ),
                         "Stretch target": st.column_config.NumberColumn(format="%.8g"),
                         "Target upside %": st.column_config.NumberColumn(format="%.2f%%"),
@@ -4770,7 +4778,7 @@ with tab_crypto_advanced:
 
         t1, t2, t3, t4 = st.columns(4)
         t1.metric("First resistance / partial profit", fmt_price(row["First resistance target"]), row["First resistance basis"])
-        t2.metric("Projected target", fmt_optional_price(row["Sell target"]))
+        t2.metric("First technical target", fmt_optional_price(row["Sell target"]))
         t3.metric(
             "Gross upside from planned entry",
             f"{row['Target upside %']:.1f}%" if pd.notna(row["Target upside %"]) else "Below requirement",
@@ -4800,8 +4808,8 @@ with tab_crypto_advanced:
             f"{row['Cycle accumulation basis']}"
         )
         st.caption(
-            f"Projected target basis: {row['Target basis']} · "
-            f"Next qualifying target: {fmt_optional_price(row['Stretch target'], 'Unavailable')} · "
+            f"First technical target basis: {row['Target basis']} · "
+            f"Stretch / runner target: {fmt_optional_price(row['Stretch target'], 'Recalculate after Target 1 acceptance')} · "
             f"Position within available 4Y range (reference only): {cycle_text}"
         )
 
