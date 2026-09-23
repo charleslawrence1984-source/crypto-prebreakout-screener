@@ -377,12 +377,17 @@ def entry_timing_context(
         state = "EXTENDED"
         actionable = False
     else:
-        state = "TOO LATE"
+        state = "EXTENDED"
         actionable = False
 
+    relation_text = (
+        f"{extension_pct:+.2f}% above broken resistance"
+        if extension_pct >= 0
+        else f"{abs(extension_pct):.2f}% below broken resistance"
+    )
     detail_bits = [
         f"{age_bars * 4}h since breakout",
-        f"{extension_pct:+.2f}% above broken resistance",
+        relation_text,
     ]
     if math.isfinite(atr_extension):
         detail_bits.append(f"{atr_extension:.2f} ATR extension")
@@ -453,6 +458,14 @@ def finalise_entry_timing(
     # extension; these thresholds are deliberately provisional and should be
     # validated against the historical audit dataset before becoming hard laws.
     if math.isfinite(current_target_upside_pct) and current_target_upside_pct <= 0:
+        state = "TOO LATE"
+    elif (
+        math.isfinite(atr_extension)
+        and atr_extension >= 3.5
+    ):
+        # Extreme ATR extension is the clearest evidence that the original
+        # breakout entry has already gone, even when the projected target is
+        # still higher. This remains a calibration threshold, not a universal law.
         state = "TOO LATE"
     elif (
         state == "TOO LATE"
