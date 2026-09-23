@@ -19,6 +19,7 @@ import streamlit as st
 from cl_signal_ui import render_module_header, render_decision_guidance
 from crypto_macro import snapshot_age_minutes, unavailable_macro
 from crypto_universe_rules import is_crypto_universe_asset
+from crypto_ui_helpers import prepare_styler_frame
 from crypto_rule_engine import score_setup as shared_score_setup
 from crypto_accumulation_model import (
     ACCUMULATION_MODEL_VERSION,
@@ -4495,17 +4496,9 @@ with tab_crypto_advanced:
                 # apply Styler subsets that are present in that display. Pandas
                 # raises KeyError at render time when a subset names a missing
                 # column, so every formatting rule must be schema-safe.
-                # Preserve display order while removing duplicate column names.
-                # Pandas Styler.map() raises KeyError when either the columns or
-                # index are non-unique, even when every requested subset exists.
-                visible_swing_cols = list(dict.fromkeys(
-                    column for column in swing_cols
-                    if column in swing_candidates.columns
-                ))
-                swing_display = (
-                    swing_candidates.loc[:, visible_swing_cols]
-                    .copy()
-                    .reset_index(drop=True)
+                swing_display = prepare_styler_frame(
+                    swing_candidates,
+                    swing_cols,
                 )
                 styled_swing = swing_display.style
 
