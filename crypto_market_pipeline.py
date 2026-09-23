@@ -573,10 +573,17 @@ def refresh_macro_snapshot(output: Path, max_age_minutes: float = 50.0) -> dict:
     """Refresh macro data off the user request path and retain the last good snapshot."""
     path = output / "macro.json"
     previous = load_manifest(path)
-    if previous and snapshot_age_minutes(previous) <= max_age_minutes:
+    # Reuse a recent snapshot only when it matches the current liquidity schema.
+    # This prevents an older cached payload from hiding newly-added trend/breakout
+    # fields after a model deployment.
+    schema_current = (
+        "liquidity_trend" in previous
+        and "liquidity_breakout" in previous
+    )
+    if previous and schema_current and snapshot_age_minutes(previous) <= max_age_minutes:
         return previous
     try:
-        refreshed = snapshot_payload(timeout=8.0)
+        refreshed = snapshot_payload(timeout=12.0)
     except Exception as exc:
         refreshed = {
             "available": False,
