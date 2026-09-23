@@ -1186,7 +1186,38 @@ def score_setup(
     }:
         structural_anchor = breakout_level_for_entry
 
-    invalidation = min(swing_low, structural_anchor - 1.25 * entry_atr) * 0.995
+    structural_invalidation = min(
+        swing_low,
+        structural_anchor - 1.25 * entry_atr,
+    ) * 0.995
+    invalidation = structural_invalidation
+    invalidation_basis = "Structural swing / support invalidation"
+
+    # The active stop must follow the same lifecycle as the active entry.
+    # A fresh breakout should not inherit a very deep pre-breakout swing stop,
+    # otherwise current R:R becomes meaningless after price has advanced.
+    recent_swing_low = float(x["low"].iloc[-8:].min())
+    if timing_state == "READY":
+        ready_candidate = max(
+            recent_swing_low - 0.25 * entry_atr,
+            ideal_entry_anchor - 0.50 * entry_atr,
+        )
+        invalidation = min(
+            ready_candidate,
+            price - 0.75 * entry_atr,
+        )
+        invalidation = max(invalidation, structural_invalidation)
+        invalidation_basis = "READY structure / recent higher-low failure"
+    elif timing_state in {"FRESH BREAKOUT", "RETEST"} and math.isfinite(breakout_level_for_entry):
+        invalidation = breakout_level_for_entry - 0.75 * entry_atr
+        invalidation = min(invalidation, price - 0.50 * entry_atr)
+        invalidation = max(invalidation, structural_invalidation)
+        invalidation_basis = (
+            "Broken resistance failure / ATR buffer"
+            if timing_state == "FRESH BREAKOUT"
+            else "Retest failure below broken resistance / ATR buffer"
+        )
+
     risk_pct = max((price - invalidation) / price * 100, 0.01)
 
     # Support-based reference entry: useful for EARLY setups and for showing what
@@ -1496,6 +1527,8 @@ def score_setup(
         "ideal_pullback_high": ideal_pullback_high,
         "ideal_pullback_basis": ideal_entry_basis,
         "invalidation": invalidation,
+        "invalidation_basis": invalidation_basis,
+        "structural_invalidation": structural_invalidation,
         "target_1": resistance * 1.05,
         "target_2": resistance * 1.10,
         "first_take_profit": first_take_profit,
