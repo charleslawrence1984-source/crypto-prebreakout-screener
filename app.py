@@ -2828,7 +2828,11 @@ def crypto_dashboard_summary(frame: pd.DataFrame, cfg: ScreenerConfig, macro_now
             summary["btc_trend"] = str(df["Market trend"].dropna().iloc[0])
 
         technical = df[
-            (df["Trade verdict"] == "QUALIFIES — PRE-BREAKOUT SETUP")
+            df["Trade verdict"].isin([
+                "QUALIFIES — PRE-BREAKOUT SETUP",
+                "QUALIFIES — FRESH BREAKOUT",
+                "QUALIFIES — BULLISH RETEST",
+            ])
             & (pd.to_numeric(df["Score"], errors="coerce") >= cfg.score_threshold)
         ].copy()
         if not technical.empty:
@@ -4028,9 +4032,15 @@ with tab_crypto_advanced:
         df = apply_ta_context_overlay(df, macro_now)
         df = attach_prepared_execution_columns(df)
 
+        qualified_trade_verdicts = {
+            "QUALIFIES — PRE-BREAKOUT SETUP",
+            "QUALIFIES — FRESH BREAKOUT",
+            "QUALIFIES — BULLISH RETEST",
+        }
         technical_swing_setups = df[
-            (df["Trade verdict"] == "QUALIFIES — PRE-BREAKOUT SETUP")
+            df["Trade verdict"].isin(qualified_trade_verdicts)
             & (df["Score"] >= cfg.score_threshold)
+            & df.get("Entry timing actionable", False).fillna(False).astype(bool)
         ].copy().sort_values("Score", ascending=False)
         rs_qualified_setups = technical_swing_setups[
             (technical_swing_setups["Coin"] == "BTC")
@@ -4071,9 +4081,10 @@ with tab_crypto_advanced:
                 warnings.append(f"macro {macro_now.get('regime', 'DATA LIMITED')}")
 
             if is_buy:
+                timing_label = str(row.get("Entry timing", "READY"))
                 base = (
                     f"Technical BUY: score {row['Score']:.1f} >= {cfg.score_threshold}, "
-                    "pre-breakout shape passes, RS vs BTC passes and no 4h rejection-candle gate."
+                    f"entry timing is {timing_label}, RS vs BTC passes and no 4h rejection-candle gate."
                 )
                 return base + ((" Context warnings: " + ", ".join(warnings) + ".") if warnings else "")
 
@@ -4096,8 +4107,12 @@ with tab_crypto_advanced:
                 and row.get("Candle caution") == "CAUTION"
             ):
                 reasons.append("latest completed 4h candle shows rejection")
-            if row["Trade verdict"] != "QUALIFIES — PRE-BREAKOUT SETUP":
+            if row["Trade verdict"] not in qualified_trade_verdicts:
                 reasons.append(str(row["Trade reason"]))
+            if str(row.get("Entry timing", "")) in {"EXTENDED", "TOO LATE"}:
+                reasons.append(
+                    f"entry timing {str(row.get('Entry timing')).lower()} — wait for reset/retest"
+                )
             if not reasons:
                 reasons.append("technical entry not ready")
             suffix = (" Context notes: " + ", ".join(warnings) + ".") if warnings else ""
@@ -4133,6 +4148,18 @@ with tab_crypto_advanced:
         swing_candidates["_bb_rank"] = swing_candidates["BB 4h regime"].map(
             {"SQUEEZE": 0, "NORMAL": 1, "EXPANDING": 2, "UNAVAILABLE": 3}
         ).fillna(3)
+        swing_candidates["_timing_rank"] = swing_candidates.get(
+            "Entry timing",
+            pd.Series("NOT READY", index=swing_candidates.index),
+        ).map({
+            "READY": 0,
+            "FRESH BREAKOUT": 0,
+            "RETEST": 0,
+            "EARLY": 1,
+            "NOT READY": 2,
+            "EXTENDED": 3,
+            "TOO LATE": 4,
+        }).fillna(2)
 
         def _channel_rank(row):
             direction = str(row.get("4h Channel", "UNAVAILABLE"))
@@ -4157,10 +4184,10 @@ with tab_crypto_advanced:
 
         swing_candidates["_channel_rank"] = swing_candidates.apply(_channel_rank, axis=1)
         swing_candidates = swing_candidates.sort_values(
-            ["Status", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
-            ascending=[True, True, True, True, True, True, True, True, False],
+            ["Status", "_timing_rank", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank", "_bb_rank", "_channel_rank", "_freshness_rank", "Score"],
+            ascending=[True, True, True, True, True, True, True, True, True, False],
         ).drop(columns=[
-            "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank",
+            "_timing_rank", "_confidence_rank", "_leader_rank", "_catalyst_rank", "_triangle_rank",
             "_bb_rank", "_channel_rank", "_freshness_rank"
         ])
         accumulation_candidates = df.copy()
