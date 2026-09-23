@@ -24,4 +24,4 @@ jobs:
       - name: Compile research module
         run: python -m py_compile meme_launch_research.py
       - name: Run launch research tests
-        run: pytest -q test_meme_launch_research.py
+        run: pytest -q test_meme_launch_research.py --disable-warnings
