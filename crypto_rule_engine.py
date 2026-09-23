@@ -1373,8 +1373,12 @@ def score_setup(
         result_reason = "Pre-breakout candidate with a technically credible projected target"
     elif eligible:
         result_reason = "Pre-breakout candidate; projected target currently unavailable"
-    elif timing_state in {"EXTENDED", "TOO LATE", "RECLAIM NEEDED"}:
-        result_reason = shape_rejection or "Strong setup, but entry timing is not actionable"
+    elif timing_state == "TOO LATE":
+        result_reason = "Too late / original breakout move already materially extended"
+    elif timing_state == "EXTENDED":
+        result_reason = "Extended after breakout — wait for a reset or bullish retest"
+    elif timing_state == "RECLAIM NEEDED":
+        result_reason = "Broken resistance was lost — reclaim and acceptance required"
     else:
         result_reason = shape_rejection or "Shape filter not met"
 
