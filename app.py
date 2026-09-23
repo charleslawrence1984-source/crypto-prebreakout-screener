@@ -2033,6 +2033,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Entry high": r["entry_high"],
                 "Entry basis": r["entry_basis"],
                 "Breakout": r["resistance"],
+                "Detected breakout level": r.get("breakout_level", np.nan),
                 "Invalidation": r["invalidation"],
                 "Target +5%": r["target_1"],
                 "Target +10%": r["target_2"],
@@ -3685,8 +3686,11 @@ with tab_crypto_quick:
                         "structured upcoming-event feed."
                     )
 
+            chart_breakout = _safe_float(qa_result.get("breakout_level"), np.nan)
+            if not math.isfinite(chart_breakout):
+                chart_breakout = qa_result["resistance"]
             qa_row = pd.Series({
-                "Breakout": qa_result["resistance"],
+                "Breakout": chart_breakout,
                 "Invalidation": qa_result["invalidation"],
                 "Entry low": qa_result["entry_low"],
                 "Entry high": qa_result["entry_high"],
@@ -3721,7 +3725,12 @@ with tab_crypto_quick:
 
             l1, l2, l3, l4 = st.columns(4)
             l1.metric("Planned entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}", qa_result["entry_basis"])
-            l2.metric("Breakout level", fmt_price(qa_result["resistance"]))
+            detected_breakout = _safe_float(qa_result.get("breakout_level"), np.nan)
+            l2.metric(
+                "Breakout level",
+                fmt_price(detected_breakout) if math.isfinite(detected_breakout) else fmt_price(qa_result["resistance"]),
+                "Detected broken resistance" if math.isfinite(detected_breakout) else "Current resistance",
+            )
             l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
             l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
 
@@ -4353,7 +4362,7 @@ with tab_crypto_advanced:
                 "BB Daily regime", "4h Channel", "4h Channel pos %", "4h Channel support",
                 "4h Channel resistance", "4h Channel R:R", "4h Channel quality",
                 "Daily Channel", "Daily Channel pos %",
-                "Entry low", "Entry high", "Breakout", "First resistance target", "Stretch target",
+                "Entry low", "Entry high", "Breakout", "Detected breakout level", "First resistance target", "Stretch target",
                 "Reason",
                 "Category leader", "Leader categories",
                 "Project freshness", "History days", "Freshness score",
@@ -4481,7 +4490,8 @@ with tab_crypto_advanced:
                     "Daily Channel pos %": st.column_config.NumberColumn(format="%.1f%%"),
                     "Entry low": st.column_config.NumberColumn(format="%.8g"),
                     "Entry high": st.column_config.NumberColumn(format="%.8g"),
-                    "Breakout": st.column_config.NumberColumn(format="%.8g"),
+                    "Breakout": st.column_config.NumberColumn("Current resistance", format="%.8g"),
+                    "Detected breakout level": st.column_config.NumberColumn("Broken resistance", format="%.8g"),
                     "Invalidation": st.column_config.NumberColumn(format="%.8g"),
                     "First resistance target": st.column_config.NumberColumn(
                         "First resistance / partial profit", format="%.8g"
