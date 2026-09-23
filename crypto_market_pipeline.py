@@ -810,6 +810,21 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "Entry low": result.get("entry_low"),
         "Entry high": result.get("entry_high"),
         "Planned entry": result.get("planned_entry"),
+        "Active entry": (
+            result.get("planned_entry")
+            if str(result.get("entry_mode") or "") not in {"NO ACTIVE ENTRY", "REFERENCE ONLY"}
+            else np.nan
+        ),
+        "Active entry low": (
+            result.get("entry_low")
+            if str(result.get("entry_mode") or "") not in {"NO ACTIVE ENTRY", "REFERENCE ONLY"}
+            else np.nan
+        ),
+        "Active entry high": (
+            result.get("entry_high")
+            if str(result.get("entry_mode") or "") not in {"NO ACTIVE ENTRY", "REFERENCE ONLY"}
+            else np.nan
+        ),
         "Ideal pullback entry": result.get("ideal_pullback_entry"),
         "Ideal pullback low": result.get("ideal_pullback_low"),
         "Ideal pullback high": result.get("ideal_pullback_high"),
