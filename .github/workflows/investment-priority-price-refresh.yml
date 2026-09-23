@@ -1,0 +1,144 @@
+name: Investment priority price refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/investment-priority-price-refresh-kick.txt"
+      - ".github/workflows/investment-priority-price-refresh.yml"
+      - "scheduled_investment_price_refresh.py"
+      - "stock_app.py"
+  workflow_dispatch:
+  schedule:
+    # 08:30, 12:30, 16:30 and 21:30 Europe/London on weekdays.
+    - cron: "30 7,11,15,20 * * 1-5"
+    - cron: "30 8,12,16,21 * * 1-5"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: investment-priority-writes
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Check London schedule
+        id: schedule_guard
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "run_refresh=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "30 7,11,15,20 * * 1-5" ] && [ "$(TZ=Europe/London date +%z)" = "+0100" ]; then
+            echo "run_refresh=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.schedule }}" = "30 8,12,16,21 * * 1-5" ] && [ "$(TZ=Europe/London date +%z)" = "+0000" ]; then
+            echo "run_refresh=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_refresh=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.schedule_guard.outputs.run_refresh == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.schedule_guard.outputs.run_refresh == 'true'
+        run: pip install -r requirements.txt
+
+      - name: Refresh priority prices and decisions
+        if: steps.schedule_guard.outputs.run_refresh == 'true'
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python scheduled_investment_price_refresh.py \
+            --input-dir prepared_priority_investments
+
+      - name: Rebuild priority summary
+        if: steps.schedule_guard.outputs.run_refresh == 'true'
+        shell: bash
+        run: |
+          python - <<'PY'
+          import glob
+          import json
+          from pathlib import Path
+          import pandas as pd
+
+          root = Path("prepared_priority_investments")
+          manifest_path = root / "manifest.json"
+          try:
+              manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+          except Exception:
+              manifest = {}
+
+          rows = []
+          counts = {}
+          for file in sorted(glob.glob(str(root / "*.csv.gz"))):
+              frame = pd.read_csv(file, compression="gzip")
+              for _, row in frame.iterrows():
+                  item = {}
+                  for col in [
+                      "Action", "Ticker", "Company", "Price", "Quality score", "Moat score",
+                      "Base margin of safety %", "Required margin of safety %",
+                      "Bear margin of safety %", "Valuation gate",
+                      "Valuation model version", "Valuation FX status",
+                      "Valuation FX rate", "Valuation FX pair",
+                      "Quote currency", "Financial currency", "Decision reason",
+                  ]:
+                      value = row.get(col)
+                      if pd.isna(value):
+                          value = None
+                      elif hasattr(value, "item"):
+                          value = value.item()
+                      item[col] = value
+                  item["Prepared exchange"] = Path(file).name.replace(".csv.gz", "")
+                  rows.append(item)
+                  action = str(item.get("Action") or "UNKNOWN")
+                  counts[action] = counts.get(action, 0) + 1
+
+          payload = {
+              "refreshed_at": manifest.get("price_refreshed_at"),
+              "rows": rows,
+              "counts": counts,
+              "total": len(rows),
+          }
+          (root / "summary.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps({
+              "refreshed_at": payload["refreshed_at"],
+              "counts": counts,
+              "total": len(rows),
+          }, sort_keys=True))
+          PY
+
+      - name: Save refreshed priority shortlist
+        if: steps.schedule_guard.outputs.run_refresh == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_priority_investments
+          if git diff --cached --quiet; then
+            echo "No priority shortlist changes to commit."
+            exit 0
+          fi
+          git commit -m "Refresh priority Investment prices and decisions"
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main
+            if git push origin HEAD:main; then
+              exit 0
+            fi
+            sleep $((attempt * 4))
+          done
+          exit 1
