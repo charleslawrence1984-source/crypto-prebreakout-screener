@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from meme_launch_research import checkpoint_features, forward_outcomes
 
@@ -40,7 +41,7 @@ def test_forward_outcome_path_order():
     row = out.iloc[0]
     assert bool(row["hit_2x"]) is True
     assert bool(row["hit_2x_before_50dd"]) is True
-    assert row["mae_before_2x_pct"] == -20.0
+    assert row["mae_before_2x_pct"] == pytest.approx(-20.0)
 
 
 def test_target_after_severe_drawdown_not_tradable_success():
