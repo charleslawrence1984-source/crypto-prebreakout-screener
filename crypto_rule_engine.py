@@ -1153,8 +1153,9 @@ def score_setup(
         distance_component = 0.0
     else:
         distance_component = 0.10
-    # Use the nearest meaningful support across the 4h structure and daily trend
-    # for entry timing, rather than anchoring solely to the current price.
+    # Keep the earlier support-based entry as an ideal pullback reference, but
+    # make the active entry move with the setup lifecycle. A READY coin should not
+    # keep advertising an old pullback price that may never trade again.
     swing_low = float(x["low"].iloc[-24:].min())
     support_candidates = {
         "4h EMA20": float(x["ema20"].iloc[-1]),
@@ -1173,18 +1174,84 @@ def score_setup(
         if 0 < level <= price
     }
     if valid_supports:
-        entry_basis, entry_anchor = max(valid_supports.items(), key=lambda item: item[1])
+        ideal_entry_basis, ideal_entry_anchor = max(valid_supports.items(), key=lambda item: item[1])
     else:
-        entry_basis, entry_anchor = "Current price fallback", price
+        ideal_entry_basis, ideal_entry_anchor = "Current price fallback", price
+
     breakout_level_for_entry = _safe_float(timing.get("breakout_level"), np.nan)
-    if math.isfinite(breakout_level_for_entry) and timing_state in {
-        "FRESH BREAKOUT", "RETEST", "EXTENDED", "TOO LATE"
-    }:
-        entry_basis = "Broken resistance / breakout retest"
-        entry_anchor = breakout_level_for_entry
     entry_atr = float(x["atr"].iloc[-5:].mean())
-    invalidation = min(swing_low, entry_anchor - 1.25 * entry_atr) * 0.995
+    structural_anchor = ideal_entry_anchor
+    if math.isfinite(breakout_level_for_entry) and timing_state in {
+        "FRESH BREAKOUT", "RETEST", "RECLAIM NEEDED", "EXTENDED", "TOO LATE"
+    }:
+        structural_anchor = breakout_level_for_entry
+
+    invalidation = min(swing_low, structural_anchor - 1.25 * entry_atr) * 0.995
     risk_pct = max((price - invalidation) / price * 100, 0.01)
+
+    # Support-based reference entry: useful for EARLY setups and for showing what
+    # the ideal earlier pullback would have been, even after price moves on.
+    ideal_half_width = max(entry_atr * 0.40, price * 0.004)
+    ideal_raw_low = max(invalidation * 1.01, ideal_entry_anchor - ideal_half_width)
+    ideal_raw_high = min(resistance * 0.998, ideal_entry_anchor + ideal_half_width)
+    ideal_pullback_low = min(ideal_raw_low, ideal_raw_high * 0.999)
+    ideal_pullback_high = max(ideal_raw_high, ideal_pullback_low * 1.001)
+    ideal_pullback_entry = (ideal_pullback_low + ideal_pullback_high) / 2
+
+    # Active entry follows the lifecycle.
+    entry_mode = "REFERENCE ONLY"
+    entry_basis = f"Ideal pullback / {ideal_entry_basis}"
+    entry_low = ideal_pullback_low
+    entry_high = ideal_pullback_high
+    planned_entry = ideal_pullback_entry
+
+    if timing_state == "READY":
+        live_cap = resistance * 0.998
+        live_low = max(invalidation * 1.01, price - 0.20 * entry_atr)
+        live_high = min(live_cap, price + 0.15 * entry_atr)
+        if live_high <= live_low:
+            live_low = min(price, live_cap) * 0.999
+            live_high = max(min(price, live_cap), live_low * 1.001)
+        entry_low = live_low
+        entry_high = live_high
+        planned_entry = min(max(price, entry_low), entry_high)
+        entry_mode = "LIVE PRE-BREAKOUT"
+        entry_basis = "Live READY zone near current price below resistance"
+    elif timing_state == "EARLY":
+        entry_mode = "IDEAL PULLBACK"
+        entry_basis = f"Ideal pullback / {ideal_entry_basis}"
+    elif timing_state == "FRESH BREAKOUT" and math.isfinite(breakout_level_for_entry):
+        entry_low = max(
+            invalidation * 1.01,
+            breakout_level_for_entry,
+            price - 0.25 * entry_atr,
+        )
+        entry_high = max(price, entry_low * 1.001)
+        planned_entry = price
+        entry_mode = "LIVE BREAKOUT"
+        entry_basis = "Fresh breakout / acceptance near current price"
+    elif timing_state == "RETEST" and math.isfinite(breakout_level_for_entry):
+        entry_low = max(
+            invalidation * 1.01,
+            breakout_level_for_entry - 0.25 * entry_atr,
+        )
+        entry_high = max(
+            price,
+            breakout_level_for_entry + 0.35 * entry_atr,
+            entry_low * 1.001,
+        )
+        planned_entry = price
+        entry_mode = "LIVE RETEST"
+        entry_basis = "Bullish retest of broken resistance"
+    elif timing_state == "RECLAIM NEEDED":
+        entry_mode = "NO ACTIVE ENTRY"
+        entry_basis = "Broken level lost — reclaim required before a new entry"
+    elif timing_state == "EXTENDED":
+        entry_mode = "NO ACTIVE ENTRY"
+        entry_basis = "Extended — reference pullback only until reset/retest"
+    elif timing_state == "TOO LATE":
+        entry_mode = "NO ACTIVE ENTRY"
+        entry_basis = "Too late — reference pullback only"
 
     # Short-term measured move remains useful, while long-range weekly resistance
     # uses up to ~4 years of available history as a technical reference window.
@@ -1267,23 +1334,6 @@ def score_setup(
         if math.isfinite(weekly_primary)
         else "4h measured move"
     )
-
-    entry_half_width = max(entry_atr * 0.40, price * 0.004)
-    if math.isfinite(breakout_level_for_entry) and timing_state in {
-        "FRESH BREAKOUT", "RETEST", "EXTENDED", "TOO LATE"
-    }:
-        raw_entry_low = max(
-            invalidation * 1.01,
-            breakout_level_for_entry - 0.25 * entry_atr,
-        )
-        breakout_entry_cap = breakout_level_for_entry + 0.60 * entry_atr
-        raw_entry_high = min(price, breakout_entry_cap)
-    else:
-        raw_entry_low = max(invalidation * 1.01, entry_anchor - entry_half_width)
-        raw_entry_high = min(resistance * 0.998, entry_anchor + entry_half_width)
-    entry_low = min(raw_entry_low, raw_entry_high * 0.999)
-    entry_high = max(raw_entry_high, entry_low * 1.001)
-    planned_entry = (entry_low + entry_high) / 2
 
     credible_targets = list(weekly_target_levels)
     if measured_target > price:
@@ -1437,9 +1487,14 @@ def score_setup(
         "rs_vs_btc_180d_pct": round(float(rs_btc_180), 2) if math.isfinite(rs_btc_180) else np.nan,
         "risk_reward": round(rr, 2),
         "planned_entry": planned_entry,
+        "entry_mode": entry_mode,
         "downside_to_invalidation_pct": round(downside_to_invalidation_pct, 2),
         "entry_low": entry_low,
         "entry_high": entry_high,
+        "ideal_pullback_entry": ideal_pullback_entry,
+        "ideal_pullback_low": ideal_pullback_low,
+        "ideal_pullback_high": ideal_pullback_high,
+        "ideal_pullback_basis": ideal_entry_basis,
         "invalidation": invalidation,
         "target_1": resistance * 1.05,
         "target_2": resistance * 1.10,
