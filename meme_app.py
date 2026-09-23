@@ -39,6 +39,7 @@ DEFAULTS = {
     "max_24h_change": 45.0,
     "shortlist_score": 65.0,
     "min_circulating_pct": 10.0,
+    "trade_plan_count": 50,
 }
 
 
@@ -716,6 +717,94 @@ def meme_price_chart(
     return fig
 
 
+def attach_bulk_trade_plans(
+    ranked: pd.DataFrame,
+    max_candidates: int,
+    position_size: float,
+    round_trip_fees_pct: float,
+) -> pd.DataFrame:
+    """
+    Calculate entry / exit zones for the highest-ranked discovery candidates.
+
+    Ranking is completed before this enrichment step, so unavailable candle data
+    cannot change the candidate score or decision. Trade-plan fields are an
+    execution overlay, not a rescue mechanism for weak candidates.
+    """
+    if ranked is None or ranked.empty:
+        return ranked
+
+    out = ranked.copy()
+    plan_columns = {
+        "Plan Status": "NOT CALCULATED",
+        "Entry Low": np.nan,
+        "Entry High": np.nan,
+        "Entry Price": np.nan,
+        "Negative Exit": np.nan,
+        "Positive Exit": np.nan,
+        "Stretch Exit": np.nan,
+        "Gross ROI %": np.nan,
+        "Net ROI %": np.nan,
+        "Potential ROI %": np.nan,
+        "Gross R:R": np.nan,
+        "Net R:R": np.nan,
+        "R:R": np.nan,
+        "ATR %": np.nan,
+        "Risk to Stop %": np.nan,
+        "Estimated Slippage %": np.nan,
+        "Estimated Total Costs %": np.nan,
+        "Potential Profit $": np.nan,
+        "Potential Loss $": np.nan,
+        "Plan Basis": "Outside bulk trade-plan coverage",
+    }
+    for column, default in plan_columns.items():
+        if column not in out.columns:
+            out[column] = default
+
+    decision_rank = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
+    candidates = out.copy()
+    candidates["_plan_decision_rank"] = candidates["Decision"].map(decision_rank).fillna(9)
+    candidates = candidates.sort_values(
+        ["_plan_decision_rank", "Score", "Liquidity"],
+        ascending=[True, False, False],
+        na_position="last",
+    )
+    selected_indices = list(candidates.head(max(0, int(max_candidates))).index)
+
+    for idx in selected_indices:
+        row = out.loc[idx]
+        pair_address = str(row.get("Pair Address") or "")
+        token_address = str(row.get("Token Address") or "")
+        chain = str(row.get("Chain") or "")
+        if not pair_address or not chain:
+            out.at[idx, "Plan Status"] = "UNAVAILABLE"
+            out.at[idx, "Plan Basis"] = "Missing pool/chain metadata"
+            continue
+        try:
+            plan_4h = fetch_pool_ohlcv(chain, pair_address, token_address, "4h")
+            plan_1h = fetch_pool_ohlcv(chain, pair_address, token_address, "1h")
+            plan = meme_trade_plan(
+                plan_4h,
+                plan_1h,
+                liquidity=row.get("Liquidity", np.nan),
+                position_size=position_size,
+                round_trip_fees_pct=round_trip_fees_pct,
+            )
+        except Exception as exc:
+            plan = {
+                "Plan Status": "UNAVAILABLE",
+                "Plan Basis": f"Trade-plan candle data unavailable: {type(exc).__name__}",
+            }
+
+        for key, value in plan.items():
+            if key in out.columns:
+                out.at[idx, key] = value
+            else:
+                out[key] = np.nan
+                out.at[idx, key] = value
+
+    return out
+
+
 def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
     liq = safe((pair.get("liquidity") or {}).get("usd"), 0)
     reported_mcap = safe(pair.get("marketCap"))
@@ -1052,6 +1141,15 @@ with st.sidebar:
         step=0.25,
         help="Your estimated buy + sell trading costs, excluding the model's liquidity-based slippage estimate.",
     )
+    trade_plan_count = st.selectbox(
+        "Candidates with entry / exit zones",
+        [25, 50, 75, 100],
+        index=1,
+        help=(
+            "After ranking the discovery scan, calculate 4h/1h entry, stop and target zones "
+            "for this many top candidates. Higher values make the scan heavier."
+        ),
+    )
 
 cfg = {
     "min_liquidity": float(min_liq),
@@ -1063,6 +1161,7 @@ cfg = {
     "max_24h_change": float(max_24h),
     "shortlist_score": float(threshold),
     "min_circulating_pct": float(min_circ),
+    "trade_plan_count": int(trade_plan_count),
 }
 
 if "meme_scan_df" not in st.session_state:
@@ -1626,13 +1725,15 @@ with tab_meme_opportunities:
         elif opportunity_filter == "Best opportunities":
             shown_meme = shown_meme[
                 shown_meme["Decision"].isin(["HIGH PRIORITY", "SHORTLIST", "WATCH"])
-            ].head(25)
+            ].head(50)
 
         meme_opportunity_cols = [
             "Ticker", "Name", "Chain", "Decision", "Score",
             "Narrative Strength", "Community Strength", "Gate",
             "Price USD", "Market Cap", "Liquidity", "24h Volume",
-            "Buy %", "1h %", "6h %", "24h %", "Risk Flags",
+            "Buy %", "1h %", "6h %", "24h %", "Plan Status",
+            "Entry Low", "Entry High", "Negative Exit", "Positive Exit",
+            "Stretch Exit", "R:R", "Net ROI %", "Risk Flags",
         ]
         visible_meme_cols = [
             col for col in meme_opportunity_cols if col in shown_meme.columns
@@ -1721,20 +1822,35 @@ with tab_meme_advanced:
             order = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
             df["_order"] = df["Decision"].map(order).fillna(9)
             df = df.sort_values(["_order", "Score", "Liquidity"], ascending=[True, False, False]).drop(columns=["_order"])
+            with st.spinner(
+                f"Calculating entry / exit zones for the top {cfg['trade_plan_count']} candidates…"
+            ):
+                df = attach_bulk_trade_plans(
+                    df,
+                    max_candidates=cfg["trade_plan_count"],
+                    position_size=planned_position_size,
+                    round_trip_fees_pct=round_trip_fees_pct,
+                )
             st.session_state.meme_scan_df = df.copy()
 
-            c1, c2, c3, c4 = st.columns(4)
+            c1, c2, c3, c4, c5 = st.columns(5)
             c1.metric("High priority", int((df["Decision"] == "HIGH PRIORITY").sum()))
             c2.metric("Shortlist", int((df["Decision"] == "SHORTLIST").sum()))
             c3.metric("Watch", int((df["Decision"] == "WATCH").sum()))
             c4.metric("Tokens checked", len(df))
+            c5.metric(
+                "Trade plans",
+                int(df["Plan Status"].ne("NOT CALCULATED").sum()) if "Plan Status" in df.columns else 0,
+            )
 
             main_cols = [
                 "Ticker", "Name", "Chain", "Decision", "Score",
                 "Narrative Strength", "Narrative Score",
                 "Community Strength", "Community Score", "Social Breadth", "Gate", "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
                 "24h Volume", "Vol/Liq", "Buy %", "1h %", "6h %", "24h %",
-                "Pair Age h", "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
+                "Pair Age h", "Plan Status", "Entry Low", "Entry High", "Negative Exit",
+                "Positive Exit", "Stretch Exit", "R:R", "Net ROI %",
+                "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
             ]
             st.subheader("Ranked candidates")
             meme_display = df[main_cols]
