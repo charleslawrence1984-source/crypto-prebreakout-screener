@@ -4118,14 +4118,18 @@ with tab_crypto_advanced:
             # Do not launch the expensive on-demand scanner from a hidden Streamlit tab:
             # st.tabs renders every tab, so doing that can make Crypto Home appear blank
             # while a full market scan runs. The on-demand refresh remains manual.
-            should_scan = bool(manual_scan)
-            if not should_scan:
+            run_new_scan = bool(manual_scan)
+            has_cached_scan = (
+                isinstance(st.session_state.scan_df, pd.DataFrame)
+                and not st.session_state.scan_df.empty
+            )
+            if not run_new_scan and not has_cached_scan:
                 st.caption(
-                    "No exchange diagnostic is being shown. Run it manually only if you need "
-                    "exchange-specific troubleshooting; it is not part of the opportunity list."
+                    "No exchange diagnostic has been run in this session yet. "
+                    "Run it once to load exchange-specific candidates; the results will then stay visible."
                 )
                 return
-            if should_scan:
+            if run_new_scan:
                 status = st.status(f"Scanning top {cfg.universe_size} liquid {cfg.quote} spot markets on {exchange_name}…", expanded=False)
                 try:
                     def report_progress(completed, total):
@@ -4709,11 +4713,9 @@ with tab_crypto_advanced:
                     },
                 )
 
-            # A successful scheduled/manual scan updates session state inside this
-            # fragment. Rerun the whole app once so Home and Opportunities immediately
-            # reflect the same newly-scanned dataset rather than the previous snapshot.
-            if should_scan:
-                st.rerun()
+            # Keep the completed diagnostic visible in session state. Do not
+            # immediately rerun here: a Streamlit button is True for one render only,
+            # so rerunning used to hide the just-completed results on the next render.
 
         live_scan()
 
