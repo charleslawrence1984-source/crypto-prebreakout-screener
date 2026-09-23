@@ -227,12 +227,27 @@ async def load_all_universes(
 
     for exchange_id, result in zip(EXCHANGES, results):
         if isinstance(result, Exception):
-            errors.append(f"{exchange_id}: {type(result).__name__}: {result}")
+            error_text = f"{type(result).__name__}: {result}"
+            lower_error = error_text.lower()
+            bybit_runner_geo_block = (
+                exchange_id == "bybit"
+                and "403 forbidden" in lower_error
+                and (
+                    "cloudfront" in lower_error
+                    or "block access from your country" in lower_error
+                )
+            )
+            if not bybit_runner_geo_block:
+                errors.append(f"{exchange_id}: {error_text}")
             audits.append({
                 "exchange": EXCHANGES[exchange_id],
                 "exchange_id": exchange_id,
-                "status": "DATA ISSUE",
-                "error": f"{type(result).__name__}: {str(result)[:300]}",
+                "status": "VENUE UNAVAILABLE" if bybit_runner_geo_block else "DATA ISSUE",
+                "error": (
+                    "GitHub runner region is blocked by Bybit; other venues continue normally."
+                    if bybit_runner_geo_block
+                    else f"{type(result).__name__}: {str(result)[:300]}"
+                ),
             })
             continue
         frame, audit, execution_meta = result
