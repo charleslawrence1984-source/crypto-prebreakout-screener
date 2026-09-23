@@ -3615,9 +3615,11 @@ def canonical_company_key(name: str) -> str:
 def load_investment_validation_coverage() -> Dict:
     audit_path = PREPARED_SCAN_DIR / "investment_audit.json"
     priority_path = PRIORITY_INVESTMENT_DIR / "summary.json"
+    priority_manifest_path = PRIORITY_INVESTMENT_DIR / "manifest.json"
 
     audit = {}
     priority = {}
+    priority_manifest = {}
     try:
         if audit_path.exists():
             audit = json.loads(audit_path.read_text(encoding="utf-8"))
@@ -3628,6 +3630,11 @@ def load_investment_validation_coverage() -> Dict:
             priority = json.loads(priority_path.read_text(encoding="utf-8"))
     except Exception:
         priority = {}
+    try:
+        if priority_manifest_path.exists():
+            priority_manifest = json.loads(priority_manifest_path.read_text(encoding="utf-8"))
+    except Exception:
+        priority_manifest = {}
 
     totals = audit.get("totals", {}) if isinstance(audit, dict) else {}
     priority_counts = priority.get("counts", {}) if isinstance(priority, dict) else {}
@@ -3655,6 +3662,11 @@ def load_investment_validation_coverage() -> Dict:
         ),
         "fx_safe_unique_buys": len(unique_buy_keys),
         "fx_safe_waits": int(priority_counts.get("WAIT", 0) or 0),
+        "priority_price_refreshed_at": (
+            priority.get("refreshed_at")
+            or priority_manifest.get("price_refreshed_at")
+            or ""
+        ),
     }
 
 
@@ -4879,6 +4891,13 @@ with tab_opportunities:
             )
 
             validation = load_investment_validation_coverage()
+            priority_refreshed_at = str(validation.get("priority_price_refreshed_at") or "")
+            if priority_refreshed_at:
+                st.caption(
+                    f"Investment shortlist prices / valuation decisions refreshed: **{priority_refreshed_at}**"
+                )
+            else:
+                st.caption("Investment shortlist refresh time is not yet available.")
             if validation.get("prepared_rows"):
                 st.caption(
                     "Validation coverage · "
