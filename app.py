@@ -4491,66 +4491,81 @@ with tab_crypto_advanced:
                     "Triangle resistance", "Triangle support", "Triangle target", "Triangle detail",
                     "Entry basis", "Invalidation", "Sell target", "Stretch target", "Target upside %", "Target basis",
                 ]
-                styled_swing = swing_candidates[swing_cols].style
-                styled_swing = styled_swing.map(
-                    lambda value: (
-                        "background-color: #d8f3dc; color: #16351c; font-weight: 700"
-                        if str(value) == "HIGH"
-                        else "background-color: #fff3bf; color: #5f4500; font-weight: 700"
-                        if str(value) == "MEDIUM"
-                        else "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
-                        if str(value) == "LOW"
-                        else ""
-                    ),
-                    subset=["Context confidence"],
-                )
-                styled_swing = styled_swing.map(
-                    lambda value: (
-                        "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
-                        if str(value) == "HIGH"
-                        else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
-                        if str(value) in ("MEDIUM", "UNKNOWN")
-                        else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
-                        if str(value) == "LOW"
-                        else ""
-                    ),
-                    subset=["Known event risk"],
-                )
-                styled_swing = styled_swing.map(
-                    lambda value: (
-                        "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
-                        if str(value) == "CAUTION"
-                        else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
-                        if str(value) == "CLEAR"
-                        else ""
-                    ),
-                    subset=["Candle caution"],
-                )
-                for trend_column in ["Coin trend", "Market trend"]:
+                # Build the display from columns that actually exist, then only
+                # apply Styler subsets that are present in that display. Pandas
+                # raises KeyError at render time when a subset names a missing
+                # column, so every formatting rule must be schema-safe.
+                visible_swing_cols = [
+                    column for column in swing_cols
+                    if column in swing_candidates.columns
+                ]
+                swing_display = swing_candidates[visible_swing_cols].copy()
+                styled_swing = swing_display.style
+
+                if "Context confidence" in swing_display.columns:
                     styled_swing = styled_swing.map(
-                        lambda value, column=trend_column: scan_cell_style(value, column),
-                        subset=[trend_column],
+                        lambda value: (
+                            "background-color: #d8f3dc; color: #16351c; font-weight: 700"
+                            if str(value) == "HIGH"
+                            else "background-color: #fff3bf; color: #5f4500; font-weight: 700"
+                            if str(value) == "MEDIUM"
+                            else "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                            if str(value) == "LOW"
+                            else ""
+                        ),
+                        subset=["Context confidence"],
                     )
+                if "Known event risk" in swing_display.columns:
+                    styled_swing = styled_swing.map(
+                        lambda value: (
+                            "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                            if str(value) == "HIGH"
+                            else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+                            if str(value) in ("MEDIUM", "UNKNOWN")
+                            else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                            if str(value) == "LOW"
+                            else ""
+                        ),
+                        subset=["Known event risk"],
+                    )
+                if "Candle caution" in swing_display.columns:
+                    styled_swing = styled_swing.map(
+                        lambda value: (
+                            "background-color: #ffd6d6; color: #5c1717; font-weight: 700"
+                            if str(value) == "CAUTION"
+                            else "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                            if str(value) == "CLEAR"
+                            else ""
+                        ),
+                        subset=["Candle caution"],
+                    )
+                for trend_column in ["Coin trend", "Market trend"]:
+                    if trend_column in swing_display.columns:
+                        styled_swing = styled_swing.map(
+                            lambda value, column=trend_column: scan_cell_style(value, column),
+                            subset=[trend_column],
+                        )
                 for traffic_column in [
                     "Status", "Entry timing", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
                     "4h Channel", "4h Channel quality", "Daily Channel",
                     "Category leader", "Major CEX quality", "Macro regime", "Catalyst status",
                 ]:
-                    if traffic_column in swing_candidates.columns:
+                    if traffic_column in swing_display.columns:
                         styled_swing = styled_swing.map(
                             lambda value, column=traffic_column: scan_cell_style(value, column),
                             subset=[traffic_column],
                         )
-                styled_swing = styled_swing.map(
-                    lambda value: (
-                        "background-color: #d8f3dc; color: #16351c; font-weight: 600"
-                        if str(value) == "PASS"
-                        else "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
-                        if str(value) == "FAIL"
-                        else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
-                    ),
-                    subset=["Tokenomics gate"],
-                )
+                if "Tokenomics gate" in swing_display.columns:
+                    styled_swing = styled_swing.map(
+                        lambda value: (
+                            "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+                            if str(value) == "PASS"
+                            else "background-color: #ffd6d6; color: #5f1717; font-weight: 600"
+                            if str(value) == "FAIL"
+                            else "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+                        ),
+                        subset=["Tokenomics gate"],
+                    )
                 for column in [
                     "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
                     "Triangle score", "ROI %", "Macro score", "4h Channel R:R",
@@ -4558,10 +4573,11 @@ with tab_crypto_advanced:
                     "Tests", "RSI", "ATR ratio", "Vol ratio", "RS vs BTC %", "RS vs BTC 96h %",
                     "RS vs BTC 30d %", "RS vs BTC 90d %", "RS vs BTC 180d %", "R:R",
                 ]:
-                    styled_swing = styled_swing.map(
-                        lambda value, column=column: scan_cell_style(value, column),
-                        subset=[column],
-                    )
+                    if column in swing_display.columns:
+                        styled_swing = styled_swing.map(
+                            lambda value, column=column: scan_cell_style(value, column),
+                            subset=[column],
+                        )
                 st.dataframe(
                     styled_swing,
                     use_container_width=True,
