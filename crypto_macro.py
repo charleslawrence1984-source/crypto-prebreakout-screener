@@ -38,20 +38,42 @@ def _safe_float(value, default=np.nan) -> float:
 
 
 def _fred_series(series_id: str, timeout: float = 8.0) -> pd.Series:
-    response = requests.get(
-        "https://fred.stlouisfed.org/graph/fredgraph.csv",
-        params={"id": series_id},
-        headers={"User-Agent": "cl-signal/1.0"},
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    frame = pd.read_csv(io.StringIO(response.text))
-    if frame.empty or len(frame.columns) < 2:
-        return pd.Series(dtype=float)
-    dates = pd.to_datetime(frame.iloc[:, 0], errors="coerce", utc=True)
-    values = pd.to_numeric(frame.iloc[:, -1], errors="coerce")
-    series = pd.Series(values.to_numpy(), index=dates).dropna()
-    return series[~series.index.isna()].sort_index()
+    """Fetch only the recent FRED window needed by the liquidity model.
+
+    Pulling each series' full history made scheduled GitHub runners prone to
+    FRED read timeouts. The longest model lookback is ~100 days, so ~450 days
+    gives ample history while keeping each response small. A bounded retry
+    protects against transient FRED slowness without turning macro into a
+    user-facing blocker.
+    """
+    start_date = (
+        pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=450)
+    ).strftime("%Y-%m-%d")
+    params = {"id": series_id, "cosd": start_date}
+    last_error = None
+
+    for request_timeout in (timeout, max(timeout, 20.0), max(timeout, 30.0)):
+        try:
+            response = requests.get(
+                "https://fred.stlouisfed.org/graph/fredgraph.csv",
+                params=params,
+                headers={"User-Agent": "cl-signal/1.0"},
+                timeout=request_timeout,
+            )
+            response.raise_for_status()
+            frame = pd.read_csv(io.StringIO(response.text))
+            if frame.empty or len(frame.columns) < 2:
+                return pd.Series(dtype=float)
+            dates = pd.to_datetime(frame.iloc[:, 0], errors="coerce", utc=True)
+            values = pd.to_numeric(frame.iloc[:, -1], errors="coerce")
+            series = pd.Series(values.to_numpy(), index=dates).dropna()
+            return series[~series.index.isna()].sort_index()
+        except requests.RequestException as exc:
+            last_error = exc
+
+    if last_error is not None:
+        raise last_error
+    return pd.Series(dtype=float)
 
 
 def _stablecoin_supply_series(timeout: float = 8.0) -> pd.Series:
@@ -125,7 +147,9 @@ def calculate_macro_liquidity_regime(timeout: float = 8.0) -> Dict:
         return name, _fred_series(name, timeout)
 
     names = [*FRED_SERIES, "STABLECOINS"]
-    with ThreadPoolExecutor(max_workers=len(names)) as executor:
+    # Keep FRED concurrency modest. Seven simultaneous full-history requests
+    # were causing the scheduled runner to time out every macro series at once.
+    with ThreadPoolExecutor(max_workers=4) as executor:
         futures = {executor.submit(load, name): name for name in names}
         for future in as_completed(futures):
             name = futures[future]
