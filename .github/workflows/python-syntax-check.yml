@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "app.py"
+      - "meme_app.py"
+      - "meme_launch_research.py"
       - "pre_pump_research.py"
       - "crypto_rule_engine.py"
       - "crypto_market_pipeline.py"
@@ -26,4 +28,4 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile Python files
-        run: python -m py_compile app.py pre_pump_research.py crypto_rule_engine.py crypto_market_pipeline.py crypto_macro.py crypto_accumulation_model.py stock_app.py strategy_scores_v3.py two_strategy.py scheduled_investment_scan.py
+        run: python -m py_compile app.py meme_app.py meme_launch_research.py pre_pump_research.py crypto_rule_engine.py crypto_market_pipeline.py crypto_macro.py crypto_accumulation_model.py stock_app.py strategy_scores_v3.py two_strategy.py scheduled_investment_scan.py
