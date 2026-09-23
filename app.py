@@ -2002,6 +2002,20 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Price Target": r["projected_target"],
                 "ROI %": r["target_upside_pct"],
                 "To resistance %": r["distance_pct"],
+                "Entry timing": r.get("entry_timing", "NOT READY"),
+                "Entry timing actionable": r.get("entry_timing_actionable", False),
+                "Timing detail": r.get("timing_detail", ""),
+                "Breakout age hours": r.get("breakout_age_hours", np.nan),
+                "Breakout extension %": r.get("breakout_extension_pct", np.nan),
+                "Breakout extension ATR": r.get("breakout_extension_atr", np.nan),
+                "Historical overhead": r.get("historical_overhead", "UNKNOWN"),
+                "Nearest overhead %": r.get("nearest_overhead_pct", np.nan),
+                "Price discovery": r.get("price_discovery", False),
+                "Clear air": r.get("clear_air", False),
+                "Bullish retest": r.get("bullish_retest", False),
+                "Current target upside %": r.get("current_target_upside_pct", np.nan),
+                "Current R:R": r.get("current_risk_reward", np.nan),
+                "Move completed %": r.get("move_completed_pct", np.nan),
                 "Tests": r["resistance_tests"],
                 "RSI": r["rsi"],
                 "ATR ratio": r["atr_ratio"],
@@ -2027,8 +2041,14 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                 "Sell target": r["projected_target"],
                 "Stretch target": r["stretch_target"],
                 "Trade verdict": (
-                    "QUALIFIES — PRE-BREAKOUT SETUP"
+                    "QUALIFIES — FRESH BREAKOUT"
+                    if r["eligible"] and r.get("entry_timing") == "FRESH BREAKOUT"
+                    else "QUALIFIES — BULLISH RETEST"
+                    if r["eligible"] and r.get("entry_timing") == "RETEST"
+                    else "QUALIFIES — PRE-BREAKOUT SETUP"
                     if r["eligible"]
+                    else "WAIT — " + r["reason"]
+                    if r.get("entry_timing") in {"EXTENDED", "TOO LATE"}
                     else "PASS — " + r["reason"]
                 ),
                 "Target upside %": r["target_upside_pct"],
@@ -2654,12 +2674,36 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
     rs_pass = base == "BTC" or _safe_float(result.get("rs_vs_btc_pct"), -999) > 0
     candle_pass = not bool(result.get("candle_caution"))
     execution_pass = bool(result.get("execution_liquidity_pass", False))
+    timing_state = str(result.get("entry_timing") or "NOT READY")
+    timing_actionable = bool(result.get("entry_timing_actionable", False))
 
-    # Swing BUY is driven by the technical setup, but a personal BUY also requires
-    # safe execution liquidity on Kraken or Crypto.com. Tokenomics, CEX breadth, macro,
-    # catalysts and general context are warnings/confidence only; they do not rescue
-    # a poor chart and they do not veto an otherwise valid technical setup.
-    if result.get("eligible") and score_pass and rs_pass and candle_pass and execution_pass:
+    # A high score is not enough if the move already happened. Extended and
+    # too-late coins remain useful RESET WATCH candidates rather than BUYs.
+    if timing_state in {"EXTENDED", "TOO LATE"}:
+        move_done = _safe_float(result.get("move_completed_pct"), np.nan)
+        move_text = (
+            f" About {move_done:.0f}% of the projected move has already occurred."
+            if math.isfinite(move_done) else ""
+        )
+        return {
+            "action": "WAIT",
+            "reason": (
+                f"{timing_state}: the setup may still be strong, but the original entry has already moved. "
+                "Wait for a new base or a confirmed bullish retest rather than chasing."
+                + move_text
+            ),
+        }
+
+    # Swing BUY is technical-first. Macro/liquidity context, catalysts and
+    # tokenomics may refine confidence but never rescue a poor chart.
+    if (
+        result.get("eligible")
+        and timing_actionable
+        and score_pass
+        and rs_pass
+        and candle_pass
+        and execution_pass
+    ):
         warnings = []
         if result.get("tokenomics_gate") != "PASS":
             warnings.append("tokenomics risk/unknown")
@@ -2671,22 +2715,38 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
             warnings.append("known event risk")
         if not macro_now.get("allows_new_swing_risk", True):
             warnings.append("macro liquidity headwind")
+        if macro_now.get("liquidity_breakout"):
+            warnings.append("liquidity regime breakout is supportive context")
         suffix = (
-            " Context warnings: " + ", ".join(warnings) + "."
+            " Context: " + ", ".join(warnings) + "."
             if warnings else ""
         )
+
+        if timing_state == "FRESH BREAKOUT":
+            timing_phrase = (
+                "fresh resistance breakout with clear air / low historical overhead"
+                if result.get("clear_air")
+                else "fresh resistance breakout that is not yet materially extended"
+            )
+        elif timing_state == "RETEST":
+            timing_phrase = "bullish retest holding broken resistance from above"
+        else:
+            timing_phrase = "constructive pre-breakout entry timing"
+
         return {
             "action": "BUY",
             "reason": (
-                f"Technical pre-breakout rules pass: score {result.get('score', 0):.1f} "
-                f">= {float(score_threshold):.0f}, positive relative strength, constructive pre-breakout structure, "
+                f"Technical rules pass: score {result.get('score', 0):.1f} "
+                f">= {float(score_threshold):.0f}, positive relative strength, {timing_phrase}, "
                 "and execution liquidity passes on Kraken/Crypto.com."
                 + suffix
             ),
         }
 
-    if result.get("eligible"):
+    if result.get("eligible") or timing_state in {"EARLY", "READY", "FRESH BREAKOUT", "RETEST"}:
         reasons = []
+        if not timing_actionable:
+            reasons.append("entry timing is not actionable")
         if not score_pass:
             reasons.append(f"technical score below {float(score_threshold):.0f}")
         if not rs_pass:
@@ -2700,12 +2760,12 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
             )
         return {
             "action": "WAIT",
-            "reason": "The pre-breakout shape exists, but " + ", ".join(reasons or ["the technical entry is not ready"]) + ".",
+            "reason": "The setup is developing, but " + ", ".join(reasons or ["the technical entry is not ready"]) + ".",
         }
 
     return {
         "action": "PASS",
-        "reason": result.get("reason", "The current pre-breakout shape does not meet the approved setup rules."),
+        "reason": result.get("reason", "The current structure does not meet the approved Swing setup rules."),
     }
 
 
@@ -2935,6 +2995,22 @@ with tab_crypto_home:
     else:
         st.caption("Background rule engine is initialising.")
 
+    liquidity_trend = str(macro.get("liquidity_trend") or macro.get("regime") or "DATA LIMITED")
+    liquidity_score = _safe_float(macro.get("score"), np.nan)
+    liquidity_score_text = f" · score {liquidity_score:.1f}/100" if math.isfinite(liquidity_score) else ""
+    if macro.get("liquidity_breakout"):
+        st.success(
+            "🌊 Crypto liquidity regime: **BREAKOUT**"
+            + liquidity_score_text
+            + " · supportive context only — entry timing and chart quality still decide the trade."
+        )
+    else:
+        st.caption(
+            f"Crypto liquidity regime: **{liquidity_trend}**"
+            + liquidity_score_text
+            + " · context only; it cannot turn a weak technical setup into a BUY."
+        )
+
     home_a, home_b, home_c = st.columns(3)
     with home_a:
         with st.container(border=True):
@@ -3039,13 +3115,15 @@ with tab_crypto_home:
                 )
 
             if "score" in home_result:
-                hm1, hm2, hm3, hm4 = st.columns(4)
+                hm1, hm2, hm3, hm4, hm5 = st.columns(5)
                 hm1.metric("Swing score", f"{home_result.get('score', 0):.1f}/100")
-                hm2.metric("RS vs BTC", f"{home_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
-                hm3.metric("RSI", f"{home_result.get('rsi', np.nan):.1f}")
-                hm4.metric(
-                    "Potential ROI",
-                    "—" if not math.isfinite(_safe_float(home_result.get("target_upside_pct"))) else f"{home_result.get('target_upside_pct'):.1f}%",
+                hm2.metric("Entry timing", home_result.get("entry_timing", "NOT READY"))
+                hm3.metric("RS vs BTC", f"{home_result.get('rs_vs_btc_pct', np.nan):+.2f}%")
+                hm4.metric("RSI", f"{home_result.get('rsi', np.nan):.1f}")
+                current_upside = _safe_float(home_result.get("current_target_upside_pct"), np.nan)
+                hm5.metric(
+                    "Remaining upside",
+                    "—" if not math.isfinite(current_upside) else f"{current_upside:.1f}%",
                 )
             st.caption("Open **Quick Analysis** for the full single-coin view. **Advanced Trade** and **Advanced Accumulation** hold the deeper tools.")
 
@@ -3104,8 +3182,12 @@ with tab_crypto_opportunities:
                 shown_swing = shown_swing.head(25)
 
             swing_cols = [
-                "Swing status", "Opportunity stage", "Base", "Exchange", "Swing score", "Price",
-                "Planned entry", "Invalidation", "Target", "Target upside %", "R:R",
+                "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange", "Swing score", "Price",
+                "Planned entry", "Invalidation", "Target", "Target upside %", "Current target upside %",
+                "R:R", "Current R:R", "Move completed %", "Breakout age hours",
+                "Breakout extension %", "Breakout extension ATR", "Historical overhead",
+                "Nearest overhead %", "Price discovery", "Clear air", "Bullish retest",
+                "Liquidity trend", "Liquidity breakout", "Liquidity score",
                 "RS vs BTC %", "RSI", "ATR ratio", "Vol ratio", "Distance %",
                 "Resistance tests", "Coin trend", "Pattern", "Candle caution",
                 "Execution venues", "Execution liquidity pass", "Execution reason",
@@ -3200,8 +3282,9 @@ with tab_crypto_opportunities:
             st.caption("The active monitor is the fast technical discovery layer feeding repeated deep analysis.")
             cols = [
                 col for col in [
-                    "Monitor state", "Base", "Exchange", "Current price",
-                    "Live distance to resistance %", "discovery_rank",
+                    "Monitor state", "discovery_entry_timing", "Base", "Exchange", "Current price",
+                    "Live distance to resistance %", "breakout_extension_pct",
+                    "fresh_breakout_limit_pct", "discovery_rank",
                     "rs_vs_btc_48h_pct", "24h quote volume",
                 ]
                 if col in active.columns
@@ -3342,6 +3425,29 @@ with tab_crypto_quick:
             q2.metric("Price", fmt_price(qa_result["price"]))
             q3.metric("To resistance", f"{qa_result['distance_pct']:.2f}%")
             q4.metric("RSI", f"{qa_result['rsi']:.1f}")
+
+            et1, et2, et3, et4, et5 = st.columns(5)
+            et1.metric("Entry timing", qa_result.get("entry_timing", "NOT READY"))
+            breakout_age = _safe_float(qa_result.get("breakout_age_hours"), np.nan)
+            et2.metric(
+                "Breakout age",
+                f"{breakout_age:.0f}h" if math.isfinite(breakout_age) else "Pre-breakout",
+            )
+            breakout_atr = _safe_float(qa_result.get("breakout_extension_atr"), np.nan)
+            et3.metric(
+                "Extension",
+                f"{breakout_atr:.2f} ATR" if math.isfinite(breakout_atr) else "—",
+            )
+            et4.metric("Historical overhead", qa_result.get("historical_overhead", "UNKNOWN"))
+            remaining_upside = _safe_float(qa_result.get("current_target_upside_pct"), np.nan)
+            et5.metric(
+                "Remaining target upside",
+                f"{remaining_upside:.1f}%" if math.isfinite(remaining_upside) else "Unavailable",
+            )
+            if qa_result.get("timing_detail"):
+                st.caption(qa_result.get("timing_detail"))
+            if qa_result.get("clear_air"):
+                st.caption("🚀 Clear-air / price-discovery flag: little or no meaningful historical overhead is visible in the available long-range history.")
 
             cf1, cf2, cf3, cf4 = st.columns(4)
             cf1.metric("Context confidence", qa_overlay["Context confidence"])
@@ -3593,7 +3699,7 @@ with tab_crypto_quick:
                 )
 
             l1, l2, l3, l4 = st.columns(4)
-            l1.metric("Pre-breakout entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}", qa_result["entry_basis"])
+            l1.metric("Planned entry zone", f"{fmt_price(qa_result['entry_low'])} – {fmt_price(qa_result['entry_high'])}", qa_result["entry_basis"])
             l2.metric("Breakout level", fmt_price(qa_result["resistance"]))
             l3.metric("Invalidation", fmt_price(qa_result["invalidation"]))
             l4.metric("Risk / reward", f"{qa_result['risk_reward']:.2f}:1")
@@ -3608,7 +3714,7 @@ with tab_crypto_quick:
             gross_upside = qa_result.get("target_upside_pct", np.nan)
             t3.metric(
                 "Gross upside from planned entry",
-                f"{gross_upside:.1f}%" if pd.notna(gross_upside) else "Below requirement",
+                f"{gross_upside:.1f}%" if pd.notna(gross_upside) else "Unavailable",
             )
             t4.metric(
                 "Reward / risk",
