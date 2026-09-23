@@ -1516,9 +1516,13 @@ def ascending_triangle_pattern(df4h: pd.DataFrame, window: int = 60) -> Dict:
 
 def scan_cell_style(value, column: str) -> str:
     """Traffic-light styling for the main scan's decision columns."""
+    dark_green = "background-color: #9be6a7; color: #103b19; font-weight: 800"
     green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
     amber = "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+    orange = "background-color: #ffe0b2; color: #6b3b00; font-weight: 700"
     red = "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+    dark_red = "background-color: #f2aaaa; color: #511111; font-weight: 800"
+    grey = "background-color: #eceff3; color: #4b5563; font-weight: 600"
 
     if column == "Accumulation signal":
         label = str(value)
@@ -1539,6 +1543,30 @@ def scan_cell_style(value, column: str) -> str:
         return ""
 
     label = str(value).upper()
+    if column == "Entry timing":
+        if label in {"READY", "FRESH BREAKOUT", "RETEST"}:
+            return dark_green
+        if label == "EARLY":
+            return green
+        if label == "RECLAIM NEEDED":
+            return orange
+        if label == "NOT READY":
+            return amber
+        if label == "EXTENDED":
+            return red
+        if label == "TOO LATE":
+            return dark_red
+        return grey if label in {"", "UNKNOWN", "UNAVAILABLE"} else ""
+    if column == "Entry mode":
+        if label in {"LIVE PRE-BREAKOUT", "LIVE BREAKOUT", "LIVE RETEST"}:
+            return dark_green
+        if label == "IDEAL PULLBACK":
+            return green
+        if label == "REFERENCE ONLY":
+            return amber
+        if label == "NO ACTIVE ENTRY":
+            return red
+        return grey if label in {"", "UNKNOWN", "UNAVAILABLE"} else ""
     if column == "Status":
         return green if label == "BUY" else amber if label == "WAIT" else red
     if column == "Pattern":
@@ -4025,8 +4053,20 @@ with tab_crypto_advanced:
             key="crypto_advanced_prepared_filter",
         )
         advanced_shown = primary_swing_view(advanced_prepared, advanced_filter)
+        styled_advanced = advanced_shown.style
+        for lifecycle_column in ["Entry timing", "Entry mode"]:
+            if lifecycle_column in advanced_shown.columns:
+                styled_advanced = styled_advanced.map(
+                    lambda value, column=lifecycle_column: scan_cell_style(value, column),
+                    subset=[lifecycle_column],
+                )
+        st.caption(
+            "Entry colours: dark green = actionable timing / live entry mode · "
+            "light green = developing or ideal pullback · amber/orange = wait or reclaim needed · "
+            "red = extended, too late or no active entry."
+        )
         st.dataframe(
-            advanced_shown,
+            styled_advanced,
             hide_index=True,
             use_container_width=True,
         )
@@ -4550,7 +4590,7 @@ with tab_crypto_advanced:
                             subset=[trend_column],
                         )
                 for traffic_column in [
-                    "Status", "Entry timing", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
+                    "Status", "Entry timing", "Entry mode", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
                     "4h Channel", "4h Channel quality", "Daily Channel",
                     "Category leader", "Major CEX quality", "Macro regime", "Catalyst status",
                 ]:
