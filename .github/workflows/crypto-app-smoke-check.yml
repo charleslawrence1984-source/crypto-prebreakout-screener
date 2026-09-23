@@ -7,6 +7,8 @@ on:
       - "app.py"
       - "crypto_rule_engine.py"
       - "crypto_market_pipeline.py"
+      - "crypto_ui_helpers.py"
+      - "test_crypto_ui_helpers.py"
       - ".github/workflows/crypto-app-smoke-check.yml"
   workflow_dispatch:
 
@@ -22,6 +24,9 @@ jobs:
           cache: pip
       - name: Install dependencies
         run: pip install -r requirements.txt
+      - name: Run crypto UI regression tests
+        run: pytest -q test_crypto_ui_helpers.py
+
       - name: Execute app in bare mode
         shell: bash
         run: |
