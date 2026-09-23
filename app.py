@@ -2926,6 +2926,17 @@ if "previous_flags" not in st.session_state:
 if "last_scan" not in st.session_state:
     st.session_state.last_scan = None
 
+# A Streamlit session can survive a code deployment. Do not let an old manual
+# scan masquerade as a result from the new entry-timing model.
+if (
+    isinstance(st.session_state.scan_df, pd.DataFrame)
+    and not st.session_state.scan_df.empty
+    and "Entry timing" not in st.session_state.scan_df.columns
+):
+    st.session_state.scan_df = pd.DataFrame()
+    st.session_state.raw_data = {}
+    st.session_state.last_scan = None
+
 tab_crypto_home, tab_crypto_quick, tab_crypto_opportunities, tab_crypto_watchlist, tab_crypto_portfolio, tab_crypto_advanced_trade, tab_crypto_advanced_accumulation = st.tabs(
     ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Portfolio", "Advanced Trade", "Advanced Accumulation"]
 )
@@ -4286,7 +4297,7 @@ with tab_crypto_advanced:
             st.subheader("Swing-trade candidates")
             st.caption(
                 f"All {len(df)} analysed coins are shown. BUY is technical-first: score "
-                f"{cfg.score_threshold}+, the approved pre-breakout shape, "
+                f"{cfg.score_threshold}+, actionable entry timing (pre-breakout, fresh breakout or bullish retest), "
                 "positive RS vs BTC for altcoins, and no latest-4h rejection-candle gate. "
                 "Tokenomics, major-CEX breadth, catalysts/event risk, category leadership and macro "
                 "remain visible as context warnings/confidence only; they do not rescue a poor chart "
@@ -4319,8 +4330,12 @@ with tab_crypto_advanced:
                         "technical BUY rules and execution-liquidity gate."
                     )
             swing_cols = [
-                "Coin", "Status", "Context confidence", "Known event risk",
+                "Coin", "Status", "Entry timing", "Context confidence", "Known event risk",
                 "Price", "Entry Price", "Exit / Stop", "Price Target", "ROI %", "R:R",
+                "Breakout age hours", "Breakout extension %", "Breakout extension ATR",
+                "Historical overhead", "Nearest overhead %", "Price discovery", "Clear air",
+                "Bullish retest", "Current target upside %", "Current R:R", "Move completed %",
+                "Timing detail",
                 "Score", "Signal agreement %", "Conflict count", "Non-TA confirmations",
                 "Pattern", "Triangle score", "Triangle touches", "Triangle compression %",
                 "Candle caution", "Last 4h candle",
@@ -4389,7 +4404,7 @@ with tab_crypto_advanced:
                     subset=[trend_column],
                 )
             for traffic_column in [
-                "Status", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
+                "Status", "Entry timing", "Pattern", "SMA regime", "BB 4h regime", "BB Daily regime",
                 "4h Channel", "4h Channel quality", "Daily Channel",
                 "Category leader", "Major CEX quality", "Macro regime", "Catalyst status",
             ]:
