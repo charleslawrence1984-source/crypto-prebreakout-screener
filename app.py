@@ -222,22 +222,37 @@ def crypto_pipeline_health_label(manifest: dict) -> str:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def _fred_series(series_id: str) -> pd.Series:
-    r = requests.get(
-        "https://fred.stlouisfed.org/graph/fredgraph.csv",
-        params={"id": series_id},
-        headers={"User-Agent": "pre-breakout-screener/1.0"},
-        timeout=15,
-    )
-    r.raise_for_status()
-    df = pd.read_csv(io.StringIO(r.text))
-    if df.empty or len(df.columns) < 2:
-        return pd.Series(dtype=float)
-    date_col = df.columns[0]
-    value_col = df.columns[-1]
-    idx = pd.to_datetime(df[date_col], errors="coerce", utc=True)
-    values = pd.to_numeric(df[value_col], errors="coerce")
-    out = pd.Series(values.to_numpy(), index=idx).dropna()
-    return out[~out.index.isna()].sort_index()
+    """Fetch the recent FRED window used by the macro model, with bounded retry."""
+    start_date = (
+        pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=450)
+    ).strftime("%Y-%m-%d")
+    params = {"id": series_id, "cosd": start_date}
+    last_error = None
+
+    for timeout in (15, 20, 30):
+        try:
+            r = requests.get(
+                "https://fred.stlouisfed.org/graph/fredgraph.csv",
+                params=params,
+                headers={"User-Agent": "pre-breakout-screener/1.0"},
+                timeout=timeout,
+            )
+            r.raise_for_status()
+            df = pd.read_csv(io.StringIO(r.text))
+            if df.empty or len(df.columns) < 2:
+                return pd.Series(dtype=float)
+            date_col = df.columns[0]
+            value_col = df.columns[-1]
+            idx = pd.to_datetime(df[date_col], errors="coerce", utc=True)
+            values = pd.to_numeric(df[value_col], errors="coerce")
+            out = pd.Series(values.to_numpy(), index=idx).dropna()
+            return out[~out.index.isna()].sort_index()
+        except requests.RequestException as exc:
+            last_error = exc
+
+    if last_error is not None:
+        raise last_error
+    return pd.Series(dtype=float)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
