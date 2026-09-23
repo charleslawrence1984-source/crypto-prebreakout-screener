@@ -731,13 +731,17 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
     base = str(item.get("Base") or "")
     rs_pass = base == "BTC" or safe(result.get("rs_vs_btc_pct"), -999) > 0
     score = safe(result.get("score"), 0)
+    provisional_buy_score_threshold = 80.0
+    score_band_low = int(max(0, math.floor(score / 5.0) * 5))
+    score_band_high = min(100, score_band_low + 4)
+    score_band = f"{score_band_low}-{score_band_high}"
     execution_pass = bool(item.get("Execution liquidity pass"))
     timing_state = str(result.get("entry_timing") or "NOT READY")
     timing_actionable = bool(result.get("entry_timing_actionable", False))
     swing_ready = (
         bool(result.get("eligible"))
         and timing_actionable
-        and score >= 80
+        and score >= provisional_buy_score_threshold
         and rs_pass
         and not bool(result.get("candle_caution"))
         and execution_pass
@@ -785,6 +789,8 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "deep_scored_at": now_iso(),
         "Swing status": swing_status,
         "Swing score": result.get("score"),
+        "Score band": score_band,
+        "BUY score threshold": "80 (PROVISIONAL)",
         "Swing eligible": bool(result.get("eligible")),
         "Entry timing": timing_state,
         "Entry timing actionable": timing_actionable,
@@ -832,8 +838,19 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "Invalidation": result.get("invalidation"),
         "Invalidation basis": result.get("invalidation_basis", ""),
         "Structural invalidation": result.get("structural_invalidation"),
+        # Keep legacy Target fields for backwards-compatible exports, but
+        # expose the actual lifecycle semantics explicitly.
         "Target": result.get("projected_target"),
         "Target upside %": result.get("target_upside_pct"),
+        "First technical target": result.get("projected_target"),
+        "First-target upside %": result.get("target_upside_pct"),
+        "Stretch / runner target": result.get("stretch_target"),
+        "Target basis": result.get("target_basis", ""),
+        "Runner plan": (
+            "Recalculate after acceptance above first technical target"
+            if not math.isfinite(safe(result.get("stretch_target"), np.nan))
+            else "Partial profit / reassess at first target; runner can use stretch target if momentum holds"
+        ),
         "R:R": result.get("risk_reward"),
         "Resistance": result.get("resistance"),
         "Distance %": result.get("distance_pct"),
