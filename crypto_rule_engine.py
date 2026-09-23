@@ -455,6 +455,22 @@ def finalise_entry_timing(
     if math.isfinite(current_target_upside_pct) and current_target_upside_pct <= 0:
         state = "TOO LATE"
     elif (
+        state == "TOO LATE"
+        and bool(out.get("clear_air", False))
+        and math.isfinite(move_completed_pct)
+        and move_completed_pct < 50
+        and math.isfinite(current_target_upside_pct)
+        and current_target_upside_pct > 0
+        and (
+            not math.isfinite(atr_extension)
+            or atr_extension <= 3.0
+        )
+    ):
+        # Price-discovery / clear-air breaks often have more runway than an
+        # ordinary resistance break. Keep them on EXTENDED watch rather than
+        # declaring the move fully missed solely because more time has passed.
+        state = "EXTENDED"
+    elif (
         state == "FRESH BREAKOUT"
         and math.isfinite(move_completed_pct)
         and move_completed_pct >= 70
