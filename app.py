@@ -2048,7 +2048,7 @@ async def scan_exchange(cfg: ScreenerConfig, progress=None) -> Tuple[pd.DataFram
                     else "QUALIFIES — PRE-BREAKOUT SETUP"
                     if r["eligible"]
                     else "WAIT — " + r["reason"]
-                    if r.get("entry_timing") in {"EXTENDED", "TOO LATE"}
+                    if r.get("entry_timing") in {"RECLAIM NEEDED", "EXTENDED", "TOO LATE"}
                     else "PASS — " + r["reason"]
                 ),
                 "Target upside %": r["target_upside_pct"],
@@ -2679,19 +2679,25 @@ def crypto_trade_decision(result: Dict, macro_now: Dict, score_threshold: float 
 
     # A high score is not enough if the move already happened. Extended and
     # too-late coins remain useful RESET WATCH candidates rather than BUYs.
-    if timing_state in {"EXTENDED", "TOO LATE"}:
+    if timing_state in {"RECLAIM NEEDED", "EXTENDED", "TOO LATE"}:
         move_done = _safe_float(result.get("move_completed_pct"), np.nan)
         move_text = (
             f" About {move_done:.0f}% of the projected move has already occurred."
             if math.isfinite(move_done) else ""
         )
-        return {
-            "action": "WAIT",
-            "reason": (
+        if timing_state == "RECLAIM NEEDED":
+            timing_reason = (
+                "The earlier breakout level has been lost. Wait for price to reclaim it, "
+                "show acceptance above it and then hold before treating the breakout as valid again."
+            )
+        else:
+            timing_reason = (
                 f"{timing_state}: the setup may still be strong, but the original entry has already moved. "
                 "Wait for a new base or a confirmed bullish retest rather than chasing."
-                + move_text
-            ),
+            )
+        return {
+            "action": "WAIT",
+            "reason": timing_reason + move_text,
         }
 
     # Swing BUY is technical-first. Macro/liquidity context, catalysts and
@@ -4124,7 +4130,7 @@ with tab_crypto_advanced:
                 reasons.append("latest completed 4h candle shows rejection")
             if row["Trade verdict"] not in qualified_trade_verdicts:
                 reasons.append(str(row["Trade reason"]))
-            if str(row.get("Entry timing", "")) in {"EXTENDED", "TOO LATE"}:
+            if str(row.get("Entry timing", "")) in {"RECLAIM NEEDED", "EXTENDED", "TOO LATE"}:
                 reasons.append(
                     f"entry timing {str(row.get('Entry timing')).lower()} — wait for reset/retest"
                 )
@@ -4172,8 +4178,9 @@ with tab_crypto_advanced:
             "RETEST": 0,
             "EARLY": 1,
             "NOT READY": 2,
-            "EXTENDED": 3,
-            "TOO LATE": 4,
+            "RECLAIM NEEDED": 3,
+            "EXTENDED": 4,
+            "TOO LATE": 5,
         }).fillna(2)
 
         def _channel_rank(row):
