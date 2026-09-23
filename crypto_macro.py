@@ -19,6 +19,9 @@ def unavailable_macro(errors: List[str] | None = None) -> Dict:
         "available": False,
         "score": None,
         "regime": "DATA LIMITED",
+        "liquidity_trend": "DATA LIMITED",
+        "liquidity_breakout": False,
+        "liquidity_breakout_detail": "Insufficient macro-liquidity history",
         "stance": "Do not macro-gate trades",
         "allows_new_swing_risk": True,
         "factors": [],
@@ -264,10 +267,24 @@ def calculate_macro_liquidity_regime(timeout: float = 8.0) -> Dict:
     else:
         regime, stance = "CONTRACTION", "Defensive — avoid new swing risk"
 
+    liquidity_trend = (
+        "EXPANDING" if score >= 70
+        else "IMPROVING" if score >= 58
+        else "NEUTRAL" if score >= 42
+        else "DETERIORATING" if score >= 30
+        else "CONTRACTING"
+    )
+
     return {
         "available": True,
         "score": score,
         "regime": regime,
+        "liquidity_trend": liquidity_trend,
+        # The scheduled pipeline upgrades this to BREAKOUT only when the live
+        # composite crosses a supportive regime boundary versus the previous
+        # persisted snapshot. Macro context never rescues a weak technical setup.
+        "liquidity_breakout": False,
+        "liquidity_breakout_detail": "No fresh regime-boundary breakout detected",
         "stance": stance,
         "allows_new_swing_risk": score >= 42,
         "factors": factors,
