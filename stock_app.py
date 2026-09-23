@@ -1438,9 +1438,23 @@ TRADE_MARKET_CONTEXT = {
 
 @st.cache_data(ttl=1800, show_spinner=False)
 def trade_fx_to_gbp() -> Dict[str, float]:
-    """Return quote-currency multipliers for conversion into pounds."""
+    """Return quote-currency multipliers for conversion into pounds.
+
+    Yahoo is kept as the primary source, but scheduled scans can hit Yahoo's
+    rate limit after large fundamental refreshes. Fill any missing currencies
+    from independent public FX endpoints, then make one final lightweight
+    per-pair Yahoo attempt. A provider outage therefore no longer makes the
+    whole nightly technical refresh fail just because an FX batch was throttled.
+    """
     output = {"GBP": 1.0, "GBX": 0.01, "GBPENCE": 0.01}
     tickers = {"USD": "GBPUSD=X", "EUR": "GBPEUR=X", "CAD": "GBPCAD=X", "CHF": "GBPCHF=X"}
+
+    def add_quote_per_gbp(currency: str, value) -> None:
+        quote_per_gbp = safe(value)
+        if math.isfinite(quote_per_gbp) and quote_per_gbp > 0:
+            output[currency] = 1.0 / quote_per_gbp
+
+    # Primary source: one efficient Yahoo batch while the allowance is healthy.
     try:
         rates = yf.download(
             list(tickers.values()), period="5d", interval="1d", auto_adjust=False,
@@ -1449,11 +1463,63 @@ def trade_fx_to_gbp() -> Dict[str, float]:
         for currency, ticker in tickers.items():
             frame = extract_ticker_frame(rates, ticker)
             if frame is not None and not frame.empty:
-                quote_per_gbp = safe(frame["Close"].dropna().iloc[-1])
-                if quote_per_gbp > 0:
-                    output[currency] = 1.0 / quote_per_gbp
+                closes = pd.to_numeric(frame["Close"], errors="coerce").dropna()
+                if not closes.empty:
+                    add_quote_per_gbp(currency, closes.iloc[-1])
     except Exception:
         pass
+
+    def missing() -> list[str]:
+        return [currency for currency in tickers if currency not in output]
+
+    # Independent fallback 1: ECB-reference-rate based Frankfurter API.
+    missing_currencies = missing()
+    if missing_currencies:
+        try:
+            response = requests.get(
+                "https://api.frankfurter.app/latest",
+                params={"from": "GBP", "to": ",".join(missing_currencies)},
+                headers={"User-Agent": "CL-Signal/1.0"},
+                timeout=10,
+            )
+            response.raise_for_status()
+            fx = response.json().get("rates", {})
+            for currency in missing_currencies:
+                add_quote_per_gbp(currency, fx.get(currency))
+        except Exception:
+            pass
+
+    # Independent fallback 2: no-key ExchangeRate-API endpoint.
+    missing_currencies = missing()
+    if missing_currencies:
+        try:
+            response = requests.get(
+                "https://open.er-api.com/v6/latest/GBP",
+                headers={"User-Agent": "CL-Signal/1.0"},
+                timeout=10,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            if str(payload.get("result", "")).lower() == "success":
+                fx = payload.get("rates", {})
+                for currency in missing_currencies:
+                    add_quote_per_gbp(currency, fx.get(currency))
+        except Exception:
+            pass
+
+    # Last live-data attempt: individual Yahoo pairs can succeed when the
+    # multi-ticker download endpoint was the part being throttled.
+    for currency in missing():
+        ticker = tickers[currency]
+        try:
+            frame = yf.Ticker(ticker).history(period="5d", interval="1d", auto_adjust=False)
+            if frame is not None and not frame.empty and "Close" in frame.columns:
+                closes = pd.to_numeric(frame["Close"], errors="coerce").dropna()
+                if not closes.empty:
+                    add_quote_per_gbp(currency, closes.iloc[-1])
+        except Exception:
+            continue
+
     return output
 
 
