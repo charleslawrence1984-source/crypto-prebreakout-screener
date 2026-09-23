@@ -4082,7 +4082,7 @@ with tab_crypto_advanced:
         )
 
     with st.expander("Optional exchange diagnostic — not opportunity results", expanded=False):
-            st.markdown("#### Selected-exchange diagnostic")
+        st.markdown("#### Selected-exchange diagnostic")
         st.caption(
             f"Optional live scan of the sidebar exchange (**{exchange_name}**). This is for drill-down and diagnostics, "
             "not a second opportunity list. Exchange-specific candles and scan time can make its values differ from "
