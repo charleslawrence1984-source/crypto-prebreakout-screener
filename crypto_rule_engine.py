@@ -195,6 +195,276 @@ def period_return_pct(df: pd.DataFrame, days: int) -> float:
 
 
 
+
+def entry_timing_context(
+    df4h: pd.DataFrame,
+    dfd: pd.DataFrame,
+    dfw: Optional[pd.DataFrame],
+    price: float,
+    resistance: float,
+    atr_now: float,
+    cfg: ScreenerConfig,
+) -> Dict:
+    """
+    Separate setup quality from entry timing.
+
+    Fresh breakouts are detected against the resistance that existed before the
+    breakout candle. Extension is normalised by ATR so a volatile coin is not
+    judged by the same crude percentage as a quiet coin. Historical weekly/daily
+    highs estimate whether the breakout has clear air above it.
+    """
+    distance_pct = (
+        (resistance - price) / price * 100
+        if price > 0 and math.isfinite(resistance) else np.nan
+    )
+    result = {
+        "entry_timing": "NOT READY",
+        "entry_timing_actionable": False,
+        "breakout_level": np.nan,
+        "breakout_age_bars": np.nan,
+        "breakout_age_hours": np.nan,
+        "breakout_extension_pct": np.nan,
+        "breakout_extension_atr": np.nan,
+        "historical_overhead": "UNKNOWN",
+        "nearest_overhead_pct": np.nan,
+        "price_discovery": False,
+        "clear_air": False,
+        "bullish_retest": False,
+        "timing_detail": "No actionable timing state identified",
+    }
+    if df4h is None or len(df4h) < 40 or price <= 0:
+        return result
+
+    x = df4h.copy().reset_index(drop=True)
+    for col in ("high", "low", "close"):
+        x[col] = pd.to_numeric(x[col], errors="coerce")
+    x = x.dropna(subset=["high", "low", "close"]).reset_index(drop=True)
+    if len(x) < 40:
+        return result
+
+    breakout_index = None
+    breakout_level = np.nan
+    start = max(cfg.resistance_lookback + 1, len(x) - 12)
+    for idx in range(start, len(x)):
+        prior = x.iloc[max(0, idx - cfg.resistance_lookback):idx]
+        if len(prior) < max(20, cfg.resistance_lookback // 2):
+            continue
+        level = _safe_float(prior["high"].max(), np.nan)
+        close_now = _safe_float(x["close"].iloc[idx], np.nan)
+        if not (math.isfinite(level) and level > 0 and math.isfinite(close_now)):
+            continue
+        previous_close = _safe_float(x["close"].iloc[idx - 1], close_now)
+        if close_now > level * 1.001 and previous_close <= level * 1.006:
+            breakout_index = idx
+            breakout_level = level
+            break
+
+    if breakout_index is None:
+        if math.isfinite(distance_pct) and 0 <= distance_pct <= 3.0:
+            result.update({
+                "entry_timing": "READY",
+                "entry_timing_actionable": True,
+                "timing_detail": f"Still below resistance and only {distance_pct:.2f}% away",
+            })
+        elif math.isfinite(distance_pct) and 3.0 < distance_pct <= cfg.near_resistance_max_pct:
+            result.update({
+                "entry_timing": "EARLY",
+                "entry_timing_actionable": True,
+                "timing_detail": f"Constructive pre-breakout setup, {distance_pct:.2f}% below resistance",
+            })
+        elif math.isfinite(distance_pct) and -0.05 <= distance_pct < 0:
+            result.update({
+                "entry_timing": "READY",
+                "entry_timing_actionable": True,
+                "timing_detail": "Testing resistance without a confirmed breakout yet",
+            })
+        return result
+
+    age_bars = max(len(x) - 1 - breakout_index, 0)
+    extension_pct = (price / breakout_level - 1) * 100
+    atr_extension = (
+        (price - breakout_level) / atr_now
+        if math.isfinite(atr_now) and atr_now > 0
+        else np.nan
+    )
+
+    history_source = None
+    if dfw is not None and len(dfw) >= 20:
+        history_source = pd.to_numeric(dfw.iloc[:-1]["high"], errors="coerce").dropna()
+    elif dfd is not None and len(dfd) >= 60:
+        history_source = pd.to_numeric(dfd.iloc[:-10]["high"], errors="coerce").dropna()
+
+    historical_overhead = "UNKNOWN"
+    nearest_overhead_pct = np.nan
+    price_discovery = False
+    if history_source is not None and not history_source.empty:
+        overhead = sorted(
+            float(level) for level in history_source
+            if math.isfinite(float(level)) and float(level) > price * 1.01
+        )
+        if not overhead:
+            historical_overhead = "NONE"
+            price_discovery = True
+        else:
+            nearest = overhead[0]
+            nearest_overhead_pct = (nearest / price - 1) * 100
+            if nearest_overhead_pct >= 15:
+                historical_overhead = "LOW"
+            elif nearest_overhead_pct >= 7:
+                historical_overhead = "MODERATE"
+            else:
+                historical_overhead = "HEAVY"
+
+    clear_air = historical_overhead in {"NONE", "LOW"}
+    post_breakout = x.iloc[breakout_index:]
+    retest_tolerance = max(
+        breakout_level * 0.012,
+        atr_now * 0.50 if math.isfinite(atr_now) and atr_now > 0 else 0.0,
+    )
+    retest_seen = (
+        age_bars >= 1
+        and not post_breakout.empty
+        and _safe_float(post_breakout["low"].min(), breakout_level * 2)
+        <= breakout_level + retest_tolerance
+    )
+    recent_closes = pd.to_numeric(x["close"].iloc[-2:], errors="coerce").dropna()
+    acceptance = (
+        len(recent_closes) >= 1
+        and bool((recent_closes >= breakout_level * 0.997).all())
+        and price >= breakout_level
+    )
+    bullish_retest = bool(retest_seen and acceptance)
+
+    if bullish_retest and (not math.isfinite(atr_extension) or atr_extension <= 1.50):
+        state = "RETEST"
+        actionable = True
+    elif age_bars <= 2 and (not math.isfinite(atr_extension) or atr_extension <= (2.25 if clear_air else 1.75)):
+        state = "FRESH BREAKOUT"
+        actionable = True
+    elif price_discovery and age_bars <= 3 and (not math.isfinite(atr_extension) or atr_extension <= 2.50):
+        state = "FRESH BREAKOUT"
+        actionable = True
+    elif age_bars <= 6 and (not math.isfinite(atr_extension) or atr_extension <= 3.0):
+        state = "EXTENDED"
+        actionable = False
+    else:
+        state = "TOO LATE"
+        actionable = False
+
+    detail_bits = [
+        f"{age_bars * 4}h since breakout",
+        f"{extension_pct:+.2f}% above broken resistance",
+    ]
+    if math.isfinite(atr_extension):
+        detail_bits.append(f"{atr_extension:.2f} ATR extension")
+    if clear_air:
+        detail_bits.append("clear air / low historical overhead")
+    elif historical_overhead != "UNKNOWN":
+        detail_bits.append(f"{historical_overhead.lower()} overhead")
+
+    result.update({
+        "entry_timing": state,
+        "entry_timing_actionable": actionable,
+        "breakout_level": breakout_level,
+        "breakout_age_bars": int(age_bars),
+        "breakout_age_hours": int(age_bars * 4),
+        "breakout_extension_pct": round(float(extension_pct), 2),
+        "breakout_extension_atr": round(float(atr_extension), 2)
+        if math.isfinite(atr_extension) else np.nan,
+        "historical_overhead": historical_overhead,
+        "nearest_overhead_pct": round(float(nearest_overhead_pct), 2)
+        if math.isfinite(nearest_overhead_pct) else np.nan,
+        "price_discovery": bool(price_discovery),
+        "clear_air": bool(clear_air),
+        "bullish_retest": bool(bullish_retest),
+        "timing_detail": " · ".join(detail_bits),
+    })
+    return result
+
+
+def finalise_entry_timing(
+    timing: Dict,
+    price: float,
+    projected_target: float,
+    invalidation: float,
+) -> Dict:
+    """Add remaining-opportunity evidence without turning provisional thresholds into universal laws."""
+    out = dict(timing)
+    current_target_upside_pct = np.nan
+    current_rr = np.nan
+    move_completed_pct = np.nan
+
+    if math.isfinite(projected_target) and price > 0:
+        current_target_upside_pct = (projected_target / price - 1) * 100
+        current_risk_pct = (
+            (price - invalidation) / price * 100
+            if math.isfinite(invalidation) and invalidation < price
+            else np.nan
+        )
+        if math.isfinite(current_risk_pct) and current_risk_pct > 0:
+            current_rr = max(current_target_upside_pct, 0.0) / current_risk_pct
+
+        breakout_level = _safe_float(out.get("breakout_level"), np.nan)
+        if (
+            math.isfinite(breakout_level)
+            and projected_target > breakout_level
+        ):
+            move_completed_pct = (
+                (price - breakout_level)
+                / (projected_target - breakout_level)
+                * 100
+            )
+
+    state = str(out.get("entry_timing") or "NOT READY")
+    atr_extension = _safe_float(out.get("breakout_extension_atr"), np.nan)
+    age_bars = _safe_float(out.get("breakout_age_bars"), np.nan)
+
+    # A target already reached is unambiguously too late for the original setup.
+    # Otherwise, only downgrade on a combination of mature move + meaningful ATR
+    # extension; these thresholds are deliberately provisional and should be
+    # validated against the historical audit dataset before becoming hard laws.
+    if math.isfinite(current_target_upside_pct) and current_target_upside_pct <= 0:
+        state = "TOO LATE"
+    elif (
+        state == "FRESH BREAKOUT"
+        and math.isfinite(move_completed_pct)
+        and move_completed_pct >= 70
+        and math.isfinite(atr_extension)
+        and atr_extension >= 1.75
+    ):
+        state = "EXTENDED"
+    elif state == "EXTENDED" and (
+        (
+            math.isfinite(move_completed_pct)
+            and move_completed_pct >= 85
+            and math.isfinite(atr_extension)
+            and atr_extension >= 2.0
+        )
+        or (
+            math.isfinite(age_bars)
+            and age_bars > 8
+            and math.isfinite(atr_extension)
+            and atr_extension >= 2.5
+        )
+    ):
+        state = "TOO LATE"
+
+    out["entry_timing"] = state
+    out["entry_timing_actionable"] = state in {"EARLY", "READY", "FRESH BREAKOUT", "RETEST"}
+    out["current_target_upside_pct"] = (
+        round(float(current_target_upside_pct), 2)
+        if math.isfinite(current_target_upside_pct) else np.nan
+    )
+    out["current_risk_reward"] = (
+        round(float(current_rr), 2) if math.isfinite(current_rr) else np.nan
+    )
+    out["move_completed_pct"] = (
+        round(float(move_completed_pct), 1)
+        if math.isfinite(move_completed_pct) else np.nan
+    )
+    return out
+
+
 def project_freshness(dfd: pd.DataFrame, dfw: Optional[pd.DataFrame] = None) -> Dict:
     """
     Practical freshness proxy based on available spot-price history on the selected
@@ -593,14 +863,25 @@ def score_setup(
 
     distance_pct = (resistance - price) / price * 100
     breakout_pct = (price - resistance) / resistance * 100
+    timing = entry_timing_context(
+        x,
+        dfd,
+        dfw,
+        price,
+        resistance,
+        float(x["atr"].iloc[-5:].mean()),
+        cfg,
+    )
 
-    # Keep scoring even when the strict pre-breakout shape fails. The broad scan
-    # still excludes these coins, while Quick analyse can explain the full setup.
+    # Keep scoring even when the strict shape fails so Quick Analysis can explain
+    # whether the setup is early, freshly breaking out, extended or already missed.
     shape_rejection = None
-    if breakout_pct > cfg.too_late_pct:
-        shape_rejection = "Too late / already broken out"
-    elif distance_pct < -0.05:
-        shape_rejection = "Already above resistance"
+    if timing["entry_timing"] == "TOO LATE":
+        shape_rejection = "Too late / original breakout move already mature"
+    elif timing["entry_timing"] == "EXTENDED":
+        shape_rejection = "Extended after breakout — wait for a reset or bullish retest"
+    elif distance_pct < -0.05 and timing["entry_timing"] not in {"FRESH BREAKOUT", "RETEST"}:
+        shape_rejection = "Already above resistance without an actionable fresh-breakout state"
     elif distance_pct > cfg.near_resistance_max_pct:
         shape_rejection = "Too far below resistance"
 
@@ -788,9 +1069,30 @@ def score_setup(
     else:
         bottom_status = "Bottom not confirmed"
 
-    # 8) Entry quality: near resistance but not touching it, with nearby invalidation (10 pts)
+    # 8) Entry quality: reward good timing, not hindsight. Fresh breakouts and
+    # bullish retests can score well; extended/missed moves cannot sit at the top
+    # just because momentum became stronger after the run.
     ideal_mid = (cfg.near_resistance_min_pct + min(cfg.near_resistance_max_pct, 3.5)) / 2
-    distance_component = clamp_score(1 - abs(distance_pct - ideal_mid) / max(ideal_mid, 1.0))
+    timing_state = str(timing.get("entry_timing") or "NOT READY")
+    if timing_state == "RETEST":
+        distance_component = 1.0
+    elif timing_state == "FRESH BREAKOUT":
+        distance_component = 1.0 if timing.get("clear_air") else 0.85
+    elif timing_state == "READY":
+        distance_component = max(
+            0.75,
+            clamp_score(1 - abs(distance_pct - ideal_mid) / max(ideal_mid, 1.0)),
+        )
+    elif timing_state == "EARLY":
+        distance_component = clamp_score(
+            1 - abs(distance_pct - ideal_mid) / max(ideal_mid, 1.0)
+        )
+    elif timing_state == "EXTENDED":
+        distance_component = 0.20
+    elif timing_state == "TOO LATE":
+        distance_component = 0.0
+    else:
+        distance_component = 0.10
     # Use the nearest meaningful support across the 4h structure and daily trend
     # for entry timing, rather than anchoring solely to the current price.
     swing_low = float(x["low"].iloc[-24:].min())
@@ -814,6 +1116,12 @@ def score_setup(
         entry_basis, entry_anchor = max(valid_supports.items(), key=lambda item: item[1])
     else:
         entry_basis, entry_anchor = "Current price fallback", price
+    breakout_level_for_entry = _safe_float(timing.get("breakout_level"), np.nan)
+    if math.isfinite(breakout_level_for_entry) and timing_state in {
+        "FRESH BREAKOUT", "RETEST", "EXTENDED", "TOO LATE"
+    }:
+        entry_basis = "Broken resistance / breakout retest"
+        entry_anchor = breakout_level_for_entry
     entry_atr = float(x["atr"].iloc[-5:].mean())
     invalidation = min(swing_low, entry_anchor - 1.25 * entry_atr) * 0.995
     risk_pct = max((price - invalidation) / price * 100, 0.01)
@@ -901,8 +1209,18 @@ def score_setup(
     )
 
     entry_half_width = max(entry_atr * 0.40, price * 0.004)
-    raw_entry_low = max(invalidation * 1.01, entry_anchor - entry_half_width)
-    raw_entry_high = min(resistance * 0.998, entry_anchor + entry_half_width)
+    if math.isfinite(breakout_level_for_entry) and timing_state in {
+        "FRESH BREAKOUT", "RETEST", "EXTENDED", "TOO LATE"
+    }:
+        raw_entry_low = max(
+            invalidation * 1.01,
+            breakout_level_for_entry - 0.25 * entry_atr,
+        )
+        breakout_entry_cap = breakout_level_for_entry + 0.60 * entry_atr
+        raw_entry_high = min(price, breakout_entry_cap)
+    else:
+        raw_entry_low = max(invalidation * 1.01, entry_anchor - entry_half_width)
+        raw_entry_high = min(resistance * 0.998, entry_anchor + entry_half_width)
     entry_low = min(raw_entry_low, raw_entry_high * 0.999)
     entry_high = max(raw_entry_high, entry_low * 1.001)
     planned_entry = (entry_low + entry_high) / 2
@@ -962,20 +1280,41 @@ def score_setup(
     )
     total = round(float(max(0, min(100, raw_total / 95 * 100))), 1)
 
+    timing = finalise_entry_timing(
+        timing,
+        price,
+        projected_target,
+        invalidation,
+    )
+    timing_state = str(timing.get("entry_timing") or timing_state)
+    pre_breakout_shape = (
+        timing_state in {"EARLY", "READY"}
+        and cfg.near_resistance_min_pct <= max(distance_pct, 0.0) <= cfg.near_resistance_max_pct
+    )
+    breakout_shape = timing_state in {"FRESH BREAKOUT", "RETEST"}
     shape_eligible = (
-        cfg.near_resistance_min_pct <= distance_pct <= cfg.near_resistance_max_pct
+        (pre_breakout_shape or breakout_shape)
         and lows_slope > -0.0015
         and rsi_now <= 80
     )
     trade_target_eligible = math.isfinite(projected_target)
-    # A projected target is useful for R:R and planning, but is no longer a hard
-    # eligibility requirement. The Swing mission is setup quality + entry readiness.
-    eligible = shape_eligible
+    # Timing is now a separate execution-quality gate. A technically strong coin
+    # can remain a high setup score while being marked EXTENDED / TOO LATE.
+    eligible = shape_eligible and bool(timing.get("entry_timing_actionable"))
 
-    if eligible and trade_target_eligible:
+    if eligible and timing_state == "FRESH BREAKOUT":
+        result_reason = (
+            "Fresh resistance breakout remains actionable"
+            + (" with clear air above" if timing.get("clear_air") else "")
+        )
+    elif eligible and timing_state == "RETEST":
+        result_reason = "Bullish retest is holding broken resistance from above"
+    elif eligible and trade_target_eligible:
         result_reason = "Pre-breakout candidate with a technically credible projected target"
     elif eligible:
         result_reason = "Pre-breakout candidate; projected target currently unavailable"
+    elif timing_state in {"EXTENDED", "TOO LATE"}:
+        result_reason = shape_rejection or "Strong setup, but the original entry has already moved"
     else:
         result_reason = shape_rejection or "Shape filter not met"
 
@@ -1004,6 +1343,22 @@ def score_setup(
         "price": price,
         "resistance": resistance,
         "distance_pct": round(distance_pct, 2),
+        "entry_timing": timing.get("entry_timing", "NOT READY"),
+        "entry_timing_actionable": bool(timing.get("entry_timing_actionable", False)),
+        "timing_detail": timing.get("timing_detail", ""),
+        "breakout_level": timing.get("breakout_level", np.nan),
+        "breakout_age_bars": timing.get("breakout_age_bars", np.nan),
+        "breakout_age_hours": timing.get("breakout_age_hours", np.nan),
+        "breakout_extension_pct": timing.get("breakout_extension_pct", np.nan),
+        "breakout_extension_atr": timing.get("breakout_extension_atr", np.nan),
+        "historical_overhead": timing.get("historical_overhead", "UNKNOWN"),
+        "nearest_overhead_pct": timing.get("nearest_overhead_pct", np.nan),
+        "price_discovery": bool(timing.get("price_discovery", False)),
+        "clear_air": bool(timing.get("clear_air", False)),
+        "bullish_retest": bool(timing.get("bullish_retest", False)),
+        "current_target_upside_pct": timing.get("current_target_upside_pct", np.nan),
+        "current_risk_reward": timing.get("current_risk_reward", np.nan),
+        "move_completed_pct": timing.get("move_completed_pct", np.nan),
         "resistance_tests": resistance_tests,
         "rsi": round(rsi_now, 1),
         "atr_ratio": round(atr_ratio, 2),
