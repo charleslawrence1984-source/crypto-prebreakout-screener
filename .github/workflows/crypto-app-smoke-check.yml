@@ -23,7 +23,9 @@ jobs:
           python-version: "3.12"
           cache: pip
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
       - name: Run crypto UI regression tests
         run: pytest -q test_crypto_ui_helpers.py
 
