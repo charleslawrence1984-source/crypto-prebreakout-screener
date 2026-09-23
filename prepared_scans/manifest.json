@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-23T10:09:14+01:00",
+      "completed_at": "2026-09-23T22:56:09+01:00",
       "coverage_pct": 3.2,
       "coverage_symbols": 2,
       "diagnostics": {
@@ -34,14 +34,14 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 2,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 0,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 61,
       "requested_this_run": 2,
       "result_rows": 2,
       "returned_this_run": 2,
-      "started_at": "2026-09-23T10:09:13+01:00",
+      "started_at": "2026-09-23T22:56:08+01:00",
       "status": "partial",
       "universe_symbols": 102
     },
@@ -49,7 +49,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-23T10:08:48+01:00",
+      "completed_at": "2026-09-23T22:55:49+01:00",
       "coverage_pct": 3.8,
       "coverage_symbols": 2,
       "diagnostics": {
@@ -79,14 +79,14 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 2,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 0,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 50,
       "requested_this_run": 2,
       "result_rows": 2,
       "returned_this_run": 2,
-      "started_at": "2026-09-23T10:08:47+01:00",
+      "started_at": "2026-09-23T22:55:47+01:00",
       "status": "partial",
       "universe_symbols": 109
     },
@@ -115,7 +115,7 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 0,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "remaining_symbols": 0,
       "result_rows": 16,
       "started_at": "2026-09-17T22:50:29+01:00",
@@ -125,8 +125,8 @@
     "euronext_paris": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 3,
-      "completed_at": "2026-09-23T10:08:40+01:00",
+      "chunk_symbols": 2,
+      "completed_at": "2026-09-23T22:55:42+01:00",
       "coverage_pct": 4.0,
       "coverage_symbols": 7,
       "diagnostics": {
@@ -136,12 +136,9 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 3,
-        "returned": 3,
+        "requested": 2,
+        "returned": 2,
         "symbol_outcomes": {
-          "CEN.PA": {
-            "status": "row"
-          },
           "LOUP.PA": {
             "status": "row"
           },
@@ -159,177 +156,248 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 3,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 1,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 168,
-      "requested_this_run": 3,
+      "requested_this_run": 2,
       "result_rows": 7,
-      "returned_this_run": 3,
-      "started_at": "2026-09-23T10:08:39+01:00",
+      "returned_this_run": 2,
+      "started_at": "2026-09-23T22:55:40+01:00",
       "status": "partial",
-      "universe_symbols": 594
+      "universe_symbols": 595
     },
     "gettex": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 567,
-      "completed_at": "2026-09-23T10:08:35+01:00",
+      "chunk_symbols": 569,
+      "completed_at": "2026-09-23T22:55:37+01:00",
       "coverage_pct": 10.5,
-      "coverage_symbols": 501,
+      "coverage_symbols": 504,
       "diagnostics": {
-        "below_min_market_cap": 2,
+        "below_min_market_cap": 0,
         "error_samples": [
-          "CPK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "EYI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "FFC0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "FG5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "GOU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
+          "0AK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+          "04K.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+          "08D.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+          "0FD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+          "0H5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
         ],
         "market_cap_failures": 0,
         "other_errors": 0,
-        "price_failures": 25,
-        "rate_limit_errors": 40,
-        "requested": 567,
-        "returned": 500,
+        "price_failures": 7,
+        "rate_limit_errors": 452,
+        "requested": 569,
+        "returned": 110,
         "symbol_outcomes": {
           "04K.MU": {
-            "status": "row"
+            "message": "04K.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "08D.MU": {
-            "status": "row"
+            "message": "08D.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0AK.MU": {
-            "status": "price_failure"
-          },
-          "0EH.MU": {
-            "status": "row"
+            "message": "0AK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0FD.MU": {
-            "status": "row"
+            "message": "0FD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0H5.MU": {
-            "status": "row"
+            "message": "0H5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0HV.MU": {
-            "status": "row"
+            "message": "0HV.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0KZA.MU": {
-            "status": "row"
+            "message": "0KZA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0M5.MU": {
-            "status": "row"
+            "message": "0M5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0M7.MU": {
             "status": "row"
           },
           "0MO.MU": {
-            "status": "row"
+            "message": "0MO.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0OJ.MU": {
-            "status": "row"
+            "message": "0OJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0ON.MU": {
-            "status": "row"
+            "message": "0ON.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0Q2.MU": {
-            "status": "price_failure"
+            "message": "0Q2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0S1.MU": {
-            "status": "price_failure"
+            "message": "0S1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0U6.MU": {
-            "status": "row"
-          },
-          "0UB.MU": {
-            "status": "row"
+            "message": "0U6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0V6.MU": {
-            "status": "row"
+            "message": "0V6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0VF.MU": {
             "status": "row"
           },
           "0VN.MU": {
-            "status": "row"
+            "message": "0VN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0WP.MU": {
-            "status": "row"
+            "message": "0WP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0ZG.MU": {
-            "status": "row"
+            "message": "0ZG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "0ZG2.MU": {
-            "status": "row"
+            "message": "0ZG2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "108.MU": {
-            "status": "row"
+            "message": "108.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "10I.MU": {
-            "status": "price_failure"
+            "message": "10I.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "11H.MU": {
-            "status": "row"
+            "message": "11H.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "15R.MU": {
-            "status": "row"
+            "message": "15R.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "18I.MU": {
-            "status": "row"
+            "message": "18I.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "19V.MU": {
-            "status": "row"
+            "message": "19V.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1AD1.MU": {
-            "status": "row"
+            "message": "1AD1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1AY.MU": {
-            "status": "row"
+            "message": "1AY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1CG.MU": {
-            "status": "row"
-          },
-          "1FW2.MU": {
-            "status": "row"
+            "message": "1CG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1HH.MU": {
-            "status": "row"
+            "message": "1HH.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1IY0.MU": {
-            "status": "row"
+            "message": "1IY0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1KJ.MU": {
-            "status": "row"
+            "message": "1KJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1L30.MU": {
             "status": "row"
           },
           "1LZ.MU": {
-            "status": "row"
+            "message": "1LZ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1M0.MU": {
-            "status": "row"
+            "message": "1M0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1MS.MU": {
-            "status": "row"
+            "message": "1MS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1NC.MU": {
-            "status": "row"
+            "message": "1NC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1RV.MU": {
-            "status": "row"
+            "message": "1RV.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1U4.MU": {
-            "status": "price_failure"
+            "message": "1U4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1W3.MU": {
-            "status": "row"
+            "message": "1W3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1WF.MU": {
-            "status": "row"
+            "message": "1WF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1XZ.MU": {
-            "status": "row"
+            "message": "1XZ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "1YN.MU": {
             "status": "row"
@@ -338,16 +406,24 @@
             "status": "row"
           },
           "21Q.MU": {
-            "status": "row"
+            "message": "21Q.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "29A.MU": {
-            "status": "row"
+            "message": "29A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2CF.MU": {
-            "status": "price_failure"
+            "message": "2CF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2DR.MU": {
-            "status": "row"
+            "message": "2DR.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2ER.MU": {
             "status": "row"
@@ -356,91 +432,133 @@
             "status": "row"
           },
           "2G1.MU": {
-            "status": "row"
+            "message": "2G1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2GY.MU": {
-            "status": "row"
+            "message": "2GY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2HL.MU": {
-            "status": "row"
+            "message": "2HL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2HP.MU": {
-            "status": "row"
+            "message": "2HP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2K3.MU": {
-            "status": "below_market_cap"
+            "message": "2K3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2PZ.MU": {
-            "status": "row"
-          },
-          "2RR.MU": {
-            "status": "row"
+            "message": "2PZ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2S3.MU": {
-            "status": "row"
+            "message": "2S3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "2WSA.MU": {
-            "status": "row"
+            "message": "2WSA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "31D1.MU": {
-            "status": "row"
+            "message": "31D1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "32Z.MU": {
-            "status": "row"
+            "message": "32Z.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "35F.MU": {
-            "status": "row"
-          },
-          "35P.MU": {
-            "status": "row"
+            "message": "35F.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "36T.MU": {
-            "status": "row"
+            "message": "36T.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "37H.MU": {
-            "status": "price_failure"
+            "message": "37H.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3B7.MU": {
-            "status": "row"
+            "message": "3B7.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3GU.MU": {
-            "status": "row"
+            "message": "3GU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3HY.MU": {
             "status": "row"
           },
           "3KLA.MU": {
-            "status": "row"
+            "message": "3KLA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3MI.MU": {
-            "status": "price_failure"
+            "message": "3MI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3PE.MU": {
-            "status": "row"
+            "message": "3PE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3PK.MU": {
-            "status": "row"
+            "message": "3PK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3PS.MU": {
-            "status": "price_failure"
+            "message": "3PS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3U2.MU": {
-            "status": "row"
+            "message": "3U2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "3YB.MU": {
             "status": "row"
           },
           "43Z.MU": {
-            "status": "row"
+            "message": "43Z.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "45U0.MU": {
             "status": "row"
           },
           "46T.MU": {
-            "status": "price_failure"
+            "message": "46T.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "47Q.MU": {
-            "status": "row"
+            "message": "47Q.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "49J.MU": {
             "status": "row"
@@ -449,166 +567,270 @@
             "status": "row"
           },
           "4A3.MU": {
-            "status": "row"
+            "message": "4A3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4AB.MU": {
-            "status": "row"
+            "message": "4AB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4F31.MU": {
-            "status": "price_failure"
+            "message": "4F31.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4FB.MU": {
-            "status": "price_failure"
+            "message": "4FB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "4FO.MU": {
+            "message": "4FO.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4GM.MU": {
-            "status": "row"
+            "message": "4GM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4IK.MU": {
-            "status": "row"
+            "message": "4IK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4JB.MU": {
-            "status": "row"
+            "message": "4JB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4LL.MU": {
-            "status": "row"
+            "message": "4LL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4MGN.MU": {
-            "status": "row"
+            "message": "4MGN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4MI.MU": {
-            "status": "row"
+            "message": "4MI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4TZ.MU": {
-            "status": "row"
+            "message": "4TZ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "4YJ0.MU": {
             "status": "row"
           },
           "4ZM.MU": {
-            "status": "row"
+            "message": "4ZM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "540.MU": {
-            "status": "row"
+            "message": "540.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "541.MU": {
-            "status": "row"
+            "message": "541.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "55H0.MU": {
-            "status": "row"
+            "message": "55H0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "55O1.MU": {
-            "status": "row"
+            "message": "55O1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "58S.MU": {
-            "status": "row"
+            "message": "58S.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5G4.MU": {
             "status": "row"
           },
           "5KP.MU": {
-            "status": "row"
+            "message": "5KP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5M0B.MU": {
-            "status": "row"
+            "message": "5M0B.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5OJ.MU": {
-            "status": "price_failure"
+            "message": "5OJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5Q5.MU": {
             "status": "row"
           },
           "5Q8.MU": {
-            "status": "price_failure"
+            "message": "5Q8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5QZ0.MU": {
-            "status": "row"
+            "message": "5QZ0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5UR.MU": {
-            "status": "row"
+            "message": "5UR.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5XU.MU": {
-            "status": "row"
+            "message": "5XU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "5ZM.MU": {
-            "status": "row"
+            "message": "5ZM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "60D.MU": {
-            "status": "row"
+            "message": "60D.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "6D8.MU": {
-            "status": "row"
+            "message": "6D8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "6GJ.MU": {
-            "status": "row"
+            "message": "6GJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "6HC.MU": {
-            "status": "row"
+            "message": "6HC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "6K8.MU": {
-            "status": "row"
+            "message": "6K8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "6NCA.MU": {
-            "status": "row"
+            "message": "6NCA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "6RL.MU": {
-            "status": "row"
+            "message": "6RL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "6UY.MU": {
-            "status": "row"
+            "message": "6UY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "72T.MU": {
-            "status": "row"
+            "message": "72T.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "7AT.MU": {
             "status": "row"
           },
           "7DY.MU": {
-            "status": "row"
+            "message": "7DY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "7IG.MU": {
             "status": "row"
           },
           "7LB.MU": {
-            "status": "row"
+            "message": "7LB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "7PS.MU": {
-            "status": "row"
+            "message": "7PS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "7R8.MU": {
-            "status": "below_market_cap"
+            "status": "row"
           },
           "7S8.MU": {
-            "status": "row"
+            "message": "7S8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "7VG.MU": {
             "status": "row"
           },
+          "818.MU": {
+            "message": "818.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
           "81A.MU": {
-            "status": "row"
+            "message": "81A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "85E.MU": {
-            "status": "row"
+            "message": "85E.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8B2.MU": {
-            "status": "row"
+            "message": "8B2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8BI.MU": {
-            "status": "row"
+            "message": "8BI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8EO.MU": {
-            "status": "row"
+            "message": "8EO.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8FR.MU": {
-            "status": "row"
+            "message": "8FR.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8II.MU": {
-            "status": "row"
+            "message": "8II.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8JI.MU": {
-            "status": "row"
+            "message": "8JI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8YD.MU": {
-            "status": "row"
+            "message": "8YD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "8ZI.MU": {
             "status": "row"
@@ -620,100 +842,163 @@
             "status": "row"
           },
           "98W.MU": {
-            "status": "row"
+            "message": "98W.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "99U.MU": {
-            "status": "row"
+            "message": "99U.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "9AY.MU": {
-            "status": "row"
+            "message": "9AY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "9CF.MU": {
-            "status": "row"
+            "message": "9CF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "9J3.MU": {
-            "status": "row"
+            "message": "9J3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "9JD.MU": {
+            "message": "9JD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "9KX.MU": {
-            "status": "row"
+            "message": "9KX.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "9ME.MU": {
-            "status": "row"
+            "message": "9ME.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "9MU.MU": {
             "status": "row"
           },
           "9NF.MU": {
-            "status": "row"
+            "message": "9NF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "A19.MU": {
-            "status": "price_failure"
+            "message": "A19.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "A1G.MU": {
-            "status": "row"
-          },
-          "A1T6AA.MU": {
-            "status": "price_failure"
+            "message": "A1G.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "A240.MU": {
-            "status": "row"
+            "message": "A240.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "A39.MU": {
-            "status": "row"
+            "message": "A39.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "A781.MU": {
-            "status": "row"
+            "message": "A781.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AB5.MU": {
-            "status": "price_failure"
+            "message": "AB5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ABEA.MU": {
-            "status": "row"
+            "message": "ABEA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ABEC.MU": {
-            "status": "row"
+            "message": "ABEC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ABJ.MU": {
-            "status": "row"
+            "message": "ABJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "ADB.MU": {
+            "message": "ADB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AEX.MU": {
-            "status": "row"
+            "message": "AEX.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AFZ0.MU": {
             "status": "row"
           },
           "AI3A.MU": {
-            "status": "row"
+            "message": "AI3A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ALD0.MU": {
-            "status": "row"
+            "message": "ALD0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ALZC.MU": {
             "status": "row"
           },
           "AND.MU": {
-            "status": "row"
+            "message": "AND.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AP4N.MU": {
-            "status": "row"
+            "message": "AP4N.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AQE.MU": {
-            "status": "row"
+            "message": "AQE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ARCC.MU": {
-            "status": "price_failure"
+            "message": "ARCC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AS7.MU": {
-            "status": "row"
+            "message": "AS7.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ASAA.MU": {
-            "status": "row"
+            "message": "ASAA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AT4.MU": {
-            "status": "row"
+            "message": "AT4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ATD.MU": {
-            "status": "row"
+            "message": "ATD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ATI.MU": {
             "status": "row"
@@ -722,139 +1007,225 @@
             "status": "row"
           },
           "AV6.MU": {
-            "status": "row"
+            "message": "AV6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AVT.MU": {
-            "status": "row"
+            "message": "AVT.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AWN.MU": {
-            "status": "row"
+            "message": "AWN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AXJ.MU": {
-            "status": "row"
+            "message": "AXJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AXL1.MU": {
-            "status": "row"
-          },
-          "AZ5.MU": {
-            "status": "row"
+            "message": "AXL1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AZ9.MU": {
-            "status": "row"
+            "message": "AZ9.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "AZZ2.MU": {
-            "status": "row"
+            "message": "AZZ2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "B3Y1.MU": {
-            "status": "row"
+            "message": "B3Y1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "B7O.MU": {
-            "status": "row"
+            "message": "B7O.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "B7S.MU": {
-            "status": "price_failure"
+            "message": "B7S.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BBD.MU": {
-            "status": "row"
+            "message": "BBD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BBDC.MU": {
-            "status": "row"
+            "message": "BBDC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BBEA.MU": {
-            "status": "row"
+            "message": "BBEA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BC3.MU": {
-            "status": "price_failure"
+            "message": "BC3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BC51.MU": {
-            "status": "row"
+            "message": "BC51.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BGW.MU": {
             "status": "row"
           },
           "BHI.MU": {
-            "status": "price_failure"
+            "message": "BHI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BKMA.MU": {
             "status": "row"
           },
           "BLD.MU": {
-            "status": "price_failure"
+            "message": "BLD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BM0.MU": {
-            "status": "price_failure"
+            "message": "BM0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BMU.MU": {
-            "status": "row"
+            "message": "BMU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BNK.MU": {
-            "status": "row"
+            "message": "BNK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BP1.MU": {
-            "status": "row"
+            "message": "BP1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BPE5.MU": {
-            "status": "row"
+            "message": "BPE5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BUHA.MU": {
-            "status": "row"
+            "message": "BUHA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BZB.MU": {
-            "status": "row"
+            "message": "BZB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BZG2.MU": {
-            "status": "row"
+            "message": "BZG2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BZTA.MU": {
-            "status": "row"
+            "message": "BZTA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "BZU.MU": {
-            "status": "row"
+            "message": "BZU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "C4F.MU": {
-            "status": "row"
+            "message": "C4F.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "C6E0.MU": {
-            "status": "row"
+            "message": "C6E0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "C7A0.MU": {
-            "status": "row"
+            "message": "C7A0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CCC3.MU": {
-            "status": "row"
+            "message": "CCC3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CDE.MU": {
-            "status": "row"
+            "message": "CDE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CDM1.MU": {
-            "status": "row"
+            "message": "CDM1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CENB.MU": {
-            "status": "row"
+            "message": "CENB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "CFJA.MU": {
+            "message": "CFJA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CH6.MU": {
-            "status": "row"
+            "message": "CH6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CJ5A.MU": {
-            "status": "price_failure"
+            "message": "CJ5A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CJA1.MU": {
-            "status": "row"
+            "message": "CJA1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CK3.MU": {
-            "status": "row"
+            "message": "CK3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CL4.MU": {
-            "status": "row"
+            "message": "CL4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CNH.MU": {
-            "status": "row"
+            "message": "CNH.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CNO.MU": {
-            "status": "row"
+            "message": "CNO.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CNP.MU": {
-            "status": "row"
+            "message": "CNP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CP9.MU": {
             "status": "row"
@@ -865,157 +1236,253 @@
             "status": "error"
           },
           "CQN.MU": {
-            "status": "row"
+            "message": "CQN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CRLN.MU": {
-            "status": "row"
+            "message": "CRLN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CRU.MU": {
-            "status": "row"
+            "message": "CRU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CS1.MU": {
-            "status": "row"
+            "message": "CS1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CS6.MU": {
-            "status": "row"
+            "message": "CS6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CSA.MU": {
-            "status": "row"
+            "message": "CSA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CSG.MU": {
-            "status": "row"
+            "message": "CSG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "CTJ1.MU": {
+            "message": "CTJ1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CTW0.MU": {
-            "status": "row"
+            "message": "CTW0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CUM.MU": {
             "status": "row"
           },
           "CVG.MU": {
-            "status": "row"
+            "message": "CVG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CVS.MU": {
-            "status": "row"
+            "message": "CVS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CVV.MU": {
             "status": "row"
           },
-          "CXGH.MU": {
-            "status": "row"
-          },
           "CXU.MU": {
-            "status": "row"
+            "message": "CXU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "CYC.MU": {
-            "status": "row"
+            "message": "CYC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "D2G.MU": {
-            "status": "row"
+            "message": "D2G.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "D6I.MU": {
-            "status": "row"
+            "message": "D6I.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DC4.MU": {
-            "status": "row"
+            "message": "DC4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DDN.MU": {
-            "status": "row"
+            "message": "DDN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DDQ.MU": {
-            "status": "row"
+            "message": "DDQ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DEVL.MU": {
-            "status": "row"
+            "message": "DEVL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DKI.MU": {
-            "status": "row"
+            "message": "DKI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DL8.MU": {
-            "status": "row"
+            "message": "DL8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DLY.MU": {
             "status": "row"
           },
           "DNE.MU": {
-            "status": "row"
+            "message": "DNE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DNZ.MU": {
-            "status": "row"
+            "message": "DNZ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DQU0.MU": {
-            "status": "row"
+            "message": "DQU0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DR3.MU": {
-            "status": "row"
+            "message": "DR3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DR6.MU": {
-            "status": "row"
+            "message": "DR6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DS3.MU": {
-            "status": "row"
+            "message": "DS3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DS4.MU": {
-            "status": "row"
+            "message": "DS4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DSN.MU": {
-            "status": "row"
+            "message": "DSN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DT7.MU": {
-            "status": "row"
+            "message": "DT7.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DTI0.MU": {
-            "status": "row"
+            "message": "DTI0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "DUB1.MU": {
-            "status": "row"
+            "message": "DUB1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "E0P.MU": {
-            "status": "row"
+            "message": "E0P.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "E5F.MU": {
-            "status": "row"
+            "message": "E5F.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "E7P.MU": {
-            "status": "row"
+            "message": "E7P.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EC8.MU": {
-            "status": "row"
+            "message": "EC8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ECP.MU": {
-            "status": "row"
+            "message": "ECP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EEF.MU": {
-            "status": "row"
+            "message": "EEF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EFE.MU": {
-            "status": "row"
+            "message": "EFE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EGG.MU": {
-            "status": "row"
+            "message": "EGG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EJG.MU": {
-            "status": "row"
+            "message": "EJG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EN3.MU": {
-            "status": "row"
+            "message": "EN3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ENQ.MU": {
-            "status": "row"
+            "message": "ENQ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EOB.MU": {
-            "status": "row"
+            "message": "EOB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EQR.MU": {
-            "status": "row"
+            "message": "EQR.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ES9.MU": {
-            "status": "row"
+            "message": "ES9.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EXP.MU": {
-            "status": "row"
+            "message": "EXP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EY3.MU": {
-            "status": "row"
+            "message": "EY3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "EYI.MU": {
             "message": "EYI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1023,33 +1490,44 @@
             "status": "error"
           },
           "F85.MU": {
-            "status": "row"
+            "message": "F85.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "F8P.MU": {
-            "status": "row"
+            "message": "F8P.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "F9Q.MU": {
-            "status": "row"
+            "message": "F9Q.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FAS.MU": {
-            "status": "row"
+            "message": "FAS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FDK.MU": {
-            "status": "row"
+            "message": "FDK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FDM.MU": {
-            "status": "row"
+            "message": "FDM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FDO.MU": {
-            "status": "row"
+            "message": "FDO.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FFC0.MU": {
             "message": "FFC0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
             "status": "error"
-          },
-          "FFO1.MU": {
-            "status": "row"
           },
           "FG5.MU": {
             "message": "FG5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1057,123 +1535,201 @@
             "status": "error"
           },
           "FHL.MU": {
-            "status": "row"
+            "message": "FHL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FLQ.MU": {
-            "status": "row"
+            "message": "FLQ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FMF.MU": {
-            "status": "row"
+            "message": "FMF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "FNI.MU": {
+            "message": "FNI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FNM.MU": {
-            "status": "row"
+            "message": "FNM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FPLB.MU": {
             "status": "row"
           },
           "FRYA.MU": {
-            "status": "row"
+            "message": "FRYA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "FS8.MU": {
+            "message": "FS8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FSB.MU": {
             "status": "row"
           },
           "FSRA.MU": {
-            "status": "row"
+            "message": "FSRA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FTP.MU": {
-            "status": "row"
+            "message": "FTP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "FUH.MU": {
-            "status": "row"
+            "message": "FUH.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "G5LN.MU": {
-            "status": "row"
+            "message": "G5LN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "GAX.MU": {
-            "status": "row"
+            "message": "GAX.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "GFF.MU": {
-            "status": "row"
+            "message": "GFF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "GIN.MU": {
             "status": "row"
           },
           "GIS.MU": {
-            "status": "row"
+            "message": "GIS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "GOS.MU": {
-            "status": "row"
+            "message": "GOS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "GOU.MU": {
             "message": "GOU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
             "status": "error"
           },
+          "GRP.MU": {
+            "message": "GRP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
           "GWW.MU": {
-            "status": "row"
+            "message": "GWW.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "H1W.MU": {
-            "status": "row"
+            "message": "H1W.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "H7H.MU": {
-            "status": "price_failure"
+            "message": "H7H.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "H9B1.MU": {
-            "status": "row"
+            "message": "H9B1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HAR.MU": {
-            "status": "row"
-          },
-          "HAY.MU": {
-            "status": "row"
+            "message": "HAR.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HB1.MU": {
-            "status": "row"
+            "message": "HB1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HC5.MU": {
-            "status": "row"
+            "message": "HC5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HCL.MU": {
-            "status": "row"
+            "message": "HCL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HDE.MU": {
-            "status": "row"
+            "message": "HDE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HIE.MU": {
-            "status": "row"
+            "message": "HIE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HL80.MU": {
-            "status": "row"
+            "message": "HL80.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HM9.MU": {
             "status": "row"
           },
           "HMSB.MU": {
-            "status": "row"
+            "message": "HMSB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HOO.MU": {
-            "status": "row"
+            "message": "HOO.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HOU.MU": {
-            "status": "row"
+            "message": "HOU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HPD.MU": {
-            "status": "row"
+            "message": "HPD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HQS.MU": {
-            "status": "row"
+            "message": "HQS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HS1.MU": {
-            "status": "row"
+            "message": "HS1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HS2.MU": {
-            "status": "row"
+            "message": "HS2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "HTW.MU": {
-            "status": "row"
+            "message": "HTW.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "I1V.MU": {
-            "status": "row"
+            "message": "I1V.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "I2X2.MU": {
             "message": "I2X2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1181,10 +1737,14 @@
             "status": "error"
           },
           "I5U.MU": {
-            "status": "row"
+            "message": "I5U.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "IBM.MU": {
-            "status": "row"
+            "message": "IBM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "IC2.MU": {
             "status": "row"
@@ -1195,10 +1755,14 @@
             "status": "error"
           },
           "IF6N.MU": {
-            "status": "row"
+            "message": "IF6N.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "IJU.MU": {
-            "status": "row"
+            "message": "IJU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "IKF.MU": {
             "status": "row"
@@ -1209,7 +1773,9 @@
             "status": "error"
           },
           "IPT.MU": {
-            "status": "row"
+            "message": "IPT.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "IT6.MU": {
             "message": "IT6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1217,49 +1783,77 @@
             "status": "error"
           },
           "ITP.MU": {
-            "status": "row"
+            "message": "ITP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "IV61.MU": {
-            "status": "row"
+            "message": "IV61.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "JAL.MU": {
-            "status": "row"
+            "message": "JAL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "JBL.MU": {
-            "status": "row"
-          },
-          "JIX.MU": {
-            "status": "row"
+            "message": "JBL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "JL80.MU": {
-            "status": "row"
+            "message": "JL80.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "JMT.MU": {
-            "status": "row"
+            "message": "JMT.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "JNJ.MU": {
-            "status": "row"
+            "message": "JNJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "K95.MU": {
-            "status": "row"
+            "message": "K95.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KAB0.MU": {
-            "status": "row"
+            "message": "KAB0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KB7.MU": {
             "status": "row"
           },
+          "KBH.MU": {
+            "message": "KBH.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
           "KH7.MU": {
-            "status": "row"
+            "message": "KH7.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KIN2.MU": {
-            "status": "row"
+            "message": "KIN2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KIY.MU": {
-            "status": "row"
+            "message": "KIY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KK3A.MU": {
-            "status": "row"
+            "message": "KK3A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KPSN.MU": {
             "message": "KPSN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1267,13 +1861,19 @@
             "status": "error"
           },
           "KQ2.MU": {
-            "status": "row"
+            "message": "KQ2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KR3.MU": {
-            "status": "row"
+            "message": "KR3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KUO1.MU": {
-            "status": "row"
+            "message": "KUO1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KUR.MU": {
             "message": "KUR.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1281,10 +1881,19 @@
             "status": "error"
           },
           "KWI.MU": {
-            "status": "row"
+            "message": "KWI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "KWS.MU": {
+            "message": "KWS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "KY6.MU": {
-            "status": "row"
+            "message": "KY6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "L53.MU": {
             "message": "L53.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1292,10 +1901,14 @@
             "status": "error"
           },
           "LA3A.MU": {
-            "status": "row"
+            "message": "LA3A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LAR0.MU": {
-            "status": "row"
+            "message": "LAR0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LC4.MU": {
             "message": "LC4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1303,40 +1916,69 @@
             "status": "error"
           },
           "LCLA.MU": {
-            "status": "row"
+            "message": "LCLA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LG72.MU": {
-            "status": "row"
+            "message": "LG72.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LHV.MU": {
-            "status": "row"
+            "message": "LHV.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LI9.MU": {
-            "status": "row"
+            "message": "LI9.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LO3.MU": {
-            "status": "row"
+            "message": "LO3.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LTP.MU": {
-            "status": "row"
+            "message": "LTP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "LTT.MU": {
-            "status": "row"
+            "message": "LTT.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "M1H.MU": {
-            "status": "row"
+            "message": "M1H.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "M3P.MU": {
-            "status": "row"
+            "message": "M3P.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "M4ZA.MU": {
-            "status": "row"
+            "message": "M4ZA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "M98.MU": {
-            "status": "row"
+            "message": "M98.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MCP.MU": {
-            "status": "row"
+            "message": "MCP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "MEF.MU": {
+            "message": "MEF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MG9.MU": {
             "message": "MG9.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1344,7 +1986,9 @@
             "status": "error"
           },
           "MH2.MU": {
-            "status": "row"
+            "message": "MH2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MHC.MU": {
             "message": "MHC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1352,16 +1996,19 @@
             "status": "error"
           },
           "MHG.MU": {
-            "status": "row"
-          },
-          "MHR.MU": {
-            "status": "row"
+            "message": "MHG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MKT.MU": {
-            "status": "row"
+            "message": "MKT.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MKV.MU": {
-            "status": "row"
+            "message": "MKV.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MM6A.MU": {
             "message": "MM6A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1369,76 +2016,117 @@
             "status": "error"
           },
           "MMM.MU": {
-            "status": "row"
+            "message": "MMM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MPV.MU": {
-            "status": "row"
+            "message": "MPV.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MRS.MU": {
-            "status": "row"
+            "message": "MRS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MSQ.MU": {
-            "status": "row"
+            "message": "MSQ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MTS1.MU": {
-            "status": "row"
+            "message": "MTS1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MUQ.MU": {
-            "status": "row"
+            "message": "MUQ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MUR1.MU": {
-            "status": "row"
+            "message": "MUR1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "MX4A.MU": {
-            "status": "row"
-          },
-          "N1U0.MU": {
-            "status": "row"
+            "message": "MX4A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "N2V.MU": {
-            "status": "row"
+            "message": "N2V.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "N4U.MU": {
-            "status": "row"
+            "message": "N4U.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NEB.MU": {
-            "status": "row"
+            "message": "NEB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NFS.MU": {
-            "status": "row"
+            "message": "NFS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NGL0.MU": {
-            "status": "row"
+            "message": "NGL0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NM5.MU": {
-            "status": "row"
+            "message": "NM5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NNM.MU": {
-            "status": "row"
+            "message": "NNM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NO8.MU": {
-            "status": "row"
+            "message": "NO8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NOT.MU": {
-            "status": "row"
+            "message": "NOT.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NOU.MU": {
-            "status": "row"
+            "message": "NOU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NOV.MU": {
-            "status": "row"
+            "message": "NOV.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NR6.MU": {
-            "status": "row"
+            "message": "NR6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NTH.MU": {
-            "status": "row"
+            "message": "NTH.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NUF.MU": {
             "status": "row"
           },
           "NVE.MU": {
-            "status": "row"
+            "message": "NVE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NWG0.MU": {
             "message": "NWG0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1446,31 +2134,49 @@
             "status": "error"
           },
           "NWJ.MU": {
-            "status": "row"
+            "message": "NWJ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "NWL.MU": {
-            "status": "row"
+            "message": "NWL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "O8R.MU": {
-            "status": "row"
+            "message": "O8R.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OBH.MU": {
-            "status": "row"
+            "message": "OBH.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OC5.MU": {
-            "status": "row"
+            "message": "OC5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OC7.MU": {
-            "status": "row"
+            "message": "OC7.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OCKA.MU": {
-            "status": "row"
+            "message": "OCKA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ODF.MU": {
-            "status": "row"
+            "message": "ODF.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OE6.MU": {
-            "status": "row"
+            "message": "OE6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OG5.MU": {
             "message": "OG5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1488,10 +2194,14 @@
             "status": "error"
           },
           "OLY1.MU": {
-            "status": "row"
+            "message": "OLY1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OM6.MU": {
-            "status": "row"
+            "message": "OM6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OMS1.MU": {
             "message": "OMS1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1499,16 +2209,24 @@
             "status": "error"
           },
           "ORI1.MU": {
-            "status": "row"
+            "message": "ORI1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ORL.MU": {
-            "status": "row"
+            "message": "ORL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OTE.MU": {
-            "status": "row"
+            "message": "OTE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "OYD.MU": {
-            "status": "row"
+            "message": "OYD.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "P04.MU": {
             "message": "P04.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1516,19 +2234,29 @@
             "status": "error"
           },
           "P13A.MU": {
-            "status": "row"
+            "message": "P13A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "P4F.MU": {
-            "status": "row"
+            "message": "P4F.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "P58.MU": {
-            "status": "row"
+            "message": "P58.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "P5F.MU": {
-            "status": "row"
+            "message": "P5F.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "P5P.MU": {
-            "status": "row"
+            "message": "P5P.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "P8Q.MU": {
             "message": "P8Q.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1536,10 +2264,19 @@
             "status": "error"
           },
           "P9O.MU": {
-            "status": "row"
+            "message": "P9O.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PAE.MU": {
-            "status": "row"
+            "message": "PAE.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "PC6.MU": {
+            "message": "PC6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PCG.MU": {
             "message": "PCG.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1547,13 +2284,19 @@
             "status": "error"
           },
           "PCR.MU": {
-            "status": "row"
+            "message": "PCR.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PGW.MU": {
-            "status": "row"
+            "message": "PGW.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PIJ0.MU": {
-            "status": "row"
+            "message": "PIJ0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PK2.MU": {
             "message": "PK2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1561,25 +2304,39 @@
             "status": "error"
           },
           "PKTM.MU": {
-            "status": "row"
+            "message": "PKTM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PLUN.MU": {
-            "status": "row"
+            "message": "PLUN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PR2.MU": {
-            "status": "row"
+            "message": "PR2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PRL.MU": {
-            "status": "row"
+            "message": "PRL.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "PRP.MU": {
-            "status": "row"
+            "message": "PRP.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "QAA.MU": {
-            "status": "row"
+            "message": "QAA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "QCTA.MU": {
-            "status": "row"
+            "message": "QCTA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "QGI.MU": {
             "message": "QGI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1587,25 +2344,44 @@
             "status": "error"
           },
           "QN7.MU": {
-            "status": "row"
+            "message": "QN7.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
+          },
+          "QS2A.MU": {
+            "message": "QS2A.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "R6C0.MU": {
-            "status": "row"
+            "message": "R6C0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RCIB.MU": {
-            "status": "row"
+            "message": "RCIB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RG5.MU": {
-            "status": "row"
+            "message": "RG5.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RGN.MU": {
-            "status": "row"
+            "message": "RGN.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RKVA.MU": {
-            "status": "row"
+            "message": "RKVA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RMB.MU": {
-            "status": "row"
+            "message": "RMB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RMZ.MU": {
             "message": "RMZ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1618,19 +2394,29 @@
             "status": "error"
           },
           "RR6.MU": {
-            "status": "row"
+            "message": "RR6.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RTHA.MU": {
-            "status": "row"
+            "message": "RTHA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RW8.MU": {
-            "status": "row"
+            "message": "RW8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RYQ.MU": {
-            "status": "row"
+            "message": "RYQ.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "RYTB.MU": {
-            "status": "row"
+            "message": "RYTB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "S1R.MU": {
             "message": "S1R.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1638,16 +2424,24 @@
             "status": "error"
           },
           "S1VA.MU": {
-            "status": "row"
+            "message": "S1VA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "S2L.MU": {
-            "status": "row"
+            "message": "S2L.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "S2Z.MU": {
-            "status": "row"
+            "message": "S2Z.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "S3Z.MU": {
-            "status": "row"
+            "message": "S3Z.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "S7V.MU": {
             "message": "S7V.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1655,43 +2449,69 @@
             "status": "error"
           },
           "SBC.MU": {
-            "status": "row"
+            "message": "SBC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SE7.MU": {
-            "status": "row"
+            "message": "SE7.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SFT.MU": {
-            "status": "row"
+            "message": "SFT.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SFW.MU": {
-            "status": "row"
+            "message": "SFW.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SH0.MU": {
-            "status": "row"
+            "message": "SH0.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SIKA.MU": {
-            "status": "row"
+            "message": "SIKA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SIT4.MU": {
-            "status": "row"
+            "message": "SIT4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SIY.MU": {
-            "status": "row"
+            "message": "SIY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SJM.MU": {
-            "status": "row"
+            "message": "SJM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SKFA.MU": {
-            "status": "row"
+            "message": "SKFA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SKFB.MU": {
-            "status": "row"
+            "message": "SKFB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SNS.MU": {
-            "status": "row"
+            "message": "SNS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SOU.MU": {
-            "status": "row"
+            "message": "SOU.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "SR9.MU": {
             "status": "row"
@@ -1703,19 +2523,13 @@
             "status": "row"
           },
           "SU4.MU": {
-            "message": "SU4.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "SUI.MU": {
-            "message": "SUI.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "SUK.MU": {
-            "message": "SUK.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "SUL1.MU": {
             "status": "row"
@@ -1747,16 +2561,11 @@
           "TEX.MU": {
             "status": "row"
           },
-          "TIV.MU": {
-            "status": "row"
-          },
           "TKD.MU": {
             "status": "row"
           },
           "TKM.MU": {
-            "message": "TKM.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "TKY.MU": {
             "status": "row"
@@ -1771,9 +2580,7 @@
             "status": "row"
           },
           "TOH.MU": {
-            "message": "TOH.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "TPT.MU": {
             "status": "row"
@@ -1812,9 +2619,7 @@
             "status": "row"
           },
           "UG9.MU": {
-            "message": "UG9.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "UMB.MU": {
             "status": "row"
@@ -1886,9 +2691,7 @@
             "status": "row"
           },
           "WML2.MU": {
-            "message": "WML2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "WR1.MU": {
             "status": "row"
@@ -1897,6 +2700,12 @@
             "status": "row"
           },
           "WT5.MU": {
+            "status": "row"
+          },
+          "WTH.MU": {
+            "status": "row"
+          },
+          "X2S.MU": {
             "status": "row"
           },
           "X4O.MU": {
@@ -1930,7 +2739,9 @@
             "status": "row"
           },
           "YO9.MU": {
-            "status": "row"
+            "message": "YO9.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "YRB.MU": {
             "message": "YRB.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1943,16 +2754,24 @@
             "status": "error"
           },
           "YZ8.MU": {
-            "status": "row"
+            "message": "YZ8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "YZCA.MU": {
-            "status": "row"
+            "message": "YZCA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ZA8.MU": {
-            "status": "row"
+            "message": "ZA8.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ZAS.MU": {
-            "status": "row"
+            "message": "ZAS.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ZB1.MU": {
             "message": "ZB1.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -1960,19 +2779,27 @@
             "status": "error"
           },
           "ZEH2.MU": {
-            "status": "row"
+            "message": "ZEH2.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ZFIN.MU": {
             "status": "row"
           },
           "ZGC.MU": {
-            "status": "row"
+            "message": "ZGC.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ZVX.MU": {
-            "status": "row"
+            "message": "ZVX.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           },
           "ZYA.MU": {
-            "status": "row"
+            "message": "ZYA.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+            "rate_limited": true,
+            "status": "error"
           }
         }
       },
@@ -2946,7 +3773,6 @@
         "7PV.MU": 0,
         "7PZ.MU": 1,
         "7QD.MU": 0,
-        "7R8.MU": 12,
         "7RA.MU": 0,
         "7RM.MU": 0,
         "7RY.MU": 12,
@@ -6097,7 +6923,6 @@
         "WS11.MU": 0,
         "WSV2.MU": 0,
         "WSX.MU": 0,
-        "WTH.MU": 0,
         "WTY.MU": 0,
         "WUC.MU": 0,
         "WUW.MU": 0,
@@ -6115,7 +6940,6 @@
         "WXE.MU": 0,
         "WYR.MU": 0,
         "X06.MU": 0,
-        "X2S.MU": 0,
         "X3C.MU": 0,
         "X3Q.MU": 0,
         "X4Z.MU": 0,
@@ -6271,24 +7095,24 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 7,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 8,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 4293,
-      "requested_this_run": 567,
-      "result_rows": 501,
-      "returned_this_run": 500,
-      "started_at": "2026-09-23T10:03:12+01:00",
+      "remaining_symbols": 4290,
+      "requested_this_run": 569,
+      "result_rows": 504,
+      "returned_this_run": 110,
+      "started_at": "2026-09-23T22:31:05+01:00",
       "status": "partial",
       "universe_symbols": 7594
     },
     "lse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 6,
-      "completed_at": "2026-09-23T10:02:37+01:00",
-      "coverage_pct": 3.2,
-      "coverage_symbols": 9,
+      "chunk_symbols": 7,
+      "completed_at": "2026-09-23T22:30:24+01:00",
+      "coverage_pct": 3.9,
+      "coverage_symbols": 11,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -6296,22 +7120,25 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 6,
-        "returned": 6,
+        "requested": 7,
+        "returned": 7,
         "symbol_outcomes": {
           "ATYM.L": {
             "status": "row"
           },
-          "EDV.L": {
+          "CWR.L": {
             "status": "row"
           },
-          "HAS.L": {
+          "EDV.L": {
             "status": "row"
           },
           "JDW.L": {
             "status": "row"
           },
           "PRU.L": {
+            "status": "row"
+          },
+          "SMIN.L": {
             "status": "row"
           },
           "VALT.L": {
@@ -6390,7 +7217,6 @@
         "CURY.L": 1,
         "CVSG.L": 1,
         "CWK.L": 2,
-        "CWR.L": 1,
         "DCC.L": 2,
         "DCH.L": 1,
         "DEC.L": 1,
@@ -6543,7 +7369,6 @@
         "SHAW.L": 1,
         "SHC.L": 1,
         "SHEL.L": 1,
-        "SMIN.L": 1,
         "SMWH.L": 1,
         "SN-.L": 54,
         "SNR.L": 0,
@@ -6598,14 +7423,14 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 9,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 11,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 270,
-      "requested_this_run": 6,
-      "result_rows": 9,
-      "returned_this_run": 6,
-      "started_at": "2026-09-23T10:02:34+01:00",
+      "remaining_symbols": 268,
+      "requested_this_run": 7,
+      "result_rows": 11,
+      "returned_this_run": 7,
+      "started_at": "2026-09-23T22:30:20+01:00",
       "status": "partial",
       "universe_symbols": 571
     },
@@ -6634,7 +7459,7 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 0,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "remaining_symbols": 0,
       "result_rows": 21,
       "started_at": "2026-09-17T22:39:42+01:00",
@@ -6645,7 +7470,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-09-23T10:08:47+01:00",
+      "completed_at": "2026-09-23T22:55:47+01:00",
       "coverage_pct": 3.3,
       "coverage_symbols": 3,
       "diagnostics": {
@@ -6680,24 +7505,24 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 3,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 0,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 89,
       "requested_this_run": 3,
       "result_rows": 3,
       "returned_this_run": 3,
-      "started_at": "2026-09-23T10:08:45+01:00",
+      "started_at": "2026-09-23T22:55:46+01:00",
       "status": "partial",
-      "universe_symbols": 298
+      "universe_symbols": 295
     },
     "nasdaq": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 20,
-      "completed_at": "2026-09-23T10:01:32+01:00",
-      "coverage_pct": 1.8,
-      "coverage_symbols": 23,
+      "chunk_symbols": 19,
+      "completed_at": "2026-09-23T22:29:10+01:00",
+      "coverage_pct": 1.9,
+      "coverage_symbols": 24,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -6705,9 +7530,12 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 20,
-        "returned": 20,
+        "requested": 19,
+        "returned": 19,
         "symbol_outcomes": {
+          "ADBE": {
+            "status": "row"
+          },
           "BFC": {
             "status": "row"
           },
@@ -6735,9 +7563,6 @@
           "LGND": {
             "status": "row"
           },
-          "MLKN": {
-            "status": "row"
-          },
           "MNST": {
             "status": "row"
           },
@@ -6745,9 +7570,6 @@
             "status": "row"
           },
           "OPK": {
-            "status": "row"
-          },
-          "SBET": {
             "status": "row"
           },
           "SDGR": {
@@ -6770,7 +7592,7 @@
           }
         }
       },
-      "eligible_symbols": 1304,
+      "eligible_symbols": 1289,
       "gap_fill_dispatch_counts": {
         "AGCC": 51,
         "FBYD": 51,
@@ -6784,17 +7606,17 @@
       "label": "NASDAQ",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
+      "price_refresh_missing": 24,
       "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 23,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_status": "partial",
+      "price_refresh_updated": 0,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 1281,
-      "requested_this_run": 20,
-      "result_rows": 23,
-      "returned_this_run": 20,
-      "started_at": "2026-09-23T10:01:22+01:00",
+      "remaining_symbols": 1265,
+      "requested_this_run": 19,
+      "result_rows": 24,
+      "returned_this_run": 19,
+      "started_at": "2026-09-23T22:29:01+01:00",
       "status": "partial",
       "universe_symbols": 3328
     },
@@ -6802,9 +7624,9 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 31,
-      "completed_at": "2026-09-23T10:01:47+01:00",
-      "coverage_pct": 2.2,
-      "coverage_symbols": 32,
+      "completed_at": "2026-09-23T22:29:22+01:00",
+      "coverage_pct": 2.4,
+      "coverage_symbols": 35,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -6827,9 +7649,6 @@
           "AVY": {
             "status": "row"
           },
-          "AZO": {
-            "status": "row"
-          },
           "CARS": {
             "status": "row"
           },
@@ -6848,6 +7667,9 @@
           "GIL": {
             "status": "row"
           },
+          "GIS": {
+            "status": "row"
+          },
           "HAFN": {
             "status": "row"
           },
@@ -6855,6 +7677,9 @@
             "status": "row"
           },
           "HOG": {
+            "status": "row"
+          },
+          "KBH": {
             "status": "row"
           },
           "KRG": {
@@ -6890,13 +7715,7 @@
           "TFPM": {
             "status": "row"
           },
-          "THO": {
-            "status": "row"
-          },
           "TTE": {
-            "status": "row"
-          },
-          "UBS": {
             "status": "row"
           },
           "VVX": {
@@ -6907,10 +7726,13 @@
           },
           "WFG": {
             "status": "row"
+          },
+          "WOR": {
+            "status": "row"
           }
         }
       },
-      "eligible_symbols": 1464,
+      "eligible_symbols": 1460,
       "gap_fill_dispatch_counts": {
         "CWH": 50,
         "FUBO": 50,
@@ -6925,33 +7747,33 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 32,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 35,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 1432,
+      "remaining_symbols": 1425,
       "requested_this_run": 31,
-      "result_rows": 32,
+      "result_rows": 35,
       "returned_this_run": 31,
-      "started_at": "2026-09-23T10:01:32+01:00",
+      "started_at": "2026-09-23T22:29:10+01:00",
       "status": "partial",
       "universe_symbols": 1871
     },
     "otc": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 104,
-      "completed_at": "2026-09-23T10:02:34+01:00",
-      "coverage_pct": 9.4,
-      "coverage_symbols": 139,
+      "chunk_symbols": 150,
+      "completed_at": "2026-09-23T22:30:20+01:00",
+      "coverage_pct": 12.5,
+      "coverage_symbols": 185,
       "diagnostics": {
-        "below_min_market_cap": 0,
+        "below_min_market_cap": 3,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 104,
-        "returned": 104,
+        "requested": 150,
+        "returned": 147,
         "symbol_outcomes": {
           "AAUKF": {
             "status": "row"
@@ -6963,6 +7785,12 @@
             "status": "row"
           },
           "ACLLF": {
+            "status": "row"
+          },
+          "AGLNF": {
+            "status": "row"
+          },
+          "ALFFF": {
             "status": "row"
           },
           "ALKEF": {
@@ -6977,9 +7805,6 @@
           "ASRHF": {
             "status": "row"
           },
-          "BABAF": {
-            "status": "row"
-          },
           "BAYZF": {
             "status": "row"
           },
@@ -6992,6 +7817,9 @@
           "BDRBF": {
             "status": "row"
           },
+          "BEIJF": {
+            "status": "below_market_cap"
+          },
           "BHPLF": {
             "status": "row"
           },
@@ -7001,10 +7829,25 @@
           "BLHWF": {
             "status": "row"
           },
+          "BOEUF": {
+            "status": "row"
+          },
           "BOMXF": {
             "status": "row"
           },
+          "BPPPF": {
+            "status": "row"
+          },
+          "BVRDF": {
+            "status": "row"
+          },
           "CAHPF": {
+            "status": "row"
+          },
+          "CCKRF": {
+            "status": "row"
+          },
+          "CCOZF": {
             "status": "row"
           },
           "CGGGF": {
@@ -7016,10 +7859,22 @@
           "CODGF": {
             "status": "row"
           },
+          "CPWHF": {
+            "status": "row"
+          },
           "CPXWF": {
             "status": "row"
           },
+          "CSMYF": {
+            "status": "row"
+          },
+          "CTPCF": {
+            "status": "row"
+          },
           "CTTAF": {
+            "status": "row"
+          },
+          "CUAEF": {
             "status": "row"
           },
           "CWXZF": {
@@ -7031,7 +7886,7 @@
           "DASTF": {
             "status": "row"
           },
-          "DFYFF": {
+          "DEXSF": {
             "status": "row"
           },
           "DGEAF": {
@@ -7040,7 +7895,16 @@
           "DLVHF": {
             "status": "row"
           },
+          "DMCOF": {
+            "status": "row"
+          },
+          "DPZUF": {
+            "status": "row"
+          },
           "DSMFF": {
+            "status": "row"
+          },
+          "EDDRF": {
             "status": "row"
           },
           "EERGF": {
@@ -7064,9 +7928,6 @@
           "EXPGF": {
             "status": "row"
           },
-          "FKRAF": {
-            "status": "row"
-          },
           "FMCQF": {
             "status": "row"
           },
@@ -7076,13 +7937,22 @@
           "FRHLF": {
             "status": "row"
           },
+          "FURCF": {
+            "status": "row"
+          },
           "GDERF": {
             "status": "row"
           },
           "GENSF": {
             "status": "row"
           },
+          "GLPGF": {
+            "status": "row"
+          },
           "GRPFF": {
+            "status": "row"
+          },
+          "GTOFF": {
             "status": "row"
           },
           "HALFF": {
@@ -7097,10 +7967,25 @@
           "HLBZF": {
             "status": "row"
           },
+          "HLDVF": {
+            "status": "row"
+          },
           "HOCFF": {
             "status": "row"
           },
+          "ICPVF": {
+            "status": "row"
+          },
+          "IDWM": {
+            "status": "below_market_cap"
+          },
+          "IFCNF": {
+            "status": "row"
+          },
           "IFNNF": {
+            "status": "row"
+          },
+          "IPOAF": {
             "status": "row"
           },
           "IVCGF": {
@@ -7112,7 +7997,19 @@
           "IVPAF": {
             "status": "row"
           },
-          "JIAXF": {
+          "KDGLF": {
+            "status": "below_market_cap"
+          },
+          "KHTRF": {
+            "status": "row"
+          },
+          "KRNGF": {
+            "status": "row"
+          },
+          "KUNUF": {
+            "status": "row"
+          },
+          "LFABF": {
             "status": "row"
           },
           "LUNMF": {
@@ -7121,10 +8018,19 @@
           "MONRF": {
             "status": "row"
           },
+          "NCBDF": {
+            "status": "row"
+          },
+          "NDBKF": {
+            "status": "row"
+          },
           "NHPEF": {
             "status": "row"
           },
           "NICMF": {
+            "status": "row"
+          },
+          "NIOIF": {
             "status": "row"
           },
           "NOPMF": {
@@ -7133,19 +8039,43 @@
           "NRDXF": {
             "status": "row"
           },
+          "NRSCF": {
+            "status": "row"
+          },
           "NVZMF": {
             "status": "row"
           },
           "NXSNF": {
             "status": "row"
           },
+          "OCINF": {
+            "status": "row"
+          },
           "ODFJF": {
+            "status": "row"
+          },
+          "ODJBF": {
+            "status": "row"
+          },
+          "OERLF": {
             "status": "row"
           },
           "OHBTF": {
             "status": "row"
           },
+          "ORRAF": {
+            "status": "row"
+          },
+          "OVHFF": {
+            "status": "row"
+          },
+          "PCCYF": {
+            "status": "row"
+          },
           "PGPHF": {
+            "status": "row"
+          },
+          "PHJMF": {
             "status": "row"
           },
           "PIAGF": {
@@ -7163,6 +8093,9 @@
           "PREKF": {
             "status": "row"
           },
+          "PRXXF": {
+            "status": "row"
+          },
           "PSPSF": {
             "status": "row"
           },
@@ -7176,9 +8109,6 @@
             "status": "row"
           },
           "RMGGF": {
-            "status": "row"
-          },
-          "RNKGF": {
             "status": "row"
           },
           "RUSMF": {
@@ -7196,10 +8126,19 @@
           "SBRKF": {
             "status": "row"
           },
+          "SHTDF": {
+            "status": "row"
+          },
           "SISAF": {
             "status": "row"
           },
           "SLFPF": {
+            "status": "row"
+          },
+          "SLNCF": {
+            "status": "row"
+          },
+          "SMGKF": {
             "status": "row"
           },
           "SNCAF": {
@@ -7208,13 +8147,25 @@
           "SNLRF": {
             "status": "row"
           },
+          "SOCNF": {
+            "status": "row"
+          },
           "SSSAF": {
+            "status": "row"
+          },
+          "STGPF": {
             "status": "row"
           },
           "STMEF": {
             "status": "row"
           },
           "STOHF": {
+            "status": "row"
+          },
+          "SURDF": {
+            "status": "row"
+          },
+          "SVNWF": {
             "status": "row"
           },
           "SWZCF": {
@@ -7226,6 +8177,9 @@
           "TBLMF": {
             "status": "row"
           },
+          "TGVSF": {
+            "status": "row"
+          },
           "THNOF": {
             "status": "row"
           },
@@ -7233,6 +8187,9 @@
             "status": "row"
           },
           "TKMAF": {
+            "status": "row"
+          },
+          "TOSCF": {
             "status": "row"
           },
           "TSCDF": {
@@ -7250,6 +8207,9 @@
           "VNNVF": {
             "status": "row"
           },
+          "VOSSF": {
+            "status": "row"
+          },
           "VREAF": {
             "status": "row"
           },
@@ -7262,12 +8222,12 @@
           "WSPOF": {
             "status": "row"
           },
-          "WXIBF": {
+          "WYGPF": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 1486,
+      "eligible_symbols": 1482,
       "gap_fill_dispatch_counts": {
         "CGPZF": 50,
         "CTRYQ": 50,
@@ -7275,7 +8235,6 @@
         "EXCE": 50,
         "GOGY": 50,
         "GZTGF": 50,
-        "MTHI": 50,
         "OILEF": 50,
         "SYPOF": 50,
         "VLNT": 50
@@ -7284,27 +8243,27 @@
       "label": "OTC Markets",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 1,
+      "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "partial",
-      "price_refresh_updated": 138,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 185,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 1347,
-      "requested_this_run": 104,
-      "result_rows": 139,
-      "returned_this_run": 104,
-      "started_at": "2026-09-23T10:01:47+01:00",
+      "remaining_symbols": 1297,
+      "requested_this_run": 150,
+      "result_rows": 185,
+      "returned_this_run": 147,
+      "started_at": "2026-09-23T22:29:22+01:00",
       "status": "partial",
-      "universe_symbols": 5930
+      "universe_symbols": 5943
     },
     "six": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 12,
-      "completed_at": "2026-09-23T10:08:45+01:00",
-      "coverage_pct": 5.0,
-      "coverage_symbols": 15,
+      "chunk_symbols": 14,
+      "completed_at": "2026-09-23T22:55:46+01:00",
+      "coverage_pct": 6.8,
+      "coverage_symbols": 21,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -7312,10 +8271,19 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 12,
-        "returned": 12,
+        "requested": 14,
+        "returned": 14,
         "symbol_outcomes": {
           "AAPL.SW": {
+            "status": "row"
+          },
+          "ADBE.SW": {
+            "status": "row"
+          },
+          "ALM.SW": {
+            "status": "row"
+          },
+          "AMD.SW": {
             "status": "row"
           },
           "CDE.SW": {
@@ -7324,19 +8292,22 @@
           "COIN.SW": {
             "status": "row"
           },
+          "DHER.SW": {
+            "status": "row"
+          },
           "JPM.SW": {
             "status": "row"
           },
           "LLY.SW": {
             "status": "row"
           },
+          "MTX.SW": {
+            "status": "row"
+          },
           "ORCL.SW": {
             "status": "row"
           },
-          "PUM.SW": {
-            "status": "row"
-          },
-          "RDC.SW": {
+          "PEP.SW": {
             "status": "row"
           },
           "SIE.SW": {
@@ -7344,16 +8315,10 @@
           },
           "SMHN.SW": {
             "status": "row"
-          },
-          "UBSG.SW": {
-            "status": "row"
-          },
-          "UBSGE.SW": {
-            "status": "row"
           }
         }
       },
-      "eligible_symbols": 301,
+      "eligible_symbols": 310,
       "gap_fill_dispatch_counts": {
         "AAPL-USD.SW": 54,
         "AMAT-USD.SW": 54,
@@ -7387,22 +8352,22 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 12,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 4,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 286,
-      "requested_this_run": 12,
-      "result_rows": 15,
-      "returned_this_run": 12,
-      "started_at": "2026-09-23T10:08:40+01:00",
+      "remaining_symbols": 289,
+      "requested_this_run": 14,
+      "result_rows": 21,
+      "returned_this_run": 14,
+      "started_at": "2026-09-23T22:55:42+01:00",
       "status": "partial",
-      "universe_symbols": 368
+      "universe_symbols": 377
     },
     "tsx": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 8,
-      "completed_at": "2026-09-23T10:08:39+01:00",
+      "completed_at": "2026-09-23T22:55:40+01:00",
       "coverage_pct": 2.2,
       "coverage_symbols": 9,
       "diagnostics": {
@@ -7452,24 +8417,24 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 8,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 0,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 406,
       "requested_this_run": 8,
       "result_rows": 9,
       "returned_this_run": 8,
-      "started_at": "2026-09-23T10:08:35+01:00",
+      "started_at": "2026-09-23T22:55:37+01:00",
       "status": "partial",
       "universe_symbols": 680
     },
     "vienna": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 82,
-      "completed_at": "2026-09-23T10:09:13+01:00",
-      "coverage_pct": 8.8,
-      "coverage_symbols": 84,
+      "chunk_symbols": 83,
+      "completed_at": "2026-09-23T22:56:08+01:00",
+      "coverage_pct": 9.1,
+      "coverage_symbols": 87,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -7477,8 +8442,8 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 82,
-        "returned": 82,
+        "requested": 83,
+        "returned": 83,
         "symbol_outcomes": {
           "AAL.VI": {
             "status": "row"
@@ -7492,7 +8457,7 @@
           "ACN.VI": {
             "status": "row"
           },
-          "ACT2.VI": {
+          "ADBE.VI": {
             "status": "row"
           },
           "ADSK.VI": {
@@ -7612,6 +8577,9 @@
           "KO.VI": {
             "status": "row"
           },
+          "KWS.VI": {
+            "status": "row"
+          },
           "LONN.VI": {
             "status": "row"
           },
@@ -7666,6 +8634,9 @@
           "PCG.VI": {
             "status": "row"
           },
+          "PECN.VI": {
+            "status": "row"
+          },
           "PLUG.VI": {
             "status": "row"
           },
@@ -7705,9 +8676,6 @@
           "TSCO.VI": {
             "status": "row"
           },
-          "UBSG.VI": {
-            "status": "row"
-          },
           "UEC.VI": {
             "status": "row"
           },
@@ -7737,24 +8705,24 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 81,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 2,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 872,
-      "requested_this_run": 82,
-      "result_rows": 84,
-      "returned_this_run": 82,
-      "started_at": "2026-09-23T10:08:48+01:00",
+      "remaining_symbols": 869,
+      "requested_this_run": 83,
+      "result_rows": 87,
+      "returned_this_run": 83,
+      "started_at": "2026-09-23T22:55:49+01:00",
       "status": "partial",
       "universe_symbols": 1068
     },
     "xetra": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 127,
-      "completed_at": "2026-09-23T10:03:12+01:00",
-      "coverage_pct": 11.5,
-      "coverage_symbols": 129,
+      "chunk_symbols": 130,
+      "completed_at": "2026-09-23T22:31:05+01:00",
+      "coverage_pct": 11.9,
+      "coverage_symbols": 134,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -7762,8 +8730,8 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 127,
-        "returned": 127,
+        "requested": 130,
+        "returned": 130,
         "symbol_outcomes": {
           "08D.DE": {
             "status": "row"
@@ -7775,9 +8743,6 @@
             "status": "row"
           },
           "0S1.DE": {
-            "status": "row"
-          },
-          "0UB.DE": {
             "status": "row"
           },
           "0V6.DE": {
@@ -7864,6 +8829,9 @@
           "ABJ.DE": {
             "status": "row"
           },
+          "ADB.DE": {
+            "status": "row"
+          },
           "AEX.DE": {
             "status": "row"
           },
@@ -7885,9 +8853,6 @@
           "AWN.DE": {
             "status": "row"
           },
-          "AZ5.DE": {
-            "status": "row"
-          },
           "BPE5.DE": {
             "status": "row"
           },
@@ -7898,6 +8863,9 @@
             "status": "row"
           },
           "CDM1.DE": {
+            "status": "row"
+          },
+          "CIT.DE": {
             "status": "row"
           },
           "CNP.DE": {
@@ -7966,6 +8934,9 @@
           "GOS.DE": {
             "status": "row"
           },
+          "GRM.DE": {
+            "status": "row"
+          },
           "H1W.DE": {
             "status": "row"
           },
@@ -8003,6 +8974,9 @@
             "status": "row"
           },
           "KK3A.DE": {
+            "status": "row"
+          },
+          "KWS.DE": {
             "status": "row"
           },
           "KY6.DE": {
@@ -8066,6 +9040,9 @@
             "status": "row"
           },
           "PCG.DE": {
+            "status": "row"
+          },
+          "PCX.DE": {
             "status": "row"
           },
           "PLUN.DE": {
@@ -8352,7 +9329,6 @@
         "ABS2.DE": 0,
         "ACR.DE": 0,
         "ACT0.DE": 0,
-        "ADB.DE": 1,
         "ADG.DE": 0,
         "ADI1.DE": 0,
         "ADP.DE": 1,
@@ -8484,7 +9460,6 @@
         "CHV.DE": 0,
         "CIE1.DE": 0,
         "CIS.DE": 0,
-        "CIT.DE": 1,
         "CLE.DE": 0,
         "CLH.DE": 0,
         "CM9.DE": 0,
@@ -8637,7 +9612,6 @@
         "GOB.DE": 1,
         "GOV.DE": 0,
         "GRG.DE": 0,
-        "GRM.DE": 0,
         "GS2C.DE": 0,
         "GS71.DE": 1,
         "GU81.DE": 1,
@@ -8735,7 +9709,6 @@
         "KSX.DE": 0,
         "KTF.DE": 0,
         "KTN.DE": 0,
-        "KWS.DE": 0,
         "L0T.DE": 0,
         "L10.DE": 0,
         "LA5.DE": 0,
@@ -8862,7 +9835,6 @@
         "PAT.DE": 0,
         "PCE1.DE": 0,
         "PCU.DE": 0,
-        "PCX.DE": 0,
         "PCZ.DE": 0,
         "PEA.DE": 0,
         "PEN.DE": 0,
@@ -9154,21 +10126,21 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 102,
-      "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+      "price_refresh_updated": 82,
+      "price_refreshed_at": "2026-09-23T22:58:24+01:00",
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 997,
-      "requested_this_run": 127,
-      "result_rows": 129,
-      "returned_this_run": 127,
-      "started_at": "2026-09-23T10:02:37+01:00",
+      "remaining_symbols": 992,
+      "requested_this_run": 130,
+      "result_rows": 134,
+      "returned_this_run": 130,
+      "started_at": "2026-09-23T22:30:24+01:00",
       "status": "partial",
       "universe_symbols": 1396
     }
   },
   "last_completed_exchange": "euronext_amsterdam",
   "price_refresh_timezone": "Europe/London",
-  "price_refreshed_at": "2026-09-23T10:11:54+01:00",
+  "price_refreshed_at": "2026-09-23T22:58:24+01:00",
   "schema_version": 1,
-  "updated_at": "2026-09-23T10:09:14+01:00"
+  "updated_at": "2026-09-23T22:56:09+01:00"
 }
