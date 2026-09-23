@@ -4037,10 +4037,14 @@ with tab_crypto_advanced:
             "QUALIFIES — FRESH BREAKOUT",
             "QUALIFIES — BULLISH RETEST",
         }
+        entry_timing_actionable = df.get(
+            "Entry timing actionable",
+            pd.Series(False, index=df.index),
+        ).fillna(False).astype(bool)
         technical_swing_setups = df[
             df["Trade verdict"].isin(qualified_trade_verdicts)
             & (df["Score"] >= cfg.score_threshold)
-            & df.get("Entry timing actionable", False).fillna(False).astype(bool)
+            & entry_timing_actionable
         ].copy().sort_values("Score", ascending=False)
         rs_qualified_setups = technical_swing_setups[
             (technical_swing_setups["Coin"] == "BTC")
