@@ -13,8 +13,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: investment-priority-revaluation
-  cancel-in-progress: true
+  group: investment-priority-writes
+  cancel-in-progress: false
 
 jobs:
   revalue:
