@@ -393,6 +393,26 @@ def discovery_metrics(frame: pd.DataFrame, btc: pd.DataFrame) -> dict:
     )
     compression = math.isfinite(compression_ratio) and compression_ratio <= 0.90
 
+    breakout_extension_pct = (
+        (price / resistance - 1) * 100
+        if price > 0 and math.isfinite(resistance) and resistance > 0
+        else np.nan
+    )
+    fresh_breakout_limit_pct = (
+        max(2.0, min(8.0, current_atr_pct * 2.0))
+        if math.isfinite(current_atr_pct) else 3.0
+    )
+    if math.isfinite(breakout_extension_pct) and 0 <= breakout_extension_pct <= fresh_breakout_limit_pct:
+        discovery_entry_timing = "FRESH BREAKOUT"
+    elif math.isfinite(breakout_extension_pct) and breakout_extension_pct > fresh_breakout_limit_pct:
+        discovery_entry_timing = "EXTENDED"
+    elif math.isfinite(distance_pct) and 0 <= distance_pct <= 3:
+        discovery_entry_timing = "READY"
+    elif math.isfinite(distance_pct) and 3 < distance_pct <= 10:
+        discovery_entry_timing = "EARLY"
+    else:
+        discovery_entry_timing = "MONITOR"
+
     recent_volume = safe(data["volume"].iloc[-6:].mean())
     prior_volume = safe(data["volume"].iloc[-30:-6].median())
     volume_ratio = (
@@ -422,7 +442,11 @@ def discovery_metrics(frame: pd.DataFrame, btc: pd.DataFrame) -> dict:
     # This is deliberately a broad discovery rank, not the CL Signal BUY score.
     # It only decides which coins deserve expensive analysis first.
     points = 0.0
-    if math.isfinite(distance_pct):
+    if discovery_entry_timing == "FRESH BREAKOUT":
+        # Discovery should not lose a coin the moment it clears resistance.
+        # The deep scorer will decide whether the move still offers a valid entry.
+        points += 28
+    elif math.isfinite(distance_pct):
         if 0 <= distance_pct <= 5:
             points += 25
         elif 5 < distance_pct <= 10:
@@ -441,6 +465,9 @@ def discovery_metrics(frame: pd.DataFrame, btc: pd.DataFrame) -> dict:
         "price_at_scan": price,
         "resistance": resistance,
         "distance_to_resistance_pct": distance_pct,
+        "breakout_extension_pct": breakout_extension_pct,
+        "fresh_breakout_limit_pct": fresh_breakout_limit_pct,
+        "discovery_entry_timing": discovery_entry_timing,
         "higher_low": bool(higher_low),
         "compression": bool(compression),
         "compression_ratio": compression_ratio,
@@ -563,6 +590,37 @@ def refresh_macro_snapshot(output: Path, max_age_minutes: float = 50.0) -> dict:
         save_json(previous, path)
         return previous
 
+    if refreshed.get("available"):
+        current_score = safe(refreshed.get("score"), np.nan)
+        previous_score = safe(previous.get("score"), np.nan)
+        crossed_expansion = (
+            math.isfinite(current_score)
+            and current_score >= 70
+            and (not math.isfinite(previous_score) or previous_score < 70)
+        )
+        crossed_supportive = (
+            math.isfinite(current_score)
+            and current_score >= 58
+            and math.isfinite(previous_score)
+            and previous_score < 58
+        )
+        if crossed_expansion or crossed_supportive:
+            refreshed["liquidity_breakout"] = True
+            refreshed["liquidity_trend"] = "BREAKOUT"
+            boundary = "EXPANSION" if crossed_expansion else "IMPROVING"
+            refreshed["liquidity_breakout_detail"] = (
+                f"Composite liquidity score crossed into {boundary}: "
+                f"{previous_score:.1f} -> {current_score:.1f}"
+                if math.isfinite(previous_score)
+                else f"Composite liquidity score entered {boundary} at {current_score:.1f}"
+            )
+        else:
+            refreshed["liquidity_breakout"] = False
+            refreshed["liquidity_breakout_detail"] = (
+                refreshed.get("liquidity_breakout_detail")
+                or "No fresh supportive regime-boundary breakout detected"
+            )
+
     save_json(refreshed, path)
     return refreshed
 
@@ -593,11 +651,16 @@ def active_monitor(
         d.get("distance_to_resistance_pct"), errors="coerce"
     )
 
+    timing_series = d.get(
+        "discovery_entry_timing",
+        pd.Series("MONITOR", index=d.index),
+    ).astype(str)
     broad = d[
         (d["status"] == "SCANNED")
         & (
             (d["discovery_rank"] >= 40)
-            | d["distance_to_resistance_pct"].between(-2, 10, inclusive="both")
+            | d["distance_to_resistance_pct"].between(-8, 10, inclusive="both")
+            | timing_series.eq("FRESH BREAKOUT")
         )
     ].copy()
     broad = broad.sort_values(
@@ -628,16 +691,22 @@ def active_monitor(
             else np.nan
         )
 
+        breakout_extension = (
+            (current / resistance - 1) * 100
+            if math.isfinite(current) and current > 0 and math.isfinite(resistance) and resistance > 0
+            else np.nan
+        )
+        fresh_limit = safe(row.get("fresh_breakout_limit_pct"), 3.0)
         if not math.isfinite(current):
             state = "DATA STALE"
-        elif math.isfinite(resistance) and current >= resistance * 1.02:
+        elif math.isfinite(breakout_extension) and 0 <= breakout_extension <= fresh_limit:
+            state = "FRESH BREAKOUT"
+        elif math.isfinite(breakout_extension) and breakout_extension > fresh_limit:
             state = "EXTENDED"
-        elif math.isfinite(resistance) and current >= resistance:
-            state = "BREAKOUT TEST"
         elif math.isfinite(distance) and 0 <= distance <= 3:
-            state = "NEAR RESISTANCE"
+            state = "READY"
         elif math.isfinite(distance) and 3 < distance <= 10:
-            state = "DEVELOPING"
+            state = "EARLY"
         else:
             state = "MONITOR"
 
@@ -656,8 +725,11 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
     rs_pass = base == "BTC" or safe(result.get("rs_vs_btc_pct"), -999) > 0
     score = safe(result.get("score"), 0)
     execution_pass = bool(item.get("Execution liquidity pass"))
+    timing_state = str(result.get("entry_timing") or "NOT READY")
+    timing_actionable = bool(result.get("entry_timing_actionable", False))
     swing_ready = (
         bool(result.get("eligible"))
+        and timing_actionable
         and score >= 80
         and rs_pass
         and not bool(result.get("candle_caution"))
@@ -665,7 +737,11 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
     )
     if swing_ready:
         swing_status = "BUY"
-    elif bool(result.get("eligible")) or score >= 65:
+    elif (
+        bool(result.get("eligible"))
+        or score >= 65
+        or timing_state in {"EXTENDED", "TOO LATE"}
+    ):
         swing_status = "WATCH"
     else:
         swing_status = "PASS"
@@ -703,6 +779,20 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
         "Swing status": swing_status,
         "Swing score": result.get("score"),
         "Swing eligible": bool(result.get("eligible")),
+        "Entry timing": timing_state,
+        "Entry timing actionable": timing_actionable,
+        "Timing detail": result.get("timing_detail", ""),
+        "Breakout age hours": result.get("breakout_age_hours"),
+        "Breakout extension %": result.get("breakout_extension_pct"),
+        "Breakout extension ATR": result.get("breakout_extension_atr"),
+        "Historical overhead": result.get("historical_overhead", "UNKNOWN"),
+        "Nearest overhead %": result.get("nearest_overhead_pct"),
+        "Price discovery": bool(result.get("price_discovery", False)),
+        "Clear air": bool(result.get("clear_air", False)),
+        "Bullish retest": bool(result.get("bullish_retest", False)),
+        "Current target upside %": result.get("current_target_upside_pct"),
+        "Current R:R": result.get("current_risk_reward"),
+        "Move completed %": result.get("move_completed_pct"),
         "Swing reason": (
             result.get("reason")
             if execution_pass
@@ -925,9 +1015,28 @@ def refresh_execution_metadata(scores: pd.DataFrame, universe: pd.DataFrame) -> 
         eligible = pd.Series(False, index=out.index)
     candle_clear = out.get("Candle caution", "CLEAR").astype(str).ne("CAUTION")
     btc_or_rs = out["Base"].eq("BTC") | rs.gt(0)
+    timing_state = out.get(
+        "Entry timing",
+        pd.Series("NOT READY", index=out.index),
+    ).fillna("NOT READY").astype(str)
+    timing_actionable = out.get(
+        "Entry timing actionable",
+        pd.Series(False, index=out.index),
+    )
+    if isinstance(timing_actionable, pd.Series):
+        timing_actionable = timing_actionable.fillna(False).astype(bool)
+    else:
+        timing_actionable = pd.Series(False, index=out.index)
 
-    buy_mask = eligible & score.ge(80) & btc_or_rs & candle_clear & exec_pass
-    watch_mask = eligible | score.ge(65)
+    buy_mask = (
+        eligible
+        & timing_actionable
+        & score.ge(80)
+        & btc_or_rs
+        & candle_clear
+        & exec_pass
+    )
+    watch_mask = eligible | score.ge(65) | timing_state.isin(["EXTENDED", "TOO LATE"])
     out["Swing status"] = np.select(
         [buy_mask, watch_mask],
         ["BUY", "WATCH"],
@@ -990,14 +1099,35 @@ def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
         swing["_execution_rank"] = np.where(
             swing.get("Execution liquidity pass", False).fillna(False).astype(bool), 0, 1
         )
+        timing_state = swing.get(
+            "Entry timing",
+            pd.Series("NOT READY", index=swing.index),
+        ).fillna("NOT READY").astype(str)
+        swing["_timing_rank"] = timing_state.map({
+            "READY": 0,
+            "FRESH BREAKOUT": 0,
+            "RETEST": 0,
+            "EARLY": 1,
+            "NOT READY": 2,
+            "EXTENDED": 3,
+            "TOO LATE": 4,
+        }).fillna(2)
         swing["Opportunity stage"] = np.select(
             [
+                timing_state.eq("TOO LATE"),
+                timing_state.eq("EXTENDED"),
+                swing["Swing status"].eq("BUY") & timing_state.eq("FRESH BREAKOUT"),
+                swing["Swing status"].eq("BUY") & timing_state.eq("RETEST"),
                 swing["Swing status"].eq("BUY"),
                 swing.get("Swing eligible", False).fillna(False).astype(bool)
                 & swing.get("Execution liquidity pass", False).fillna(False).astype(bool),
                 swing.get("Swing eligible", False).fillna(False).astype(bool),
             ],
             [
+                "MISSED RUN / RESET WATCH",
+                "EXTENDED — WAIT",
+                "FRESH BREAKOUT",
+                "BULLISH RETEST",
                 "READY",
                 "TECHNICAL WATCH",
                 "LIQUIDITY / PLATFORM WATCH",
@@ -1005,10 +1135,13 @@ def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
             default="EARLY WATCH",
         )
         swing = swing.sort_values(
-            ["_status_rank", "_shape_rank", "_execution_rank", "Swing score", "24h quote volume"],
-            ascending=[True, True, True, False, False],
+            [
+                "_status_rank", "_timing_rank", "_shape_rank", "_execution_rank",
+                "Swing score", "24h quote volume"
+            ],
+            ascending=[True, True, True, True, False, False],
             na_position="last",
-        ).drop(columns=["_status_rank", "_shape_rank", "_execution_rank"])
+        ).drop(columns=["_status_rank", "_timing_rank", "_shape_rank", "_execution_rank"])
 
     accumulation = scores[
         scores["Accumulation status"].isin(["ACCUMULATE", "WATCH"])
@@ -1139,7 +1272,18 @@ async def run(args) -> int:
     deep_existing = load_csv(output / "deep_scores.csv.gz")
     deep_scores = merge_deep_scores(deep_existing, deep_fresh, set(bases))
     deep_scores = refresh_execution_metadata(deep_scores, universe)
+
+    macro_snapshot = await macro_task
     if not deep_scores.empty:
+        deep_scores["Liquidity regime"] = macro_snapshot.get("regime", "DATA LIMITED")
+        deep_scores["Liquidity trend"] = macro_snapshot.get(
+            "liquidity_trend",
+            macro_snapshot.get("regime", "DATA LIMITED"),
+        )
+        deep_scores["Liquidity breakout"] = bool(
+            macro_snapshot.get("liquidity_breakout", False)
+        )
+        deep_scores["Liquidity score"] = macro_snapshot.get("score")
         deep_scores = deep_scores.sort_values(
             ["deep_scored_at", "Swing score"],
             ascending=[False, False],
@@ -1159,8 +1303,6 @@ async def run(args) -> int:
     coverage_pct = scanned_unique / total_unique * 100 if total_unique else 0.0
     runs_per_sweep = math.ceil(total_unique / args.batch_size) if total_unique else 0
     nominal_minutes = runs_per_sweep * 5
-
-    macro_snapshot = await macro_task
 
     audit = {
         "generated_at": now_iso(),
