@@ -1,6 +1,10 @@
 name: Nightly stock freshness
 
 on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/nightly-trade-fundamentals.yml"
   workflow_dispatch:
     inputs:
       exchange:
