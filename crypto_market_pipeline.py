@@ -747,7 +747,7 @@ def flatten_deep_score(item: dict, result: dict) -> dict:
     elif (
         bool(result.get("eligible"))
         or score >= 65
-        or timing_state in {"EXTENDED", "TOO LATE"}
+        or timing_state in {"RECLAIM NEEDED", "EXTENDED", "TOO LATE"}
     ):
         swing_status = "WATCH"
     else:
@@ -1043,7 +1043,7 @@ def refresh_execution_metadata(scores: pd.DataFrame, universe: pd.DataFrame) -> 
         & candle_clear
         & exec_pass
     )
-    watch_mask = eligible | score.ge(65) | timing_state.isin(["EXTENDED", "TOO LATE"])
+    watch_mask = eligible | score.ge(65) | timing_state.isin(["RECLAIM NEEDED", "EXTENDED", "TOO LATE"])
     out["Swing status"] = np.select(
         [buy_mask, watch_mask],
         ["BUY", "WATCH"],
@@ -1116,13 +1116,15 @@ def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
             "RETEST": 0,
             "EARLY": 1,
             "NOT READY": 2,
-            "EXTENDED": 3,
-            "TOO LATE": 4,
+            "RECLAIM NEEDED": 3,
+            "EXTENDED": 4,
+            "TOO LATE": 5,
         }).fillna(2)
         swing["Opportunity stage"] = np.select(
             [
                 timing_state.eq("TOO LATE"),
                 timing_state.eq("EXTENDED"),
+                timing_state.eq("RECLAIM NEEDED"),
                 swing["Swing status"].eq("BUY") & timing_state.eq("FRESH BREAKOUT"),
                 swing["Swing status"].eq("BUY") & timing_state.eq("RETEST"),
                 swing["Swing status"].eq("BUY"),
@@ -1133,6 +1135,7 @@ def prepared_opportunity_feeds(scores: pd.DataFrame) -> Tuple[pd.DataFrame, pd.D
             [
                 "MISSED RUN / RESET WATCH",
                 "EXTENDED — WAIT",
+                "RECLAIM NEEDED",
                 "FRESH BREAKOUT",
                 "BULLISH RETEST",
                 "READY",
