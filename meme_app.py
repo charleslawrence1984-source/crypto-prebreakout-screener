@@ -153,6 +153,12 @@ def launch_cell_style(value, column: str) -> str:
         return red
     if column == "Launch Gate":
         return green if label == "PASS" else red
+    if column == "Buy Signal":
+        if label == "BUY":
+            return green
+        if label == "WAIT":
+            return amber
+        return red
 
     number = safe(value)
     if np.isnan(number):
@@ -2106,11 +2112,26 @@ with tab_meme_launch:
 - **20 pts** constructive early price response
 - **10 pts** observation maturity within the first two hours
 
-**Decisions**
+**Launch decisions**
 - **LAUNCH LEADER** — passes provisional launch gates and scores 70+
 - **LAUNCH WATCH** — passes provisional launch gates and scores 55–69.9
 - **DATA BUILDING** — passes gates but needs stronger evidence
 - **LAUNCH AVOID** — fails one or more launch gates
+
+**Separate BUY overlay**
+A Launch Leader does **not** automatically mean BUY. BUY requires all current execution checks:
+- Gate PASS and at least **5 minutes old**
+- Launch score **70+**
+- Liquidity **$20,000+**
+- 5m volume **$4,000+**
+- At least **50 transactions in 5m**
+- 5m buy flow **52–75%**
+- 1h buy flow **50–78%**
+- 5m price move between **−5% and +12%**
+- 1h price move between **−10% and +40%**
+- 5m volume/liquidity between **0.05 and 1.00**
+
+Signals are **BUY**, **WAIT**, or **AVOID**. The table shows the number of buy checks passed and every blocker.
 
 These thresholds are deliberately labelled provisional until the launch research/backtest has enough outcomes.
 """
@@ -2167,30 +2188,34 @@ These thresholds are deliberately labelled provisional until the launch research
                 "LAUNCH AVOID": 3,
             }
             launch_df["_rank"] = launch_df["Launch Decision"].map(rank).fillna(9)
+            launch_df["_buy_rank"] = launch_df["Buy Signal"].map({"BUY": 0, "WAIT": 1, "AVOID": 2}).fillna(3)
             launch_df = launch_df.sort_values(
-                ["_rank", "Launch Score", "Liquidity", "5m Volume"],
-                ascending=[True, False, False, False],
+                ["_buy_rank", "_rank", "Launch Score", "Liquidity", "5m Volume"],
+                ascending=[True, True, False, False, False],
                 na_position="last",
-            ).drop(columns=["_rank"])
+            ).drop(columns=["_buy_rank", "_rank"])
             st.session_state.meme_launch_scan_df = launch_df.copy()
 
     launch_df = st.session_state.meme_launch_scan_df.copy()
     if not launch_df.empty:
-        lm1, lm2, lm3, lm4, lm5 = st.columns(5)
-        lm1.metric("Launch leaders", int((launch_df["Launch Decision"] == "LAUNCH LEADER").sum()))
-        lm2.metric("Launch watch", int((launch_df["Launch Decision"] == "LAUNCH WATCH").sum()))
-        lm3.metric("Data building", int((launch_df["Launch Decision"] == "DATA BUILDING").sum()))
-        lm4.metric("Avoid", int((launch_df["Launch Decision"] == "LAUNCH AVOID").sum()))
-        lm5.metric("Brand-new checked", len(launch_df))
+        lm1, lm2, lm3, lm4, lm5, lm6 = st.columns(6)
+        lm1.metric("BUY", int((launch_df["Buy Signal"] == "BUY").sum()))
+        lm2.metric("Launch leaders", int((launch_df["Launch Decision"] == "LAUNCH LEADER").sum()))
+        lm3.metric("Launch watch", int((launch_df["Launch Decision"] == "LAUNCH WATCH").sum()))
+        lm4.metric("Data building", int((launch_df["Launch Decision"] == "DATA BUILDING").sum()))
+        lm5.metric("Avoid", int((launch_df["Launch Decision"] == "LAUNCH AVOID").sum()))
+        lm6.metric("Brand-new checked", len(launch_df))
 
         launch_view = st.radio(
             "Show launch candidates",
-            ["Best", "Launch leaders", "Launch watch", "Data building", "All"],
+            ["BUY", "Best", "Launch leaders", "Launch watch", "Data building", "All"],
             horizontal=True,
             key="launch_candidate_filter",
         )
         shown_launch = launch_df.copy()
-        if launch_view == "Best":
+        if launch_view == "BUY":
+            shown_launch = shown_launch[shown_launch["Buy Signal"] == "BUY"]
+        elif launch_view == "Best":
             shown_launch = shown_launch[
                 shown_launch["Launch Decision"].isin(["LAUNCH LEADER", "LAUNCH WATCH"])
             ]
@@ -2202,7 +2227,8 @@ These thresholds are deliberately labelled provisional until the launch research
             shown_launch = shown_launch[shown_launch["Launch Decision"] == "DATA BUILDING"]
 
         launch_cols = [
-            "Ticker", "Name", "Chain", "Launch Decision", "Launch Score", "Launch Gate",
+            "Ticker", "Name", "Chain", "Buy Signal", "Buy Criteria", "Buy Blockers",
+            "Launch Decision", "Launch Score", "Launch Gate",
             "Age min", "Price USD", "Liquidity", "5m Volume", "1h Volume",
             "5m Tx", "5m Buy %", "1h Tx", "1h Buy %",
             "5m %", "1h %", "5m Vol/Liq", "5m Tx/min",
@@ -2211,7 +2237,7 @@ These thresholds are deliberately labelled provisional until the launch research
         launch_cols = [col for col in launch_cols if col in shown_launch.columns]
         launch_display = shown_launch[launch_cols]
         launch_styled = launch_display.style
-        for col in ["Launch Decision", "Launch Score", "Launch Gate", "Liquidity", "5m Volume", "5m Tx", "5m Buy %", "5m %", "1h %"]:
+        for col in ["Buy Signal", "Launch Decision", "Launch Score", "Launch Gate", "Liquidity", "5m Volume", "5m Tx", "5m Buy %", "5m %", "1h %"]:
             if col in launch_display.columns:
                 launch_styled = launch_styled.map(
                     lambda value, column=col: launch_cell_style(value, column),
@@ -2219,8 +2245,8 @@ These thresholds are deliberately labelled provisional until the launch research
                 )
         st.dataframe(launch_styled, hide_index=True, use_container_width=True)
         st.caption(
-            "Launch results deliberately do not receive the established 4h/1h structural trade plan. "
-            "The launch lane is measuring early participation and survival quality first."
+            "BUY is a stricter rule-based execution signal layered on top of launch quality; "
+            "a Launch Leader can still be WAIT. These launch signals are high-risk and provisional."
         )
     else:
         st.info("Run the brand-new scan to populate the 0–2 hour launch lane.")
