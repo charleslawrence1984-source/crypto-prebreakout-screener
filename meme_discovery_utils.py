@@ -151,3 +151,57 @@ def trim_discovery_universe(
         reverse=True,
     )
     return dict(ranked[: max(1, int(max_tokens))])
+
+
+def extract_gecko_token_pool_candidates(
+    payload: dict,
+    *,
+    preferred_pool_address: str = "",
+    max_pools: int = 3,
+) -> list[str]:
+    """
+    Return a deduplicated pool fallback order.
+
+    The selected DexScreener pool stays first when supplied, followed by the
+    most liquid pools returned by GeckoTerminal's token-pools endpoint.
+    """
+    candidates: list[tuple[str, float]] = []
+    preferred = str(preferred_pool_address or "").strip()
+    if preferred:
+        candidates.append((preferred, float("inf")))
+
+    for item in (payload or {}).get("data") or []:
+        if not isinstance(item, dict):
+            continue
+        attrs = item.get("attributes") or {}
+        address = str(attrs.get("address") or "").strip()
+        if not address:
+            continue
+        try:
+            reserve = float(attrs.get("reserve_in_usd") or 0)
+        except Exception:
+            reserve = 0.0
+        candidates.append((address, reserve))
+
+    ordered: list[str] = []
+    seen = set()
+    preferred_key = preferred.lower()
+
+    if preferred:
+        ordered.append(preferred)
+        seen.add(preferred_key)
+
+    for address, _reserve in sorted(
+        [x for x in candidates if x[0].lower() != preferred_key],
+        key=lambda x: x[1],
+        reverse=True,
+    ):
+        key = address.lower()
+        if key in seen:
+            continue
+        ordered.append(address)
+        seen.add(key)
+        if len(ordered) >= max(1, int(max_pools)):
+            break
+
+    return ordered[: max(1, int(max_pools))]
