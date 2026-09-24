@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import gzip
+import json
 import math
 import time
 from datetime import datetime, timezone
@@ -27,7 +29,11 @@ GECKO_HEADERS = {
     "User-Agent": HEADERS["User-Agent"],
     "Accept": "application/json;version=20230203",
 }
-DEX_TO_GECKO_NETWORK = {dex: gecko for gecko, dex in GECKO_TO_DEX_CHAIN.items()}
+MEME_DATA_BASE = (
+    "https://raw.githubusercontent.com/"
+    "charleslawrence1984-source/crypto-prebreakout-screener/"
+    "meme-data/prepared_meme/"
+)
 
 CHAIN_OPTIONS = {
     "Solana": "solana",
@@ -139,6 +145,61 @@ def get_json(url: str):
     return r.json()
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def load_prepared_meme_discovery() -> tuple[Dict, Dict[str, Dict]]:
+    """Load the background-built meme universe from the dedicated data branch."""
+    try:
+        manifest_response = requests.get(
+            MEME_DATA_BASE + "manifest.json",
+            headers=HEADERS,
+            timeout=4,
+        )
+        manifest_response.raise_for_status()
+        manifest = manifest_response.json() or {}
+    except Exception:
+        manifest = {}
+
+    try:
+        universe_response = requests.get(
+            MEME_DATA_BASE + "universe.json.gz",
+            headers=HEADERS,
+            timeout=6,
+        )
+        universe_response.raise_for_status()
+        rows = json.loads(gzip.decompress(universe_response.content).decode("utf-8"))
+    except Exception:
+        rows = []
+
+    universe: Dict[str, Dict] = {}
+    for row in rows if isinstance(rows, list) else []:
+        if not isinstance(row, dict):
+            continue
+        chain = str(row.get("chainId") or "").lower()
+        address = str(row.get("tokenAddress") or "")
+        if not chain or not address:
+            continue
+        item = dict(row)
+        item["sources"] = set(item.get("sources") or [])
+        universe[token_key(chain, address)] = item
+    return manifest, universe
+
+
+def meme_pipeline_age_minutes(manifest: Dict) -> float:
+    value = (manifest or {}).get("updated_at")
+    if not value:
+        return np.nan
+    try:
+        ts = pd.Timestamp(value)
+        if ts.tzinfo is None:
+            ts = ts.tz_localize("UTC")
+        return max(
+            (pd.Timestamp.now(tz="UTC") - ts.tz_convert("UTC")).total_seconds() / 60,
+            0.0,
+        )
+    except Exception:
+        return np.nan
+
+
 def gecko_get(url: str, params: Optional[Dict] = None, timeout: int = 20):
     """Resilient public GeckoTerminal GET with small 429/5xx backoff."""
     last_response = None
@@ -159,21 +220,6 @@ def gecko_get(url: str, params: Optional[Dict] = None, timeout: int = 20):
             time.sleep(min(delay, 5.0))
     last_response.raise_for_status()
     return last_response
-
-
-@st.cache_data(ttl=60, show_spinner=False)
-def gecko_new_pools_page(network: str, page: int) -> Dict:
-    """One rotating GeckoTerminal new-pools page for a selected network."""
-    r = gecko_get(
-        f"{GECKO_API}/networks/{network}/new_pools",
-        params={
-            "page": max(1, min(10, int(page))),
-            "include": "base_token,quote_token,dex",
-        },
-        timeout=20,
-    )
-    payload = r.json() or {}
-    return payload if isinstance(payload, dict) else {}
 
 
 @st.cache_data(ttl=120, show_spinner=False)
@@ -1341,8 +1387,6 @@ if "meme_scan_df" not in st.session_state:
     st.session_state.meme_scan_df = pd.DataFrame()
 if "meme_discovery_cache" not in st.session_state:
     st.session_state.meme_discovery_cache = {}
-if "meme_discovery_page_cursor" not in st.session_state:
-    st.session_state.meme_discovery_page_cursor = {}
 if "meme_discovery_stats" not in st.session_state:
     st.session_state.meme_discovery_stats = {}
 if "meme_excluded_df" not in st.session_state:
@@ -2032,67 +2076,39 @@ with tab_meme_advanced:
     st.markdown("### Advanced Meme Screener")
     st.subheader("Discovery Scan")
     st.info(
-        "Discovery now combines DexScreener profiles/boosts/community takeovers with a rotating "
-        "GeckoTerminal new-pool crawl. Each scan advances one page per selected chain and keeps a "
-        "rolling candidate cache, so the universe grows far beyond promoted tokens. Before meme "
-        "scoring, a conservative relevance filter removes only high-confidence non-meme assets "
-        "such as tokenized stocks/RWAs, stablecoins and wrapped majors. Ambiguous assets stay in."
+        "Broad new-pool discovery now runs in the background and is persisted to the dedicated "
+        "meme-data branch. The interactive scan loads that prepared universe, merges in current "
+        "DexScreener discovery surfaces, and refreshes live pair data without spending GeckoTerminal "
+        "calls on discovery. Gecko OHLCV is therefore reserved for SHORTLIST / TRADE WATCH setups. "
+        "A conservative relevance filter removes only high-confidence non-meme assets."
     )
 
     if st.button("Run meme coin scan", type="primary", use_container_width=True):
         chains = {CHAIN_OPTIONS[n] for n in selected_names}
         discovery_warnings = []
-        gecko_calls = 0
-        gecko_pages_used = {}
-        with st.spinner("Building the rotating all-market meme discovery universe…"):
+        with st.spinner("Loading prepared all-market discovery and refreshing live pairs…"):
+            prepared_manifest, prepared_universe = load_prepared_meme_discovery()
             dex_universe = discovery_universe()
-            gecko_universe = {}
-            cursor = dict(st.session_state.meme_discovery_page_cursor)
             now_seen = datetime.now(timezone.utc).timestamp()
-
-            for chain in sorted(chains):
-                network = DEX_TO_GECKO_NETWORK.get(chain)
-                if not network:
-                    continue
-                page = max(1, min(10, int(cursor.get(chain, 1))))
-                try:
-                    payload = gecko_new_pools_page(network, page)
-                    discovered = parse_gecko_new_pool_tokens(
-                        payload,
-                        default_network=network,
-                        allowed_chains=chains,
-                    )
-                    for meta in discovered.values():
-                        meta["_last_seen_ts"] = now_seen
-                    gecko_universe = merge_discovery_universes(
-                        gecko_universe,
-                        discovered,
-                    )
-                    gecko_calls += 1
-                    gecko_pages_used[chain] = page
-                    cursor[chain] = 1 if page >= 10 else page + 1
-                except Exception as exc:
-                    discovery_warnings.append(
-                        f"{chain}: new-pool discovery unavailable ({type(exc).__name__})"
-                    )
-
             for meta in dex_universe.values():
                 meta["_last_seen_ts"] = now_seen
 
-            current_discovery = merge_discovery_universes(
-                dex_universe,
-                gecko_universe,
-            )
+            if not prepared_universe:
+                discovery_warnings.append(
+                    "Prepared meme discovery snapshot is unavailable; using current DexScreener "
+                    "surfaces plus the in-session cache only."
+                )
+
             rolling_cache = merge_discovery_universes(
                 st.session_state.meme_discovery_cache,
-                current_discovery,
+                prepared_universe,
+                dex_universe,
             )
             rolling_cache = trim_discovery_universe(
                 rolling_cache,
-                max_tokens=1000,
+                max_tokens=2000,
             )
             st.session_state.meme_discovery_cache = rolling_cache
-            st.session_state.meme_discovery_page_cursor = cursor
 
             universe = {
                 key: meta
@@ -2103,18 +2119,25 @@ with tab_meme_advanced:
             pairs = fetch_pairs_for_tokens(universe, chains)
             best_pairs = best_pair_per_token(pairs)
 
-        # GeckoTerminal's public API is approximately 10 calls/minute and may
-        # fluctuate. Reserve one call of headroom after rotating discovery.
-        trade_plan_api_budget = max(
-            0,
-            min(cfg["trade_plan_count"], 9 - gecko_calls),
-        )
+        # Interactive discovery now spends zero Gecko calls. Reserve most of the
+        # public budget for the very small number of trade-relevant OHLCV plans.
+        trade_plan_api_budget = min(cfg["trade_plan_count"], 8)
+        pipeline_age = meme_pipeline_age_minutes(prepared_manifest)
+        pipeline_status = str(prepared_manifest.get("status") or "NOT READY").upper()
+        if math.isfinite(pipeline_age) and pipeline_age > 30:
+            discovery_warnings.append(
+                f"Background meme discovery snapshot is stale ({pipeline_age:.0f} minutes old)."
+            )
+        for err in (prepared_manifest.get("errors") or [])[:5]:
+            discovery_warnings.append(f"Background collector: {err}")
+
         st.session_state.meme_discovery_stats = {
             "rolling_universe": len(universe),
+            "prepared_tokens": len(prepared_universe),
             "dex_surface_tokens": len(dex_universe),
-            "new_pool_tokens_this_scan": len(gecko_universe),
-            "gecko_calls": gecko_calls,
-            "gecko_pages_used": gecko_pages_used,
+            "interactive_gecko_discovery_calls": 0,
+            "pipeline_status": pipeline_status,
+            "pipeline_age_minutes": pipeline_age,
             "scored_pairs": len(best_pairs),
             "trade_plan_api_budget": trade_plan_api_budget,
         }
@@ -2166,16 +2189,17 @@ with tab_meme_advanced:
                 )
             st.session_state.meme_scan_df = df.copy()
 
-            page_text = ", ".join(
-                f"{chain} p{page}"
-                for chain, page in sorted(gecko_pages_used.items())
-            ) or "none"
+            age_text = (
+                f"{pipeline_age:.0f}m old"
+                if math.isfinite(pipeline_age)
+                else "age unavailable"
+            )
             st.caption(
-                f"Discovery universe: **{len(universe):,} cached tokens** · "
-                f"new-pool discoveries this scan: **{len(gecko_universe):,}** · "
+                f"Prepared discovery: **{len(prepared_universe):,} tokens** ({pipeline_status}, {age_text}) · "
+                f"interactive Gecko discovery calls: **0** · "
                 f"live pairs enriched: **{len(best_pairs):,}** · "
                 f"non-meme excluded: **{len(excluded_rows):,}** · "
-                f"meme candidates scored: **{len(df):,}** · rotating pages: {page_text}"
+                f"meme candidates scored: **{len(df):,}**"
             )
             if excluded_rows:
                 with st.expander(
