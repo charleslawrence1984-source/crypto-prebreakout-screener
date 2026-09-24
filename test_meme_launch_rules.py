@@ -124,7 +124,7 @@ def test_heavy_but_not_severe_drawdown_is_caution_only():
     assert "Heavy 5m drawdown" in result["Launch Cautions"]
 
 
-def test_clean_launch_can_trigger_buy_signal():
+def test_clean_launch_can_be_technically_qualified():
     result = score_launch_candidate(
         launch_pair(
             age_minutes=10,
@@ -142,12 +142,12 @@ def test_clean_launch_can_trigger_buy_signal():
 
     assert result["Launch Gate"] == "PASS"
     assert result["Launch Decision"] == "LAUNCH LEADER"
-    assert result["Buy Signal"] == "BUY"
-    assert result["Buy Criteria"] == "11/11"
-    assert result["Buy Blockers"] == ""
+    assert result["Technical Entry"] == "QUALIFIED"
+    assert result["Entry Criteria"] == "11/11"
+    assert result["Entry Blockers"] == ""
 
 
-def test_launch_leader_with_heavy_drawdown_is_wait_not_buy():
+def test_launch_leader_with_heavy_drawdown_waits_for_entry():
     result = score_launch_candidate(
         launch_pair(
             age_minutes=60,
@@ -164,8 +164,8 @@ def test_launch_leader_with_heavy_drawdown_is_wait_not_buy():
     )
 
     assert result["Launch Gate"] == "PASS"
-    assert result["Buy Signal"] == "WAIT"
-    assert "5m move -5% to +12%" in result["Buy Blockers"]
+    assert result["Technical Entry"] == "WAIT"
+    assert "5m move -5% to +12%" in result["Entry Blockers"]
 
 
 def test_fast_rising_launch_can_lead_but_wait_for_entry():
@@ -183,8 +183,8 @@ def test_fast_rising_launch_can_lead_but_wait_for_entry():
     )
 
     assert result["Launch Gate"] == "PASS"
-    assert result["Buy Signal"] == "WAIT"
-    assert "5m move -5% to +12%" in result["Buy Blockers"]
+    assert result["Technical Entry"] == "WAIT"
+    assert "5m move -5% to +12%" in result["Entry Blockers"]
 
 
 def test_failed_launch_gate_is_avoid_signal():
@@ -194,4 +194,4 @@ def test_failed_launch_gate_is_avoid_signal():
     )
 
     assert result["Launch Gate"] == "FAIL"
-    assert result["Buy Signal"] == "AVOID"
+    assert result["Technical Entry"] == "AVOID"
