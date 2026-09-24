@@ -11,7 +11,7 @@ import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_signal_decision_card
 from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices
-from meme_discovery_utils import GECKO_TO_DEX_CHAIN, merge_discovery_universes, parse_gecko_new_pool_tokens, trim_discovery_universe
+from meme_discovery_utils import GECKO_TO_DEX_CHAIN, extract_gecko_token_pool_candidates, merge_discovery_universes, parse_gecko_new_pool_tokens, trim_discovery_universe
 from meme_relevance import classify_meme_relevance
 import plotly.graph_objects as go
 
@@ -170,6 +170,19 @@ def gecko_new_pools_page(network: str, page: int) -> Dict:
             "page": max(1, min(10, int(page))),
             "include": "base_token,quote_token,dex",
         },
+        timeout=20,
+    )
+    payload = r.json() or {}
+    return payload if isinstance(payload, dict) else {}
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def gecko_token_pools(chain_id: str, token_address: str) -> Dict:
+    """Top GeckoTerminal pools for a token, used only as an OHLCV fallback."""
+    network = GECKO_NETWORKS.get(str(chain_id).lower(), str(chain_id).lower())
+    r = gecko_get(
+        f"{GECKO_API}/networks/{network}/tokens/{token_address}/pools",
+        params={"page": 1},
         timeout=20,
     )
     payload = r.json() or {}
@@ -459,17 +472,100 @@ def fetch_meme_trade_plan(
     liquidity: float,
     position_size: float,
     round_trip_fees_pct: float,
+    max_api_calls: int = 4,
 ) -> Dict:
-    """One API call per coin: fetch 1h candles and build 4h structure locally."""
-    hourly = fetch_pool_ohlcv(chain, pair_address, token_address, "1h")
-    structural_4h = aggregate_ohlcv(hourly, "4h")
-    return meme_trade_plan(
-        structural_4h,
-        hourly,
-        liquidity=liquidity,
-        position_size=position_size,
-        round_trip_fees_pct=round_trip_fees_pct,
-    )
+    """Build a trade plan, falling back across liquid pools when needed."""
+    max_calls = max(1, int(max_api_calls))
+    api_calls = 0
+    attempted = []
+    failure_reasons = []
+
+    def unavailable(reason: str, source: str = "Unavailable", pool: str = "") -> Dict:
+        plan = meme_trade_plan(pd.DataFrame(), pd.DataFrame())
+        plan["Plan Basis"] = reason
+        plan["Plan Data Source"] = source
+        plan["Plan Pool"] = pool
+        plan["Plan API Calls"] = api_calls
+        return plan
+
+    def try_pool(pool_address: str, source_label: str):
+        nonlocal api_calls
+        if not pool_address or api_calls >= max_calls:
+            return None
+        api_calls += 1
+        attempted.append(pool_address)
+        try:
+            hourly = fetch_pool_ohlcv(chain, pool_address, token_address, "1h")
+        except requests.HTTPError as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status == 429:
+                return unavailable(
+                    "GeckoTerminal public API rate-limited before candle history could be loaded",
+                    source_label,
+                    pool_address,
+                )
+            failure_reasons.append(f"{source_label}: HTTP {status or 'error'}")
+            return None
+        except Exception as exc:
+            failure_reasons.append(f"{source_label}: {type(exc).__name__}")
+            return None
+
+        if hourly is None or len(hourly) < 24:
+            failure_reasons.append(
+                f"{source_label}: only {0 if hourly is None else len(hourly)} hourly candles"
+            )
+            return None
+
+        structural_4h = aggregate_ohlcv(hourly, "4h")
+        plan = meme_trade_plan(
+            structural_4h,
+            hourly,
+            liquidity=liquidity,
+            position_size=position_size,
+            round_trip_fees_pct=round_trip_fees_pct,
+        )
+        plan["Plan Data Source"] = source_label
+        plan["Plan Pool"] = pool_address
+        plan["Plan API Calls"] = api_calls
+        return plan
+
+    first = try_pool(pair_address, "Selected DexScreener pair")
+    if isinstance(first, dict):
+        return first
+
+    fallback_addresses = []
+    if token_address and api_calls < max_calls:
+        api_calls += 1
+        try:
+            payload = gecko_token_pools(chain, token_address)
+            fallback_addresses = extract_gecko_token_pool_candidates(
+                payload,
+                preferred_pool_address=pair_address,
+                max_pools=3,
+            )
+        except requests.HTTPError as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status == 429:
+                return unavailable(
+                    "GeckoTerminal public API rate-limited during alternate-pool lookup",
+                    "Token pools lookup",
+                    pair_address,
+                )
+            failure_reasons.append(f"Token-pools lookup: HTTP {status or 'error'}")
+        except Exception as exc:
+            failure_reasons.append(f"Token-pools lookup: {type(exc).__name__}")
+
+    for number, fallback_pool in enumerate(fallback_addresses, start=1):
+        if fallback_pool in attempted or api_calls >= max_calls:
+            continue
+        result = try_pool(fallback_pool, f"Gecko fallback pool {number}")
+        if isinstance(result, dict):
+            return result
+
+    reason = "No usable OHLCV after pool fallback"
+    if failure_reasons:
+        reason += " · " + " | ".join(failure_reasons)
+    return unavailable(reason, "Unavailable", pair_address)
 
 
 def meme_trade_plan(
@@ -786,15 +882,9 @@ def attach_bulk_trade_plans(
     max_candidates: int,
     position_size: float,
     round_trip_fees_pct: float,
-    api_budget: int = 8,
+    api_budget: int = 4,
 ) -> pd.DataFrame:
-    """
-    Calculate entry / exit zones for the highest-ranked discovery candidates.
-
-    Ranking is completed before this enrichment step, so unavailable candle data
-    cannot change the candidate score or decision. Trade-plan fields are an
-    execution overlay, not a rescue mechanism for weak candidates.
-    """
+    """Attach plans while budgeting actual GeckoTerminal calls."""
     if ranked is None or ranked.empty:
         return ranked
 
@@ -820,34 +910,35 @@ def attach_bulk_trade_plans(
         "Potential Profit $": np.nan,
         "Potential Loss $": np.nan,
         "Plan Basis": "Outside bulk trade-plan coverage",
+        "Plan Data Source": "",
+        "Plan Pool": "",
+        "Plan API Calls": 0,
     }
     for column, default in plan_columns.items():
         if column not in out.columns:
             out[column] = default
 
-    # Bulk trade plans are execution work. Failed hard-gate candidates stay
-    # visible for discovery but do not consume scarce public OHLCV requests.
     selection = select_bulk_plan_indices(
         out,
         requested_limit=max_candidates,
-        api_budget=max(0, int(api_budget)),
+        api_budget=max_candidates,
     )
     selected_indices = selection["selected"]
-    deferred_indices = selection["deferred"]
+    deferred_indices = list(selection["deferred"])
     ineligible_indices = selection["ineligible"]
+    remaining_api_calls = max(0, int(api_budget))
 
     if ineligible_indices:
         out.loc[ineligible_indices, "Plan Status"] = "NOT ELIGIBLE"
         out.loc[ineligible_indices, "Plan Basis"] = (
-            "Hard gate failed — no bulk trade plan calculated"
-        )
-    if deferred_indices:
-        out.loc[deferred_indices, "Plan Status"] = "DEFERRED"
-        out.loc[deferred_indices, "Plan Basis"] = (
-            "Public API request budget reached — use Quick Analysis for an on-demand plan"
+            "Not a trade-relevant Gate-PASS state — no bulk plan calculated"
         )
 
-    for idx in selected_indices:
+    for position, idx in enumerate(selected_indices):
+        if remaining_api_calls <= 0:
+            deferred_indices.extend(selected_indices[position:])
+            break
+
         row = out.loc[idx]
         pair_address = str(row.get("Pair Address") or "")
         token_address = str(row.get("Token Address") or "")
@@ -856,6 +947,7 @@ def attach_bulk_trade_plans(
             out.at[idx, "Plan Status"] = "UNAVAILABLE"
             out.at[idx, "Plan Basis"] = "Missing pool/chain metadata"
             continue
+
         try:
             plan = fetch_meme_trade_plan(
                 chain,
@@ -864,12 +956,19 @@ def attach_bulk_trade_plans(
                 liquidity=row.get("Liquidity", np.nan),
                 position_size=position_size,
                 round_trip_fees_pct=round_trip_fees_pct,
+                max_api_calls=remaining_api_calls,
             )
         except Exception as exc:
             plan = {
                 "Plan Status": "UNAVAILABLE",
                 "Plan Basis": f"Trade-plan candle data unavailable: {type(exc).__name__}",
+                "Plan Data Source": "Unavailable",
+                "Plan Pool": pair_address,
+                "Plan API Calls": 1,
             }
+
+        calls_used = max(1, int(safe(plan.get("Plan API Calls"), 1)))
+        remaining_api_calls = max(0, remaining_api_calls - calls_used)
 
         for key, value in plan.items():
             if key in out.columns:
@@ -877,6 +976,13 @@ def attach_bulk_trade_plans(
             else:
                 out[key] = np.nan
                 out.at[idx, key] = value
+
+    if deferred_indices:
+        deferred_indices = list(dict.fromkeys(deferred_indices))
+        out.loc[deferred_indices, "Plan Status"] = "DEFERRED"
+        out.loc[deferred_indices, "Plan Basis"] = (
+            "Public API call budget reached — use Quick Analysis for an on-demand plan"
+        )
 
     return out
 
@@ -1214,9 +1320,9 @@ with st.sidebar:
         [5, 8],
         index=1,
         help=(
-            "Only hard-gate PASS candidates receive bulk trade plans. The public OHLCV API is "
-            "rate-limited, so bulk planning remains capped; Quick Analysis can build "
-            "an on-demand plan for any individual coin."
+            "Only HIGH PRIORITY, SHORTLIST and TRADE WATCH candidates can receive bulk plans. "
+            "The public OHLCV API is rate-limited, so calls are budgeted per scan. If the selected "
+            "pair has no usable candles, the planner can fall back to another liquid pool for the token."
         ),
     )
 
@@ -1584,6 +1690,7 @@ with tab_meme_quick:
                             liquidity=result.get("Liquidity", np.nan),
                             position_size=planned_position_size,
                             round_trip_fees_pct=round_trip_fees_pct,
+                            max_api_calls=4,
                         )
                         plan_timeframe = "4h structure aggregated from 1h + 1h entry timing"
                     except Exception:
@@ -1773,6 +1880,7 @@ with tab_meme_quick:
                     "Potential ROI %", "Gross R:R", "Net R:R", "R:R",
                     "Estimated Slippage %", "Estimated Total Costs %",
                     "Potential Profit $", "Potential Loss $", "Plan Status", "Plan Basis",
+                    "Plan Data Source", "Plan Pool", "Plan API Calls",
                     "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
                     "24h Buys", "24h Sells", "Buy %", "1h %", "6h %", "24h %",
                     "Pair Age h", "Narrative Strength", "Narrative Score", "Narrative Signals",
@@ -1995,10 +2103,12 @@ with tab_meme_advanced:
             pairs = fetch_pairs_for_tokens(universe, chains)
             best_pairs = best_pair_per_token(pairs)
 
-        # GeckoTerminal's public API is currently documented at 30 calls/minute.
-        # With one new-pool call per selected chain and one OHLCV call per trade
-        # plan, the normal 5-chain + 8-plan scan remains comfortably below that.
-        trade_plan_api_budget = min(cfg["trade_plan_count"], 8)
+        # GeckoTerminal's public API is approximately 10 calls/minute and may
+        # fluctuate. Reserve one call of headroom after rotating discovery.
+        trade_plan_api_budget = max(
+            0,
+            min(cfg["trade_plan_count"], 9 - gecko_calls),
+        )
         st.session_state.meme_discovery_stats = {
             "rolling_universe": len(universe),
             "dex_surface_tokens": len(dex_universe),
@@ -2102,7 +2212,8 @@ with tab_meme_advanced:
                 "Narrative Strength", "Narrative Score",
                 "Community Strength", "Community Score", "Social Breadth", "Gate", "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
                 "24h Volume", "Vol/Liq", "Buy %", "1h %", "6h %", "24h %",
-                "Pair Age h", "Plan Status", "Entry Low", "Entry High", "Negative Exit",
+                "Pair Age h", "Plan Status", "Plan Basis", "Plan Data Source", "Plan Pool", "Plan API Calls",
+                "Entry Low", "Entry High", "Negative Exit",
                 "Positive Exit", "Stretch Exit", "R:R", "Net ROI %",
                 "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
             ]
