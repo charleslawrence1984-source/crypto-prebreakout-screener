@@ -9,7 +9,7 @@ import pandas as pd
 import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_signal_decision_card
-from meme_trade_utils import aggregate_ohlcv, select_bulk_plan_indices
+from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices
 import plotly.graph_objects as go
 
 
@@ -70,7 +70,11 @@ def meme_cell_style(value, column: str) -> str:
     if column == "Decision":
         if label in ("HIGH PRIORITY", "SHORTLIST"):
             return green
-        return amber if label == "WATCH" else red
+        if label == "TRADE WATCH":
+            return amber
+        if label == "DISCOVERY WATCH":
+            return red
+        return red
     if column in ("Gate", "Tokenomics Gate"):
         return green if label == "PASS" else red if label == "FAIL" else amber
     if column == "Narrative Strength":
@@ -1018,14 +1022,11 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
     score = round(min(100.0, score), 1)
     gate_pass = len(gates) == 0
 
-    if gate_pass and score >= 80:
-        label = "HIGH PRIORITY"
-    elif gate_pass and score >= cfg["shortlist_score"]:
-        label = "SHORTLIST"
-    elif score >= 55:
-        label = "WATCH"
-    else:
-        label = "PASS"
+    label = classify_meme_decision(
+        gate_pass=gate_pass,
+        score=score,
+        shortlist_score=cfg["shortlist_score"],
+    )
 
     base = pair.get("baseToken") or {}
     quote = pair.get("quoteToken") or {}
@@ -1191,6 +1192,23 @@ cfg = {
 if "meme_scan_df" not in st.session_state:
     st.session_state.meme_scan_df = pd.DataFrame()
 
+if (
+    isinstance(st.session_state.meme_scan_df, pd.DataFrame)
+    and not st.session_state.meme_scan_df.empty
+    and "Decision" in st.session_state.meme_scan_df.columns
+    and "Gate" in st.session_state.meme_scan_df.columns
+):
+    old_watch = st.session_state.meme_scan_df["Decision"].eq("WATCH")
+    if old_watch.any():
+        st.session_state.meme_scan_df.loc[
+            old_watch & st.session_state.meme_scan_df["Gate"].eq("PASS"),
+            "Decision",
+        ] = "TRADE WATCH"
+        st.session_state.meme_scan_df.loc[
+            old_watch & ~st.session_state.meme_scan_df["Gate"].eq("PASS"),
+            "Decision",
+        ] = "DISCOVERY WATCH"
+
 tab_meme_home, tab_meme_quick, tab_meme_opportunities, tab_meme_watchlist, tab_meme_advanced = st.tabs(
     ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Advanced Meme Screener"]
 )
@@ -1212,16 +1230,21 @@ with tab_meme_home:
         int((meme_home_scan["Decision"] == "SHORTLIST").sum())
         if not meme_home_scan.empty and "Decision" in meme_home_scan.columns else 0
     )
-    watch_count = (
-        int((meme_home_scan["Decision"] == "WATCH").sum())
+    trade_watch_count = (
+        int((meme_home_scan["Decision"] == "TRADE WATCH").sum())
+        if not meme_home_scan.empty and "Decision" in meme_home_scan.columns else 0
+    )
+    discovery_watch_count = (
+        int((meme_home_scan["Decision"] == "DISCOVERY WATCH").sum())
         if not meme_home_scan.empty and "Decision" in meme_home_scan.columns else 0
     )
 
-    mh1, mh2, mh3, mh4 = st.columns(4)
+    mh1, mh2, mh3, mh4, mh5 = st.columns(5)
     mh1.metric("High priority", high_priority_count)
     mh2.metric("Shortlist", shortlist_count)
-    mh3.metric("Watch", watch_count)
-    mh4.metric("Watchlist", len(meme_home_watchlist))
+    mh3.metric("Trade watch", trade_watch_count)
+    mh4.metric("Discovery watch", discovery_watch_count)
+    mh5.metric("Watchlist", len(meme_home_watchlist))
 
     home_analyse, home_opps, home_watch = st.columns(3)
 
@@ -1388,10 +1411,20 @@ with tab_meme_quick:
                         "This coin currently passes the preliminary gates and reaches "
                         "the model's current shortlist threshold."
                     )
+                elif result["Decision"] == "TRADE WATCH":
+                    meme_decision_reason = (
+                        "This coin passes every current hard trading gate, but its score "
+                        "has not reached the shortlist threshold yet."
+                    )
+                elif result["Decision"] == "DISCOVERY WATCH":
+                    meme_decision_reason = (
+                        "This coin is interesting enough to monitor for discovery, but it "
+                        "fails one or more current hard trading gates and is not trade-ready."
+                    )
                 else:
                     meme_decision_reason = (
                         "This coin can be analysed, but the current model does not rank "
-                        "it as a shortlist candidate yet."
+                        "it as a trade or discovery watch candidate yet."
                     )
 
                 render_signal_decision_card(
@@ -1705,7 +1738,7 @@ with tab_meme_opportunities:
             "and run a scan to populate this page."
         )
     else:
-        mo1, mo2, mo3, mo4 = st.columns(4)
+        mo1, mo2, mo3, mo4, mo5 = st.columns(5)
         mo1.metric(
             "High priority",
             int((meme_opportunities["Decision"] == "HIGH PRIORITY").sum()),
@@ -1715,14 +1748,18 @@ with tab_meme_opportunities:
             int((meme_opportunities["Decision"] == "SHORTLIST").sum()),
         )
         mo3.metric(
-            "Watch",
-            int((meme_opportunities["Decision"] == "WATCH").sum()),
+            "Trade watch",
+            int((meme_opportunities["Decision"] == "TRADE WATCH").sum()),
         )
-        mo4.metric("Tokens checked", len(meme_opportunities))
+        mo4.metric(
+            "Discovery watch",
+            int((meme_opportunities["Decision"] == "DISCOVERY WATCH").sum()),
+        )
+        mo5.metric("Tokens checked", len(meme_opportunities))
 
         opportunity_filter = st.radio(
             "Show",
-            ["Best opportunities", "High priority", "Shortlist", "Watch", "All"],
+            ["Best opportunities", "High priority", "Shortlist", "Trade watch", "Discovery watch", "All"],
             horizontal=True,
             key="meme_opportunity_filter",
         )
@@ -1732,11 +1769,13 @@ with tab_meme_opportunities:
             shown_meme = shown_meme[shown_meme["Decision"] == "HIGH PRIORITY"]
         elif opportunity_filter == "Shortlist":
             shown_meme = shown_meme[shown_meme["Decision"] == "SHORTLIST"]
-        elif opportunity_filter == "Watch":
-            shown_meme = shown_meme[shown_meme["Decision"] == "WATCH"]
+        elif opportunity_filter == "Trade watch":
+            shown_meme = shown_meme[shown_meme["Decision"] == "TRADE WATCH"]
+        elif opportunity_filter == "Discovery watch":
+            shown_meme = shown_meme[shown_meme["Decision"] == "DISCOVERY WATCH"]
         elif opportunity_filter == "Best opportunities":
             shown_meme = shown_meme[
-                shown_meme["Decision"].isin(["HIGH PRIORITY", "SHORTLIST", "WATCH"])
+                shown_meme["Decision"].isin(["HIGH PRIORITY", "SHORTLIST", "TRADE WATCH"])
             ].head(50)
 
         meme_opportunity_cols = [
@@ -1831,7 +1870,13 @@ with tab_meme_advanced:
             st.warning("No candidates returned from the selected discovery feeds/chains.")
         else:
             df = pd.DataFrame(rows)
-            order = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
+            order = {
+                "HIGH PRIORITY": 0,
+                "SHORTLIST": 1,
+                "TRADE WATCH": 2,
+                "DISCOVERY WATCH": 3,
+                "PASS": 4,
+            }
             df["_order"] = df["Decision"].map(order).fillna(9)
             df = df.sort_values(["_order", "Score", "Liquidity"], ascending=[True, False, False]).drop(columns=["_order"])
             with st.spinner(
@@ -1845,12 +1890,13 @@ with tab_meme_advanced:
                 )
             st.session_state.meme_scan_df = df.copy()
 
-            c1, c2, c3, c4, c5 = st.columns(5)
+            c1, c2, c3, c4, c5, c6 = st.columns(6)
             c1.metric("High priority", int((df["Decision"] == "HIGH PRIORITY").sum()))
             c2.metric("Shortlist", int((df["Decision"] == "SHORTLIST").sum()))
-            c3.metric("Watch", int((df["Decision"] == "WATCH").sum()))
-            c4.metric("Tokens checked", len(df))
-            c5.metric(
+            c3.metric("Trade watch", int((df["Decision"] == "TRADE WATCH").sum()))
+            c4.metric("Discovery watch", int((df["Decision"] == "DISCOVERY WATCH").sum()))
+            c5.metric("Tokens checked", len(df))
+            c6.metric(
                 "Trade plans",
                 int(pd.to_numeric(df["Entry Price"], errors="coerce").notna().sum())
                 if "Entry Price" in df.columns else 0,
@@ -1866,6 +1912,10 @@ with tab_meme_advanced:
                 "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
             ]
             st.subheader("Ranked candidates")
+            st.caption(
+                "TRADE WATCH = all hard trading gates pass but the score is below shortlist. "
+                "DISCOVERY WATCH = interesting enough to monitor, but at least one hard trading gate currently fails."
+            )
             meme_display = df[main_cols]
             meme_styled = meme_display.style
             for _col in [
