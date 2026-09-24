@@ -92,6 +92,32 @@ def meme_cell_style(value, column: str) -> str:
         if label == "DISCOVERY WATCH":
             return red
         return red
+    if column == "Entry Signal":
+        if label == "ENTRY QUALIFIED":
+            return green
+        if label == "WAIT":
+            return amber
+        return red
+    if column == "Technical Entry":
+        if label == "QUALIFIED":
+            return green
+        if label == "WAIT":
+            return amber
+        return red
+    if column == "Safety Gate":
+        if label == "PASS":
+            return green
+        if label == "NOT CHECKED":
+            return amber
+        return red
+    if column == "Rank Status":
+        if label.startswith("TOP RANKED"):
+            return amber
+        if label.startswith("SHORTLIST"):
+            return amber
+        if label == "TRADE WATCH":
+            return amber
+        return red
     if column in ("Gate", "Tokenomics Gate"):
         return green if label == "PASS" else red if label == "FAIL" else amber
     if column == "Narrative Strength":
@@ -201,8 +227,8 @@ def get_json(url: str):
 
 
 @st.cache_data(ttl=90, show_spinner=False)
-def cached_launch_safety(chain_id: str, token_address: str, pair_address: str) -> Dict:
-    """Live safety check only for technically qualified launch candidates."""
+def cached_meme_safety(chain_id: str, token_address: str, pair_address: str) -> Dict:
+    """Live safety check only for technically qualified meme candidates."""
     return fetch_token_safety(chain_id, token_address, pair_address)
 
 
@@ -1450,6 +1476,8 @@ if "meme_launch_scan_df" not in st.session_state:
     st.session_state.meme_launch_scan_df = pd.DataFrame()
 if "meme_launch_liquidity_history" not in st.session_state:
     st.session_state.meme_launch_liquidity_history = {}
+if "meme_advanced_liquidity_history" not in st.session_state:
+    st.session_state.meme_advanced_liquidity_history = {}
 if "meme_discovery_cache" not in st.session_state:
     st.session_state.meme_discovery_cache = {}
 if "meme_discovery_stats" not in st.session_state:
@@ -2216,7 +2244,7 @@ The safety thresholds remain conservative and provisional. **ENTRY QUALIFIED doe
 
             if row.get("Technical Entry") == "QUALIFIED":
                 safety_checks += 1
-                safety = cached_launch_safety(
+                safety = cached_meme_safety(
                     str(row.get("Chain") or ""),
                     str(row.get("Token Address") or ""),
                     str(row.get("Pair Address") or ""),
@@ -2533,6 +2561,117 @@ with tab_meme_advanced:
                     round_trip_fees_pct=round_trip_fees_pct,
                     api_budget=trade_plan_api_budget,
                 )
+
+            rank_labels = {
+                "HIGH PRIORITY": "TOP RANKED (NOT ENTRY)",
+                "SHORTLIST": "SHORTLIST (NOT ENTRY)",
+                "TRADE WATCH": "TRADE WATCH",
+                "DISCOVERY WATCH": "DISCOVERY ONLY",
+                "PASS": "LOW PRIORITY",
+            }
+            df["Rank Status"] = df["Decision"].map(rank_labels).fillna("UNRANKED")
+            df["Technical Entry"] = "WAIT"
+            df["Safety Gate"] = "NOT CHECKED"
+            df["Safety Provider"] = "Not checked — technical entry not qualified"
+            df["Safety Blockers"] = ""
+            df["Safety Warnings"] = ""
+            df["Safety Coverage"] = ""
+            df["Sell Test"] = "NOT CHECKED"
+            df["Honeypot"] = "NOT CHECKED"
+            df["Buy Tax %"] = np.nan
+            df["Sell Tax %"] = np.nan
+            df["LP Locked %"] = np.nan
+            df["Largest Holder %"] = np.nan
+            df["Top 10 Holders %"] = np.nan
+            df["Creator %"] = np.nan
+            df["Owner %"] = np.nan
+            df["Mint Authority"] = "NOT CHECKED"
+            df["Freeze Authority"] = "NOT CHECKED"
+            df["Contract Open Source"] = "NOT CHECKED"
+            df["Insider Networks"] = np.nan
+            df["Entry Signal"] = "WAIT"
+            df["Position/Liquidity %"] = np.where(
+                pd.to_numeric(df["Liquidity"], errors="coerce") > 0,
+                planned_position_size / pd.to_numeric(df["Liquidity"], errors="coerce") * 100.0,
+                np.nan,
+            )
+            df["Liquidity Change %"] = np.nan
+
+            previous_adv_liquidity = dict(st.session_state.meme_advanced_liquidity_history)
+            refreshed_adv_liquidity = {}
+            safety_checks = 0
+            for idx, row in df.iterrows():
+                key = token_key(str(row.get("Chain") or ""), str(row.get("Token Address") or ""))
+                live_liq = safe(row.get("Liquidity"), 0)
+                prior_liq = safe(previous_adv_liquidity.get(key), np.nan)
+                liq_change = (
+                    (live_liq / prior_liq - 1.0) * 100.0
+                    if live_liq > 0 and math.isfinite(prior_liq) and prior_liq > 0
+                    else np.nan
+                )
+                if math.isfinite(liq_change):
+                    df.at[idx, "Liquidity Change %"] = round(liq_change, 2)
+                refreshed_adv_liquidity[key] = live_liq
+
+                gate_pass = str(row.get("Gate") or "").upper() == "PASS"
+                rank_ready = str(row.get("Decision") or "") in {"HIGH PRIORITY", "SHORTLIST"}
+                plan_ready = str(row.get("Plan Status") or "").upper() == "ENTRY AREA"
+
+                if not gate_pass:
+                    df.at[idx, "Technical Entry"] = "AVOID"
+                    df.at[idx, "Entry Signal"] = "AVOID"
+                    continue
+                if not rank_ready or not plan_ready:
+                    df.at[idx, "Technical Entry"] = "WAIT"
+                    df.at[idx, "Entry Signal"] = "WAIT"
+                    continue
+
+                df.at[idx, "Technical Entry"] = "QUALIFIED"
+                safety_checks += 1
+                safety = cached_meme_safety(
+                    str(row.get("Chain") or ""),
+                    str(row.get("Token Address") or ""),
+                    str(row.get("Pair Address") or ""),
+                )
+                blockers = [x for x in str(safety.get("Safety Blockers") or "").split("; ") if x]
+                warnings = [x for x in str(safety.get("Safety Warnings") or "").split("; ") if x]
+
+                position_liq_pct = safe(df.at[idx, "Position/Liquidity %"], np.nan)
+                if math.isfinite(position_liq_pct) and position_liq_pct > 0.5:
+                    blockers.append(
+                        f"Planned position is {position_liq_pct:.2f}% of pool liquidity (>0.50%)"
+                    )
+                    safety["Safety Gate"] = "FAIL"
+
+                if math.isfinite(liq_change):
+                    if liq_change <= -25:
+                        blockers.append(
+                            f"Liquidity fell {abs(liq_change):.1f}% since previous scan"
+                        )
+                        safety["Safety Gate"] = "FAIL"
+                    elif liq_change <= -10:
+                        warnings.append(
+                            f"Liquidity fell {abs(liq_change):.1f}% since previous scan"
+                        )
+
+                safety["Safety Blockers"] = "; ".join(dict.fromkeys(blockers))
+                safety["Safety Warnings"] = "; ".join(dict.fromkeys(warnings))
+                for col, value in safety.items():
+                    if col not in df.columns:
+                        df[col] = np.nan
+                    df.at[idx, col] = value
+
+                if str(safety.get("Safety Gate") or "").upper() == "PASS":
+                    df.at[idx, "Entry Signal"] = "ENTRY QUALIFIED"
+                elif str(safety.get("Safety Gate") or "").upper() == "FAIL":
+                    df.at[idx, "Entry Signal"] = "SAFETY BLOCK"
+                else:
+                    df.at[idx, "Entry Signal"] = "SAFETY UNKNOWN"
+
+            st.session_state.meme_advanced_liquidity_history = {
+                **previous_adv_liquidity,
+                **refreshed_adv_liquidity,
+            }
             st.session_state.meme_scan_df = df.copy()
 
             age_text = (
@@ -2567,36 +2706,42 @@ with tab_meme_advanced:
                     st.code("\n".join(discovery_warnings))
 
             c1, c2, c3, c4, c5, c6 = st.columns(6)
-            c1.metric("High priority", int((df["Decision"] == "HIGH PRIORITY").sum()))
-            c2.metric("Shortlist", int((df["Decision"] == "SHORTLIST").sum()))
-            c3.metric("Trade watch", int((df["Decision"] == "TRADE WATCH").sum()))
-            c4.metric("Discovery watch", int((df["Decision"] == "DISCOVERY WATCH").sum()))
-            c5.metric("Tokens checked", len(df))
-            c6.metric(
-                "Trade plans",
-                int(pd.to_numeric(df["Entry Price"], errors="coerce").notna().sum())
-                if "Entry Price" in df.columns else 0,
-            )
+            c1.metric("Entry qualified", int((df["Entry Signal"] == "ENTRY QUALIFIED").sum()))
+            c2.metric("Safety blocked/unknown", int(df["Entry Signal"].isin(["SAFETY BLOCK", "SAFETY UNKNOWN"]).sum()))
+            c3.metric("Top ranked (not entry)", int((df["Decision"] == "HIGH PRIORITY").sum()))
+            c4.metric("Shortlist (not entry)", int((df["Decision"] == "SHORTLIST").sum()))
+            c5.metric("Discovery only", int((df["Decision"] == "DISCOVERY WATCH").sum()))
+            c6.metric("Tokens checked", len(df))
 
             main_cols = [
-                "Ticker", "Name", "Chain", "Decision", "Score",
+                "Ticker", "Name", "Chain", "Entry Signal", "Technical Entry", "Safety Gate",
+                "Rank Status", "Score", "Plan Status",
+                "Safety Provider", "Safety Blockers", "Safety Warnings",
+                "Sell Test", "Honeypot", "Buy Tax %", "Sell Tax %",
+                "LP Locked %", "Largest Holder %", "Top 10 Holders %",
+                "Creator %", "Owner %", "Mint Authority", "Freeze Authority",
+                "Contract Open Source", "Insider Networks",
+                "Position/Liquidity %", "Liquidity Change %",
                 "Narrative Strength", "Narrative Score",
-                "Community Strength", "Community Score", "Social Breadth", "Gate", "Price USD", "Market Cap", "FDV", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
+                "Community Strength", "Community Score", "Social Breadth", "Gate",
+                "Price USD", "Market Cap", "FDV", "Circulating % (proxy)",
+                "FDV / MCap", "Tokenomics Gate", "Liquidity", "Liquidity/Cap %",
                 "24h Volume", "Vol/Liq", "Buy %", "1h %", "6h %", "24h %",
-                "Pair Age h", "Plan Status", "Plan Basis", "Plan Data Source", "Plan Pool", "Plan API Calls",
+                "Pair Age h", "Plan Basis", "Plan Data Source", "Plan Pool", "Plan API Calls",
                 "Entry Low", "Entry High", "Negative Exit",
                 "Positive Exit", "Stretch Exit", "R:R", "Net ROI %",
-                "Community Takeover", "Boost", "Risk Flags", "Gate Reasons",
+                "Community Takeover", "Boost", "Risk Flags", "Gate Reasons", "Safety Coverage",
             ]
             st.subheader("Ranked candidates")
             st.caption(
-                "TRADE WATCH = all hard trading gates pass but the score is below shortlist. "
-                "DISCOVERY WATCH = interesting enough to monitor, but at least one hard trading gate currently fails."
+                "TOP RANKED and SHORTLIST are ranking labels only — not entry signals. "
+                "ENTRY QUALIFIED requires Gate PASS + TOP RANKED/SHORTLIST + Plan Status ENTRY AREA + live Safety Gate PASS. "
+                "DISCOVERY ONLY means at least one hard trading gate currently fails."
             )
             meme_display = df[main_cols]
             meme_styled = meme_display.style
             for _col in [
-                "Decision", "Score", "Narrative Strength", "Narrative Score",
+                "Entry Signal", "Technical Entry", "Safety Gate", "Rank Status", "Score", "Narrative Strength", "Narrative Score",
                 "Community Strength", "Community Score", "Social Breadth",
                 "Gate", "Circulating % (proxy)", "FDV / MCap", "Tokenomics Gate",
                 "Liquidity", "Liquidity/Cap %", "24h Volume", "Vol/Liq",
@@ -2642,7 +2787,7 @@ with tab_meme_advanced:
 
     **Technical context:** Quick Analyse now shows RSI and 20-period/2-standard-deviation Bollinger Bands for the selected on-chain timeframe. They are deliberately **not part of the meme ranking score** because meme coins can remain overbought or highly volatile for long periods; community, narrative, liquidity and real activity remain more important.
 
-    This is **v0.1**, not the final meme-coin model. Narrative quality, holder distribution, LP lock/burn, contract/security checks, influencer quality, community growth/engagement and migration/relaunch rules are intentionally left as the next modular layers rather than being guessed.
+    This remains an evolving meme-coin model. **Holder distribution, LP lock/burn and live contract/token safety checks are now mandatory before a final ENTRY QUALIFIED signal.** Influencer quality, community growth/engagement and migration/relaunch rules remain separate future research layers rather than being guessed.
     """
         )
 
