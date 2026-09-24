@@ -54,7 +54,13 @@ def select_bulk_plan_indices(
     ineligible = list(ranked.index[~pass_mask])
 
     candidates = ranked.loc[pass_mask].copy()
-    decision_rank = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
+    decision_rank = {
+        "HIGH PRIORITY": 0,
+        "SHORTLIST": 1,
+        "TRADE WATCH": 2,
+        "DISCOVERY WATCH": 3,
+        "PASS": 4,
+    }
     candidates["_plan_decision_rank"] = (
         candidates.get("Decision", pd.Series("", index=candidates.index))
         .map(decision_rank)
@@ -80,3 +86,29 @@ def select_bulk_plan_indices(
         "deferred": deferred,
         "ineligible": ineligible,
     }
+
+
+def classify_meme_decision(
+    gate_pass: bool,
+    score: float,
+    shortlist_score: float,
+) -> str:
+    """
+    Keep trade readiness separate from discovery interest.
+
+    TRADE WATCH means all hard gates pass but the score has not reached the
+    shortlist threshold. DISCOVERY WATCH means the coin is interesting enough
+    to monitor but currently fails at least one hard trading gate.
+    """
+    score_value = float(score)
+    shortlist_value = float(shortlist_score)
+
+    if gate_pass and score_value >= 80:
+        return "HIGH PRIORITY"
+    if gate_pass and score_value >= shortlist_value:
+        return "SHORTLIST"
+    if gate_pass and score_value >= 55:
+        return "TRADE WATCH"
+    if (not gate_pass) and score_value >= 55:
+        return "DISCOVERY WATCH"
+    return "PASS"
