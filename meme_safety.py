@@ -295,6 +295,10 @@ def parse_goplus_security(
         "is_blacklisted": "Contract has blacklist controls",
         "slippage_modifiable": "Owner can modify trading tax/slippage",
         "can_take_back_ownership": "Ownership can be reclaimed",
+        "hidden_owner": "Contract has a hidden owner",
+        "selfdestruct": "Contract can self-destruct",
+        "honeypot_with_same_creator": "Creator has deployed a honeypot before",
+        "is_airdrop_scam": "GoPlus flags token as an airdrop scam",
     }
     known_binary = 0
     for field, label in binary_fail_fields.items():
@@ -396,6 +400,10 @@ def parse_goplus_security(
                 f"LP locked/burned {out['LP Locked %']:.1f}% < "
                 f"{rules['min_lp_locked_pct']:.0f}%"
             )
+
+    fake_token = token.get("fake_token")
+    if isinstance(fake_token, dict) and _truth(fake_token.get("value")) is True:
+        blockers.append("GoPlus flags token as a fake/copy token")
 
     other_risks = str(token.get("other_potential_risks") or "").strip()
     if other_risks:
