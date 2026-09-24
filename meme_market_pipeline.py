@@ -172,18 +172,31 @@ def fetch_dex_discovery() -> tuple[Dict[str, Dict], list[str]]:
 
 
 def fetch_gecko_page(network: str, page: int) -> dict:
-    response = requests.get(
-        f"{GECKO_API}/networks/{network}/new_pools",
-        params={
-            "page": max(1, min(10, int(page))),
-            "include": "base_token,quote_token,dex",
-        },
-        headers=GECKO_HEADERS,
-        timeout=20,
-    )
+    url = f"{GECKO_API}/networks/{network}/new_pools"
+    params = {
+        "page": max(1, min(10, int(page))),
+        "include": "base_token,quote_token,dex",
+    }
+    for attempt in range(2):
+        response = requests.get(
+            url,
+            params=params,
+            headers=GECKO_HEADERS,
+            timeout=20,
+        )
+        if response.status_code != 429:
+            response.raise_for_status()
+            payload = response.json() or {}
+            return payload if isinstance(payload, dict) else {}
+        if attempt == 0:
+            retry_after = response.headers.get("Retry-After")
+            try:
+                delay = max(float(retry_after or 0), 12.0)
+            except Exception:
+                delay = 12.0
+            time.sleep(min(delay, 20.0))
     response.raise_for_status()
-    payload = response.json() or {}
-    return payload if isinstance(payload, dict) else {}
+    return {}
 
 
 def run(output_dir: str, max_tokens: int) -> int:
@@ -232,8 +245,9 @@ def run(output_dir: str, max_tokens: int) -> int:
                 f"Gecko {chain} page {page}: {type(exc).__name__}: {str(exc)[:160]}"
             )
 
-        # Stay comfortably inside the public rate limit even if requests bunch.
-        time.sleep(0.35)
+        # Public GeckoTerminal is roughly 10 calls/minute. Pace the background
+        # collector rather than bursting requests from a shared GitHub runner.
+        time.sleep(6.5)
 
     merged = merge_discovery_universes(
         previous_universe,
