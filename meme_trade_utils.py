@@ -41,19 +41,23 @@ def select_bulk_plan_indices(
     api_budget: int = 8,
 ) -> Dict[str, List]:
     """
-    Select only hard-gate PASS candidates for bulk trade planning.
+    Select only trade-relevant, hard-gate PASS candidates for bulk planning.
 
-    Priority: decision quality, score, then liquidity. Anything beyond the
-    public-API budget is deferred rather than attempted and rate-limited.
+    HIGH PRIORITY, SHORTLIST and TRADE WATCH may receive plans. Generic PASS
+    rows and all failed-gate rows remain discovery/scoring output and do not
+    consume scarce OHLCV requests. Priority is decision quality, score, then
+    liquidity; anything beyond the API budget is deferred.
     """
     if ranked is None or ranked.empty:
         return {"selected": [], "deferred": [], "ineligible": []}
 
     gate = ranked.get("Gate", pd.Series("", index=ranked.index))
-    pass_mask = gate.eq("PASS")
-    ineligible = list(ranked.index[~pass_mask])
+    decision = ranked.get("Decision", pd.Series("", index=ranked.index))
+    execution_decisions = {"HIGH PRIORITY", "SHORTLIST", "TRADE WATCH"}
+    eligible_mask = gate.eq("PASS") & decision.isin(execution_decisions)
+    ineligible = list(ranked.index[~eligible_mask])
 
-    candidates = ranked.loc[pass_mask].copy()
+    candidates = ranked.loc[eligible_mask].copy()
     decision_rank = {
         "HIGH PRIORITY": 0,
         "SHORTLIST": 1,
