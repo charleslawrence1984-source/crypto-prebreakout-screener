@@ -1,0 +1,71 @@
+name: Meme discovery pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "meme_market_pipeline.py"
+      - "meme_discovery_utils.py"
+      - ".github/workflows/meme-market-pipeline.yml"
+  schedule:
+    - cron: "*/10 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: meme-discovery-pipeline
+  cancel-in-progress: false
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Restore previous Meme data state
+        shell: bash
+        run: |
+          git fetch origin meme-data:refs/remotes/origin/meme-data || true
+          if git rev-parse --verify origin/meme-data >/dev/null 2>&1; then
+            git checkout origin/meme-data -- prepared_meme 2>/dev/null || true
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Refresh rotating meme discovery universe
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python meme_market_pipeline.py             --output-dir prepared_meme             --max-tokens 2000
+
+      - name: Persist Meme discovery state
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -d prepared_meme ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prepared_meme
+          git commit -m "Update Meme discovery pipeline" || true
+          for attempt in 1 2 3; do
+            if git push --force-with-lease origin HEAD:meme-data; then
+              exit 0
+            fi
+            git fetch origin meme-data:refs/remotes/origin/meme-data || true
+            sleep $((attempt * 5))
+          done
+          exit 1
