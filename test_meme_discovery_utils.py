@@ -1,4 +1,5 @@
 from meme_discovery_utils import (
+    extract_gecko_token_pool_candidates,
     merge_discovery_universes,
     parse_gecko_new_pool_tokens,
     trim_discovery_universe,
@@ -124,3 +125,38 @@ def test_trim_keeps_most_recent_candidates():
     trimmed = trim_discovery_universe(universe, max_tokens=2)
 
     assert list(trimmed) == ["solana:b", "solana:c"]
+
+
+def test_pool_fallback_keeps_preferred_first_then_liquidity():
+    payload = {
+        "data": [
+            {"attributes": {"address": "LOW", "reserve_in_usd": "1000"}},
+            {"attributes": {"address": "HIGH", "reserve_in_usd": "9000"}},
+            {"attributes": {"address": "MID", "reserve_in_usd": "5000"}},
+        ]
+    }
+
+    pools = extract_gecko_token_pool_candidates(
+        payload,
+        preferred_pool_address="PREFERRED",
+        max_pools=3,
+    )
+
+    assert pools == ["PREFERRED", "HIGH", "MID"]
+
+
+def test_pool_fallback_deduplicates_preferred_pool():
+    payload = {
+        "data": [
+            {"attributes": {"address": "PREFERRED", "reserve_in_usd": "9999"}},
+            {"attributes": {"address": "ALT", "reserve_in_usd": "5000"}},
+        ]
+    }
+
+    pools = extract_gecko_token_pool_candidates(
+        payload,
+        preferred_pool_address="PREFERRED",
+        max_pools=3,
+    )
+
+    assert pools == ["PREFERRED", "ALT"]
