@@ -656,3 +656,51 @@ def fetch_token_safety(
     result = _base_result("Unsupported")
     result["Safety Coverage"] = "No supported live safety provider for this chain"
     return result
+
+
+
+def finalize_entry_signal(
+    technical_entry: str,
+    safety_result: Dict[str, Any] | None,
+    *,
+    position_liquidity_pct: float = float("nan"),
+    liquidity_change_pct: float = float("nan"),
+) -> Dict[str, Any]:
+    """Apply local liquidity protections and convert safety state into final entry state."""
+    technical = str(technical_entry or "").upper()
+    if technical != "QUALIFIED":
+        out = dict(safety_result or {})
+        out["Entry Signal"] = "AVOID" if technical == "AVOID" else "WAIT"
+        return out
+
+    out = dict(safety_result or _base_result("Unavailable"))
+    blockers = [x for x in str(out.get("Safety Blockers") or "").split("; ") if x]
+    warnings = [x for x in str(out.get("Safety Warnings") or "").split("; ") if x]
+
+    if math.isfinite(position_liquidity_pct) and position_liquidity_pct > 0.5:
+        blockers.append(
+            f"Planned position is {position_liquidity_pct:.2f}% of pool liquidity (>0.50%)"
+        )
+        out["Safety Gate"] = "FAIL"
+
+    if math.isfinite(liquidity_change_pct):
+        if liquidity_change_pct <= -25:
+            blockers.append(
+                f"Liquidity fell {abs(liquidity_change_pct):.1f}% since previous scan"
+            )
+            out["Safety Gate"] = "FAIL"
+        elif liquidity_change_pct <= -10:
+            warnings.append(
+                f"Liquidity fell {abs(liquidity_change_pct):.1f}% since previous scan"
+            )
+
+    out["Safety Blockers"] = _join(blockers)
+    out["Safety Warnings"] = _join(warnings)
+    gate = str(out.get("Safety Gate") or "UNKNOWN").upper()
+    if gate == "PASS":
+        out["Entry Signal"] = "ENTRY QUALIFIED"
+    elif gate == "FAIL":
+        out["Entry Signal"] = "SAFETY BLOCK"
+    else:
+        out["Entry Signal"] = "SAFETY UNKNOWN"
+    return out
