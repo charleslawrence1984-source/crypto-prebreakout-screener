@@ -11,13 +11,14 @@ def test_bulk_plan_selection_excludes_failed_gates_and_prioritises_passes():
             {"Gate": "PASS", "Decision": "SHORTLIST", "Score": 66, "Liquidity": 80000},
             {"Gate": "PASS", "Decision": "HIGH PRIORITY", "Score": 81, "Liquidity": 70000},
             {"Gate": "PASS", "Decision": "TRADE WATCH", "Score": 75, "Liquidity": 90000},
+            {"Gate": "PASS", "Decision": "PASS", "Score": 90, "Liquidity": 1000000},
         ],
-        index=[10, 11, 12, 13, 14],
+        index=[10, 11, 12, 13, 14, 15],
     )
 
     result = select_bulk_plan_indices(frame, requested_limit=4, api_budget=3)
 
-    assert result["ineligible"] == [10]
+    assert result["ineligible"] == [10, 15]
     assert result["selected"] == [13, 12, 14]
     assert result["deferred"] == [11]
 
