@@ -406,6 +406,53 @@ def fetch_pool_ohlcv(chain_id: str, pool_address: str, token_address: str, chart
     return df
 
 
+def aggregate_ohlcv(frame: pd.DataFrame, rule: str = "4h") -> pd.DataFrame:
+    """Aggregate lower-timeframe OHLCV locally to avoid a second API request."""
+    if frame is None or frame.empty or "timestamp" not in frame.columns:
+        return pd.DataFrame()
+    work = frame.copy()
+    work["timestamp"] = pd.to_datetime(work["timestamp"], utc=True, errors="coerce")
+    for col in ["open", "high", "low", "close", "volume"]:
+        work[col] = pd.to_numeric(work[col], errors="coerce")
+    work = work.dropna(subset=["timestamp", "open", "high", "low", "close"])
+    if work.empty:
+        return pd.DataFrame()
+
+    return (
+        work.set_index("timestamp")
+        .resample(rule, label="right", closed="right")
+        .agg({
+            "open": "first",
+            "high": "max",
+            "low": "min",
+            "close": "last",
+            "volume": "sum",
+        })
+        .dropna(subset=["open", "high", "low", "close"])
+        .reset_index()
+    )
+
+
+def fetch_meme_trade_plan(
+    chain: str,
+    pair_address: str,
+    token_address: str,
+    liquidity: float,
+    position_size: float,
+    round_trip_fees_pct: float,
+) -> Dict:
+    """One API call per coin: fetch 1h candles and build 4h structure locally."""
+    hourly = fetch_pool_ohlcv(chain, pair_address, token_address, "1h")
+    structural_4h = aggregate_ohlcv(hourly, "4h")
+    return meme_trade_plan(
+        structural_4h,
+        hourly,
+        liquidity=liquidity,
+        position_size=position_size,
+        round_trip_fees_pct=round_trip_fees_pct,
+    )
+
+
 def meme_trade_plan(
     df4h: pd.DataFrame,
     df1h: Optional[pd.DataFrame] = None,
@@ -758,15 +805,36 @@ def attach_bulk_trade_plans(
         if column not in out.columns:
             out[column] = default
 
+    # Bulk trade plans are execution work. Failed hard-gate candidates stay
+    # visible for discovery but do not consume scarce public OHLCV requests.
+    gate_pass_mask = out.get("Gate", pd.Series("", index=out.index)).eq("PASS")
+    out.loc[~gate_pass_mask, "Plan Status"] = "NOT ELIGIBLE"
+    out.loc[~gate_pass_mask, "Plan Basis"] = (
+        "Hard gate failed — no bulk trade plan calculated"
+    )
+
     decision_rank = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
-    candidates = out.copy()
+    candidates = out.loc[gate_pass_mask].copy()
     candidates["_plan_decision_rank"] = candidates["Decision"].map(decision_rank).fillna(9)
     candidates = candidates.sort_values(
         ["_plan_decision_rank", "Score", "Liquidity"],
         ascending=[True, False, False],
         na_position="last",
     )
-    selected_indices = list(candidates.head(max(0, int(max_candidates))).index)
+
+    # Public GeckoTerminal is approximately 10 calls/minute. Use one request
+    # per eligible coin and retain headroom for Quick Analysis/chart requests.
+    public_api_budget = 8
+    requested_limit = max(0, int(max_candidates))
+    plan_limit = min(requested_limit, public_api_budget)
+    selected_indices = list(candidates.head(plan_limit).index)
+
+    deferred_indices = list(candidates.iloc[plan_limit:requested_limit].index)
+    if deferred_indices:
+        out.loc[deferred_indices, "Plan Status"] = "DEFERRED"
+        out.loc[deferred_indices, "Plan Basis"] = (
+            "Public API request budget reached — use Quick Analysis for an on-demand plan"
+        )
 
     for idx in selected_indices:
         row = out.loc[idx]
@@ -778,11 +846,10 @@ def attach_bulk_trade_plans(
             out.at[idx, "Plan Basis"] = "Missing pool/chain metadata"
             continue
         try:
-            plan_4h = fetch_pool_ohlcv(chain, pair_address, token_address, "4h")
-            plan_1h = fetch_pool_ohlcv(chain, pair_address, token_address, "1h")
-            plan = meme_trade_plan(
-                plan_4h,
-                plan_1h,
+            plan = fetch_meme_trade_plan(
+                chain,
+                pair_address,
+                token_address,
                 liquidity=row.get("Liquidity", np.nan),
                 position_size=position_size,
                 round_trip_fees_pct=round_trip_fees_pct,
@@ -1135,12 +1202,13 @@ with st.sidebar:
         help="Your estimated buy + sell trading costs, excluding the model's liquidity-based slippage estimate.",
     )
     trade_plan_count = st.selectbox(
-        "Candidates with entry / exit zones",
-        [25, 50, 75, 100],
+        "Maximum eligible trade plans per scan",
+        [5, 8],
         index=1,
         help=(
-            "After ranking the discovery scan, calculate 4h/1h entry, stop and target zones "
-            "for this many top candidates. Higher values make the scan heavier."
+            "Only hard-gate PASS candidates receive bulk trade plans. The public OHLCV API is "
+            "rate-limited, so bulk planning is capped conservatively; Quick Analysis can build "
+            "an on-demand plan for any individual coin."
         ),
     )
 
@@ -1437,27 +1505,15 @@ with tab_meme_quick:
                 plan_timeframe = "4h structure + 1h entry timing"
                 if pair_address and result.get("Chain"):
                     try:
-                        plan_4h = fetch_pool_ohlcv(
+                        trade_plan = fetch_meme_trade_plan(
                             result["Chain"],
                             pair_address,
                             token_address,
-                            "4h",
-                        )
-                        plan_1h = fetch_pool_ohlcv(
-                            result["Chain"],
-                            pair_address,
-                            token_address,
-                            "1h",
-                        )
-                        if plan_4h.empty or len(plan_4h) < 24:
-                            plan_timeframe = "1h fallback"
-                        trade_plan = meme_trade_plan(
-                            plan_4h,
-                            plan_1h,
                             liquidity=result.get("Liquidity", np.nan),
                             position_size=planned_position_size,
                             round_trip_fees_pct=round_trip_fees_pct,
                         )
+                        plan_timeframe = "4h structure aggregated from 1h + 1h entry timing"
                     except Exception:
                         trade_plan["Plan Basis"] = "Trade-plan candle data unavailable"
 
@@ -1814,7 +1870,7 @@ with tab_meme_advanced:
             df["_order"] = df["Decision"].map(order).fillna(9)
             df = df.sort_values(["_order", "Score", "Liquidity"], ascending=[True, False, False]).drop(columns=["_order"])
             with st.spinner(
-                f"Calculating entry / exit zones for the top {cfg['trade_plan_count']} candidates…"
+                f"Calculating entry / exit zones for up to {cfg['trade_plan_count']} hard-gate PASS candidates…"
             ):
                 df = attach_bulk_trade_plans(
                     df,
@@ -1831,7 +1887,8 @@ with tab_meme_advanced:
             c4.metric("Tokens checked", len(df))
             c5.metric(
                 "Trade plans",
-                int(df["Plan Status"].ne("NOT CALCULATED").sum()) if "Plan Status" in df.columns else 0,
+                int(pd.to_numeric(df["Entry Price"], errors="coerce").notna().sum())
+                if "Entry Price" in df.columns else 0,
             )
 
             main_cols = [
