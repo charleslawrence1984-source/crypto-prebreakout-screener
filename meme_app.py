@@ -10,6 +10,7 @@ import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_signal_decision_card
 from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices
+from meme_discovery_utils import GECKO_TO_DEX_CHAIN, merge_discovery_universes, parse_gecko_new_pool_tokens, trim_discovery_universe
 import plotly.graph_objects as go
 
 
@@ -18,7 +19,13 @@ st.set_page_config(page_title="CL Signal · Meme Coins", page_icon="🐸", layou
 
 
 API = "https://api.dexscreener.com"
+GECKO_API = "https://api.geckoterminal.com/api/v2"
 HEADERS = {"User-Agent": "MemeCoinScreener/1.0"}
+GECKO_HEADERS = {
+    "User-Agent": HEADERS["User-Agent"],
+    "Accept": "application/json;version=20230203",
+}
+DEX_TO_GECKO_NETWORK = {dex: gecko for gecko, dex in GECKO_TO_DEX_CHAIN.items()}
 
 CHAIN_OPTIONS = {
     "Solana": "solana",
@@ -128,6 +135,23 @@ def get_json(url: str):
     r = requests.get(url, headers=HEADERS, timeout=20)
     r.raise_for_status()
     return r.json()
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def gecko_new_pools_page(network: str, page: int) -> Dict:
+    """One rotating GeckoTerminal new-pools page for a selected network."""
+    r = requests.get(
+        f"{GECKO_API}/networks/{network}/new_pools",
+        params={
+            "page": max(1, min(10, int(page))),
+            "include": "base_token,quote_token,dex",
+        },
+        headers=GECKO_HEADERS,
+        timeout=20,
+    )
+    r.raise_for_status()
+    payload = r.json() or {}
+    return payload if isinstance(payload, dict) else {}
 
 
 def chunks(items: List[str], n: int) -> Iterable[List[str]]:
@@ -745,6 +769,7 @@ def attach_bulk_trade_plans(
     max_candidates: int,
     position_size: float,
     round_trip_fees_pct: float,
+    api_budget: int = 8,
 ) -> pd.DataFrame:
     """
     Calculate entry / exit zones for the highest-ranked discovery candidates.
@@ -788,7 +813,7 @@ def attach_bulk_trade_plans(
     selection = select_bulk_plan_indices(
         out,
         requested_limit=max_candidates,
-        api_budget=8,
+        api_budget=max(0, int(api_budget)),
     )
     selected_indices = selection["selected"]
     deferred_indices = selection["deferred"]
@@ -1191,6 +1216,12 @@ cfg = {
 
 if "meme_scan_df" not in st.session_state:
     st.session_state.meme_scan_df = pd.DataFrame()
+if "meme_discovery_cache" not in st.session_state:
+    st.session_state.meme_discovery_cache = {}
+if "meme_discovery_page_cursor" not in st.session_state:
+    st.session_state.meme_discovery_page_cursor = {}
+if "meme_discovery_stats" not in st.session_state:
+    st.session_state.meme_discovery_stats = {}
 
 if (
     isinstance(st.session_state.meme_scan_df, pd.DataFrame)
@@ -1850,16 +1881,88 @@ with tab_meme_advanced:
     st.markdown("### Advanced Meme Screener")
     st.subheader("Discovery Scan")
     st.info(
-        "v0.1 uses DexScreener's latest profiles, boosts and community-takeover feeds for discovery, then scores the most liquid pair for each token. "
-        "Boosts are treated as a small discovery signal, not proof of quality."
+        "Discovery now combines DexScreener profiles/boosts/community takeovers with a rotating "
+        "GeckoTerminal new-pool crawl. Each scan advances one page per selected chain and keeps a "
+        "rolling candidate cache, so the universe grows far beyond promoted tokens. Boosts remain "
+        "a small discovery signal, not proof of quality."
     )
 
     if st.button("Run meme coin scan", type="primary", use_container_width=True):
         chains = {CHAIN_OPTIONS[n] for n in selected_names}
-        with st.spinner("Finding emerging tokens and checking live pairs…"):
-            universe = discovery_universe()
+        discovery_warnings = []
+        gecko_calls = 0
+        gecko_pages_used = {}
+        with st.spinner("Building the rotating all-market meme discovery universe…"):
+            dex_universe = discovery_universe()
+            gecko_universe = {}
+            cursor = dict(st.session_state.meme_discovery_page_cursor)
+            now_seen = datetime.now(timezone.utc).timestamp()
+
+            for chain in sorted(chains):
+                network = DEX_TO_GECKO_NETWORK.get(chain)
+                if not network:
+                    continue
+                page = max(1, min(10, int(cursor.get(chain, 1))))
+                try:
+                    payload = gecko_new_pools_page(network, page)
+                    discovered = parse_gecko_new_pool_tokens(
+                        payload,
+                        default_network=network,
+                        allowed_chains=chains,
+                    )
+                    for meta in discovered.values():
+                        meta["_last_seen_ts"] = now_seen
+                    gecko_universe = merge_discovery_universes(
+                        gecko_universe,
+                        discovered,
+                    )
+                    gecko_calls += 1
+                    gecko_pages_used[chain] = page
+                    cursor[chain] = 1 if page >= 10 else page + 1
+                except Exception as exc:
+                    discovery_warnings.append(
+                        f"{chain}: new-pool discovery unavailable ({type(exc).__name__})"
+                    )
+
+            for meta in dex_universe.values():
+                meta["_last_seen_ts"] = now_seen
+
+            current_discovery = merge_discovery_universes(
+                dex_universe,
+                gecko_universe,
+            )
+            rolling_cache = merge_discovery_universes(
+                st.session_state.meme_discovery_cache,
+                current_discovery,
+            )
+            rolling_cache = trim_discovery_universe(
+                rolling_cache,
+                max_tokens=1000,
+            )
+            st.session_state.meme_discovery_cache = rolling_cache
+            st.session_state.meme_discovery_page_cursor = cursor
+
+            universe = {
+                key: meta
+                for key, meta in rolling_cache.items()
+                if str(meta.get("chainId") or "").lower() in chains
+            }
+
             pairs = fetch_pairs_for_tokens(universe, chains)
             best_pairs = best_pair_per_token(pairs)
+
+        # Reserve the same public GeckoTerminal call budget between discovery
+        # and expensive OHLCV trade-plan work. Leave one call of headroom.
+        trade_plan_api_budget = max(0, min(cfg["trade_plan_count"], 9 - gecko_calls))
+        st.session_state.meme_discovery_stats = {
+            "rolling_universe": len(universe),
+            "dex_surface_tokens": len(dex_universe),
+            "new_pool_tokens_this_scan": len(gecko_universe),
+            "gecko_calls": gecko_calls,
+            "gecko_pages_used": gecko_pages_used,
+            "scored_pairs": len(best_pairs),
+            "trade_plan_api_budget": trade_plan_api_budget,
+        }
 
         rows = []
         for k, p in best_pairs.items():
@@ -1887,8 +1990,22 @@ with tab_meme_advanced:
                     max_candidates=cfg["trade_plan_count"],
                     position_size=planned_position_size,
                     round_trip_fees_pct=round_trip_fees_pct,
+                    api_budget=trade_plan_api_budget,
                 )
             st.session_state.meme_scan_df = df.copy()
+
+            page_text = ", ".join(
+                f"{chain} p{page}"
+                for chain, page in sorted(gecko_pages_used.items())
+            ) or "none"
+            st.caption(
+                f"Discovery universe: **{len(universe):,} cached tokens** · "
+                f"new-pool discoveries this scan: **{len(gecko_universe):,}** · "
+                f"scored live pairs: **{len(df):,}** · rotating pages: {page_text}"
+            )
+            if discovery_warnings:
+                with st.expander(f"{len(discovery_warnings)} discovery-source warning(s)"):
+                    st.code("\n".join(discovery_warnings))
 
             c1, c2, c3, c4, c5, c6 = st.columns(6)
             c1.metric("High priority", int((df["Decision"] == "HIGH PRIORITY").sum()))
