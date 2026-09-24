@@ -15,6 +15,7 @@ from cl_signal_ui import render_module_header, render_signal_decision_card
 from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices
 from meme_discovery_utils import extract_gecko_token_pool_candidates, merge_discovery_universes, trim_discovery_universe
 from meme_relevance import classify_meme_relevance
+from meme_launch_rules import LAUNCH_DEFAULTS, score_launch_candidate
 import plotly.graph_objects as go
 
 
@@ -135,6 +136,41 @@ def meme_cell_style(value, column: str) -> str:
         return green if -10 <= number <= 35 else amber if -20 <= number <= 45 else red
     if column == "Pair Age h":
         return green if number >= 24 else amber if number >= 6 else red
+    return ""
+
+
+def launch_cell_style(value, column: str) -> str:
+    green = "background-color: #d8f3dc; color: #16351c; font-weight: 600"
+    amber = "background-color: #fff3bf; color: #5f4500; font-weight: 600"
+    red = "background-color: #ffd6d6; color: #5c1717; font-weight: 600"
+    label = str(value).upper()
+
+    if column == "Launch Decision":
+        if label == "LAUNCH LEADER":
+            return green
+        if label in ("LAUNCH WATCH", "DATA BUILDING"):
+            return amber
+        return red
+    if column == "Launch Gate":
+        return green if label == "PASS" else red
+
+    number = safe(value)
+    if np.isnan(number):
+        return ""
+    if column == "Launch Score":
+        return green if number >= 70 else amber if number >= 55 else red
+    if column == "Liquidity":
+        return green if number >= 50_000 else amber if number >= 10_000 else red
+    if column == "5m Volume":
+        return green if number >= 20_000 else amber if number >= 2_000 else red
+    if column == "5m Tx":
+        return green if number >= 100 else amber if number >= 20 else red
+    if column == "5m Buy %":
+        return green if 55 <= number <= 72 else amber if 45 <= number <= 80 else red
+    if column == "5m %":
+        return green if -5 <= number <= 12 else amber if -12 <= number <= 25 else red
+    if column == "1h %":
+        return green if -10 <= number <= 40 else amber if -25 <= number <= 75 else red
     return ""
 
 
@@ -1385,6 +1421,8 @@ cfg = {
 
 if "meme_scan_df" not in st.session_state:
     st.session_state.meme_scan_df = pd.DataFrame()
+if "meme_launch_scan_df" not in st.session_state:
+    st.session_state.meme_launch_scan_df = pd.DataFrame()
 if "meme_discovery_cache" not in st.session_state:
     st.session_state.meme_discovery_cache = {}
 if "meme_discovery_stats" not in st.session_state:
@@ -1411,8 +1449,8 @@ if (
             "Decision",
         ] = "DISCOVERY WATCH"
 
-tab_meme_home, tab_meme_quick, tab_meme_opportunities, tab_meme_watchlist, tab_meme_advanced = st.tabs(
-    ["Home", "Quick Analysis", "Opportunities", "Watchlist", "Advanced Meme Screener"]
+tab_meme_home, tab_meme_quick, tab_meme_opportunities, tab_meme_launch, tab_meme_watchlist, tab_meme_advanced = st.tabs(
+    ["Home", "Quick Analysis", "Opportunities", "Brand New", "Watchlist", "Advanced Meme Screener"]
 )
 
 with tab_meme_home:
@@ -2037,6 +2075,155 @@ with tab_meme_opportunities:
             )
 
 
+with tab_meme_launch:
+    st.markdown("### Brand New / Launch Meme Coins")
+    st.caption(
+        "A separate 0–2 hour model for launches that are too young for the established meme rules. "
+        "This lane is for early discovery and monitoring, not a mature OHLCV trade-plan engine."
+    )
+
+    with st.expander("Brand New rule list", expanded=True):
+        st.markdown(
+            f"""
+**Scope**
+- Pair age: **0–{LAUNCH_DEFAULTS['max_age_hours']:.0f} hours**
+- Market cap: **no minimum or maximum rule**
+- 24h volume: **not used as a launch hard gate**
+- Structural 24-candle trade plan: **not required**
+
+**Current provisional launch gates**
+- Minimum liquidity: **${LAUNCH_DEFAULTS['min_liquidity_usd']:,.0f}**
+- Minimum 5-minute volume: **${LAUNCH_DEFAULTS['min_5m_volume_usd']:,.0f}**
+- Minimum 5-minute transactions: **{LAUNCH_DEFAULTS['min_5m_transactions']}**
+- Anti-chase: reject if 5m rise exceeds **{LAUNCH_DEFAULTS['max_5m_rise_pct']:.0f}%** or 1h rise exceeds **{LAUNCH_DEFAULTS['max_1h_rise_pct']:.0f}%**
+
+**Scoring emphasis**
+- **30 pts** quality-adjusted participation / transaction pace
+- **20 pts** liquidity / capacity
+- **20 pts** buy/sell flow quality
+- **20 pts** constructive early price response
+- **10 pts** observation maturity within the first two hours
+
+**Decisions**
+- **LAUNCH LEADER** — passes provisional launch gates and scores 70+
+- **LAUNCH WATCH** — passes provisional launch gates and scores 55–69.9
+- **DATA BUILDING** — passes gates but needs stronger evidence
+- **LAUNCH AVOID** — fails one or more launch gates
+
+These thresholds are deliberately labelled provisional until the launch research/backtest has enough outcomes.
+"""
+        )
+
+    if st.button("Run brand-new meme scan", type="primary", use_container_width=True, key="run_launch_scan"):
+        chains = {CHAIN_OPTIONS[n] for n in selected_names}
+        with st.spinner("Loading prepared universe and refreshing brand-new live pairs…"):
+            prepared_manifest, prepared_universe = load_prepared_meme_discovery()
+            dex_universe = discovery_universe()
+            now_seen = datetime.now(timezone.utc).timestamp()
+            for meta in dex_universe.values():
+                meta["_last_seen_ts"] = now_seen
+
+            launch_universe = merge_discovery_universes(
+                st.session_state.meme_discovery_cache,
+                prepared_universe,
+                dex_universe,
+            )
+            launch_universe = trim_discovery_universe(launch_universe, max_tokens=2000)
+            st.session_state.meme_discovery_cache = launch_universe
+
+            filtered_universe = {
+                key: meta
+                for key, meta in launch_universe.items()
+                if str(meta.get("chainId") or "").lower() in chains
+            }
+            launch_pairs = fetch_pairs_for_tokens(filtered_universe, chains)
+            launch_best_pairs = best_pair_per_token(launch_pairs)
+
+        launch_rows = []
+        now_ms = datetime.now(timezone.utc).timestamp() * 1000
+        for key, pair in launch_best_pairs.items():
+            age_h = pair_age_hours(pair.get("pairCreatedAt"))
+            if not math.isfinite(age_h) or age_h > LAUNCH_DEFAULTS["max_age_hours"]:
+                continue
+            meta = filtered_universe.get(key, {})
+            relevance = classify_meme_relevance(pair, meta)
+            if relevance["status"] == "EXCLUDE":
+                continue
+            row = score_launch_candidate(pair, now_ms=now_ms)
+            row["Discovery"] = ", ".join(sorted(meta.get("sources", [])))
+            launch_rows.append(row)
+
+        if not launch_rows:
+            st.session_state.meme_launch_scan_df = pd.DataFrame()
+            st.warning("No brand-new meme candidates were found in the current prepared universe.")
+        else:
+            launch_df = pd.DataFrame(launch_rows)
+            rank = {
+                "LAUNCH LEADER": 0,
+                "LAUNCH WATCH": 1,
+                "DATA BUILDING": 2,
+                "LAUNCH AVOID": 3,
+            }
+            launch_df["_rank"] = launch_df["Launch Decision"].map(rank).fillna(9)
+            launch_df = launch_df.sort_values(
+                ["_rank", "Launch Score", "Liquidity", "5m Volume"],
+                ascending=[True, False, False, False],
+                na_position="last",
+            ).drop(columns=["_rank"])
+            st.session_state.meme_launch_scan_df = launch_df.copy()
+
+    launch_df = st.session_state.meme_launch_scan_df.copy()
+    if not launch_df.empty:
+        lm1, lm2, lm3, lm4, lm5 = st.columns(5)
+        lm1.metric("Launch leaders", int((launch_df["Launch Decision"] == "LAUNCH LEADER").sum()))
+        lm2.metric("Launch watch", int((launch_df["Launch Decision"] == "LAUNCH WATCH").sum()))
+        lm3.metric("Data building", int((launch_df["Launch Decision"] == "DATA BUILDING").sum()))
+        lm4.metric("Avoid", int((launch_df["Launch Decision"] == "LAUNCH AVOID").sum()))
+        lm5.metric("Brand-new checked", len(launch_df))
+
+        launch_view = st.radio(
+            "Show launch candidates",
+            ["Best", "Launch leaders", "Launch watch", "Data building", "All"],
+            horizontal=True,
+            key="launch_candidate_filter",
+        )
+        shown_launch = launch_df.copy()
+        if launch_view == "Best":
+            shown_launch = shown_launch[
+                shown_launch["Launch Decision"].isin(["LAUNCH LEADER", "LAUNCH WATCH"])
+            ]
+        elif launch_view == "Launch leaders":
+            shown_launch = shown_launch[shown_launch["Launch Decision"] == "LAUNCH LEADER"]
+        elif launch_view == "Launch watch":
+            shown_launch = shown_launch[shown_launch["Launch Decision"] == "LAUNCH WATCH"]
+        elif launch_view == "Data building":
+            shown_launch = shown_launch[shown_launch["Launch Decision"] == "DATA BUILDING"]
+
+        launch_cols = [
+            "Ticker", "Name", "Chain", "Launch Decision", "Launch Score", "Launch Gate",
+            "Age min", "Price USD", "Liquidity", "5m Volume", "1h Volume",
+            "5m Tx", "5m Buy %", "1h Tx", "1h Buy %",
+            "5m %", "1h %", "5m Vol/Liq", "5m Tx/min",
+            "Launch Gate Reasons", "Launch Cautions", "Discovery",
+        ]
+        launch_cols = [col for col in launch_cols if col in shown_launch.columns]
+        launch_display = shown_launch[launch_cols]
+        launch_styled = launch_display.style
+        for col in ["Launch Decision", "Launch Score", "Launch Gate", "Liquidity", "5m Volume", "5m Tx", "5m Buy %", "5m %", "1h %"]:
+            if col in launch_display.columns:
+                launch_styled = launch_styled.map(
+                    lambda value, column=col: launch_cell_style(value, column),
+                    subset=[col],
+                )
+        st.dataframe(launch_styled, hide_index=True, use_container_width=True)
+        st.caption(
+            "Launch results deliberately do not receive the established 4h/1h structural trade plan. "
+            "The launch lane is measuring early participation and survival quality first."
+        )
+    else:
+        st.info("Run the brand-new scan to populate the 0–2 hour launch lane.")
+
+
 with tab_meme_watchlist:
     st.markdown("### Watchlist")
     st.caption("Save meme coins you want to revisit without changing the screener rules.")
@@ -2144,8 +2331,13 @@ with tab_meme_advanced:
 
         rows = []
         excluded_rows = []
+        routed_to_launch = 0
         for k, p in best_pairs.items():
             meta = universe.get(k, {})
+            age_h = pair_age_hours(p.get("pairCreatedAt"))
+            if math.isfinite(age_h) and age_h < cfg["min_pair_age_hours"]:
+                routed_to_launch += 1
+                continue
             relevance = classify_meme_relevance(p, meta)
             if relevance["status"] == "EXCLUDE":
                 base = p.get("baseToken") or {}
@@ -2198,8 +2390,9 @@ with tab_meme_advanced:
                 f"Prepared discovery: **{len(prepared_universe):,} tokens** ({pipeline_status}, {age_text}) · "
                 f"interactive Gecko discovery calls: **0** · "
                 f"live pairs enriched: **{len(best_pairs):,}** · "
+                f"routed to Brand New: **{routed_to_launch:,}** · "
                 f"non-meme excluded: **{len(excluded_rows):,}** · "
-                f"meme candidates scored: **{len(df):,}**"
+                f"established candidates scored: **{len(df):,}**"
             )
             if excluded_rows:
                 with st.expander(
