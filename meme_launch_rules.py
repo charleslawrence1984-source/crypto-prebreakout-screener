@@ -64,7 +64,9 @@ def score_launch_candidate(
 
     The model intentionally avoids 24h maturity rules and structural OHLCV
     trade plans. It is an early-discovery / launch-watch model, not a BUY
-    engine. Exact thresholds remain provisional pending launch backtesting.
+    engine. Technical qualification is never a final entry instruction; a
+    separate live token-safety gate must also pass. Exact thresholds remain
+    provisional pending launch backtesting.
     """
     rules = dict(LAUNCH_DEFAULTS)
     if cfg:
@@ -190,9 +192,9 @@ def score_launch_candidate(
     else:
         decision = "DATA BUILDING"
 
-    # BUY is a stricter execution overlay than LAUNCH LEADER.
-    # A high launch score alone is never enough.
-    buy_checks = [
+    # Technical entry is a stricter market overlay than LAUNCH LEADER.
+    # It is NOT a final entry signal. Token safety must pass separately.
+    entry_checks = [
         ("Launch gate passes", gate_pass),
         ("Age is at least 5 minutes", not under_five_minutes),
         ("Launch score >= {:.0f}".format(rules["buy_min_score"]), score >= rules["buy_min_score"]),
@@ -245,9 +247,9 @@ def score_launch_candidate(
             rules["buy_min_5m_vol_liq"] <= vol_liq_5m <= rules["buy_max_5m_vol_liq"],
         ),
     ]
-    buy_passed = [label for label, passed in buy_checks if passed]
-    buy_blockers = [label for label, passed in buy_checks if not passed]
-    buy_signal = "BUY" if not buy_blockers else ("AVOID" if not gate_pass else "WAIT")
+    entry_passed = [label for label, passed in entry_checks if passed]
+    entry_blockers = [label for label, passed in entry_checks if not passed]
+    technical_entry = "QUALIFIED" if not entry_blockers else ("AVOID" if not gate_pass else "WAIT")
 
     base = pair.get("baseToken") or {}
     quote = pair.get("quoteToken") or {}
@@ -261,9 +263,9 @@ def score_launch_candidate(
         "Launch Decision": decision,
         "Launch Score": score,
         "Launch Gate": "PASS" if gate_pass else "FAIL",
-        "Buy Signal": buy_signal,
-        "Buy Criteria": f"{len(buy_passed)}/{len(buy_checks)}",
-        "Buy Blockers": "; ".join(buy_blockers),
+        "Technical Entry": technical_entry,
+        "Entry Criteria": f"{len(entry_passed)}/{len(entry_checks)}",
+        "Entry Blockers": "; ".join(entry_blockers),
         "Age min": round(age_h * 60.0, 1) if math.isfinite(age_h) else np.nan,
         "Price USD": _safe(pair.get("priceUsd")),
         "Liquidity": liq,
