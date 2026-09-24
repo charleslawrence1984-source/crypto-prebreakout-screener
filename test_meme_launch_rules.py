@@ -122,3 +122,76 @@ def test_heavy_but_not_severe_drawdown_is_caution_only():
 
     assert result["Launch Gate"] == "PASS"
     assert "Heavy 5m drawdown" in result["Launch Cautions"]
+
+
+def test_clean_launch_can_trigger_buy_signal():
+    result = score_launch_candidate(
+        launch_pair(
+            age_minutes=10,
+            liquidity=30_000,
+            vol5=8_000,
+            buys5=70,
+            sells5=40,
+            buys1h=140,
+            sells1h=80,
+            ch5=4,
+            ch1=12,
+        ),
+        now_ms=NOW_MS,
+    )
+
+    assert result["Launch Gate"] == "PASS"
+    assert result["Launch Decision"] == "LAUNCH LEADER"
+    assert result["Buy Signal"] == "BUY"
+    assert result["Buy Criteria"] == "11/11"
+    assert result["Buy Blockers"] == ""
+
+
+def test_launch_leader_with_heavy_drawdown_is_wait_not_buy():
+    result = score_launch_candidate(
+        launch_pair(
+            age_minutes=60,
+            liquidity=70_000,
+            vol5=35_000,
+            buys5=60,
+            sells5=40,
+            buys1h=230,
+            sells1h=170,
+            ch5=-22,
+            ch1=15,
+        ),
+        now_ms=NOW_MS,
+    )
+
+    assert result["Launch Gate"] == "PASS"
+    assert result["Buy Signal"] == "WAIT"
+    assert "5m move -5% to +12%" in result["Buy Blockers"]
+
+
+def test_fast_rising_launch_can_lead_but_wait_for_entry():
+    result = score_launch_candidate(
+        launch_pair(
+            age_minutes=25,
+            liquidity=30_000,
+            vol5=8_000,
+            buys5=70,
+            sells5=50,
+            ch5=25,
+            ch1=20,
+        ),
+        now_ms=NOW_MS,
+    )
+
+    assert result["Launch Gate"] == "PASS"
+    assert result["Buy Signal"] == "WAIT"
+    assert "5m move -5% to +12%" in result["Buy Blockers"]
+
+
+def test_failed_launch_gate_is_avoid_signal():
+    result = score_launch_candidate(
+        launch_pair(liquidity=5_000),
+        now_ms=NOW_MS,
+    )
+
+    assert result["Launch Gate"] == "FAIL"
+    assert result["Buy Signal"] == "AVOID"
