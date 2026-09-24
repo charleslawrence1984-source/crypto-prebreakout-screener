@@ -9,6 +9,7 @@ import pandas as pd
 import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_signal_decision_card
+from meme_trade_utils import aggregate_ohlcv, select_bulk_plan_indices
 import plotly.graph_objects as go
 
 
@@ -37,7 +38,7 @@ DEFAULTS = {
     "max_24h_change": 45.0,
     "shortlist_score": 65.0,
     "min_circulating_pct": 10.0,
-    "trade_plan_count": 50,
+    "trade_plan_count": 8,
 }
 
 
@@ -404,33 +405,6 @@ def fetch_pool_ohlcv(chain_id: str, pool_address: str, token_address: str, chart
     df["BBL"] = df["BBM"] - 2 * bb_sd
     df["BBW_PCT"] = (df["BBU"] - df["BBL"]) / df["BBM"].replace(0, np.nan) * 100
     return df
-
-
-def aggregate_ohlcv(frame: pd.DataFrame, rule: str = "4h") -> pd.DataFrame:
-    """Aggregate lower-timeframe OHLCV locally to avoid a second API request."""
-    if frame is None or frame.empty or "timestamp" not in frame.columns:
-        return pd.DataFrame()
-    work = frame.copy()
-    work["timestamp"] = pd.to_datetime(work["timestamp"], utc=True, errors="coerce")
-    for col in ["open", "high", "low", "close", "volume"]:
-        work[col] = pd.to_numeric(work[col], errors="coerce")
-    work = work.dropna(subset=["timestamp", "open", "high", "low", "close"])
-    if work.empty:
-        return pd.DataFrame()
-
-    return (
-        work.set_index("timestamp")
-        .resample(rule, label="right", closed="right")
-        .agg({
-            "open": "first",
-            "high": "max",
-            "low": "min",
-            "close": "last",
-            "volume": "sum",
-        })
-        .dropna(subset=["open", "high", "low", "close"])
-        .reset_index()
-    )
 
 
 def fetch_meme_trade_plan(
@@ -807,29 +781,20 @@ def attach_bulk_trade_plans(
 
     # Bulk trade plans are execution work. Failed hard-gate candidates stay
     # visible for discovery but do not consume scarce public OHLCV requests.
-    gate_pass_mask = out.get("Gate", pd.Series("", index=out.index)).eq("PASS")
-    out.loc[~gate_pass_mask, "Plan Status"] = "NOT ELIGIBLE"
-    out.loc[~gate_pass_mask, "Plan Basis"] = (
-        "Hard gate failed — no bulk trade plan calculated"
+    selection = select_bulk_plan_indices(
+        out,
+        requested_limit=max_candidates,
+        api_budget=8,
     )
+    selected_indices = selection["selected"]
+    deferred_indices = selection["deferred"]
+    ineligible_indices = selection["ineligible"]
 
-    decision_rank = {"HIGH PRIORITY": 0, "SHORTLIST": 1, "WATCH": 2, "PASS": 3}
-    candidates = out.loc[gate_pass_mask].copy()
-    candidates["_plan_decision_rank"] = candidates["Decision"].map(decision_rank).fillna(9)
-    candidates = candidates.sort_values(
-        ["_plan_decision_rank", "Score", "Liquidity"],
-        ascending=[True, False, False],
-        na_position="last",
-    )
-
-    # Public GeckoTerminal is approximately 10 calls/minute. Use one request
-    # per eligible coin and retain headroom for Quick Analysis/chart requests.
-    public_api_budget = 8
-    requested_limit = max(0, int(max_candidates))
-    plan_limit = min(requested_limit, public_api_budget)
-    selected_indices = list(candidates.head(plan_limit).index)
-
-    deferred_indices = list(candidates.iloc[plan_limit:requested_limit].index)
+    if ineligible_indices:
+        out.loc[ineligible_indices, "Plan Status"] = "NOT ELIGIBLE"
+        out.loc[ineligible_indices, "Plan Basis"] = (
+            "Hard gate failed — no bulk trade plan calculated"
+        )
     if deferred_indices:
         out.loc[deferred_indices, "Plan Status"] = "DEFERRED"
         out.loc[deferred_indices, "Plan Basis"] = (
