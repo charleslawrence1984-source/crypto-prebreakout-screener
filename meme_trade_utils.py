@@ -116,3 +116,35 @@ def classify_meme_decision(
     if (not gate_pass) and score_value >= 55:
         return "DISCOVERY WATCH"
     return "PASS"
+
+
+
+def classify_advanced_technical_entry(gate: str, decision: str, plan_status: str) -> str:
+    """Advanced memes need both ranking quality and an actionable trade plan."""
+    gate_value = str(gate or "").upper()
+    decision_value = str(decision or "").upper()
+    plan_value = str(plan_status or "").upper()
+
+    if gate_value != "PASS":
+        return "AVOID"
+    if decision_value not in {"HIGH PRIORITY", "SHORTLIST"}:
+        return "WAIT"
+    if plan_value != "ENTRY AREA":
+        return "WAIT"
+    return "QUALIFIED"
+
+
+def classify_advanced_entry_signal(technical_entry: str, safety_gate: str) -> str:
+    """Safety can only downgrade a technically qualified advanced meme."""
+    technical = str(technical_entry or "").upper()
+    safety = str(safety_gate or "").upper()
+
+    if technical == "AVOID":
+        return "AVOID"
+    if technical != "QUALIFIED":
+        return "WAIT"
+    if safety == "PASS":
+        return "ENTRY QUALIFIED"
+    if safety == "FAIL":
+        return "SAFETY BLOCK"
+    return "SAFETY UNKNOWN"
