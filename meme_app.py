@@ -16,6 +16,7 @@ from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bul
 from meme_discovery_utils import extract_gecko_token_pool_candidates, merge_discovery_universes, trim_discovery_universe
 from meme_relevance import classify_meme_relevance
 from meme_launch_rules import LAUNCH_DEFAULTS, score_launch_candidate
+from meme_safety import SAFETY_DEFAULTS, fetch_token_safety
 import plotly.graph_objects as go
 
 
@@ -153,10 +154,22 @@ def launch_cell_style(value, column: str) -> str:
         return red
     if column == "Launch Gate":
         return green if label == "PASS" else red
-    if column == "Buy Signal":
-        if label == "BUY":
+    if column == "Entry Signal":
+        if label == "ENTRY QUALIFIED":
             return green
         if label == "WAIT":
+            return amber
+        return red
+    if column == "Technical Entry":
+        if label == "QUALIFIED":
+            return green
+        if label == "WAIT":
+            return amber
+        return red
+    if column == "Safety Gate":
+        if label == "PASS":
+            return green
+        if label == "NOT CHECKED":
             return amber
         return red
 
@@ -185,6 +198,12 @@ def get_json(url: str):
     r = requests.get(url, headers=HEADERS, timeout=20)
     r.raise_for_status()
     return r.json()
+
+
+@st.cache_data(ttl=90, show_spinner=False)
+def cached_launch_safety(chain_id: str, token_address: str, pair_address: str) -> Dict:
+    """Live safety check only for technically qualified launch candidates."""
+    return fetch_token_safety(chain_id, token_address, pair_address)
 
 
 @st.cache_data(ttl=60, show_spinner=False)
@@ -1429,6 +1448,8 @@ if "meme_scan_df" not in st.session_state:
     st.session_state.meme_scan_df = pd.DataFrame()
 if "meme_launch_scan_df" not in st.session_state:
     st.session_state.meme_launch_scan_df = pd.DataFrame()
+if "meme_launch_liquidity_history" not in st.session_state:
+    st.session_state.meme_launch_liquidity_history = {}
 if "meme_discovery_cache" not in st.session_state:
     st.session_state.meme_discovery_cache = {}
 if "meme_discovery_stats" not in st.session_state:
@@ -2118,22 +2139,23 @@ with tab_meme_launch:
 - **DATA BUILDING** — passes gates but needs stronger evidence
 - **LAUNCH AVOID** — fails one or more launch gates
 
-**Separate BUY overlay**
-A Launch Leader does **not** automatically mean BUY. BUY requires all current execution checks:
-- Gate PASS and at least **5 minutes old**
-- Launch score **70+**
-- Liquidity **$20,000+**
-- 5m volume **$4,000+**
-- At least **50 transactions in 5m**
-- 5m buy flow **52–75%**
-- 1h buy flow **50–78%**
-- 5m price move between **−5% and +12%**
-- 1h price move between **−10% and +40%**
-- 5m volume/liquidity between **0.05 and 1.00**
+**Entry architecture**
+The launch score is **not** an entry instruction.
 
-Signals are **BUY**, **WAIT**, or **AVOID**. The table shows the number of buy checks passed and every blocker.
+1. **Technical Entry** must pass all 11 market/flow checks: age 5m+, score 70+, liquidity $20k+, 5m volume $4k+, 50+ 5m transactions, balanced 5m/1h buy flow, non-extended price action and sensible 5m turnover/liquidity.
+2. Only a technically qualified coin is sent to the **live Safety Gate**.
+3. Final **ENTRY QUALIFIED** appears only when **Technical Entry = QUALIFIED** and **Safety Gate = PASS**.
 
-These thresholds are deliberately labelled provisional until the launch research/backtest has enough outcomes.
+**Mandatory Safety Gate**
+- Solana: mint/freeze authority, holder concentration, creator concentration, LP lock, RugCheck risks and insider-network flags.
+- EVM: honeypot/sellability, buy/sell tax, mint/admin controls, blacklist/pause/balance-change powers, creator/owner concentration, holder concentration and LP lock/burn data.
+- Ethereum/BSC/Base also receive an independent live buy/sell simulation where available.
+- Safety **FAIL** becomes **SAFETY BLOCK**.
+- Missing/incomplete/provider-unavailable critical safety data becomes **SAFETY UNKNOWN** and cannot qualify for entry.
+- Planned position must stay below **0.5% of live pool liquidity**.
+- A **25%+ liquidity drop since the previous scan** blocks entry; 10–25% becomes a warning.
+
+The safety thresholds remain conservative and provisional. **ENTRY QUALIFIED does not mean risk-free**; brand-new meme coins can still fail rapidly despite passing available checks.
 """
         )
 
@@ -2163,6 +2185,9 @@ These thresholds are deliberately labelled provisional until the launch research
             launch_best_pairs = best_pair_per_token(launch_pairs)
 
         launch_rows = []
+        safety_checks = 0
+        previous_liquidity = dict(st.session_state.meme_launch_liquidity_history)
+        refreshed_liquidity = {}
         now_ms = datetime.now(timezone.utc).timestamp() * 1000
         for key, pair in launch_best_pairs.items():
             age_h = pair_age_hours(pair.get("pairCreatedAt"))
@@ -2172,9 +2197,93 @@ These thresholds are deliberately labelled provisional until the launch research
             relevance = classify_meme_relevance(pair, meta)
             if relevance["status"] == "EXCLUDE":
                 continue
+
             row = score_launch_candidate(pair, now_ms=now_ms)
             row["Discovery"] = ", ".join(sorted(meta.get("sources", [])))
+            live_liquidity = safe(row.get("Liquidity"), 0)
+            prior_liquidity = safe(previous_liquidity.get(key), np.nan)
+            liquidity_change = (
+                (live_liquidity / prior_liquidity - 1.0) * 100.0
+                if live_liquidity > 0 and math.isfinite(prior_liquidity) and prior_liquidity > 0
+                else np.nan
+            )
+            row["Liquidity Change %"] = round(liquidity_change, 2) if math.isfinite(liquidity_change) else np.nan
+            row["Position/Liquidity %"] = (
+                round(planned_position_size / live_liquidity * 100.0, 4)
+                if live_liquidity > 0 else np.nan
+            )
+            refreshed_liquidity[key] = live_liquidity
+
+            if row.get("Technical Entry") == "QUALIFIED":
+                safety_checks += 1
+                safety = cached_launch_safety(
+                    str(row.get("Chain") or ""),
+                    str(row.get("Token Address") or ""),
+                    str(row.get("Pair Address") or ""),
+                )
+                blockers = [x for x in str(safety.get("Safety Blockers") or "").split("; ") if x]
+                warnings = [x for x in str(safety.get("Safety Warnings") or "").split("; ") if x]
+
+                position_liq_pct = safe(row.get("Position/Liquidity %"), np.nan)
+                if math.isfinite(position_liq_pct) and position_liq_pct > 0.5:
+                    blockers.append(
+                        f"Planned position is {position_liq_pct:.2f}% of pool liquidity (>0.50%)"
+                    )
+                    safety["Safety Gate"] = "FAIL"
+
+                if math.isfinite(liquidity_change):
+                    if liquidity_change <= -25:
+                        blockers.append(
+                            f"Liquidity fell {abs(liquidity_change):.1f}% since previous scan"
+                        )
+                        safety["Safety Gate"] = "FAIL"
+                    elif liquidity_change <= -10:
+                        warnings.append(
+                            f"Liquidity fell {abs(liquidity_change):.1f}% since previous scan"
+                        )
+
+                safety["Safety Blockers"] = "; ".join(dict.fromkeys(blockers))
+                safety["Safety Warnings"] = "; ".join(dict.fromkeys(warnings))
+                row.update(safety)
+                if row.get("Safety Gate") == "PASS":
+                    row["Entry Signal"] = "ENTRY QUALIFIED"
+                elif row.get("Safety Gate") == "FAIL":
+                    row["Entry Signal"] = "SAFETY BLOCK"
+                else:
+                    row["Entry Signal"] = "SAFETY UNKNOWN"
+            else:
+                row.update({
+                    "Safety Gate": "NOT CHECKED",
+                    "Safety Provider": "Not checked — technical entry not qualified",
+                    "Safety Blockers": "",
+                    "Safety Warnings": "",
+                    "Safety Coverage": "",
+                    "Sell Test": "NOT CHECKED",
+                    "Honeypot": "NOT CHECKED",
+                    "Risk Level": np.nan,
+                    "Risk Label": "",
+                    "Buy Tax %": np.nan,
+                    "Sell Tax %": np.nan,
+                    "LP Locked %": np.nan,
+                    "Largest Holder %": np.nan,
+                    "Top 10 Holders %": np.nan,
+                    "Creator %": np.nan,
+                    "Owner %": np.nan,
+                    "Mint Authority": "NOT CHECKED",
+                    "Freeze Authority": "NOT CHECKED",
+                    "Contract Open Source": "NOT CHECKED",
+                    "Insider Networks": np.nan,
+                    "Safety Checked At": "",
+                })
+                row["Entry Signal"] = (
+                    "AVOID" if row.get("Technical Entry") == "AVOID" else "WAIT"
+                )
             launch_rows.append(row)
+
+        st.session_state.meme_launch_liquidity_history = {
+            **previous_liquidity,
+            **refreshed_liquidity,
+        }
 
         if not launch_rows:
             st.session_state.meme_launch_scan_df = pd.DataFrame()
@@ -2188,33 +2297,43 @@ These thresholds are deliberately labelled provisional until the launch research
                 "LAUNCH AVOID": 3,
             }
             launch_df["_rank"] = launch_df["Launch Decision"].map(rank).fillna(9)
-            launch_df["_buy_rank"] = launch_df["Buy Signal"].map({"BUY": 0, "WAIT": 1, "AVOID": 2}).fillna(3)
+            launch_df["_entry_rank"] = launch_df["Entry Signal"].map({
+                "ENTRY QUALIFIED": 0,
+                "WAIT": 1,
+                "SAFETY UNKNOWN": 2,
+                "SAFETY BLOCK": 3,
+                "AVOID": 4,
+            }).fillna(5)
             launch_df = launch_df.sort_values(
-                ["_buy_rank", "_rank", "Launch Score", "Liquidity", "5m Volume"],
+                ["_entry_rank", "_rank", "Launch Score", "Liquidity", "5m Volume"],
                 ascending=[True, True, False, False, False],
                 na_position="last",
-            ).drop(columns=["_buy_rank", "_rank"])
+            ).drop(columns=["_entry_rank", "_rank"])
             st.session_state.meme_launch_scan_df = launch_df.copy()
 
     launch_df = st.session_state.meme_launch_scan_df.copy()
     if not launch_df.empty:
         lm1, lm2, lm3, lm4, lm5, lm6 = st.columns(6)
-        lm1.metric("BUY", int((launch_df["Buy Signal"] == "BUY").sum()))
-        lm2.metric("Launch leaders", int((launch_df["Launch Decision"] == "LAUNCH LEADER").sum()))
-        lm3.metric("Launch watch", int((launch_df["Launch Decision"] == "LAUNCH WATCH").sum()))
-        lm4.metric("Data building", int((launch_df["Launch Decision"] == "DATA BUILDING").sum()))
-        lm5.metric("Avoid", int((launch_df["Launch Decision"] == "LAUNCH AVOID").sum()))
+        lm1.metric("Entry qualified", int((launch_df["Entry Signal"] == "ENTRY QUALIFIED").sum()))
+        lm2.metric("Safety blocked", int((launch_df["Entry Signal"] == "SAFETY BLOCK").sum()))
+        lm3.metric("Safety unknown", int((launch_df["Entry Signal"] == "SAFETY UNKNOWN").sum()))
+        lm4.metric("Launch leaders", int((launch_df["Launch Decision"] == "LAUNCH LEADER").sum()))
+        lm5.metric("Launch watch", int((launch_df["Launch Decision"] == "LAUNCH WATCH").sum()))
         lm6.metric("Brand-new checked", len(launch_df))
 
         launch_view = st.radio(
             "Show launch candidates",
-            ["BUY", "Best", "Launch leaders", "Launch watch", "Data building", "All"],
+            ["Entry qualified", "Safety blocked", "Safety unknown", "Best", "Launch leaders", "Launch watch", "Data building", "All"],
             horizontal=True,
             key="launch_candidate_filter",
         )
         shown_launch = launch_df.copy()
-        if launch_view == "BUY":
-            shown_launch = shown_launch[shown_launch["Buy Signal"] == "BUY"]
+        if launch_view == "Entry qualified":
+            shown_launch = shown_launch[shown_launch["Entry Signal"] == "ENTRY QUALIFIED"]
+        elif launch_view == "Safety blocked":
+            shown_launch = shown_launch[shown_launch["Entry Signal"] == "SAFETY BLOCK"]
+        elif launch_view == "Safety unknown":
+            shown_launch = shown_launch[shown_launch["Entry Signal"] == "SAFETY UNKNOWN"]
         elif launch_view == "Best":
             shown_launch = shown_launch[
                 shown_launch["Launch Decision"].isin(["LAUNCH LEADER", "LAUNCH WATCH"])
@@ -2227,17 +2346,24 @@ These thresholds are deliberately labelled provisional until the launch research
             shown_launch = shown_launch[shown_launch["Launch Decision"] == "DATA BUILDING"]
 
         launch_cols = [
-            "Ticker", "Name", "Chain", "Buy Signal", "Buy Criteria", "Buy Blockers",
+            "Ticker", "Name", "Chain", "Entry Signal", "Technical Entry",
+            "Entry Criteria", "Entry Blockers", "Safety Gate", "Safety Provider",
+            "Safety Blockers", "Safety Warnings", "Sell Test", "Honeypot",
+            "Buy Tax %", "Sell Tax %", "LP Locked %", "Largest Holder %",
+            "Top 10 Holders %", "Creator %", "Owner %", "Mint Authority",
+            "Freeze Authority", "Contract Open Source", "Insider Networks",
             "Launch Decision", "Launch Score", "Launch Gate",
-            "Age min", "Price USD", "Liquidity", "5m Volume", "1h Volume",
+            "Age min", "Price USD", "Liquidity", "Position/Liquidity %",
+            "Liquidity Change %", "5m Volume", "1h Volume",
             "5m Tx", "5m Buy %", "1h Tx", "1h Buy %",
             "5m %", "1h %", "5m Vol/Liq", "5m Tx/min",
-            "Launch Gate Reasons", "Launch Cautions", "Decision Constraint", "Discovery",
+            "Launch Gate Reasons", "Launch Cautions", "Decision Constraint",
+            "Safety Coverage", "Discovery",
         ]
         launch_cols = [col for col in launch_cols if col in shown_launch.columns]
         launch_display = shown_launch[launch_cols]
         launch_styled = launch_display.style
-        for col in ["Buy Signal", "Launch Decision", "Launch Score", "Launch Gate", "Liquidity", "5m Volume", "5m Tx", "5m Buy %", "5m %", "1h %"]:
+        for col in ["Entry Signal", "Technical Entry", "Safety Gate", "Launch Decision", "Launch Score", "Launch Gate", "Liquidity", "5m Volume", "5m Tx", "5m Buy %", "5m %", "1h %"]:
             if col in launch_display.columns:
                 launch_styled = launch_styled.map(
                     lambda value, column=col: launch_cell_style(value, column),
@@ -2245,8 +2371,8 @@ These thresholds are deliberately labelled provisional until the launch research
                 )
         st.dataframe(launch_styled, hide_index=True, use_container_width=True)
         st.caption(
-            "BUY is a stricter rule-based execution signal layered on top of launch quality; "
-            "a Launch Leader can still be WAIT. These launch signals are high-risk and provisional."
+            "ENTRY QUALIFIED requires both technical qualification and a live Safety Gate PASS. "
+            "Safety FAIL/UNKNOWN can never produce a green entry signal. Brand-new memes remain extremely high-risk."
         )
     else:
         st.info("Run the brand-new scan to populate the 0–2 hour launch lane.")
