@@ -2096,6 +2096,8 @@ with tab_meme_launch:
 - Minimum 5-minute volume: **${LAUNCH_DEFAULTS['min_5m_volume_usd']:,.0f}**
 - Minimum 5-minute transactions: **{LAUNCH_DEFAULTS['min_5m_transactions']}**
 - Anti-chase: reject if 5m rise exceeds **{LAUNCH_DEFAULTS['max_5m_rise_pct']:.0f}%** or 1h rise exceeds **{LAUNCH_DEFAULTS['max_1h_rise_pct']:.0f}%**
+- Downside protection: reject if the 5m move falls more than **{LAUNCH_DEFAULTS['max_5m_drop_pct']:.0f}%**
+- Observation floor: **under 5 minutes old can never rank above DATA BUILDING**
 
 **Scoring emphasis**
 - **30 pts** quality-adjusted participation / transaction pace
@@ -2204,7 +2206,7 @@ These thresholds are deliberately labelled provisional until the launch research
             "Age min", "Price USD", "Liquidity", "5m Volume", "1h Volume",
             "5m Tx", "5m Buy %", "1h Tx", "1h Buy %",
             "5m %", "1h %", "5m Vol/Liq", "5m Tx/min",
-            "Launch Gate Reasons", "Launch Cautions", "Discovery",
+            "Launch Gate Reasons", "Launch Cautions", "Decision Constraint", "Discovery",
         ]
         launch_cols = [col for col in launch_cols if col in shown_launch.columns]
         launch_display = shown_launch[launch_cols]
