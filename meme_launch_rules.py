@@ -17,6 +17,7 @@ LAUNCH_DEFAULTS = {
     "min_5m_volume_usd": 2_000.0,
     "min_5m_transactions": 20,
     "max_5m_rise_pct": 35.0,
+    "max_5m_drop_pct": 30.0,
     "max_1h_rise_pct": 120.0,
     "strong_score": 70.0,
     "watch_score": 55.0,
@@ -93,6 +94,8 @@ def score_launch_candidate(
         hard_failures.append("Too few 5m transactions")
     if ch5 > rules["max_5m_rise_pct"] or ch1 > rules["max_1h_rise_pct"]:
         hard_failures.append("Vertical / chase-risk launch")
+    if ch5 < -abs(rules["max_5m_drop_pct"]):
+        hard_failures.append("Severe 5m price collapse")
 
     if buy_share5 > 0.85 and total5 >= 20:
         cautions.append("Extremely one-sided 5m flow")
@@ -100,7 +103,10 @@ def score_launch_candidate(
         cautions.append("Seller-heavy 5m flow")
     if vol_liq_5m > 2.0:
         cautions.append("5m turnover extremely high vs liquidity")
-    if math.isfinite(age_h) and age_h < (5.0 / 60.0):
+    if -abs(rules["max_5m_drop_pct"]) <= ch5 <= -20.0:
+        cautions.append("Heavy 5m drawdown")
+    under_five_minutes = math.isfinite(age_h) and age_h < (5.0 / 60.0)
+    if under_five_minutes:
         cautions.append("Under 5 minutes old — data still forming")
 
     score = 0.0
@@ -157,14 +163,18 @@ def score_launch_candidate(
     score = round(min(100.0, score), 1)
     gate_pass = not hard_failures
 
-    if gate_pass and score >= rules["strong_score"]:
-        decision = "LAUNCH LEADER"
-    elif gate_pass and score >= rules["watch_score"]:
-        decision = "LAUNCH WATCH"
-    elif gate_pass:
-        decision = "DATA BUILDING"
-    else:
+    decision_constraint = ""
+    if not gate_pass:
         decision = "LAUNCH AVOID"
+    elif under_five_minutes:
+        decision = "DATA BUILDING"
+        decision_constraint = "Under 5 minutes old — decision capped at DATA BUILDING"
+    elif score >= rules["strong_score"]:
+        decision = "LAUNCH LEADER"
+    elif score >= rules["watch_score"]:
+        decision = "LAUNCH WATCH"
+    else:
+        decision = "DATA BUILDING"
 
     base = pair.get("baseToken") or {}
     quote = pair.get("quoteToken") or {}
@@ -195,6 +205,7 @@ def score_launch_candidate(
         "5m Tx/min": round(tx_rate_5m, 1),
         "Launch Gate Reasons": "; ".join(hard_failures),
         "Launch Cautions": "; ".join(cautions),
+        "Decision Constraint": decision_constraint,
         "Pair Address": pair.get("pairAddress") or "",
         "Token Address": base.get("address") or "",
         "DexScreener": pair.get("url") or "",
