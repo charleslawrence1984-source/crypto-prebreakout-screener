@@ -8,6 +8,8 @@ on:
       - "meme_app.py"
       - "meme_trade_utils.py"
       - "test_meme_trade_utils.py"
+      - "meme_discovery_utils.py"
+      - "test_meme_discovery_utils.py"
       - "meme_launch_research.py"
       - "pre_pump_research.py"
       - "crypto_rule_engine.py"
@@ -30,8 +32,8 @@ jobs:
         with:
           python-version: "3.12"
       - name: Compile Python files
-        run: python -m py_compile app.py meme_app.py meme_trade_utils.py test_meme_trade_utils.py meme_launch_research.py pre_pump_research.py crypto_rule_engine.py crypto_market_pipeline.py crypto_macro.py crypto_accumulation_model.py stock_app.py strategy_scores_v3.py two_strategy.py scheduled_investment_scan.py
+        run: python -m py_compile app.py meme_app.py meme_trade_utils.py test_meme_trade_utils.py meme_discovery_utils.py test_meme_discovery_utils.py meme_launch_research.py pre_pump_research.py crypto_rule_engine.py crypto_market_pipeline.py crypto_macro.py crypto_accumulation_model.py stock_app.py strategy_scores_v3.py two_strategy.py scheduled_investment_scan.py
       - name: Install meme trade test dependencies
         run: pip install pandas pytest
-      - name: Run meme trade-plan regression tests
-        run: pytest -q test_meme_trade_utils.py
+      - name: Run meme regression tests
+        run: pytest -q test_meme_trade_utils.py test_meme_discovery_utils.py
