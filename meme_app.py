@@ -12,7 +12,7 @@ import pandas as pd
 import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_signal_decision_card
-from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices
+from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices, classify_advanced_technical_entry, classify_advanced_entry_signal
 from meme_discovery_utils import extract_gecko_token_pool_candidates, merge_discovery_universes, trim_discovery_universe
 from meme_relevance import classify_meme_relevance
 from meme_launch_rules import LAUNCH_DEFAULTS, score_launch_candidate
@@ -2613,20 +2613,18 @@ with tab_meme_advanced:
                     df.at[idx, "Liquidity Change %"] = round(liq_change, 2)
                 refreshed_adv_liquidity[key] = live_liq
 
-                gate_pass = str(row.get("Gate") or "").upper() == "PASS"
-                rank_ready = str(row.get("Decision") or "") in {"HIGH PRIORITY", "SHORTLIST"}
-                plan_ready = str(row.get("Plan Status") or "").upper() == "ENTRY AREA"
-
-                if not gate_pass:
-                    df.at[idx, "Technical Entry"] = "AVOID"
-                    df.at[idx, "Entry Signal"] = "AVOID"
+                technical_entry = classify_advanced_technical_entry(
+                    row.get("Gate"),
+                    row.get("Decision"),
+                    row.get("Plan Status"),
+                )
+                df.at[idx, "Technical Entry"] = technical_entry
+                if technical_entry != "QUALIFIED":
+                    df.at[idx, "Entry Signal"] = classify_advanced_entry_signal(
+                        technical_entry,
+                        "NOT CHECKED",
+                    )
                     continue
-                if not rank_ready or not plan_ready:
-                    df.at[idx, "Technical Entry"] = "WAIT"
-                    df.at[idx, "Entry Signal"] = "WAIT"
-                    continue
-
-                df.at[idx, "Technical Entry"] = "QUALIFIED"
                 safety_checks += 1
                 safety = cached_meme_safety(
                     str(row.get("Chain") or ""),
@@ -2661,12 +2659,10 @@ with tab_meme_advanced:
                         df[col] = np.nan
                     df.at[idx, col] = value
 
-                if str(safety.get("Safety Gate") or "").upper() == "PASS":
-                    df.at[idx, "Entry Signal"] = "ENTRY QUALIFIED"
-                elif str(safety.get("Safety Gate") or "").upper() == "FAIL":
-                    df.at[idx, "Entry Signal"] = "SAFETY BLOCK"
-                else:
-                    df.at[idx, "Entry Signal"] = "SAFETY UNKNOWN"
+                df.at[idx, "Entry Signal"] = classify_advanced_entry_signal(
+                    technical_entry,
+                    safety.get("Safety Gate"),
+                )
 
             st.session_state.meme_advanced_liquidity_history = {
                 **previous_adv_liquidity,
