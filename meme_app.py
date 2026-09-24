@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import time
 from datetime import datetime, timezone
 from typing import Dict, Iterable, List, Optional
 
@@ -137,19 +138,39 @@ def get_json(url: str):
     return r.json()
 
 
+def gecko_get(url: str, params: Optional[Dict] = None, timeout: int = 20):
+    """Resilient public GeckoTerminal GET with small 429/5xx backoff."""
+    last_response = None
+    for attempt in range(3):
+        r = requests.get(
+            url,
+            params=params or {},
+            headers=GECKO_HEADERS,
+            timeout=timeout,
+        )
+        last_response = r
+        if r.status_code not in {429, 500, 502, 503, 504}:
+            r.raise_for_status()
+            return r
+        if attempt < 2:
+            retry_after = safe(r.headers.get("Retry-After"), 0)
+            delay = retry_after if retry_after > 0 else 1.5 * (attempt + 1)
+            time.sleep(min(delay, 5.0))
+    last_response.raise_for_status()
+    return last_response
+
+
 @st.cache_data(ttl=60, show_spinner=False)
 def gecko_new_pools_page(network: str, page: int) -> Dict:
     """One rotating GeckoTerminal new-pools page for a selected network."""
-    r = requests.get(
+    r = gecko_get(
         f"{GECKO_API}/networks/{network}/new_pools",
         params={
             "page": max(1, min(10, int(page))),
             "include": "base_token,quote_token,dex",
         },
-        headers=GECKO_HEADERS,
         timeout=20,
     )
-    r.raise_for_status()
     payload = r.json() or {}
     return payload if isinstance(payload, dict) else {}
 
@@ -399,12 +420,7 @@ def fetch_pool_ohlcv(chain_id: str, pool_address: str, token_address: str, chart
         "token": token_address or "base",
         "include_empty_intervals": "true",
     }
-    headers = {
-        "User-Agent": HEADERS["User-Agent"],
-        "Accept": "application/json;version=20230203",
-    }
-    r = requests.get(url, params=params, headers=headers, timeout=20)
-    r.raise_for_status()
+    r = gecko_get(url, params=params, timeout=20)
     payload = r.json() or {}
     rows = (((payload.get("data") or {}).get("attributes") or {}).get("ohlcv_list") or [])
     if not rows:
@@ -1198,7 +1214,7 @@ with st.sidebar:
         index=1,
         help=(
             "Only hard-gate PASS candidates receive bulk trade plans. The public OHLCV API is "
-            "rate-limited, so bulk planning is capped conservatively; Quick Analysis can build "
+            "rate-limited, so bulk planning remains capped; Quick Analysis can build "
             "an on-demand plan for any individual coin."
         ),
     )
@@ -1951,9 +1967,10 @@ with tab_meme_advanced:
             pairs = fetch_pairs_for_tokens(universe, chains)
             best_pairs = best_pair_per_token(pairs)
 
-        # Reserve the same public GeckoTerminal call budget between discovery
-        # and expensive OHLCV trade-plan work. Leave one call of headroom.
-        trade_plan_api_budget = max(0, min(cfg["trade_plan_count"], 9 - gecko_calls))
+        # GeckoTerminal's public API is currently documented at 30 calls/minute.
+        # With one new-pool call per selected chain and one OHLCV call per trade
+        # plan, the normal 5-chain + 8-plan scan remains comfortably below that.
+        trade_plan_api_budget = min(cfg["trade_plan_count"], 8)
         st.session_state.meme_discovery_stats = {
             "rolling_universe": len(universe),
             "dex_surface_tokens": len(dex_universe),
@@ -1983,7 +2000,7 @@ with tab_meme_advanced:
             df["_order"] = df["Decision"].map(order).fillna(9)
             df = df.sort_values(["_order", "Score", "Liquidity"], ascending=[True, False, False]).drop(columns=["_order"])
             with st.spinner(
-                f"Calculating entry / exit zones for up to {cfg['trade_plan_count']} hard-gate PASS candidates…"
+                f"Calculating entry / exit zones for up to {cfg['trade_plan_count']} trade-relevant Gate-PASS candidates…"
             ):
                 df = attach_bulk_trade_plans(
                     df,
