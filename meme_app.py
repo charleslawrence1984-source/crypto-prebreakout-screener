@@ -12,6 +12,7 @@ import streamlit as st
 from cl_signal_ui import render_module_header, render_signal_decision_card
 from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices
 from meme_discovery_utils import GECKO_TO_DEX_CHAIN, merge_discovery_universes, parse_gecko_new_pool_tokens, trim_discovery_universe
+from meme_relevance import classify_meme_relevance
 import plotly.graph_objects as go
 
 
@@ -1238,6 +1239,10 @@ if "meme_discovery_page_cursor" not in st.session_state:
     st.session_state.meme_discovery_page_cursor = {}
 if "meme_discovery_stats" not in st.session_state:
     st.session_state.meme_discovery_stats = {}
+if "meme_excluded_df" not in st.session_state:
+    st.session_state.meme_excluded_df = pd.DataFrame()
+if "meme_quick_exclusion" not in st.session_state:
+    st.session_state.meme_quick_exclusion = None
 
 if (
     isinstance(st.session_state.meme_scan_df, pd.DataFrame)
@@ -1412,14 +1417,36 @@ with tab_meme_quick:
                 except Exception:
                     meta = {}
 
-                result = score_candidate(selected_pair, meta, cfg)
-                st.session_state.meme_quick_analysis = {
-                    "pair_address": result.get("Pair Address") or "",
-                    "result": result,
-                }
+                relevance = classify_meme_relevance(selected_pair, meta)
+                if relevance["status"] == "EXCLUDE":
+                    st.session_state.meme_quick_analysis = None
+                    st.session_state.meme_quick_exclusion = {
+                        "pair_address": str(selected_pair.get("pairAddress") or ""),
+                        "ticker": str(base.get("symbol") or "—"),
+                        "name": str(base.get("name") or "—"),
+                        "reason": relevance["reason"],
+                        "confidence": relevance["confidence"],
+                    }
+                else:
+                    result = score_candidate(selected_pair, meta, cfg)
+                    st.session_state.meme_quick_exclusion = None
+                    st.session_state.meme_quick_analysis = {
+                        "pair_address": result.get("Pair Address") or "",
+                        "result": result,
+                    }
 
             saved_analysis = st.session_state.get("meme_quick_analysis")
+            quick_exclusion = st.session_state.get("meme_quick_exclusion")
             selected_pair_address = str(selected_pair.get("pairAddress") or "")
+            if (
+                quick_exclusion
+                and quick_exclusion.get("pair_address") == selected_pair_address
+            ):
+                st.warning(
+                    f"Excluded from meme scoring: **{quick_exclusion.get('reason')}** "
+                    f"(confidence: {quick_exclusion.get('confidence')}). "
+                    "The pair can still be searched, but it is not treated as a meme-coin candidate."
+                )
             if (
                 saved_analysis
                 and saved_analysis.get("pair_address") == selected_pair_address
@@ -1899,8 +1926,9 @@ with tab_meme_advanced:
     st.info(
         "Discovery now combines DexScreener profiles/boosts/community takeovers with a rotating "
         "GeckoTerminal new-pool crawl. Each scan advances one page per selected chain and keeps a "
-        "rolling candidate cache, so the universe grows far beyond promoted tokens. Boosts remain "
-        "a small discovery signal, not proof of quality."
+        "rolling candidate cache, so the universe grows far beyond promoted tokens. Before meme "
+        "scoring, a conservative relevance filter removes only high-confidence non-meme assets "
+        "such as tokenized stocks/RWAs, stablecoins and wrapped majors. Ambiguous assets stay in."
     )
 
     if st.button("Run meme coin scan", type="primary", use_container_width=True):
@@ -1982,9 +2010,26 @@ with tab_meme_advanced:
         }
 
         rows = []
+        excluded_rows = []
         for k, p in best_pairs.items():
             meta = universe.get(k, {})
+            relevance = classify_meme_relevance(p, meta)
+            if relevance["status"] == "EXCLUDE":
+                base = p.get("baseToken") or {}
+                excluded_rows.append({
+                    "Ticker": base.get("symbol") or "—",
+                    "Name": base.get("name") or "—",
+                    "Chain": p.get("chainId") or "—",
+                    "Reason": relevance["reason"],
+                    "Confidence": relevance["confidence"],
+                    "Discovery": ", ".join(sorted(meta.get("sources", []))),
+                })
+                continue
             rows.append(score_candidate(p, meta, cfg))
+
+        st.session_state.meme_excluded_df = pd.DataFrame(excluded_rows)
+        st.session_state.meme_discovery_stats["excluded_non_meme"] = len(excluded_rows)
+        st.session_state.meme_discovery_stats["scored_pairs"] = len(rows)
 
         if not rows:
             st.warning("No candidates returned from the selected discovery feeds/chains.")
@@ -2018,8 +2063,24 @@ with tab_meme_advanced:
             st.caption(
                 f"Discovery universe: **{len(universe):,} cached tokens** · "
                 f"new-pool discoveries this scan: **{len(gecko_universe):,}** · "
-                f"scored live pairs: **{len(df):,}** · rotating pages: {page_text}"
+                f"live pairs enriched: **{len(best_pairs):,}** · "
+                f"non-meme excluded: **{len(excluded_rows):,}** · "
+                f"meme candidates scored: **{len(df):,}** · rotating pages: {page_text}"
             )
+            if excluded_rows:
+                with st.expander(
+                    f"Excluded non-meme assets ({len(excluded_rows)})",
+                    expanded=False,
+                ):
+                    st.caption(
+                        "Only high-confidence non-meme categories are removed automatically. "
+                        "Ambiguous assets remain in the meme screener."
+                    )
+                    st.dataframe(
+                        pd.DataFrame(excluded_rows),
+                        hide_index=True,
+                        use_container_width=True,
+                    )
             if discovery_warnings:
                 with st.expander(f"{len(discovery_warnings)} discovery-source warning(s)"):
                     st.code("\n".join(discovery_warnings))
