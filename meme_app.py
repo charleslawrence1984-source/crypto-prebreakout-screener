@@ -32,8 +32,6 @@ CHAIN_OPTIONS = {
 DEFAULTS = {
     "min_liquidity": 50_000.0,
     "min_volume_24h": 100_000.0,
-    "min_market_cap": 100_000.0,
-    "max_market_cap": 50_000_000.0,
     "min_pair_age_hours": 2.0,
     "max_1h_change": 12.0,
     "max_24h_change": 45.0,
@@ -854,10 +852,6 @@ def score_candidate(pair: Dict, meta: Dict, cfg: Dict) -> Dict:
         gates.append("Low liquidity")
     if vol24 < cfg["min_volume_24h"]:
         gates.append("Low 24h volume")
-    if np.isnan(mcap) or mcap < cfg["min_market_cap"]:
-        gates.append("Market cap too small/unknown")
-    elif mcap > cfg["max_market_cap"]:
-        gates.append("Market cap above target range")
     if tokenomics_gate == "FAIL":
         gates.append(
             f"Low circulating float (<{cfg['min_circulating_pct']:.0f}%)"
@@ -1111,8 +1105,7 @@ with st.sidebar:
     )
     min_liq = st.number_input("Minimum liquidity ($)", min_value=0, value=int(DEFAULTS["min_liquidity"]), step=10_000)
     min_vol = st.number_input("Minimum 24h volume ($)", min_value=0, value=int(DEFAULTS["min_volume_24h"]), step=25_000)
-    min_cap = st.number_input("Minimum market cap ($)", min_value=0, value=int(DEFAULTS["min_market_cap"]), step=100_000)
-    max_cap = st.number_input("Maximum market cap ($)", min_value=100_000, value=int(DEFAULTS["max_market_cap"]), step=1_000_000)
+    st.caption("Market cap has no minimum or maximum gate. It is shown for context only.")
     min_age = st.number_input("Minimum pair age (hours)", min_value=0.0, value=DEFAULTS["min_pair_age_hours"], step=1.0)
     max_1h = st.number_input("Anti-chase: max 1h rise %", min_value=1.0, value=DEFAULTS["max_1h_change"], step=1.0)
     max_24h = st.number_input("Anti-chase: max 24h rise %", min_value=5.0, value=DEFAULTS["max_24h_change"], step=5.0)
@@ -1154,8 +1147,6 @@ with st.sidebar:
 cfg = {
     "min_liquidity": float(min_liq),
     "min_volume_24h": float(min_vol),
-    "min_market_cap": float(min_cap),
-    "max_market_cap": float(max_cap),
     "min_pair_age_hours": float(min_age),
     "max_1h_change": float(max_1h),
     "max_24h_change": float(max_24h),
@@ -1892,7 +1883,7 @@ with tab_meme_advanced:
     - **8 — Momentum without chasing:** constructive 1h/6h/24h movement scores better than a vertical pump.
     - **4 — Pair maturity:** enough history to reduce immediate-launch noise.
 
-    **Hard gates** currently cover liquidity, volume, market-cap range, minimum pair age, anti-chase limits and the meme tokenomics rule: **at least 10% circulating float**. Because very new DEX tokens often lack a verified supply feed, v0.1 estimates circulating float as **market cap ÷ FDV** when both values are available. If it cannot verify the ratio, tokenomics is UNKNOWN and the coin does not pass the hard gate. A **FDV/market-cap ratio of 10x or more** is flagged as high-FDV/low-float risk.
+    **Hard gates** currently cover liquidity, volume, minimum pair age, anti-chase limits and the meme tokenomics rule: **at least 10% circulating float**. **Market cap itself has no minimum or maximum rule and is informational only.** Because very new DEX tokens often lack a verified supply feed, v0.1 estimates circulating float as **market cap ÷ FDV** when both values are available. If it cannot verify the ratio, tokenomics is UNKNOWN and the coin does not pass the hard gate. A **FDV/market-cap ratio of 10x or more** is flagged as high-FDV/low-float risk.
 
     Detailed VC allocations and insider unlock schedules are not guessed; they require a specialist verified tokenomics/unlock source and are marked for separate review.
 
