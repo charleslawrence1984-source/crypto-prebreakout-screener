@@ -76,10 +76,49 @@ def test_older_than_two_hours_is_not_a_launch_candidate():
     assert "Older than launch lane" in result["Launch Gate Reasons"]
 
 
-def test_under_five_minutes_is_kept_but_flagged_data_forming():
+def test_under_five_minutes_is_capped_at_data_building():
     result = score_launch_candidate(
-        launch_pair(age_minutes=3),
+        launch_pair(
+            age_minutes=1.6,
+            liquidity=100_000,
+            vol5=50_000,
+            buys5=120,
+            sells5=60,
+        ),
         now_ms=NOW_MS,
     )
 
+    assert result["Launch Gate"] == "PASS"
+    assert result["Launch Score"] >= LAUNCH_DEFAULTS["strong_score"]
+    assert result["Launch Decision"] == "DATA BUILDING"
     assert "Under 5 minutes old" in result["Launch Cautions"]
+    assert "capped at DATA BUILDING" in result["Decision Constraint"]
+
+
+def test_severe_five_minute_collapse_is_launch_avoid():
+    result = score_launch_candidate(
+        launch_pair(
+            age_minutes=109.6,
+            liquidity=75_000,
+            vol5=30_000,
+            buys5=90,
+            sells5=60,
+            ch5=-39.24,
+            ch1=10,
+        ),
+        now_ms=NOW_MS,
+    )
+
+    assert result["Launch Gate"] == "FAIL"
+    assert result["Launch Decision"] == "LAUNCH AVOID"
+    assert "Severe 5m price collapse" in result["Launch Gate Reasons"]
+
+
+def test_heavy_but_not_severe_drawdown_is_caution_only():
+    result = score_launch_candidate(
+        launch_pair(ch5=-25),
+        now_ms=NOW_MS,
+    )
+
+    assert result["Launch Gate"] == "PASS"
+    assert "Heavy 5m drawdown" in result["Launch Cautions"]
