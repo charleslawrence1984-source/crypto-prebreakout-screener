@@ -21,6 +21,20 @@ LAUNCH_DEFAULTS = {
     "max_1h_rise_pct": 120.0,
     "strong_score": 70.0,
     "watch_score": 55.0,
+    "buy_min_score": 70.0,
+    "buy_min_liquidity_usd": 20_000.0,
+    "buy_min_5m_volume_usd": 4_000.0,
+    "buy_min_5m_transactions": 50,
+    "buy_min_5m_buy_pct": 52.0,
+    "buy_max_5m_buy_pct": 75.0,
+    "buy_min_1h_buy_pct": 50.0,
+    "buy_max_1h_buy_pct": 78.0,
+    "buy_min_5m_change_pct": -5.0,
+    "buy_max_5m_change_pct": 12.0,
+    "buy_min_1h_change_pct": -10.0,
+    "buy_max_1h_change_pct": 40.0,
+    "buy_min_5m_vol_liq": 0.05,
+    "buy_max_5m_vol_liq": 1.0,
 }
 
 
@@ -176,6 +190,65 @@ def score_launch_candidate(
     else:
         decision = "DATA BUILDING"
 
+    # BUY is a stricter execution overlay than LAUNCH LEADER.
+    # A high launch score alone is never enough.
+    buy_checks = [
+        ("Launch gate passes", gate_pass),
+        ("Age is at least 5 minutes", not under_five_minutes),
+        ("Launch score >= {:.0f}".format(rules["buy_min_score"]), score >= rules["buy_min_score"]),
+        (
+            "Liquidity >= ${:,.0f}".format(rules["buy_min_liquidity_usd"]),
+            liq >= rules["buy_min_liquidity_usd"],
+        ),
+        (
+            "5m volume >= ${:,.0f}".format(rules["buy_min_5m_volume_usd"]),
+            vol5 >= rules["buy_min_5m_volume_usd"],
+        ),
+        (
+            "5m transactions >= {}".format(rules["buy_min_5m_transactions"]),
+            total5 >= rules["buy_min_5m_transactions"],
+        ),
+        (
+            "5m buy flow {:.0f}–{:.0f}%".format(
+                rules["buy_min_5m_buy_pct"],
+                rules["buy_max_5m_buy_pct"],
+            ),
+            rules["buy_min_5m_buy_pct"] <= buy_share5 * 100.0 <= rules["buy_max_5m_buy_pct"],
+        ),
+        (
+            "1h buy flow {:.0f}–{:.0f}%".format(
+                rules["buy_min_1h_buy_pct"],
+                rules["buy_max_1h_buy_pct"],
+            ),
+            total1h > 0
+            and rules["buy_min_1h_buy_pct"] <= buy_share1h * 100.0 <= rules["buy_max_1h_buy_pct"],
+        ),
+        (
+            "5m move {:.0f}% to +{:.0f}%".format(
+                rules["buy_min_5m_change_pct"],
+                rules["buy_max_5m_change_pct"],
+            ),
+            rules["buy_min_5m_change_pct"] <= ch5 <= rules["buy_max_5m_change_pct"],
+        ),
+        (
+            "1h move {:.0f}% to +{:.0f}%".format(
+                rules["buy_min_1h_change_pct"],
+                rules["buy_max_1h_change_pct"],
+            ),
+            rules["buy_min_1h_change_pct"] <= ch1 <= rules["buy_max_1h_change_pct"],
+        ),
+        (
+            "5m turnover/liquidity {:.2f}–{:.2f}".format(
+                rules["buy_min_5m_vol_liq"],
+                rules["buy_max_5m_vol_liq"],
+            ),
+            rules["buy_min_5m_vol_liq"] <= vol_liq_5m <= rules["buy_max_5m_vol_liq"],
+        ),
+    ]
+    buy_passed = [label for label, passed in buy_checks if passed]
+    buy_blockers = [label for label, passed in buy_checks if not passed]
+    buy_signal = "BUY" if not buy_blockers else ("AVOID" if not gate_pass else "WAIT")
+
     base = pair.get("baseToken") or {}
     quote = pair.get("quoteToken") or {}
 
@@ -188,6 +261,9 @@ def score_launch_candidate(
         "Launch Decision": decision,
         "Launch Score": score,
         "Launch Gate": "PASS" if gate_pass else "FAIL",
+        "Buy Signal": buy_signal,
+        "Buy Criteria": f"{len(buy_passed)}/{len(buy_checks)}",
+        "Buy Blockers": "; ".join(buy_blockers),
         "Age min": round(age_h * 60.0, 1) if math.isfinite(age_h) else np.nan,
         "Price USD": _safe(pair.get("priceUsd")),
         "Liquidity": liq,
