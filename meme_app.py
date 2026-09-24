@@ -13,7 +13,7 @@ import requests
 import streamlit as st
 from cl_signal_ui import render_module_header, render_signal_decision_card
 from meme_trade_utils import aggregate_ohlcv, classify_meme_decision, select_bulk_plan_indices
-from meme_discovery_utils import GECKO_TO_DEX_CHAIN, extract_gecko_token_pool_candidates, merge_discovery_universes, parse_gecko_new_pool_tokens, trim_discovery_universe
+from meme_discovery_utils import extract_gecko_token_pool_candidates, merge_discovery_universes, trim_discovery_universe
 from meme_relevance import classify_meme_relevance
 import plotly.graph_objects as go
 
@@ -201,7 +201,7 @@ def meme_pipeline_age_minutes(manifest: Dict) -> float:
 
 
 def gecko_get(url: str, params: Optional[Dict] = None, timeout: int = 20):
-    """Resilient public GeckoTerminal GET with small 429/5xx backoff."""
+    """Retry transient server errors, but never amplify an HTTP 429 rate limit."""
     last_response = None
     for attempt in range(3):
         r = requests.get(
@@ -211,13 +211,13 @@ def gecko_get(url: str, params: Optional[Dict] = None, timeout: int = 20):
             timeout=timeout,
         )
         last_response = r
-        if r.status_code not in {429, 500, 502, 503, 504}:
+        if r.status_code == 429:
+            r.raise_for_status()
+        if r.status_code not in {500, 502, 503, 504}:
             r.raise_for_status()
             return r
         if attempt < 2:
-            retry_after = safe(r.headers.get("Retry-After"), 0)
-            delay = retry_after if retry_after > 0 else 1.5 * (attempt + 1)
-            time.sleep(min(delay, 5.0))
+            time.sleep(1.5 * (attempt + 1))
     last_response.raise_for_status()
     return last_response
 
