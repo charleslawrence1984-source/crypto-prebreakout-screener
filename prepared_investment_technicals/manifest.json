@@ -572,8 +572,8 @@
     "lse": {
       "coverage_symbols": 100,
       "dispatch_counts": {
-        "AC8.L": 12,
-        "BVS.L": 12
+        "AC8.L": 13,
+        "BVS.L": 13
       },
       "eligible_symbols": 102,
       "errors": [
@@ -1034,5 +1034,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-25T19:52:05.852820+00:00"
+  "updated_at": "2026-09-25T20:37:58.477771+00:00"
 }
