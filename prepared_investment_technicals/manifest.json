@@ -570,19 +570,25 @@
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "lse": {
-      "coverage_symbols": 97,
+      "coverage_symbols": 100,
       "dispatch_counts": {
-        "AC8.L": 1,
-        "BVS.L": 1,
-        "WISE.L": 0,
-        "WKP.L": 0,
-        "XPS.L": 0
+        "AC8.L": 2,
+        "BVS.L": 2
       },
       "eligible_symbols": 102,
-      "errors": [],
-      "remaining_symbols": 5,
-      "requested_this_run": 50,
-      "returned_this_run": 50,
+      "errors": [
+        {
+          "error": "1y: 13 rows, insufficient usable history/indicators; 2y: 13 rows, insufficient usable history/indicators",
+          "symbol": "AC8.L"
+        },
+        {
+          "error": "1y: 41 rows, insufficient usable history/indicators; 2y: 41 rows, insufficient usable history/indicators",
+          "symbol": "BVS.L"
+        }
+      ],
+      "remaining_symbols": 2,
+      "requested_this_run": 5,
+      "returned_this_run": 3,
       "source_fundamentals_updated_at": "2026-09-25T16:36:06+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
@@ -787,33 +793,15 @@
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "vienna": {
-      "coverage_symbols": 55,
-      "dispatch_counts": {
-        "SCHN.VI": 0,
-        "SCHW.VI": 0,
-        "UNI.VI": 0,
-        "VEEV.VI": 0,
-        "VH2.VI": 0,
-        "VIS.VI": 0,
-        "VISA.VI": 0,
-        "VZN.VI": 0,
-        "WDP.VI": 0,
-        "WFC.VI": 0,
-        "WI4.VI": 0,
-        "WKL.VI": 0,
-        "WMT.VI": 0,
-        "WUW.VI": 0,
-        "YELP.VI": 0,
-        "YSNG.VI": 0,
-        "ZOTS.VI": 0
-      },
+      "coverage_symbols": 72,
+      "dispatch_counts": {},
       "eligible_symbols": 72,
       "errors": [],
-      "remaining_symbols": 17,
-      "requested_this_run": 50,
-      "returned_this_run": 50,
+      "remaining_symbols": 0,
+      "requested_this_run": 17,
+      "returned_this_run": 17,
       "source_fundamentals_updated_at": "2026-09-25T16:36:30+01:00",
-      "status": "partial",
+      "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "xetra": {
@@ -1046,5 +1034,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-25T15:37:35.999491+00:00"
+  "updated_at": "2026-09-25T15:38:22.149117+00:00"
 }
