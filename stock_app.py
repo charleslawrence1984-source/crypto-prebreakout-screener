@@ -1197,26 +1197,6 @@ TRADINGVIEW_UNIVERSES = {
     "euronext_lisbon": ("portugal", "EURONEXT", ".LS"),
 }
 
-# TradingView exchange feeds can contain secondary foreign listings.  Those
-# duplicates are useful for execution, but they are poor Yahoo-fundamentals
-# identifiers and were responsible for repeated no-price failures (for example
-# US shares quoted in USD on SIX and thousands of foreign Gettex lines).
-# Keep the home-market/common-currency rows when TradingView supplies metadata;
-# rows with missing metadata are retained rather than guessed away.
-TRADINGVIEW_PRIMARY_FILTERS = {
-    "xetra": ("GERMANY", {"EUR"}),
-    "gettex": ("GERMANY", {"EUR"}),
-    "tsx": ("CANADA", {"CAD"}),
-    "euronext_paris": ("FRANCE", {"EUR"}),
-    "six": ("SWITZERLAND", {"CHF"}),
-    "madrid": ("SPAIN", {"EUR"}),
-    "euronext_brussels": ("BELGIUM", {"EUR"}),
-    "vienna": ("AUSTRIA", {"EUR"}),
-    "euronext_amsterdam": ("NETHERLANDS", {"EUR"}),
-    "euronext_lisbon": ("PORTUGAL", {"EUR"}),
-}
-
-
 def yahoo_exchange_symbol(symbol: str, suffix: str) -> str:
     """Convert an exchange ticker into the format accepted by Yahoo Finance."""
     symbol = str(symbol).strip().upper()
@@ -1304,17 +1284,7 @@ def tradingview_exchange_data(kind: str) -> dict:
     rows = tradingview_company_rows(market, exchange)
     symbols = []
     market_caps = {}
-    primary_filter = TRADINGVIEW_PRIMARY_FILTERS.get(kind)
     for row in rows:
-        if primary_filter is not None:
-            expected_country, allowed_currencies = primary_filter
-            country = str(row.get("country") or "").strip().upper()
-            currency = str(row.get("currency") or "").strip().upper()
-            if country and country != expected_country:
-                continue
-            if currency and currency not in allowed_currencies:
-                continue
-
         symbol = yahoo_exchange_symbol(row.get("name", ""), suffix)
         if not symbol:
             continue
