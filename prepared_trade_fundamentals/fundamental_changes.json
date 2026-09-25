@@ -1,5 +1,14 @@
 {
   "exchanges": {
+    "gettex": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Gettex",
+      "new_count": 1,
+      "new_symbols": [
+        "N7S0.MU"
+      ]
+    },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
@@ -18,19 +27,19 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "Bolsa de Madrid",
-      "new_count": 1,
-      "new_symbols": [
-        "SL042.MC"
-      ]
+      "new_count": 0,
+      "new_symbols": []
     },
     "six": {
       "changed_count": 0,
       "changed_symbols": [],
       "label": "SIX Swiss Exchange",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "BKNG.SW"
+      ]
     }
   },
-  "generated_at": "2026-09-25T15:26:39+01:00",
+  "generated_at": "2026-09-25T17:27:00+01:00",
   "rulebook_build": "2026.09.18.12"
 }
