@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 61,
-      "completed_at": "2026-09-25T03:04:13+01:00",
+      "completed_at": "2026-09-25T04:00:14+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 63,
       "diagnostics": {
@@ -221,7 +221,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 49,
-      "completed_at": "2026-09-25T03:03:25+01:00",
+      "completed_at": "2026-09-25T03:59:35+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 52,
       "diagnostics": {
@@ -402,7 +402,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 16,
-      "completed_at": "2026-09-25T03:04:13+01:00",
+      "completed_at": "2026-09-25T04:00:14+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 16,
       "diagnostics": {
@@ -484,7 +484,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 167,
-      "completed_at": "2026-09-25T02:53:01+01:00",
+      "completed_at": "2026-09-25T03:54:50+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 177,
       "diagnostics": {
@@ -1019,621 +1019,617 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T02:53:01+01:00",
-      "coverage_pct": 18.9,
-      "coverage_symbols": 904,
+      "completed_at": "2026-09-25T03:54:49+01:00",
+      "coverage_pct": 23.0,
+      "coverage_symbols": 1104,
       "diagnostics": {
         "below_min_market_cap": 0,
-        "error_samples": [
-          "3TY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
-        ],
+        "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
-        "rate_limit_errors": 1,
+        "rate_limit_errors": 0,
         "requested": 200,
-        "returned": 199,
+        "returned": 200,
         "symbol_outcomes": {
-          "334.MU": {
+          "56X.MU": {
             "status": "row"
           },
-          "33B.MU": {
+          "58H.MU": {
             "status": "row"
           },
-          "33C.MU": {
+          "58R.MU": {
             "status": "row"
           },
-          "34D.MU": {
+          "599A.MU": {
             "status": "row"
           },
-          "34U.MU": {
+          "59K.MU": {
             "status": "row"
           },
-          "354.MU": {
+          "59M.MU": {
             "status": "row"
           },
-          "36E.MU": {
+          "59O.MU": {
             "status": "row"
           },
-          "36K.MU": {
+          "59S.MU": {
             "status": "row"
           },
-          "36Z.MU": {
+          "59X.MU": {
             "status": "row"
           },
-          "37C.MU": {
+          "59Z.MU": {
             "status": "row"
           },
-          "385.MU": {
+          "5AP.MU": {
             "status": "row"
           },
-          "38D.MU": {
+          "5B9.MU": {
             "status": "row"
           },
-          "38I.MU": {
+          "5BG.MU": {
             "status": "row"
           },
-          "3920.MU": {
+          "5BP.MU": {
             "status": "row"
           },
-          "39B.MU": {
+          "5CI.MU": {
             "status": "row"
           },
-          "39EA.MU": {
+          "5EA.MU": {
             "status": "row"
           },
-          "39M.MU": {
+          "5EW.MU": {
             "status": "row"
           },
-          "3A6.MU": {
+          "5F1.MU": {
             "status": "row"
           },
-          "3A9.MU": {
+          "5F6.MU": {
             "status": "row"
           },
-          "3AD2.MU": {
+          "5F7.MU": {
             "status": "row"
           },
-          "3AG1.MU": {
+          "5FA.MU": {
             "status": "row"
           },
-          "3AJ.MU": {
+          "5FF.MU": {
             "status": "row"
           },
-          "3AL.MU": {
+          "5FG.MU": {
             "status": "row"
           },
-          "3AM.MU": {
+          "5FJ.MU": {
             "status": "row"
           },
-          "3B5.MU": {
+          "5G8.MU": {
             "status": "row"
           },
-          "3BA.MU": {
+          "5GD.MU": {
             "status": "row"
           },
-          "3BX.MU": {
+          "5GH.MU": {
             "status": "row"
           },
-          "3CA.MU": {
+          "5GR.MU": {
             "status": "row"
           },
-          "3CN.MU": {
+          "5HZ1.MU": {
             "status": "row"
           },
-          "3CP.MU": {
+          "5IW.MU": {
             "status": "row"
           },
-          "3E0.MU": {
+          "5JP.MU": {
             "status": "row"
           },
-          "3E1.MU": {
+          "5JY.MU": {
             "status": "row"
           },
-          "3E2.MU": {
+          "5K4.MU": {
             "status": "row"
           },
-          "3EC.MU": {
+          "5K7.MU": {
             "status": "row"
           },
-          "3F5.MU": {
+          "5KBA.MU": {
             "status": "row"
           },
-          "3FO.MU": {
+          "5LF.MU": {
             "status": "row"
           },
-          "3G0.MU": {
+          "5MO.MU": {
             "status": "row"
           },
-          "3G2.MU": {
+          "5NR.MU": {
             "status": "row"
           },
-          "3G6.MU": {
+          "5NT.MU": {
             "status": "row"
           },
-          "3GA.MU": {
+          "5NU.MU": {
             "status": "row"
           },
-          "3GY.MU": {
+          "5O2.MU": {
             "status": "row"
           },
-          "3HD.MU": {
+          "5O7.MU": {
             "status": "row"
           },
-          "3HH.MU": {
+          "5OO.MU": {
             "status": "row"
           },
-          "3HM.MU": {
+          "5PP.MU": {
             "status": "row"
           },
-          "3HS.MU": {
+          "5PT.MU": {
             "status": "row"
           },
-          "3I0.MU": {
+          "5QG.MU": {
             "status": "row"
           },
-          "3I5.MU": {
+          "5RF.MU": {
             "status": "row"
           },
-          "3I7.MU": {
+          "5VA.MU": {
             "status": "row"
           },
-          "3IB.MU": {
+          "5WS.MU": {
             "status": "row"
           },
-          "3IC.MU": {
+          "5XB.MU": {
             "status": "row"
           },
-          "3IW.MU": {
+          "5XE.MU": {
             "status": "row"
           },
-          "3JDA.MU": {
+          "5XR.MU": {
             "status": "row"
           },
-          "3JS.MU": {
+          "5Y2.MU": {
             "status": "row"
           },
-          "3L50.MU": {
+          "5YM.MU": {
             "status": "row"
           },
-          "3L7A.MU": {
+          "5Z0.MU": {
             "status": "row"
           },
-          "3LN.MU": {
+          "5ZT.MU": {
             "status": "row"
           },
-          "3M0.MU": {
+          "60N.MU": {
             "status": "row"
           },
-          "3MG.MU": {
+          "618.MU": {
             "status": "row"
           },
-          "3N4.MU": {
+          "61W.MU": {
             "status": "row"
           },
-          "3N7A.MU": {
+          "62M.MU": {
             "status": "row"
           },
-          "3N8.MU": {
+          "62XA.MU": {
             "status": "row"
           },
-          "3NK.MU": {
+          "636.MU": {
             "status": "row"
           },
-          "3NX.MU": {
+          "639.MU": {
             "status": "row"
           },
-          "3O40.MU": {
+          "63G.MU": {
             "status": "row"
           },
-          "3O41.MU": {
+          "63T.MU": {
             "status": "row"
           },
-          "3O8.MU": {
+          "63X.MU": {
             "status": "row"
           },
-          "3OE.MU": {
+          "640.MU": {
             "status": "row"
           },
-          "3OK.MU": {
+          "64B.MU": {
             "status": "row"
           },
-          "3OY1.MU": {
+          "64K.MU": {
             "status": "row"
           },
-          "3P51.MU": {
+          "64N.MU": {
             "status": "row"
           },
-          "3PC.MU": {
+          "65C.MU": {
             "status": "row"
           },
-          "3PL.MU": {
+          "669.MU": {
             "status": "row"
           },
-          "3QD.MU": {
+          "66T.MU": {
             "status": "row"
           },
-          "3RB0.MU": {
+          "67X.MU": {
             "status": "row"
           },
-          "3RCA.MU": {
+          "68F.MU": {
             "status": "row"
           },
-          "3RL.MU": {
+          "68M.MU": {
             "status": "row"
           },
-          "3RT.MU": {
+          "68S.MU": {
             "status": "row"
           },
-          "3S0.MU": {
+          "68V.MU": {
             "status": "row"
           },
-          "3S9.MU": {
+          "690E.MU": {
             "status": "row"
           },
-          "3T4.MU": {
+          "696.MU": {
             "status": "row"
           },
-          "3TY.MU": {
-            "message": "3TY.MU @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+          "69B.MU": {
+            "status": "row"
           },
-          "3U6.MU": {
+          "6AA0.MU": {
             "status": "row"
           },
-          "3UB.MU": {
+          "6AE.MU": {
             "status": "row"
           },
-          "3UX.MU": {
+          "6B0.MU": {
             "status": "row"
           },
-          "3V64.MU": {
+          "6B4.MU": {
             "status": "row"
           },
-          "3VU.MU": {
+          "6B6.MU": {
             "status": "row"
           },
-          "3WC.MU": {
+          "6BD0.MU": {
             "status": "row"
           },
-          "3XH.MU": {
+          "6BE.MU": {
             "status": "row"
           },
-          "3XV.MU": {
+          "6BF.MU": {
             "status": "row"
           },
-          "3Y0.MU": {
+          "6BW.MU": {
             "status": "row"
           },
-          "3YZ.MU": {
+          "6C2.MU": {
             "status": "row"
           },
-          "3ZT.MU": {
+          "6CF.MU": {
             "status": "row"
           },
-          "3ZU0.MU": {
+          "6CL.MU": {
             "status": "row"
           },
-          "3ZV.MU": {
+          "6DA.MU": {
             "status": "row"
           },
-          "406.MU": {
+          "6DE.MU": {
             "status": "row"
           },
-          "41G1.MU": {
+          "6E0.MU": {
             "status": "row"
           },
-          "41L.MU": {
+          "6E2.MU": {
             "status": "row"
           },
-          "41X.MU": {
+          "6EQ.MU": {
             "status": "row"
           },
-          "42Z.MU": {
+          "6F1.MU": {
             "status": "row"
           },
-          "43C.MU": {
+          "6FLA.MU": {
             "status": "row"
           },
-          "43D.MU": {
+          "6GF.MU": {
             "status": "row"
           },
-          "44B.MU": {
+          "6GI.MU": {
             "status": "row"
           },
-          "45C.MU": {
+          "6HN.MU": {
             "status": "row"
           },
-          "45E.MU": {
+          "6HW.MU": {
             "status": "row"
           },
-          "472.MU": {
+          "6IB.MU": {
             "status": "row"
           },
-          "47D.MU": {
+          "6IV.MU": {
             "status": "row"
           },
-          "47E.MU": {
+          "6JL.MU": {
             "status": "row"
           },
-          "47O.MU": {
+          "6JM.MU": {
             "status": "row"
           },
-          "47V.MU": {
+          "6JR.MU": {
             "status": "row"
           },
-          "483.MU": {
+          "6KF.MU": {
             "status": "row"
           },
-          "4850.MU": {
+          "6L8.MU": {
             "status": "row"
           },
-          "48CA.MU": {
+          "6LA.MU": {
             "status": "row"
           },
-          "48D.MU": {
+          "6LS0.MU": {
             "status": "row"
           },
-          "48H.MU": {
+          "6LT.MU": {
             "status": "row"
           },
-          "48Z.MU": {
+          "6LU.MU": {
             "status": "row"
           },
-          "494.MU": {
+          "6MA.MU": {
             "status": "row"
           },
-          "49F.MU": {
+          "6MB0.MU": {
             "status": "row"
           },
-          "49G.MU": {
+          "6MD.MU": {
             "status": "row"
           },
-          "49K.MU": {
+          "6MK.MU": {
             "status": "row"
           },
-          "49P.MU": {
+          "6MO.MU": {
             "status": "row"
           },
-          "49V.MU": {
+          "6N5.MU": {
             "status": "row"
           },
-          "4AJ0.MU": {
+          "6NE.MU": {
             "status": "row"
           },
-          "4AM.MU": {
+          "6NF.MU": {
             "status": "row"
           },
-          "4B1.MU": {
+          "6NM.MU": {
             "status": "row"
           },
-          "4BB.MU": {
+          "6O4.MU": {
             "status": "row"
           },
-          "4BV.MU": {
+          "6P8.MU": {
             "status": "row"
           },
-          "4BW.MU": {
+          "6PG.MU": {
             "status": "row"
           },
-          "4BY.MU": {
+          "6PU.MU": {
             "status": "row"
           },
-          "4CB.MU": {
+          "6Q81.MU": {
             "status": "row"
           },
-          "4CQA.MU": {
+          "6QS.MU": {
             "status": "row"
           },
-          "4CR0.MU": {
+          "6R9.MU": {
             "status": "row"
           },
-          "4CU.MU": {
+          "6RI.MU": {
             "status": "row"
           },
-          "4D3.MU": {
+          "6RJ0.MU": {
             "status": "row"
           },
-          "4DN.MU": {
+          "6RK.MU": {
             "status": "row"
           },
-          "4F1.MU": {
+          "6RR.MU": {
             "status": "row"
           },
-          "4FAP.MU": {
+          "6RV.MU": {
             "status": "row"
           },
-          "4FO.MU": {
+          "6SZA.MU": {
             "status": "row"
           },
-          "4FU.MU": {
+          "6TB.MU": {
             "status": "row"
           },
-          "4FZ.MU": {
+          "6TF0.MU": {
             "status": "row"
           },
-          "4G3A.MU": {
+          "6TP.MU": {
             "status": "row"
           },
-          "4GE.MU": {
+          "6U30.MU": {
             "status": "row"
           },
-          "4GF.MU": {
+          "6UP.MU": {
             "status": "row"
           },
-          "4H3A.MU": {
+          "6V5.MU": {
             "status": "row"
           },
-          "4H5.MU": {
+          "6VH.MU": {
             "status": "row"
           },
-          "4HF.MU": {
+          "6VO.MU": {
             "status": "row"
           },
-          "4HM.MU": {
+          "6VY.MU": {
             "status": "row"
           },
-          "4HU.MU": {
+          "6VZ.MU": {
             "status": "row"
           },
-          "4I1.MU": {
+          "6WX.MU": {
             "status": "row"
           },
-          "4I3.MU": {
+          "6X5.MU": {
             "status": "row"
           },
-          "4I9.MU": {
+          "6XY.MU": {
             "status": "row"
           },
-          "4IH.MU": {
+          "6Z1.MU": {
             "status": "row"
           },
-          "4IIA.MU": {
+          "71BB.MU": {
             "status": "row"
           },
-          "4IT.MU": {
+          "71Y.MU": {
             "status": "row"
           },
-          "4IV.MU": {
+          "724.MU": {
             "status": "row"
           },
-          "4J2.MU": {
+          "72R.MU": {
             "status": "row"
           },
-          "4J60.MU": {
+          "72Z.MU": {
             "status": "row"
           },
-          "4JF.MU": {
+          "735.MU": {
             "status": "row"
           },
-          "4JP.MU": {
+          "74L.MU": {
             "status": "row"
           },
-          "4KB.MU": {
+          "74W.MU": {
             "status": "row"
           },
-          "4KK1.MU": {
+          "751.MU": {
             "status": "row"
           },
-          "4KT.MU": {
+          "752.MU": {
             "status": "row"
           },
-          "4LG.MU": {
+          "75C.MU": {
             "status": "row"
           },
-          "4LRA.MU": {
+          "75X.MU": {
             "status": "row"
           },
-          "4LT1.MU": {
+          "761.MU": {
             "status": "row"
           },
-          "4M4.MU": {
+          "76C0.MU": {
             "status": "row"
           },
-          "4MD.MU": {
+          "76J.MU": {
             "status": "row"
           },
-          "4NK.MU": {
+          "76N.MU": {
             "status": "row"
           },
-          "4OQ1.MU": {
+          "77F.MU": {
             "status": "row"
           },
-          "4PG.MU": {
+          "781.MU": {
             "status": "row"
           },
-          "4PN.MU": {
+          "788.MU": {
             "status": "row"
           },
-          "4Q2.MU": {
+          "78Y.MU": {
             "status": "row"
           },
-          "4QT1.MU": {
+          "791.MU": {
             "status": "row"
           },
-          "4R0.MU": {
+          "7A2.MU": {
             "status": "row"
           },
-          "4RB.MU": {
+          "7A6.MU": {
             "status": "row"
           },
-          "4RX0.MU": {
+          "7AA.MU": {
             "status": "row"
           },
-          "4RY.MU": {
+          "7AQ0.MU": {
             "status": "row"
           },
-          "4S0.MU": {
+          "7B0.MU": {
             "status": "row"
           },
-          "4SB.MU": {
+          "7BV.MU": {
             "status": "row"
           },
-          "4SP.MU": {
+          "7C4.MU": {
             "status": "row"
           },
-          "4T0.MU": {
+          "7CD.MU": {
             "status": "row"
           },
-          "4TC.MU": {
+          "7CH.MU": {
             "status": "row"
           },
-          "4TS.MU": {
+          "7CI.MU": {
             "status": "row"
           },
-          "4U3.MU": {
+          "7CX.MU": {
             "status": "row"
           },
-          "4V1.MU": {
+          "7DB.MU": {
             "status": "row"
           },
-          "4VK.MU": {
+          "7DF.MU": {
             "status": "row"
           },
-          "4W9.MU": {
+          "7DG.MU": {
             "status": "row"
           },
-          "4WF.MU": {
+          "7DZ.MU": {
             "status": "row"
           },
-          "4YC.MU": {
+          "7EL.MU": {
             "status": "row"
           },
-          "4YQ.MU": {
+          "7EX.MU": {
             "status": "row"
           },
-          "4Z1.MU": {
+          "7F0.MU": {
             "status": "row"
           },
-          "519.MU": {
+          "7F4.MU": {
             "status": "row"
           },
-          "51R.MU": {
+          "7FP.MU": {
             "status": "row"
           },
-          "526.MU": {
+          "7FZ.MU": {
             "status": "row"
           },
-          "53U.MU": {
+          "7G9.MU": {
             "status": "row"
           },
-          "547A.MU": {
+          "7GA.MU": {
             "status": "row"
           },
-          "54F.MU": {
+          "7GV.MU": {
             "status": "row"
           },
-          "55I0.MU": {
+          "7HL.MU": {
             "status": "row"
           },
-          "5611.MU": {
+          "7HP.MU": {
             "status": "row"
           },
-          "5630.MU": {
+          "7I9.MU": {
             "status": "row"
           },
-          "56S1.MU": {
+          "7J70.MU": {
             "status": "row"
           }
         }
@@ -1944,251 +1940,51 @@
         "52C.MU": 12,
         "52SA.MU": 1,
         "54E.MU": 12,
-        "56X.MU": 0,
-        "58H.MU": 0,
-        "58R.MU": 0,
         "58U.MU": 1,
-        "599A.MU": 0,
         "59FE.MU": 12,
         "59G.MU": 1,
-        "59K.MU": 0,
-        "59M.MU": 0,
-        "59O.MU": 0,
         "59P.MU": 12,
         "59R.MU": 1,
-        "59S.MU": 0,
-        "59X.MU": 0,
-        "59Z.MU": 0,
-        "5AP.MU": 0,
-        "5B9.MU": 0,
-        "5BG.MU": 0,
-        "5BP.MU": 0,
-        "5CI.MU": 0,
         "5D4.MU": 12,
         "5E9.MU": 12,
-        "5EA.MU": 0,
-        "5EW.MU": 0,
         "5EZ.MU": 1,
-        "5F1.MU": 0,
-        "5F6.MU": 0,
-        "5F7.MU": 0,
-        "5FA.MU": 0,
-        "5FF.MU": 0,
-        "5FG.MU": 0,
-        "5FJ.MU": 0,
         "5FY.MU": 1,
-        "5G8.MU": 0,
-        "5GD.MU": 0,
-        "5GH.MU": 0,
-        "5GR.MU": 0,
-        "5HZ1.MU": 0,
-        "5IW.MU": 0,
-        "5JP.MU": 0,
-        "5JY.MU": 0,
         "5JZ.MU": 12,
-        "5K4.MU": 0,
-        "5K7.MU": 0,
-        "5KBA.MU": 0,
-        "5LF.MU": 0,
         "5LP.MU": 12,
-        "5MO.MU": 0,
-        "5NR.MU": 0,
-        "5NT.MU": 0,
-        "5NU.MU": 0,
-        "5O2.MU": 0,
-        "5O7.MU": 0,
         "5OJ.MU": 12,
-        "5OO.MU": 0,
-        "5PP.MU": 0,
-        "5PT.MU": 0,
         "5Q8.MU": 12,
-        "5QG.MU": 0,
-        "5RF.MU": 0,
         "5TI.MU": 12,
         "5TOA.MU": 12,
         "5UI.MU": 12,
         "5UM.MU": 12,
-        "5VA.MU": 0,
         "5VD.MU": 1,
-        "5WS.MU": 0,
-        "5XB.MU": 0,
-        "5XE.MU": 0,
-        "5XR.MU": 0,
         "5Y0.MU": 1,
-        "5Y2.MU": 0,
-        "5YM.MU": 0,
-        "5Z0.MU": 0,
-        "5ZT.MU": 0,
         "60A.MU": 12,
-        "60N.MU": 0,
-        "618.MU": 0,
         "61L0.MU": 1,
         "61MA.MU": 1,
         "61P.MU": 12,
-        "61W.MU": 0,
-        "62M.MU": 0,
-        "62XA.MU": 0,
-        "636.MU": 0,
-        "639.MU": 0,
-        "63G.MU": 0,
-        "63T.MU": 0,
-        "63X.MU": 0,
-        "640.MU": 0,
-        "64B.MU": 0,
-        "64K.MU": 0,
-        "64N.MU": 0,
-        "65C.MU": 0,
-        "669.MU": 0,
-        "66T.MU": 0,
-        "67X.MU": 0,
         "684.MU": 12,
-        "68F.MU": 0,
-        "68M.MU": 0,
-        "68S.MU": 0,
-        "68V.MU": 0,
-        "690E.MU": 0,
-        "696.MU": 0,
-        "69B.MU": 0,
-        "6AA0.MU": 0,
-        "6AE.MU": 0,
-        "6B0.MU": 0,
-        "6B4.MU": 0,
-        "6B6.MU": 0,
-        "6BD0.MU": 0,
-        "6BE.MU": 0,
-        "6BF.MU": 0,
-        "6BW.MU": 0,
         "6C1.MU": 12,
-        "6C2.MU": 0,
-        "6CF.MU": 0,
-        "6CL.MU": 0,
         "6CMB.MU": 12,
-        "6DA.MU": 0,
-        "6DE.MU": 0,
-        "6E0.MU": 0,
-        "6E2.MU": 0,
-        "6EQ.MU": 0,
-        "6F1.MU": 0,
         "6FE0.MU": 12,
-        "6FLA.MU": 0,
         "6GC.MU": 12,
-        "6GF.MU": 0,
-        "6GI.MU": 0,
         "6HA.MU": 12,
-        "6HN.MU": 0,
-        "6HW.MU": 0,
-        "6IB.MU": 0,
         "6IC.MU": 12,
-        "6IV.MU": 0,
         "6IY.MU": 12,
         "6JK.MU": 12,
-        "6JL.MU": 0,
-        "6JM.MU": 0,
-        "6JR.MU": 0,
-        "6KF.MU": 0,
-        "6L8.MU": 0,
-        "6LA.MU": 0,
-        "6LS0.MU": 0,
-        "6LT.MU": 0,
-        "6LU.MU": 0,
-        "6MA.MU": 0,
-        "6MB0.MU": 0,
-        "6MD.MU": 0,
-        "6MK.MU": 0,
-        "6MO.MU": 0,
-        "6N5.MU": 0,
-        "6NE.MU": 0,
-        "6NF.MU": 0,
-        "6NM.MU": 0,
-        "6O4.MU": 0,
-        "6P8.MU": 0,
-        "6PG.MU": 0,
         "6PP.MU": 12,
-        "6PU.MU": 0,
-        "6Q81.MU": 0,
         "6QC.MU": 12,
-        "6QS.MU": 0,
-        "6R9.MU": 0,
-        "6RI.MU": 0,
-        "6RJ0.MU": 0,
-        "6RK.MU": 0,
-        "6RR.MU": 0,
-        "6RV.MU": 0,
-        "6SZA.MU": 0,
-        "6TB.MU": 0,
-        "6TF0.MU": 0,
-        "6TP.MU": 0,
-        "6U30.MU": 0,
-        "6UP.MU": 0,
-        "6V5.MU": 0,
-        "6VH.MU": 0,
-        "6VO.MU": 0,
-        "6VY.MU": 0,
-        "6VZ.MU": 0,
         "6WV.MU": 1,
-        "6WX.MU": 0,
-        "6X5.MU": 0,
         "6XQ.MU": 1,
         "6XT.MU": 1,
-        "6XY.MU": 0,
-        "6Z1.MU": 0,
-        "71BB.MU": 0,
         "71H.MU": 1,
         "71N.MU": 12,
-        "71Y.MU": 0,
-        "724.MU": 0,
-        "72R.MU": 0,
-        "72Z.MU": 0,
-        "735.MU": 0,
         "73GN.MU": 12,
-        "74L.MU": 0,
-        "74W.MU": 0,
-        "751.MU": 0,
-        "752.MU": 0,
-        "75C.MU": 0,
         "75H.MU": 12,
-        "75X.MU": 0,
-        "761.MU": 0,
         "769.MU": 1,
-        "76C0.MU": 0,
-        "76J.MU": 0,
-        "76N.MU": 0,
-        "77F.MU": 0,
-        "781.MU": 0,
-        "788.MU": 0,
-        "78Y.MU": 0,
-        "791.MU": 0,
-        "7A2.MU": 0,
-        "7A6.MU": 0,
-        "7AA.MU": 0,
-        "7AQ0.MU": 0,
-        "7B0.MU": 0,
-        "7BV.MU": 0,
-        "7C4.MU": 0,
         "7CA.MU": 12,
-        "7CD.MU": 0,
-        "7CH.MU": 0,
-        "7CI.MU": 0,
-        "7CX.MU": 0,
         "7CZ.MU": 12,
-        "7DB.MU": 0,
-        "7DF.MU": 0,
-        "7DG.MU": 0,
-        "7DZ.MU": 0,
-        "7EL.MU": 0,
-        "7EX.MU": 0,
-        "7F0.MU": 0,
-        "7F4.MU": 0,
-        "7FP.MU": 0,
-        "7FZ.MU": 0,
-        "7G9.MU": 0,
-        "7GA.MU": 0,
-        "7GV.MU": 0,
         "7HD.MU": 1,
-        "7HL.MU": 0,
-        "7HP.MU": 0,
-        "7I9.MU": 0,
-        "7J70.MU": 0,
         "7JA.MU": 0,
         "7JR.MU": 0,
         "7JS.MU": 1,
@@ -5529,16 +5325,16 @@
         "ZYE1.MU": 0,
         "ZZA.MU": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T02:52:33+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T03:53:32+01:00",
       "label": "Gettex",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 3888,
+      "remaining_symbols": 3688,
       "requested_this_run": 200,
-      "result_rows": 904,
-      "returned_this_run": 199,
-      "started_at": "2026-09-25T02:52:33+01:00",
+      "result_rows": 1104,
+      "returned_this_run": 200,
+      "started_at": "2026-09-25T03:53:32+01:00",
       "status": "partial",
       "universe_symbols": 7596
     },
@@ -5556,8 +5352,7 @@
         "other_errors": 0,
         "price_failures": 11,
         "rate_limit_errors": 0,
-        "requested": 67,
-        "returned": 56,
+        "requested": 11,
         "symbol_outcomes": {
           "AO-.L": {
             "status": "price_failure"
@@ -5571,182 +5366,14 @@
           "BP-.L": {
             "status": "price_failure"
           },
-          "HWDN.L": {
-            "status": "row"
-          },
-          "IAG.L": {
-            "status": "row"
-          },
-          "ICG.L": {
-            "status": "row"
-          },
-          "ICGC.L": {
-            "status": "row"
-          },
-          "IGG.L": {
-            "status": "row"
-          },
-          "IHP.L": {
-            "status": "row"
-          },
-          "III.L": {
-            "status": "row"
-          },
-          "IMB.L": {
-            "status": "row"
-          },
-          "IMI.L": {
-            "status": "row"
-          },
-          "INCH.L": {
-            "status": "row"
-          },
-          "INF.L": {
-            "status": "row"
-          },
-          "INVP.L": {
-            "status": "row"
-          },
-          "ITH.L": {
-            "status": "row"
-          },
-          "ITRK.L": {
-            "status": "row"
-          },
-          "ITV.L": {
-            "status": "row"
-          },
           "JD-.L": {
             "status": "price_failure"
-          },
-          "JMAT.L": {
-            "status": "row"
-          },
-          "JUP.L": {
-            "status": "row"
-          },
-          "KIE.L": {
-            "status": "row"
-          },
-          "KLR.L": {
-            "status": "row"
-          },
-          "KNOS.L": {
-            "status": "row"
-          },
-          "LAND.L": {
-            "status": "row"
-          },
-          "LGEN.L": {
-            "status": "row"
-          },
-          "LLOY.L": {
-            "status": "row"
-          },
-          "LMP.L": {
-            "status": "row"
-          },
-          "LRE.L": {
-            "status": "row"
-          },
-          "LSEG.L": {
-            "status": "row"
-          },
-          "MAB.L": {
-            "status": "row"
-          },
-          "MGAM.L": {
-            "status": "row"
-          },
-          "MGNS.L": {
-            "status": "row"
-          },
-          "MICC.L": {
-            "status": "row"
-          },
-          "MKS.L": {
-            "status": "row"
-          },
-          "MNG.L": {
-            "status": "row"
-          },
-          "MONY.L": {
-            "status": "row"
-          },
-          "MOON.L": {
-            "status": "row"
-          },
-          "MTO.L": {
-            "status": "row"
-          },
-          "MTRO.L": {
-            "status": "row"
-          },
-          "N91.L": {
-            "status": "row"
-          },
-          "NBS.L": {
-            "status": "row"
           },
           "NG-.L": {
             "status": "price_failure"
           },
-          "NWG.L": {
-            "status": "row"
-          },
-          "NXT.L": {
-            "status": "row"
-          },
-          "OMU.L": {
-            "status": "row"
-          },
-          "OSB.L": {
-            "status": "row"
-          },
-          "OXIG.L": {
-            "status": "row"
-          },
-          "PAF.L": {
-            "status": "row"
-          },
-          "PAG.L": {
-            "status": "row"
-          },
-          "PAGE.L": {
-            "status": "row"
-          },
-          "PETS.L": {
-            "status": "row"
-          },
-          "PFD.L": {
-            "status": "row"
-          },
-          "PHP.L": {
-            "status": "row"
-          },
-          "PLUS.L": {
-            "status": "row"
-          },
-          "PSON.L": {
-            "status": "row"
-          },
-          "QLT.L": {
-            "status": "row"
-          },
           "QQ-.L": {
             "status": "price_failure"
-          },
-          "RAT.L": {
-            "status": "row"
-          },
-          "REL.L": {
-            "status": "row"
-          },
-          "RHIM.L": {
-            "status": "row"
-          },
-          "RIO.L": {
-            "status": "row"
           },
           "RR-.L": {
             "status": "price_failure"
@@ -5763,37 +5390,39 @@
         }
       },
       "eligible_symbols": 280,
+      "error": "RuntimeError: scan returned no results: {'requested': 11, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 11, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': []}",
+      "failed_at": "2026-09-25T03:52:01+01:00",
       "gap_fill_dispatch_counts": {
-        "AO-.L": 3,
-        "AV-.L": 55,
-        "BA-.L": 55,
-        "BP-.L": 55,
-        "JD-.L": 55,
-        "NG-.L": 55,
-        "QQ-.L": 55,
-        "RR-.L": 55,
-        "SN-.L": 55,
-        "TW-.L": 55,
-        "UU-.L": 55
+        "AO-.L": 4,
+        "AV-.L": 56,
+        "BA-.L": 56,
+        "BP-.L": 56,
+        "JD-.L": 56,
+        "NG-.L": 56,
+        "QQ-.L": 56,
+        "RR-.L": 56,
+        "SN-.L": 56,
+        "TW-.L": 56,
+        "UU-.L": 56
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T02:50:32+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T03:51:58+01:00",
       "label": "London Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
       "remaining_symbols": 11,
-      "requested_this_run": 67,
+      "requested_this_run": 11,
       "result_rows": 269,
-      "returned_this_run": 56,
-      "started_at": "2026-09-25T02:50:32+01:00",
-      "status": "partial",
+      "returned_this_run": 0,
+      "started_at": "2026-09-25T03:51:58+01:00",
+      "status": "failed",
       "universe_symbols": 572
     },
     "lse_aim": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 21,
-      "completed_at": "2026-09-25T02:53:01+01:00",
+      "completed_at": "2026-09-25T03:54:50+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 21,
       "diagnostics": {
@@ -5900,89 +5529,30 @@
         "other_errors": 0,
         "price_failures": 1,
         "rate_limit_errors": 0,
-        "requested": 21,
-        "returned": 20,
+        "requested": 1,
         "symbol_outcomes": {
-          "BKT.MC": {
-            "status": "row"
-          },
-          "CABK.MC": {
-            "status": "row"
-          },
-          "CASH.MC": {
-            "status": "row"
-          },
-          "GRE.MC": {
-            "status": "row"
-          },
-          "HBX.MC": {
-            "status": "row"
-          },
-          "NTGY.MC": {
-            "status": "row"
-          },
-          "OHLA.MC": {
-            "status": "row"
-          },
-          "PSG.MC": {
-            "status": "row"
-          },
-          "RED.MC": {
-            "status": "row"
-          },
-          "SAB.MC": {
-            "status": "row"
-          },
-          "SAN.MC": {
-            "status": "row"
-          },
           "SCHST.MC": {
             "status": "price_failure"
-          },
-          "SCYR.MC": {
-            "status": "row"
-          },
-          "SLR.MC": {
-            "status": "row"
-          },
-          "TEF.MC": {
-            "status": "row"
-          },
-          "TRE.MC": {
-            "status": "row"
-          },
-          "VIS.MC": {
-            "status": "row"
-          },
-          "XBRPO.MC": {
-            "status": "row"
-          },
-          "XNOR.MC": {
-            "status": "row"
-          },
-          "XPBR.MC": {
-            "status": "row"
-          },
-          "XSIGF.MC": {
-            "status": "row"
           }
         }
       },
       "eligible_symbols": 94,
+      "error": "RuntimeError: scan returned no results: {'requested': 1, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 1, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': []}",
+      "failed_at": "2026-09-25T03:59:35+01:00",
       "gap_fill_dispatch_counts": {
-        "SCHST.MC": 56
+        "SCHST.MC": 57
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:03:15+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T03:59:34+01:00",
       "label": "Bolsa de Madrid",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
       "remaining_symbols": 1,
-      "requested_this_run": 21,
+      "requested_this_run": 1,
       "result_rows": 93,
-      "returned_this_run": 20,
-      "started_at": "2026-09-25T03:03:15+01:00",
-      "status": "partial",
+      "returned_this_run": 0,
+      "started_at": "2026-09-25T03:59:34+01:00",
+      "status": "failed",
       "universe_symbols": 297
     },
     "nasdaq": {
@@ -6735,429 +6305,109 @@
     "six": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 193,
-      "completed_at": "2026-09-25T03:03:15+01:00",
-      "coverage_pct": 67.8,
-      "coverage_symbols": 213,
+      "chunk_symbols": 101,
+      "completed_at": "2026-09-25T03:59:34+01:00",
+      "coverage_pct": 77.7,
+      "coverage_symbols": 244,
       "diagnostics": {
-        "below_min_market_cap": 0,
+        "below_min_market_cap": 1,
         "error_samples": [
-          "SCHNE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
           "SCHN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
+          "SCHNE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
           "SCHPE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
           "SCMN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "SDZ.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
+          "SFSN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
         ],
         "market_cap_failures": 0,
         "other_errors": 0,
-        "price_failures": 11,
-        "rate_limit_errors": 90,
-        "requested": 193,
-        "returned": 92,
+        "price_failures": 26,
+        "rate_limit_errors": 43,
+        "requested": 101,
+        "returned": 31,
         "symbol_outcomes": {
           "AAPL-USD.SW": {
-            "message": "AAPL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "ABBN.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "ABBNE.SW": {
-            "message": "ABBNE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ACLN.SW": {
-            "message": "ACLN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ACLNE.SW": {
-            "message": "ACLNE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "AD.SW": {
-            "message": "AD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ADBE-USD.SW": {
-            "message": "ADBE-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "AEVS.SW": {
-            "message": "AEVS.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "AI1.SW": {
-            "message": "AI1.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ALC.SW": {
-            "message": "ALC.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ALLN.SW": {
-            "message": "ALLN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ALSN.SW": {
-            "message": "ALSN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ALV.SW": {
-            "message": "ALV.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "AMAT-USD.SW": {
-            "message": "AMAT-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "AMD-USD.SW": {
             "status": "price_failure"
           },
-          "AMRZ.SW": {
-            "status": "row"
-          },
-          "AMRZE.SW": {
-            "status": "row"
-          },
-          "AMS.SW": {
-            "status": "row"
-          },
-          "AMZN-USD.SW": {
-            "status": "row"
-          },
-          "AMZN.SW": {
-            "status": "row"
-          },
-          "ANET-USD.SW": {
-            "status": "row"
-          },
-          "APGN.SW": {
-            "status": "row"
-          },
-          "APH-USD.SW": {
-            "status": "row"
-          },
-          "APLD-USD.SW": {
-            "status": "row"
-          },
-          "APP-USD.SW": {
-            "status": "row"
-          },
-          "ARYN.SW": {
-            "status": "row"
-          },
-          "ASML.SW": {
-            "status": "row"
-          },
-          "AUTN.SW": {
-            "status": "row"
-          },
-          "AVGO.SW": {
-            "status": "row"
-          },
-          "AXP-USD.SW": {
-            "status": "row"
-          },
-          "B-USD.SW": {
-            "status": "row"
-          },
           "BA-USD.SW": {
-            "message": "BA-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "BAC-USD.SW": {
-            "message": "BAC-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "BAER.SW": {
-            "status": "row"
-          },
-          "BANB.SW": {
-            "status": "row"
-          },
-          "BARN.SW": {
-            "status": "row"
-          },
-          "BAS.SW": {
-            "status": "row"
-          },
-          "BAYN.SW": {
-            "status": "row"
-          },
-          "BCGE.SW": {
-            "status": "row"
-          },
-          "BCHN.SW": {
-            "status": "row"
-          },
-          "BCVN.SW": {
-            "status": "row"
-          },
-          "BE-USD.SW": {
-            "status": "row"
-          },
-          "BEAN.SW": {
-            "status": "row"
-          },
-          "BEKN.SW": {
-            "status": "row"
-          },
-          "BION.SW": {
-            "status": "row"
-          },
-          "BKNG-USD.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "BLK-USD.SW": {
-            "message": "BLK-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "BMAG.SW": {
-            "status": "row"
-          },
-          "BMW.SW": {
-            "status": "row"
-          },
-          "BN.SW": {
-            "status": "row"
-          },
-          "BOSN.SW": {
-            "status": "row"
-          },
-          "BRK-USD.SW": {
-            "status": "row"
-          },
-          "BRK.SW": {
-            "status": "row"
-          },
-          "BRKN.SW": {
-            "status": "row"
-          },
-          "BUCN.SW": {
-            "status": "row"
-          },
-          "C.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "CAT-USD.SW": {
-            "message": "CAT-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "CEG.SW": {
-            "status": "row"
-          },
-          "CFR.SW": {
-            "status": "row"
-          },
-          "CFTE.SW": {
-            "status": "row"
-          },
-          "CHAM.SW": {
-            "status": "row"
-          },
-          "CICN.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "CL-USD.SW": {
-            "message": "CL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "CL.SW": {
-            "status": "row"
-          },
-          "CLN.SW": {
-            "status": "row"
-          },
-          "CMHC.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "COIN-USD.SW": {
-            "message": "COIN-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "CRM-USD.SW": {
-            "status": "row"
-          },
-          "CRM.SW": {
-            "status": "row"
-          },
-          "CRWD-USD.SW": {
-            "status": "row"
-          },
-          "CS.SW": {
-            "status": "row"
-          },
-          "CVX-USD.SW": {
-            "status": "row"
-          },
-          "DAE.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "DB1.SW": {
-            "message": "DB1.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "DBK.SW": {
-            "status": "row"
-          },
-          "DESN.SW": {
-            "status": "row"
-          },
-          "DHL.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "DIS-USD.SW": {
-            "message": "DIS-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "DKSH.SW": {
-            "status": "row"
-          },
-          "DOKA.SW": {
-            "status": "row"
-          },
-          "DSFIR.SW": {
-            "status": "row"
-          },
-          "EFGN.SW": {
-            "status": "row"
-          },
-          "EL1.SW": {
-            "status": "row"
-          },
-          "EMSN.SW": {
-            "status": "row"
-          },
-          "ENI.SW": {
-            "status": "row"
-          },
-          "ENR.SW": {
-            "status": "row"
-          },
-          "FCX-USD.SW": {
-            "status": "row"
-          },
-          "FHZN.SW": {
-            "status": "row"
-          },
-          "FORN.SW": {
-            "status": "row"
-          },
-          "FREN.SW": {
-            "status": "row"
-          },
-          "GALD.SW": {
-            "status": "row"
-          },
-          "GALE.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "GBF.SW": {
-            "message": "GBF.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "GE-USD.SW": {
-            "message": "GE-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "GEBN.SW": {
-            "status": "row"
-          },
-          "GEBNE.SW": {
-            "status": "row"
-          },
-          "GF.SW": {
-            "status": "row"
-          },
-          "GIVN.SW": {
-            "status": "row"
-          },
-          "GLW-USD.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "GME-USD.SW": {
             "status": "price_failure"
           },
-          "GOOG-USD.SW": {
-            "status": "row"
-          },
-          "GOOG.SW": {
-            "status": "row"
-          },
           "GOOGL-USD.SW": {
-            "message": "GOOGL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "GS-USD.SW": {
-            "message": "GS-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "HBAN.SW": {
-            "status": "row"
-          },
-          "HD-USD.SW": {
-            "status": "row"
-          },
-          "HIAG.SW": {
-            "status": "row"
-          },
-          "HOLN.SW": {
-            "status": "row"
-          },
-          "HOOD-USD.SW": {
-            "status": "row"
-          },
-          "HOOD.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "HPQ-USD.SW": {
             "status": "price_failure"
-          },
-          "HUBN.SW": {
-            "status": "row"
-          },
-          "IDIA.SW": {
-            "status": "row"
-          },
-          "IFCN.SW": {
-            "status": "row"
-          },
-          "IFX.SW": {
-            "status": "row"
-          },
-          "IMPN.SW": {
-            "status": "row"
-          },
-          "INFRAC.SW": {
-            "status": "row"
-          },
-          "INGA.SW": {
-            "status": "row"
           },
           "INTC-USD.SW": {
             "status": "price_failure"
@@ -7169,9 +6419,7 @@
             "status": "price_failure"
           },
           "METN.SW": {
-            "message": "METN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "below_market_cap"
           },
           "MS-USD.SW": {
             "status": "price_failure"
@@ -7180,9 +6428,7 @@
             "status": "price_failure"
           },
           "OXY-USD.SW": {
-            "message": "OXY-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "SCHN.SW": {
             "message": "SCHN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7205,9 +6451,7 @@
             "status": "error"
           },
           "SDZ.SW": {
-            "message": "SDZ.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "SENS.SW": {
             "message": "SENS.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7219,13 +6463,8 @@
             "rate_limited": true,
             "status": "error"
           },
-          "SFZN.SW": {
-            "status": "row"
-          },
           "SGKN.SW": {
-            "message": "SGKN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "SGSN.SW": {
             "message": "SGSN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7233,9 +6472,7 @@
             "status": "error"
           },
           "SHL.SW": {
-            "message": "SHL.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "SIGN.SW": {
             "message": "SIGN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7268,9 +6505,7 @@
             "status": "error"
           },
           "SNOW.SW": {
-            "message": "SNOW.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "SOON.SW": {
             "message": "SOON.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7288,14 +6523,10 @@
             "status": "error"
           },
           "SPSN.SW": {
-            "message": "SPSN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "SQN.SW": {
-            "message": "SQN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "SRAIL.SW": {
             "message": "SRAIL.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7303,9 +6534,7 @@
             "status": "error"
           },
           "SREN.SW": {
-            "message": "SREN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "SRENE.SW": {
             "message": "SRENE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7338,9 +6567,7 @@
             "status": "error"
           },
           "T.SW": {
-            "message": "T.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "TECN.SW": {
             "message": "TECN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7391,14 +6618,10 @@
             "status": "error"
           },
           "UHR.SW": {
-            "message": "UHR.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "UHRN.SW": {
-            "message": "UHRN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "UUUU-USD.SW": {
             "message": "UUUU-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7436,9 +6659,7 @@
             "status": "error"
           },
           "VONN.SW": {
-            "message": "VONN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "VPBN.SW": {
             "message": "VPBN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7449,9 +6670,7 @@
             "status": "price_failure"
           },
           "VZN.SW": {
-            "message": "VZN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "WARN.SW": {
             "message": "WARN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -7469,167 +6688,117 @@
             "status": "error"
           },
           "WKBN.SW": {
-            "message": "WKBN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "WMT.SW": {
-            "message": "WMT.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "XOM-USD.SW": {
             "status": "price_failure"
           },
           "YPSN.SW": {
-            "message": "YPSN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ZAL.SW": {
-            "message": "ZAL.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ZEHN.SW": {
-            "message": "ZEHN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ZM-USD.SW": {
-            "message": "ZM-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "ZUGER.SW": {
             "status": "row"
           },
           "ZUGN.SW": {
-            "message": "ZUGN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "ZURN.SW": {
-            "message": "ZURN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           }
         }
       },
       "eligible_symbols": 314,
       "gap_fill_dispatch_counts": {
-        "AAPL-USD.SW": 55,
-        "ABBNE.SW": 2,
-        "ACLN.SW": 2,
-        "ACLNE.SW": 2,
-        "AD.SW": 2,
-        "ADBE-USD.SW": 2,
-        "AEVS.SW": 2,
-        "AI1.SW": 2,
-        "ALC.SW": 2,
-        "ALLN.SW": 2,
-        "ALSN.SW": 2,
-        "ALV.SW": 2,
-        "AMAT-USD.SW": 55,
-        "AMD-USD.SW": 2,
-        "BA-USD.SW": 55,
-        "BAC-USD.SW": 55,
-        "BLK-USD.SW": 55,
-        "CAT-USD.SW": 55,
-        "CL-USD.SW": 55,
-        "COIN-USD.SW": 55,
-        "DB1.SW": 55,
-        "DIS-USD.SW": 55,
-        "GBF.SW": 55,
-        "GE-USD.SW": 55,
-        "GME-USD.SW": 2,
-        "GOOGL-USD.SW": 55,
-        "GS-USD.SW": 55,
-        "HPQ-USD.SW": 55,
-        "INTC-USD.SW": 55,
-        "JPM-USD.SW": 55,
-        "MDLZ-USD.SW": 55,
-        "METN.SW": 2,
-        "MS-USD.SW": 55,
-        "ORCL-USD.SW": 55,
-        "OXY-USD.SW": 2,
-        "SCHN.SW": 1,
-        "SCHNE.SW": 1,
-        "SCHPE.SW": 1,
-        "SCMN.SW": 1,
-        "SDZ.SW": 1,
-        "SENS.SW": 1,
-        "SFSN.SW": 1,
-        "SGKN.SW": 1,
-        "SGSN.SW": 1,
-        "SHL.SW": 1,
-        "SIGN.SW": 1,
-        "SIKA.SW": 1,
-        "SKAN.SW": 1,
-        "SLHN.SW": 1,
-        "SMCI.SW": 1,
-        "SMG.SW": 1,
-        "SNOW.SW": 1,
-        "SOON.SW": 1,
-        "SPCX-USD.SW": 1,
-        "SPCX.SW": 1,
-        "SPSN.SW": 1,
-        "SQN.SW": 1,
-        "SRAIL.SW": 1,
-        "SREN.SW": 1,
-        "SRENE.SW": 1,
-        "STMN.SW": 1,
-        "SUN.SW": 1,
-        "SUNN.SW": 1,
-        "SWON.SW": 1,
-        "SWTQ.SW": 1,
-        "T.SW": 1,
-        "TECN.SW": 1,
-        "TEMN.SW": 1,
-        "TKBP.SW": 1,
-        "TLX.SW": 55,
-        "TSLA.SW": 1,
-        "TTE.SW": 1,
-        "TXGN.SW": 1,
-        "TXGNE.SW": 1,
-        "UBER-USD.SW": 1,
-        "UBER.SW": 1,
-        "UHR.SW": 1,
-        "UHRN.SW": 1,
-        "UUUU-USD.SW": 1,
-        "V-USD.SW": 1,
-        "VACN.SW": 1,
-        "VAHN.SW": 1,
-        "VATN.SW": 1,
-        "VATNE.SW": 1,
-        "VNA.SW": 1,
-        "VONN.SW": 1,
-        "VPBN.SW": 1,
-        "VZ-USD.SW": 55,
-        "VZN.SW": 1,
-        "WARN.SW": 1,
-        "WDAY-USD.SW": 1,
-        "WFC-USD.SW": 1,
-        "WKBN.SW": 1,
-        "WMT.SW": 1,
-        "XOM-USD.SW": 55,
-        "YPSN.SW": 1,
-        "ZAL.SW": 1,
-        "ZEHN.SW": 1,
-        "ZM-USD.SW": 1,
-        "ZUGN.SW": 1,
-        "ZURN.SW": 1
+        "AAPL-USD.SW": 56,
+        "AMAT-USD.SW": 56,
+        "AMD-USD.SW": 3,
+        "BA-USD.SW": 56,
+        "BAC-USD.SW": 56,
+        "BLK-USD.SW": 56,
+        "CAT-USD.SW": 56,
+        "CL-USD.SW": 56,
+        "COIN-USD.SW": 56,
+        "DB1.SW": 56,
+        "DIS-USD.SW": 56,
+        "GBF.SW": 56,
+        "GE-USD.SW": 56,
+        "GME-USD.SW": 3,
+        "GOOGL-USD.SW": 56,
+        "GS-USD.SW": 56,
+        "HPQ-USD.SW": 56,
+        "INTC-USD.SW": 56,
+        "JPM-USD.SW": 56,
+        "MDLZ-USD.SW": 56,
+        "METN.SW": 3,
+        "MS-USD.SW": 56,
+        "ORCL-USD.SW": 56,
+        "OXY-USD.SW": 3,
+        "SCHN.SW": 2,
+        "SCHNE.SW": 2,
+        "SCHPE.SW": 2,
+        "SCMN.SW": 2,
+        "SENS.SW": 2,
+        "SFSN.SW": 2,
+        "SGSN.SW": 2,
+        "SIGN.SW": 2,
+        "SIKA.SW": 2,
+        "SKAN.SW": 2,
+        "SLHN.SW": 2,
+        "SMCI.SW": 2,
+        "SMG.SW": 2,
+        "SOON.SW": 2,
+        "SPCX-USD.SW": 2,
+        "SPCX.SW": 2,
+        "SRAIL.SW": 2,
+        "SRENE.SW": 2,
+        "STMN.SW": 2,
+        "SUN.SW": 2,
+        "SUNN.SW": 2,
+        "SWON.SW": 2,
+        "SWTQ.SW": 2,
+        "TECN.SW": 2,
+        "TEMN.SW": 2,
+        "TKBP.SW": 2,
+        "TLX.SW": 56,
+        "TSLA.SW": 2,
+        "TTE.SW": 2,
+        "TXGN.SW": 2,
+        "TXGNE.SW": 2,
+        "UBER-USD.SW": 2,
+        "UBER.SW": 2,
+        "UUUU-USD.SW": 2,
+        "V-USD.SW": 2,
+        "VACN.SW": 2,
+        "VAHN.SW": 2,
+        "VATN.SW": 2,
+        "VATNE.SW": 2,
+        "VNA.SW": 2,
+        "VPBN.SW": 2,
+        "VZ-USD.SW": 56,
+        "WARN.SW": 2,
+        "WDAY-USD.SW": 2,
+        "WFC-USD.SW": 2,
+        "XOM-USD.SW": 56
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T02:53:01+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T03:54:50+01:00",
       "label": "SIX Swiss Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 101,
-      "requested_this_run": 193,
-      "result_rows": 213,
-      "returned_this_run": 92,
-      "started_at": "2026-09-25T02:53:01+01:00",
+      "remaining_symbols": 70,
+      "requested_this_run": 101,
+      "result_rows": 244,
+      "returned_this_run": 31,
+      "started_at": "2026-09-25T03:54:50+01:00",
       "status": "partial",
       "universe_symbols": 381
     },
@@ -7708,9 +6877,9 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T03:04:13+01:00",
-      "coverage_pct": 51.4,
-      "coverage_symbols": 491,
+      "completed_at": "2026-09-25T04:00:14+01:00",
+      "coverage_pct": 72.2,
+      "coverage_symbols": 690,
       "diagnostics": {
         "below_min_market_cap": 1,
         "error_samples": [],
@@ -7721,604 +6890,604 @@
         "requested": 200,
         "returned": 199,
         "symbol_outcomes": {
-          "COLO.VI": {
+          "ICK.VI": {
             "status": "row"
           },
-          "COLR.VI": {
+          "IDR.VI": {
             "status": "row"
           },
-          "CON.VI": {
+          "IDXX.VI": {
             "status": "row"
           },
-          "COPH.VI": {
+          "IFF.VI": {
             "status": "row"
           },
-          "COPN.VI": {
+          "IFX.VI": {
             "status": "row"
           },
-          "COST.VI": {
+          "IG.VI": {
             "status": "row"
           },
-          "COVI.VI": {
+          "ILMN.VI": {
             "status": "row"
           },
-          "CPI.VI": {
+          "IMCD.VI": {
             "status": "row"
           },
-          "CPRI.VI": {
+          "INGA.VI": {
             "status": "row"
           },
-          "CRH.VI": {
+          "INH.VI": {
             "status": "row"
           },
-          "CRM.VI": {
+          "INIO.VI": {
             "status": "row"
           },
-          "CRWD.VI": {
+          "INPS.VI": {
             "status": "row"
           },
-          "CS.VI": {
+          "INTC.VI": {
             "status": "row"
           },
-          "CSCO.VI": {
+          "INTU.VI": {
             "status": "row"
           },
-          "CSG.VI": {
+          "INW.VI": {
             "status": "row"
           },
-          "CSX.VI": {
+          "IOC.VI": {
             "status": "row"
           },
-          "CTSH.VI": {
+          "IOS.VI": {
             "status": "row"
           },
-          "CTVA.VI": {
+          "IP.VI": {
             "status": "row"
           },
-          "CVC.VI": {
+          "IPCO.VI": {
             "status": "row"
           },
-          "CVNA.VI": {
+          "IPN.VI": {
             "status": "row"
           },
-          "CVX.VI": {
+          "IQVH.VI": {
             "status": "row"
           },
-          "CWC.VI": {
+          "ISP.VI": {
             "status": "row"
           },
-          "DAA2.VI": {
+          "ISRG.VI": {
             "status": "row"
           },
-          "DAL.VI": {
+          "ISS.VI": {
             "status": "row"
           },
-          "DASH.VI": {
+          "ITW.VI": {
             "status": "row"
           },
-          "DBK.VI": {
+          "ITX.VI": {
             "status": "row"
           },
-          "DBO.VI": {
+          "IVG.VI": {
             "status": "row"
           },
-          "DBX.VI": {
+          "IWA.VI": {
             "status": "row"
           },
-          "DDD.VI": {
+          "IXX.VI": {
             "status": "below_market_cap"
           },
-          "DDOG.VI": {
+          "JAT.VI": {
             "status": "row"
           },
-          "DECK.VI": {
+          "JBHT.VI": {
             "status": "row"
           },
-          "DEER.VI": {
+          "JEN.VI": {
             "status": "row"
           },
-          "DELL.VI": {
+          "JPM.VI": {
             "status": "row"
           },
-          "DEMA.VI": {
+          "JSTG.VI": {
             "status": "row"
           },
-          "DEQ.VI": {
+          "JUV2.VI": {
             "status": "row"
           },
-          "DEZ.VI": {
+          "JYSK.VI": {
             "status": "row"
           },
-          "DG.VI": {
+          "KBC.VI": {
             "status": "row"
           },
-          "DGEN.VI": {
+          "KBCA.VI": {
             "status": "row"
           },
-          "DHER.VI": {
+          "KBX.VI": {
             "status": "row"
           },
-          "DHL.VI": {
+          "KCO.VI": {
             "status": "row"
           },
-          "DHRC.VI": {
+          "KD.VI": {
             "status": "row"
           },
-          "DIAS.VI": {
+          "KDP.VI": {
             "status": "row"
           },
-          "DIET.VI": {
+          "KER.VI": {
             "status": "row"
           },
-          "DIM.VI": {
+          "KEY.VI": {
             "status": "row"
           },
-          "DIS.VI": {
+          "KEYS.VI": {
             "status": "row"
           },
-          "DKSH.VI": {
+          "KGX.VI": {
             "status": "row"
           },
-          "DLGI.VI": {
+          "KHC.VI": {
             "status": "row"
           },
-          "DLTR.VI": {
+          "KKRO.VI": {
             "status": "row"
           },
-          "DMP.VI": {
+          "KLAC.VI": {
             "status": "row"
           },
-          "DOC.VI": {
+          "KLEP.VI": {
             "status": "row"
           },
-          "DOEN.VI": {
+          "KMBC.VI": {
             "status": "row"
           },
-          "DOU2.VI": {
+          "KMI.VI": {
             "status": "row"
           },
-          "DOW.VI": {
+          "KNIN.VI": {
             "status": "row"
           },
-          "DPZ.VI": {
+          "KOMT.VI": {
             "status": "row"
           },
-          "DRI.VI": {
+          "KPN.VI": {
             "status": "row"
           },
-          "DRW8.VI": {
+          "KR.VI": {
             "status": "row"
           },
-          "DSFI.VI": {
+          "KRKG.VI": {
             "status": "row"
           },
-          "DSV.VI": {
+          "KRN.VI": {
             "status": "row"
           },
-          "DSY2.VI": {
+          "KSBG.VI": {
             "status": "row"
           },
-          "DTE.VI": {
+          "KTN.VI": {
             "status": "row"
           },
-          "DTG.VI": {
+          "LDO.VI": {
             "status": "row"
           },
-          "DUE.VI": {
+          "LEG.VI": {
             "status": "row"
           },
-          "DUKE.VI": {
+          "LEVI.VI": {
             "status": "row"
           },
-          "DVN.VI": {
+          "LGHT.VI": {
             "status": "row"
           },
-          "DWNI.VI": {
+          "LHA.VI": {
             "status": "row"
           },
-          "DWS.VI": {
+          "LHXT.VI": {
             "status": "row"
           },
-          "EBAY.VI": {
+          "LIME.VI": {
             "status": "row"
           },
-          "EBS.VI": {
+          "LIN.VI": {
             "status": "row"
           },
-          "ECHO.VI": {
+          "LISN.VI": {
             "status": "row"
           },
-          "ECL.VI": {
+          "LITE.VI": {
             "status": "row"
           },
-          "ED.VI": {
+          "LKFT.VI": {
             "status": "row"
           },
-          "EDEN.VI": {
+          "LLYC.VI": {
             "status": "row"
           },
-          "EFX.VI": {
+          "LMT.VI": {
             "status": "row"
           },
-          "EI.VI": {
+          "LNZ.VI": {
             "status": "row"
           },
-          "EK7.VI": {
+          "LOGN.VI": {
             "status": "row"
           },
-          "ELE.VI": {
+          "LOWE.VI": {
             "status": "row"
           },
-          "ELIA.VI": {
+          "LR.VI": {
             "status": "row"
           },
-          "ELIS.VI": {
+          "LTMC.VI": {
             "status": "row"
           },
-          "ELMO.VI": {
+          "LULU.VI": {
             "status": "row"
           },
-          "ELV.VI": {
+          "LUNA.VI": {
             "status": "row"
           },
-          "EMR.VI": {
+          "LUNB.VI": {
             "status": "row"
           },
-          "EMSN.VI": {
+          "LUV.VI": {
             "status": "row"
           },
-          "EN.VI": {
+          "LVSC.VI": {
             "status": "row"
           },
-          "ENEL.VI": {
+          "LXS.VI": {
             "status": "row"
           },
-          "ENG.VI": {
+          "LYFT.VI": {
             "status": "row"
           },
-          "ENGI.VI": {
+          "MAP.VI": {
             "status": "row"
           },
-          "ENI.VI": {
+          "MAR.VI": {
             "status": "row"
           },
-          "ENR.VI": {
+          "MARA.VI": {
             "status": "row"
           },
-          "ENX.VI": {
+          "MAST.VI": {
             "status": "row"
           },
-          "EOAN.VI": {
+          "MAT.VI": {
             "status": "row"
           },
-          "EOGR.VI": {
+          "MAT1.VI": {
             "status": "row"
           },
-          "EQIX.VI": {
+          "MB.VI": {
             "status": "row"
           },
-          "ERAM.VI": {
+          "MBBG.VI": {
             "status": "row"
           },
-          "ESF.VI": {
+          "MBG.VI": {
             "status": "row"
           },
-          "ESLA.VI": {
+          "MBGL.VI": {
             "status": "row"
           },
-          "ETL.VI": {
+          "MC.VI": {
             "status": "row"
           },
-          "ETN.VI": {
+          "MCD.VI": {
             "status": "row"
           },
-          "ETS.VI": {
+          "MCK.VI": {
             "status": "row"
           },
-          "ETSY.VI": {
+          "MDLZ.VI": {
             "status": "row"
           },
-          "EUZG.VI": {
+          "MDT.VI": {
             "status": "row"
           },
-          "EVD.VI": {
+          "MEL.VI": {
             "status": "row"
           },
-          "EVK.VI": {
+          "MELI.VI": {
             "status": "row"
           },
-          "EVN.VI": {
+          "MEO2.VI": {
             "status": "row"
           },
-          "EWLS.VI": {
+          "MERL.VI": {
             "status": "row"
           },
-          "EXEC.VI": {
+          "META.VI": {
             "status": "row"
           },
-          "EXO.VI": {
+          "METL.VI": {
             "status": "row"
           },
-          "EXPE.VI": {
+          "MF.VI": {
             "status": "row"
           },
-          "FACC.VI": {
+          "MFE2.VI": {
             "status": "row"
           },
-          "FANG.VI": {
+          "MITT.VI": {
             "status": "row"
           },
-          "FBK.VI": {
+          "MKC.VI": {
             "status": "row"
           },
-          "FCE2.VI": {
+          "MLP.VI": {
             "status": "row"
           },
-          "FCX.VI": {
+          "MMCO.VI": {
             "status": "row"
           },
-          "FDJ.VI": {
+          "MMK.VI": {
             "status": "row"
           },
-          "FDR.VI": {
+          "MNST.VI": {
             "status": "row"
           },
-          "FDX.VI": {
+          "MOCO.VI": {
             "status": "row"
           },
-          "FDXH.VI": {
+          "MONC.VI": {
             "status": "row"
           },
-          "FGR.VI": {
+          "MOSI.VI": {
             "status": "row"
           },
-          "FHZN.VI": {
+          "MPC.VI": {
             "status": "row"
           },
-          "FIE.VI": {
+          "MPWR.VI": {
             "status": "row"
           },
-          "FISV.VI": {
+          "MRCK.VI": {
             "status": "row"
           },
-          "FLSM.VI": {
+          "MRK.VI": {
             "status": "row"
           },
-          "FLU.VI": {
+          "MRNA.VI": {
             "status": "row"
           },
-          "FME.VI": {
+          "MRSA.VI": {
             "status": "row"
           },
-          "FNIS.VI": {
+          "MRSK.VI": {
             "status": "row"
           },
-          "FNTN.VI": {
+          "MRVL.VI": {
             "status": "row"
           },
-          "FORD.VI": {
+          "MSCI.VI": {
             "status": "row"
           },
-          "FP.VI": {
+          "MSFT.VI": {
             "status": "row"
           },
-          "FPE.VI": {
+          "MSTR.VI": {
             "status": "row"
           },
-          "FQT.VI": {
+          "MT.VI": {
             "status": "row"
           },
-          "FR.VI": {
+          "MTD.VI": {
             "status": "row"
           },
-          "FRA.VI": {
+          "MTX.VI": {
             "status": "row"
           },
-          "FRE2.VI": {
+          "MU.VI": {
             "status": "row"
           },
-          "FRGR.VI": {
+          "MUMG.VI": {
             "status": "row"
           },
-          "FRVI.VI": {
+          "MUV.VI": {
             "status": "row"
           },
-          "FSLR.VI": {
+          "MUX2.VI": {
             "status": "row"
           },
-          "FTI.VI": {
+          "MUXG.VI": {
             "status": "row"
           },
-          "FTK.VI": {
+          "MVV1.VI": {
             "status": "row"
           },
-          "FTNT.VI": {
+          "MWD.VI": {
             "status": "row"
           },
-          "FZM.VI": {
+          "NA9N.VI": {
             "status": "row"
           },
-          "G1A.VI": {
+          "NBIS.VI": {
             "status": "row"
           },
-          "G24.VI": {
+          "NCH2.VI": {
             "status": "row"
           },
-          "GALD.VI": {
+          "NDA.VI": {
             "status": "row"
           },
-          "GALE.VI": {
+          "NDAQ.VI": {
             "status": "row"
           },
-          "GAS.VI": {
+          "NDX1.VI": {
             "status": "row"
           },
-          "GBF.VI": {
+          "NEE.VI": {
             "status": "row"
           },
-          "GBLB.VI": {
+          "NEM.VI": {
             "status": "row"
           },
-          "GE.VI": {
+          "NESN.VI": {
             "status": "row"
           },
-          "GEBN.VI": {
+          "NEWM.VI": {
             "status": "row"
           },
-          "GEDY.VI": {
+          "NEX.VI": {
             "status": "row"
           },
-          "GEFI.VI": {
+          "NEXI.VI": {
             "status": "row"
           },
-          "GET.VI": {
+          "NFLX.VI": {
             "status": "row"
           },
-          "GFC.VI": {
+          "NIB.VI": {
             "status": "row"
           },
-          "GFT.VI": {
+          "NISA.VI": {
             "status": "row"
           },
-          "GIL.VI": {
+          "NITT.VI": {
             "status": "row"
           },
-          "GLE.VI": {
+          "NKE.VI": {
             "status": "row"
           },
-          "GLJ.VI": {
+          "NKT.VI": {
             "status": "row"
           },
-          "GLW.VI": {
+          "NLBR.VI": {
             "status": "row"
           },
-          "GMAB.VI": {
+          "NLOK.VI": {
             "status": "row"
           },
-          "GME.VI": {
+          "NN.VI": {
             "status": "row"
           },
-          "GMOT.VI": {
+          "NNND.VI": {
             "status": "row"
           },
-          "GNSN.VI": {
+          "NOEJ.VI": {
             "status": "row"
           },
-          "GPN.VI": {
+          "NOKI.VI": {
             "status": "row"
           },
-          "GRF.VI": {
+          "NRE1.VI": {
             "status": "row"
           },
-          "GRP2.VI": {
+          "NTO.VI": {
             "status": "row"
           },
-          "GRU.VI": {
+          "NVAX.VI": {
             "status": "row"
           },
-          "GRV.VI": {
+          "NVDA.VI": {
             "status": "row"
           },
-          "GTT.VI": {
+          "NXPI.VI": {
             "status": "row"
           },
-          "GVC.VI": {
+          "NZYM.VI": {
             "status": "row"
           },
-          "GXI.VI": {
+          "OBCK.VI": {
             "status": "row"
           },
-          "GYC.VI": {
+          "OBS.VI": {
             "status": "row"
           },
-          "GYT.VI": {
+          "OHB.VI": {
             "status": "row"
           },
-          "HAG.VI": {
+          "OKE2.VI": {
             "status": "row"
           },
-          "HAL.VI": {
+          "OMV.VI": {
             "status": "row"
           },
-          "HAS.VI": {
+          "ONSE.VI": {
             "status": "row"
           },
-          "HAV2.VI": {
+          "OR.VI": {
             "status": "row"
           },
-          "HBAN.VI": {
+          "ORA.VI": {
             "status": "row"
           },
-          "HBH.VI": {
+          "ORAT.VI": {
             "status": "row"
           },
-          "HCAH.VI": {
+          "ORCL.VI": {
             "status": "row"
           },
-          "HD.VI": {
+          "ORP2.VI": {
             "status": "row"
           },
-          "HEI.VI": {
+          "OTIS.VI": {
             "status": "row"
           },
-          "HEIA.VI": {
+          "OXYP.VI": {
             "status": "row"
           },
-          "HEIO.VI": {
+          "P1Z.VI": {
             "status": "row"
           },
-          "HENI.VI": {
+          "PAL.VI": {
             "status": "row"
           },
-          "HERS.VI": {
+          "PANW.VI": {
             "status": "row"
           },
-          "HHFA.VI": {
+          "PC.VI": {
             "status": "row"
           },
-          "HLAG.VI": {
+          "PCZH.VI": {
             "status": "row"
           },
-          "HLE.VI": {
+          "PEG.VI": {
             "status": "row"
           },
-          "HLTW.VI": {
+          "PEPS.VI": {
             "status": "row"
           },
-          "HNR1.VI": {
+          "PETG.VI": {
             "status": "row"
           },
-          "HOLN.VI": {
+          "PFE.VI": {
             "status": "row"
           },
-          "HONA.VI": {
+          "PFV.VI": {
             "status": "row"
           },
-          "HOOD.VI": {
+          "PG.VI": {
             "status": "row"
           },
-          "HOT.VI": {
+          "PGHN.VI": {
             "status": "row"
           },
-          "HPQ.VI": {
+          "PGR.VI": {
             "status": "row"
           },
-          "HRL.VI": {
+          "PH.VI": {
             "status": "row"
           },
-          "HSY.VI": {
+          "PHIA.VI": {
             "status": "row"
           },
-          "HUBN.VI": {
+          "PHM.VI": {
             "status": "row"
           },
-          "HWM.VI": {
+          "PLNW.VI": {
             "status": "row"
           },
-          "IAG.VI": {
+          "PLTR.VI": {
             "status": "row"
           },
-          "IBE.VI": {
+          "PLUX.VI": {
             "status": "row"
           }
         }
@@ -8326,206 +7495,7 @@
       "eligible_symbols": 956,
       "gap_fill_dispatch_counts": {
         "DDD.VI": 1,
-        "ICK.VI": 0,
-        "IDR.VI": 0,
-        "IDXX.VI": 0,
-        "IFF.VI": 0,
-        "IFX.VI": 0,
-        "IG.VI": 0,
-        "ILMN.VI": 0,
-        "IMCD.VI": 0,
-        "INGA.VI": 0,
-        "INH.VI": 0,
-        "INIO.VI": 0,
-        "INPS.VI": 0,
-        "INTC.VI": 0,
-        "INTU.VI": 0,
-        "INW.VI": 0,
-        "IOC.VI": 0,
-        "IOS.VI": 0,
-        "IP.VI": 0,
-        "IPCO.VI": 0,
-        "IPN.VI": 0,
-        "IQVH.VI": 0,
-        "ISP.VI": 0,
-        "ISRG.VI": 0,
-        "ISS.VI": 0,
-        "ITW.VI": 0,
-        "ITX.VI": 0,
-        "IVG.VI": 0,
-        "IWA.VI": 0,
-        "IXX.VI": 0,
-        "JAT.VI": 0,
-        "JBHT.VI": 0,
-        "JEN.VI": 0,
-        "JPM.VI": 0,
-        "JSTG.VI": 0,
-        "JUV2.VI": 0,
-        "JYSK.VI": 0,
-        "KBC.VI": 0,
-        "KBCA.VI": 0,
-        "KBX.VI": 0,
-        "KCO.VI": 0,
-        "KD.VI": 0,
-        "KDP.VI": 0,
-        "KER.VI": 0,
-        "KEY.VI": 0,
-        "KEYS.VI": 0,
-        "KGX.VI": 0,
-        "KHC.VI": 0,
-        "KKRO.VI": 0,
-        "KLAC.VI": 0,
-        "KLEP.VI": 0,
-        "KMBC.VI": 0,
-        "KMI.VI": 0,
-        "KNIN.VI": 0,
-        "KOMT.VI": 0,
-        "KPN.VI": 0,
-        "KR.VI": 0,
-        "KRKG.VI": 0,
-        "KRN.VI": 0,
-        "KSBG.VI": 0,
-        "KTN.VI": 0,
-        "LDO.VI": 0,
-        "LEG.VI": 0,
-        "LEVI.VI": 0,
-        "LGHT.VI": 0,
-        "LHA.VI": 0,
-        "LHXT.VI": 0,
-        "LIME.VI": 0,
-        "LIN.VI": 0,
-        "LISN.VI": 0,
-        "LITE.VI": 0,
-        "LKFT.VI": 0,
-        "LLYC.VI": 0,
-        "LMT.VI": 0,
-        "LNZ.VI": 0,
-        "LOGN.VI": 0,
-        "LOWE.VI": 0,
-        "LR.VI": 0,
-        "LTMC.VI": 0,
-        "LULU.VI": 0,
-        "LUNA.VI": 0,
-        "LUNB.VI": 0,
-        "LUV.VI": 0,
-        "LVSC.VI": 0,
-        "LXS.VI": 0,
-        "LYFT.VI": 0,
-        "MAP.VI": 0,
-        "MAR.VI": 0,
-        "MARA.VI": 0,
-        "MAST.VI": 0,
-        "MAT.VI": 0,
-        "MAT1.VI": 0,
-        "MB.VI": 0,
-        "MBBG.VI": 0,
-        "MBG.VI": 0,
-        "MBGL.VI": 0,
-        "MC.VI": 0,
-        "MCD.VI": 0,
-        "MCK.VI": 0,
-        "MDLZ.VI": 0,
-        "MDT.VI": 0,
-        "MEL.VI": 0,
-        "MELI.VI": 0,
-        "MEO2.VI": 0,
-        "MERL.VI": 0,
-        "META.VI": 0,
-        "METL.VI": 0,
-        "MF.VI": 0,
-        "MFE2.VI": 0,
-        "MITT.VI": 0,
-        "MKC.VI": 0,
-        "MLP.VI": 0,
-        "MMCO.VI": 0,
-        "MMK.VI": 0,
-        "MNST.VI": 0,
-        "MOCO.VI": 0,
-        "MONC.VI": 0,
-        "MOSI.VI": 0,
-        "MPC.VI": 0,
-        "MPWR.VI": 0,
-        "MRCK.VI": 0,
-        "MRK.VI": 0,
-        "MRNA.VI": 0,
-        "MRSA.VI": 0,
-        "MRSK.VI": 0,
-        "MRVL.VI": 0,
-        "MSCI.VI": 0,
-        "MSFT.VI": 0,
-        "MSTR.VI": 0,
-        "MT.VI": 0,
-        "MTD.VI": 0,
-        "MTX.VI": 0,
-        "MU.VI": 0,
-        "MUMG.VI": 0,
-        "MUV.VI": 0,
-        "MUX2.VI": 0,
-        "MUXG.VI": 0,
-        "MVV1.VI": 0,
-        "MWD.VI": 0,
-        "NA9N.VI": 0,
-        "NBIS.VI": 0,
-        "NCH2.VI": 0,
-        "NDA.VI": 0,
-        "NDAQ.VI": 0,
-        "NDX1.VI": 0,
-        "NEE.VI": 0,
-        "NEM.VI": 0,
-        "NESN.VI": 0,
-        "NEWM.VI": 0,
-        "NEX.VI": 0,
-        "NEXI.VI": 0,
-        "NFLX.VI": 0,
-        "NIB.VI": 0,
-        "NISA.VI": 0,
-        "NITT.VI": 0,
-        "NKE.VI": 0,
-        "NKT.VI": 0,
-        "NLBR.VI": 0,
-        "NLOK.VI": 0,
-        "NN.VI": 0,
-        "NNND.VI": 0,
-        "NOEJ.VI": 0,
-        "NOKI.VI": 0,
-        "NRE1.VI": 0,
-        "NTO.VI": 0,
-        "NVAX.VI": 0,
-        "NVDA.VI": 0,
-        "NXPI.VI": 0,
-        "NZYM.VI": 0,
-        "OBCK.VI": 0,
-        "OBS.VI": 0,
-        "OHB.VI": 0,
-        "OKE2.VI": 0,
-        "OMV.VI": 0,
-        "ONSE.VI": 0,
-        "OR.VI": 0,
-        "ORA.VI": 0,
-        "ORAT.VI": 0,
-        "ORCL.VI": 0,
-        "ORP2.VI": 0,
-        "OTIS.VI": 0,
-        "OXYP.VI": 0,
-        "P1Z.VI": 0,
-        "PAL.VI": 0,
-        "PANW.VI": 0,
-        "PC.VI": 0,
-        "PCZH.VI": 0,
-        "PEG.VI": 0,
-        "PEPS.VI": 0,
-        "PETG.VI": 0,
-        "PFE.VI": 0,
-        "PFV.VI": 0,
-        "PG.VI": 0,
-        "PGHN.VI": 0,
-        "PGR.VI": 0,
-        "PH.VI": 0,
-        "PHIA.VI": 0,
-        "PHM.VI": 0,
-        "PLNW.VI": 0,
-        "PLTR.VI": 0,
-        "PLUX.VI": 0,
+        "IXX.VI": 1,
         "PMOR.VI": 0,
         "PNCF.VI": 0,
         "PNDO.VI": 0,
@@ -8791,16 +7761,16 @@
         "ZOTS.VI": 0,
         "ZSCA.VI": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:03:25+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T03:59:35+01:00",
       "label": "Wiener B\u00f6rse",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 465,
+      "remaining_symbols": 266,
       "requested_this_run": 200,
-      "result_rows": 491,
+      "result_rows": 690,
       "returned_this_run": 199,
-      "started_at": "2026-09-25T03:03:25+01:00",
+      "started_at": "2026-09-25T03:59:35+01:00",
       "status": "partial",
       "universe_symbols": 1068
     },
@@ -8808,617 +7778,617 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T02:52:33+01:00",
-      "coverage_pct": 47.1,
-      "coverage_symbols": 530,
+      "completed_at": "2026-09-25T03:53:32+01:00",
+      "coverage_pct": 64.8,
+      "coverage_symbols": 729,
       "diagnostics": {
-        "below_min_market_cap": 3,
+        "below_min_market_cap": 1,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
         "requested": 200,
-        "returned": 197,
+        "returned": 199,
         "symbol_outcomes": {
-          "FMC1.DE": {
+          "OMV.DE": {
             "status": "row"
           },
-          "FME.DE": {
+          "OO6.DE": {
             "status": "row"
           },
-          "FMNB.DE": {
+          "OPC.DE": {
             "status": "row"
           },
-          "FMV.DE": {
+          "ORC.DE": {
             "status": "row"
           },
-          "FN2.DE": {
+          "OYC.DE": {
             "status": "row"
           },
-          "FO5B.DE": {
+          "P2H.DE": {
             "status": "row"
           },
-          "FO8.DE": {
+          "P8S0.DE": {
             "status": "row"
           },
-          "FOO.DE": {
+          "PA9.DE": {
             "status": "row"
           },
-          "FP3.DE": {
+          "PAR.DE": {
             "status": "row"
           },
-          "FPMB.DE": {
+          "PAT.DE": {
             "status": "row"
           },
-          "FRE.DE": {
+          "PCE1.DE": {
             "status": "row"
           },
-          "FT2.DE": {
+          "PCU.DE": {
             "status": "row"
           },
-          "FWV.DE": {
+          "PCZ.DE": {
             "status": "row"
           },
-          "G14.DE": {
+          "PEA.DE": {
             "status": "row"
           },
-          "G84.DE": {
+          "PEN.DE": {
             "status": "row"
           },
-          "GAP.DE": {
+          "PEO.DE": {
             "status": "row"
           },
-          "GFT.DE": {
+          "PEP.DE": {
             "status": "row"
           },
-          "GGRA.DE": {
+          "PER.DE": {
             "status": "row"
           },
-          "GIL.DE": {
+          "PES.DE": {
             "status": "row"
           },
-          "GLJ.DE": {
+          "PFE.DE": {
+            "status": "row"
+          },
+          "PFSE.DE": {
+            "status": "row"
+          },
+          "PFV.DE": {
+            "status": "row"
+          },
+          "PFZ0.DE": {
+            "status": "row"
+          },
+          "PG4.DE": {
+            "status": "row"
+          },
+          "PGV.DE": {
+            "status": "row"
+          },
+          "PHGN.DE": {
+            "status": "row"
+          },
+          "PHI1.DE": {
+            "status": "row"
+          },
+          "PHM7.DE": {
+            "status": "row"
+          },
+          "PKA.DE": {
+            "status": "row"
+          },
+          "PKN.DE": {
+            "status": "row"
+          },
+          "PL6.DE": {
+            "status": "row"
+          },
+          "PLQ.DE": {
+            "status": "row"
+          },
+          "PMTA.DE": {
+            "status": "row"
+          },
+          "PNE3.DE": {
+            "status": "row"
+          },
+          "PP9.DE": {
+            "status": "row"
+          },
+          "PPX.DE": {
+            "status": "row"
+          },
+          "PSAN.DE": {
+            "status": "row"
+          },
+          "PSE.DE": {
+            "status": "row"
+          },
+          "PSM.DE": {
+            "status": "row"
+          },
+          "PU4.DE": {
+            "status": "row"
+          },
+          "PU7.DE": {
+            "status": "row"
+          },
+          "PUM.DE": {
+            "status": "row"
+          },
+          "PVH.DE": {
+            "status": "row"
+          },
+          "PW2.DE": {
+            "status": "row"
+          },
+          "Q23.DE": {
+            "status": "row"
+          },
+          "Q41.DE": {
+            "status": "row"
+          },
+          "QEN.DE": {
+            "status": "row"
+          },
+          "QGJ.DE": {
+            "status": "row"
+          },
+          "QH9.DE": {
             "status": "below_market_cap"
           },
-          "GLO.DE": {
+          "QIA.DE": {
             "status": "row"
           },
-          "GLW.DE": {
+          "QTS.DE": {
             "status": "row"
           },
-          "GM0N.DE": {
+          "R1D.DE": {
             "status": "row"
           },
-          "GNN.DE": {
+          "R35.DE": {
             "status": "row"
           },
-          "GOV.DE": {
+          "R3D.DE": {
             "status": "row"
           },
-          "GRG.DE": {
+          "R3NK.DE": {
             "status": "row"
           },
-          "GS2C.DE": {
+          "R5A.DE": {
             "status": "row"
           },
-          "GUI.DE": {
+          "R66.DE": {
             "status": "row"
           },
-          "GXE.DE": {
+          "R7R.DE": {
             "status": "row"
           },
-          "GXI.DE": {
+          "RAA.DE": {
             "status": "row"
           },
-          "GYC.DE": {
+          "RAX.DE": {
             "status": "row"
           },
-          "GZF.DE": {
+          "RB8.DE": {
             "status": "row"
           },
-          "H6D0.DE": {
+          "RCF.DE": {
             "status": "row"
           },
-          "H7B.DE": {
+          "RDC.DE": {
             "status": "row"
           },
-          "HAG.DE": {
+          "RE21.DE": {
             "status": "row"
           },
-          "HBH.DE": {
+          "REP.DE": {
             "status": "row"
           },
-          "HDI.DE": {
+          "RF6.DE": {
             "status": "row"
           },
-          "HDP1.DE": {
+          "RHK.DE": {
             "status": "row"
           },
-          "HEI.DE": {
+          "RIO1.DE": {
             "status": "row"
           },
-          "HEN.DE": {
+          "RJF.DE": {
             "status": "row"
           },
-          "HHFA.DE": {
+          "RLS.DE": {
             "status": "row"
           },
-          "HLAG.DE": {
+          "RNL.DE": {
             "status": "row"
           },
-          "HLBN.DE": {
+          "RO7.DE": {
             "status": "row"
           },
-          "HLE.DE": {
+          "ROP.DE": {
             "status": "row"
           },
-          "HNK1.DE": {
+          "ROW.DE": {
             "status": "row"
           },
-          "HO2.DE": {
+          "RP8.DE": {
             "status": "row"
           },
-          "HQ1.DE": {
+          "RPD.DE": {
             "status": "row"
           },
-          "HRB.DE": {
+          "RPL.DE": {
             "status": "row"
           },
-          "HRS.DE": {
+          "RPU.DE": {
             "status": "row"
           },
-          "HSOA.DE": {
+          "RQ0.DE": {
             "status": "row"
           },
-          "HSY.DE": {
+          "RRTL.DE": {
             "status": "row"
           },
-          "HT3.DE": {
+          "RS6.DE": {
             "status": "row"
           },
-          "HTR.DE": {
+          "RTO1.DE": {
             "status": "row"
           },
-          "HUEC.DE": {
+          "RV7.DE": {
             "status": "row"
           },
-          "HUM.DE": {
+          "RWE.DE": {
             "status": "row"
           },
-          "IBE1.DE": {
+          "RYD.DE": {
             "status": "row"
           },
-          "ICY.DE": {
+          "RZ2.DE": {
             "status": "row"
           },
-          "ID6.DE": {
+          "S92.DE": {
             "status": "row"
           },
-          "ID7.DE": {
+          "S94.DE": {
             "status": "row"
           },
-          "IDA.DE": {
+          "SAX.DE": {
             "status": "row"
           },
-          "IDP.DE": {
+          "SCT.DE": {
             "status": "row"
           },
-          "IFX.DE": {
+          "SD5.DE": {
             "status": "row"
           },
-          "IJ8.DE": {
+          "SDF.DE": {
             "status": "row"
           },
-          "IJF.DE": {
+          "SE4.DE": {
             "status": "row"
           },
-          "IK1.DE": {
+          "SFQ.DE": {
             "status": "row"
           },
-          "ILU.DE": {
+          "SGL.DE": {
             "status": "row"
           },
-          "IM8N.DE": {
+          "SGM.DE": {
             "status": "row"
           },
-          "INH.DE": {
+          "SHA0.DE": {
             "status": "row"
           },
-          "INL.DE": {
+          "SHF.DE": {
             "status": "row"
           },
-          "INX.DE": {
+          "SI3.DE": {
             "status": "row"
           },
-          "ISI.DE": {
+          "SIE.DE": {
             "status": "row"
           },
-          "ITH0.DE": {
+          "SII.DE": {
             "status": "row"
           },
-          "IXX.DE": {
-            "status": "below_market_cap"
-          },
-          "J4D.DE": {
-            "status": "row"
-          },
-          "J5A.DE": {
-            "status": "row"
-          },
-          "J7Z.DE": {
-            "status": "row"
-          },
-          "J8W.DE": {
-            "status": "row"
-          },
-          "JBT.DE": {
-            "status": "row"
-          },
-          "JHA1.DE": {
-            "status": "row"
-          },
-          "JM2.DE": {
-            "status": "row"
-          },
-          "JMX.DE": {
-            "status": "row"
-          },
-          "JPX.DE": {
-            "status": "row"
-          },
-          "JST.DE": {
-            "status": "row"
-          },
-          "KCH.DE": {
-            "status": "row"
-          },
-          "KDB.DE": {
-            "status": "row"
-          },
-          "KGX.DE": {
-            "status": "row"
-          },
-          "KHNZ.DE": {
-            "status": "row"
-          },
-          "KMY.DE": {
-            "status": "row"
-          },
-          "KNIA.DE": {
-            "status": "row"
-          },
-          "KOG.DE": {
-            "status": "row"
-          },
-          "KPN.DE": {
-            "status": "row"
-          },
-          "KSX.DE": {
-            "status": "row"
-          },
-          "KTF.DE": {
-            "status": "row"
-          },
-          "KTN.DE": {
-            "status": "row"
-          },
-          "L0T.DE": {
-            "status": "row"
-          },
-          "L10.DE": {
-            "status": "row"
-          },
-          "LA5.DE": {
-            "status": "row"
-          },
-          "LCO.DE": {
+          "SIS.DE": {
             "status": "row"
           },
-          "LCR.DE": {
+          "SIX2.DE": {
             "status": "row"
           },
-          "LDS.DE": {
+          "SJL.DE": {
             "status": "row"
           },
-          "LE0.DE": {
+          "SM1.DE": {
             "status": "row"
           },
-          "LEG.DE": {
+          "SMHN.DE": {
             "status": "row"
           },
-          "LHA.DE": {
+          "SNW.DE": {
             "status": "row"
           },
-          "LIN.DE": {
+          "SOBA.DE": {
             "status": "row"
           },
-          "LKQ1.DE": {
+          "SOH1.DE": {
             "status": "row"
           },
-          "LLY.DE": {
+          "SOT.DE": {
             "status": "row"
           },
-          "LM0F.DE": {
+          "SPEA.DE": {
             "status": "row"
           },
-          "LN3.DE": {
+          "SPW0.DE": {
             "status": "row"
           },
-          "LNE.DE": {
+          "SPX.DE": {
             "status": "row"
           },
-          "LP3.DE": {
+          "SQ3.DE": {
             "status": "row"
           },
-          "LTR.DE": {
+          "SQR.DE": {
             "status": "row"
           },
-          "LU2.DE": {
+          "SRB.DE": {
             "status": "row"
           },
-          "LWE.DE": {
+          "SRT.DE": {
             "status": "row"
           },
-          "LXI.DE": {
+          "SUX.DE": {
             "status": "row"
           },
-          "LXS.DE": {
+          "SVC.DE": {
             "status": "row"
           },
-          "LY0.DE": {
+          "SWN.DE": {
             "status": "row"
           },
-          "M44.DE": {
+          "SZG.DE": {
             "status": "row"
           },
-          "M4I.DE": {
+          "SZU.DE": {
             "status": "row"
           },
-          "M4M1.DE": {
+          "T12.DE": {
             "status": "row"
           },
-          "MAQ.DE": {
+          "T2T.DE": {
             "status": "row"
           },
-          "MBB.DE": {
+          "T2V1.DE": {
             "status": "row"
           },
-          "MBG.DE": {
+          "T54.DE": {
             "status": "row"
           },
-          "MBY.DE": {
+          "T7D.DE": {
             "status": "row"
           },
-          "MCHA.DE": {
+          "TAR.DE": {
             "status": "row"
           },
-          "MCK.DE": {
+          "TCO0.DE": {
             "status": "row"
           },
-          "MDO.DE": {
+          "TCS.DE": {
             "status": "row"
           },
-          "ME9.DE": {
+          "TEG.DE": {
             "status": "row"
           },
-          "MHL.DE": {
+          "TEY.DE": {
             "status": "row"
           },
-          "MHT.DE": {
+          "TGHN.DE": {
             "status": "row"
           },
-          "MIGA.DE": {
+          "THC1.DE": {
             "status": "row"
           },
-          "MLB1.DE": {
+          "TII.DE": {
             "status": "row"
           },
-          "MLP.DE": {
+          "TIMA.DE": {
             "status": "row"
           },
-          "MMX.DE": {
+          "TKA.DE": {
             "status": "row"
           },
-          "MO7A.DE": {
+          "TKE.DE": {
             "status": "row"
           },
-          "MOB.DE": {
+          "TKH.DE": {
             "status": "row"
           },
-          "MOH.DE": {
+          "TKMS.DE": {
             "status": "row"
           },
-          "MOV.DE": {
+          "TL0.DE": {
             "status": "row"
           },
-          "MPI0.DE": {
+          "TLX.DE": {
             "status": "row"
           },
-          "MPN.DE": {
+          "TM5.DE": {
             "status": "row"
           },
-          "MQ2.DE": {
+          "TMJ.DE": {
             "status": "row"
           },
-          "MRK.DE": {
+          "TMV.DE": {
             "status": "row"
           },
-          "MS51.DE": {
+          "TN8.DE": {
             "status": "row"
           },
-          "MS8.DE": {
+          "TNE5.DE": {
             "status": "row"
           },
-          "MSF.DE": {
+          "TNIE.DE": {
             "status": "row"
           },
-          "MTE.DE": {
+          "TOTB.DE": {
             "status": "row"
           },
-          "MTLA.DE": {
+          "TPD.DE": {
             "status": "row"
           },
-          "MTO.DE": {
+          "TPE.DE": {
             "status": "row"
           },
-          "MTX.DE": {
+          "TQI0.DE": {
             "status": "row"
           },
-          "MUB.DE": {
+          "TRL.DE": {
             "status": "row"
           },
-          "MUM.DE": {
+          "TRR.DE": {
             "status": "row"
           },
-          "MUV2.DE": {
+          "TRVC.DE": {
             "status": "row"
           },
-          "MUX.DE": {
+          "TT8.DE": {
             "status": "row"
           },
-          "MVV1.DE": {
+          "TUI1.DE": {
             "status": "row"
           },
-          "MWK.DE": {
+          "TW10.DE": {
             "status": "row"
           },
-          "MWZ.DE": {
+          "TWH.DE": {
             "status": "row"
           },
-          "MY8.DE": {
+          "TXT.DE": {
             "status": "row"
           },
-          "MYP.DE": {
+          "TYP.DE": {
             "status": "row"
           },
-          "N6B.DE": {
+          "U1N.DE": {
             "status": "row"
           },
-          "N7I.DE": {
+          "UAO.DE": {
             "status": "row"
           },
-          "NA9.DE": {
+          "UCE.DE": {
             "status": "row"
           },
-          "NA9A.DE": {
+          "UCM.DE": {
             "status": "row"
           },
-          "NAQ.DE": {
+          "UEN.DE": {
             "status": "row"
           },
-          "NBG6.DE": {
+          "UFH.DE": {
             "status": "row"
           },
-          "NC0.DE": {
+          "UH3.DE": {
             "status": "row"
           },
-          "NCB.DE": {
+          "UHS.DE": {
             "status": "row"
           },
-          "NCH2.DE": {
+          "UIPN.DE": {
             "status": "row"
           },
-          "NDA.DE": {
+          "UN0.DE": {
             "status": "row"
           },
-          "NDX1.DE": {
+          "UN9.DE": {
             "status": "row"
           },
-          "NEM.DE": {
+          "UNC.DE": {
             "status": "row"
           },
-          "NESR.DE": {
+          "UNH.DE": {
             "status": "row"
           },
-          "NFC.DE": {
+          "UNP.DE": {
             "status": "row"
           },
-          "NKE.DE": {
+          "UNV0.DE": {
             "status": "row"
           },
-          "NKT.DE": {
+          "UPAB.DE": {
             "status": "row"
-          },
-          "NMM.DE": {
-            "status": "row"
-          },
-          "NNGF.DE": {
-            "status": "row"
-          },
-          "NOA3.DE": {
-            "status": "row"
-          },
-          "NOEJ.DE": {
-            "status": "below_market_cap"
           },
-          "NPW1.DE": {
+          "UR3.DE": {
             "status": "row"
           },
-          "NQG.DE": {
+          "US3.DE": {
             "status": "row"
           },
-          "NRA.DE": {
+          "UT8.DE": {
             "status": "row"
           },
-          "NRN.DE": {
+          "UTDI.DE": {
             "status": "row"
           },
-          "NT4.DE": {
+          "UU2.DE": {
             "status": "row"
           },
-          "NTA.DE": {
+          "UUM.DE": {
             "status": "row"
           },
-          "NUO.DE": {
+          "UWS.DE": {
             "status": "row"
           },
-          "NVD.DE": {
+          "V0Y.DE": {
             "status": "row"
           },
-          "NVJP.DE": {
+          "V1L.DE": {
             "status": "row"
           },
-          "NW0.DE": {
+          "V1NC.DE": {
             "status": "row"
           },
-          "NWT.DE": {
+          "V71.DE": {
             "status": "row"
           },
-          "NXS.DE": {
+          "V76.DE": {
             "status": "row"
           },
-          "NXZ.DE": {
+          "VAI.DE": {
             "status": "row"
           },
-          "NYT.DE": {
+          "VAS.DE": {
             "status": "row"
           },
-          "NZM2.DE": {
+          "VBK.DE": {
             "status": "row"
           },
-          "O3P.DE": {
+          "VCV.DE": {
             "status": "row"
           },
-          "O5G.DE": {
+          "VEE.DE": {
             "status": "row"
           },
-          "OBB.DE": {
+          "VH2.DE": {
             "status": "row"
           },
-          "OBCK.DE": {
+          "VHY.DE": {
             "status": "row"
           },
-          "OCN.DE": {
+          "VIA.DE": {
             "status": "row"
           },
-          "OEWA.DE": {
+          "VNA.DE": {
             "status": "row"
           },
-          "OHB.DE": {
+          "VNB.DE": {
             "status": "row"
           },
-          "OL6.DE": {
+          "VNI.DE": {
             "status": "row"
           }
         }
@@ -9725,241 +8695,42 @@
         "LS4C.DE": 1,
         "LTEC.DE": 1,
         "NOEJ.DE": 1,
-        "OMV.DE": 0,
-        "OO6.DE": 0,
-        "OPC.DE": 0,
-        "ORC.DE": 0,
-        "OYC.DE": 0,
-        "P2H.DE": 0,
-        "P8S0.DE": 0,
-        "PA9.DE": 0,
-        "PAR.DE": 0,
-        "PAT.DE": 0,
-        "PCE1.DE": 0,
-        "PCU.DE": 0,
-        "PCZ.DE": 0,
-        "PEA.DE": 0,
-        "PEN.DE": 0,
-        "PEO.DE": 0,
-        "PEP.DE": 0,
-        "PER.DE": 0,
-        "PES.DE": 0,
-        "PFE.DE": 0,
-        "PFSE.DE": 0,
-        "PFV.DE": 0,
-        "PFZ0.DE": 0,
-        "PG4.DE": 0,
-        "PGV.DE": 0,
-        "PHGN.DE": 0,
-        "PHI1.DE": 0,
-        "PHM7.DE": 0,
-        "PKA.DE": 0,
-        "PKN.DE": 0,
-        "PL6.DE": 0,
-        "PLQ.DE": 0,
-        "PMTA.DE": 0,
-        "PNE3.DE": 0,
         "PNP.DE": 1,
-        "PP9.DE": 0,
-        "PPX.DE": 0,
         "PRG.DE": 1,
         "PRU.DE": 1,
-        "PSAN.DE": 0,
-        "PSE.DE": 0,
-        "PSM.DE": 0,
         "PTX.DE": 1,
-        "PU4.DE": 0,
-        "PU7.DE": 0,
-        "PUM.DE": 0,
-        "PVH.DE": 0,
-        "PW2.DE": 0,
-        "Q23.DE": 0,
-        "Q41.DE": 0,
         "QCI.DE": 1,
-        "QEN.DE": 0,
-        "QGJ.DE": 0,
-        "QH9.DE": 0,
-        "QIA.DE": 0,
+        "QH9.DE": 1,
         "QJQ.DE": 1,
         "QS51.DE": 1,
-        "QTS.DE": 0,
-        "R1D.DE": 0,
-        "R35.DE": 0,
-        "R3D.DE": 0,
-        "R3NK.DE": 0,
-        "R5A.DE": 0,
-        "R66.DE": 0,
-        "R7R.DE": 0,
         "R902.DE": 1,
-        "RAA.DE": 0,
         "RAW.DE": 1,
-        "RAX.DE": 0,
-        "RB8.DE": 0,
-        "RCF.DE": 0,
-        "RDC.DE": 0,
         "RDEB.DE": 1,
-        "RE21.DE": 0,
-        "REP.DE": 0,
-        "RF6.DE": 0,
         "RGO.DE": 1,
-        "RHK.DE": 0,
         "RHM.DE": 1,
         "RHO.DE": 1,
-        "RIO1.DE": 0,
-        "RJF.DE": 0,
-        "RLS.DE": 0,
         "RN7.DE": 1,
-        "RNL.DE": 0,
-        "RO7.DE": 0,
-        "ROP.DE": 0,
-        "ROW.DE": 0,
-        "RP8.DE": 0,
-        "RPD.DE": 0,
-        "RPL.DE": 0,
-        "RPU.DE": 0,
-        "RQ0.DE": 0,
-        "RRTL.DE": 0,
         "RRU.DE": 1,
-        "RS6.DE": 0,
         "RSO.DE": 1,
-        "RTO1.DE": 0,
-        "RV7.DE": 0,
-        "RWE.DE": 0,
         "RWL.DE": 1,
         "RY4C.DE": 1,
-        "RYD.DE": 0,
         "RYSD.DE": 1,
-        "RZ2.DE": 0,
-        "S92.DE": 0,
-        "S94.DE": 0,
         "SAP.DE": 1,
-        "SAX.DE": 0,
-        "SCT.DE": 0,
-        "SD5.DE": 0,
-        "SDF.DE": 0,
         "SDRC.DE": 1,
-        "SE4.DE": 0,
         "SEJ1.DE": 1,
         "SFE.DE": 1,
-        "SFQ.DE": 0,
         "SGE.DE": 1,
-        "SGL.DE": 0,
-        "SGM.DE": 0,
-        "SHA0.DE": 0,
-        "SHF.DE": 0,
         "SHL.DE": 1,
-        "SI3.DE": 0,
-        "SIE.DE": 0,
-        "SII.DE": 0,
-        "SIS.DE": 0,
-        "SIX2.DE": 0,
         "SJ3.DE": 1,
-        "SJL.DE": 0,
         "SLYG.DE": 1,
-        "SM1.DE": 0,
-        "SMHN.DE": 0,
         "SMP0.DE": 1,
         "SND.DE": 1,
-        "SNW.DE": 0,
-        "SOBA.DE": 0,
-        "SOH1.DE": 0,
-        "SOT.DE": 0,
-        "SPEA.DE": 0,
         "SPG.DE": 1,
-        "SPW0.DE": 0,
-        "SPX.DE": 0,
-        "SQ3.DE": 0,
-        "SQR.DE": 0,
         "SQU.DE": 1,
-        "SRB.DE": 0,
-        "SRT.DE": 0,
         "STD.DE": 1,
-        "SUX.DE": 0,
-        "SVC.DE": 0,
         "SWG.DE": 1,
-        "SWN.DE": 0,
         "SY1.DE": 1,
         "SYK.DE": 1,
-        "SZG.DE": 0,
-        "SZU.DE": 0,
-        "T12.DE": 0,
-        "T2T.DE": 0,
-        "T2V1.DE": 0,
-        "T54.DE": 0,
-        "T7D.DE": 0,
-        "TAR.DE": 0,
-        "TCO0.DE": 0,
-        "TCS.DE": 0,
-        "TEG.DE": 0,
-        "TEY.DE": 0,
-        "TGHN.DE": 0,
-        "THC1.DE": 0,
-        "TII.DE": 0,
-        "TIMA.DE": 0,
-        "TKA.DE": 0,
-        "TKE.DE": 0,
-        "TKH.DE": 0,
-        "TKMS.DE": 0,
-        "TL0.DE": 0,
-        "TLX.DE": 0,
-        "TM5.DE": 0,
-        "TMJ.DE": 0,
-        "TMV.DE": 0,
-        "TN8.DE": 0,
-        "TNE5.DE": 0,
-        "TNIE.DE": 0,
-        "TOTB.DE": 0,
-        "TPD.DE": 0,
-        "TPE.DE": 0,
-        "TQI0.DE": 0,
-        "TRL.DE": 0,
-        "TRR.DE": 0,
-        "TRVC.DE": 0,
-        "TT8.DE": 0,
-        "TUI1.DE": 0,
-        "TW10.DE": 0,
-        "TWH.DE": 0,
-        "TXT.DE": 0,
-        "TYP.DE": 0,
-        "U1N.DE": 0,
-        "UAO.DE": 0,
-        "UCE.DE": 0,
-        "UCM.DE": 0,
-        "UEN.DE": 0,
-        "UFH.DE": 0,
-        "UH3.DE": 0,
-        "UHS.DE": 0,
-        "UIPN.DE": 0,
-        "UN0.DE": 0,
-        "UN9.DE": 0,
-        "UNC.DE": 0,
-        "UNH.DE": 0,
-        "UNP.DE": 0,
-        "UNV0.DE": 0,
-        "UPAB.DE": 0,
-        "UR3.DE": 0,
-        "US3.DE": 0,
-        "UT8.DE": 0,
-        "UTDI.DE": 0,
-        "UU2.DE": 0,
-        "UUM.DE": 0,
-        "UWS.DE": 0,
-        "V0Y.DE": 0,
-        "V1L.DE": 0,
-        "V1NC.DE": 0,
-        "V71.DE": 0,
-        "V76.DE": 0,
-        "VAI.DE": 0,
-        "VAS.DE": 0,
-        "VBK.DE": 0,
-        "VCV.DE": 0,
-        "VEE.DE": 0,
-        "VH2.DE": 0,
-        "VHY.DE": 0,
-        "VIA.DE": 0,
-        "VNA.DE": 0,
-        "VNB.DE": 0,
-        "VNI.DE": 0,
         "VNX.DE": 0,
         "VODI.DE": 0,
         "VOS.DE": 0,
@@ -10021,16 +8792,16 @@
         "ZT8.DE": 0,
         "ZX6.DE": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T02:51:05+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T03:52:01+01:00",
       "label": "Deutsche B\u00f6rse Xetra",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 595,
+      "remaining_symbols": 396,
       "requested_this_run": 200,
-      "result_rows": 530,
-      "returned_this_run": 197,
-      "started_at": "2026-09-25T02:51:05+01:00",
+      "result_rows": 729,
+      "returned_this_run": 199,
+      "started_at": "2026-09-25T03:52:01+01:00",
       "status": "partial",
       "universe_symbols": 1396
     }
@@ -10039,5 +8810,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-09-24T23:01:31+01:00",
   "schema_version": 1,
-  "updated_at": "2026-09-25T03:04:13+01:00"
+  "updated_at": "2026-09-25T04:00:14+01:00"
 }
