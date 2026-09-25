@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 61,
-      "completed_at": "2026-09-25T04:00:14+01:00",
+      "completed_at": "2026-09-25T05:00:59+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 63,
       "diagnostics": {
@@ -221,7 +221,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 49,
-      "completed_at": "2026-09-25T03:59:35+01:00",
+      "completed_at": "2026-09-25T04:59:52+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 52,
       "diagnostics": {
@@ -402,7 +402,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 16,
-      "completed_at": "2026-09-25T04:00:14+01:00",
+      "completed_at": "2026-09-25T05:00:59+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 16,
       "diagnostics": {
@@ -484,7 +484,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 167,
-      "completed_at": "2026-09-25T03:54:50+01:00",
+      "completed_at": "2026-09-25T04:55:07+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 177,
       "diagnostics": {
@@ -1019,617 +1019,617 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T03:54:49+01:00",
-      "coverage_pct": 23.0,
-      "coverage_symbols": 1104,
+      "completed_at": "2026-09-25T04:55:07+01:00",
+      "coverage_pct": 27.2,
+      "coverage_symbols": 1302,
       "diagnostics": {
-        "below_min_market_cap": 0,
+        "below_min_market_cap": 1,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
-        "price_failures": 0,
+        "price_failures": 1,
         "rate_limit_errors": 0,
         "requested": 200,
-        "returned": 200,
+        "returned": 198,
         "symbol_outcomes": {
-          "56X.MU": {
+          "7JA.MU": {
             "status": "row"
           },
-          "58H.MU": {
+          "7JR.MU": {
             "status": "row"
           },
-          "58R.MU": {
+          "7JU.MU": {
             "status": "row"
           },
-          "599A.MU": {
+          "7JZ.MU": {
             "status": "row"
           },
-          "59K.MU": {
+          "7K6.MU": {
             "status": "row"
           },
-          "59M.MU": {
+          "7KY.MU": {
             "status": "row"
           },
-          "59O.MU": {
+          "7M1.MU": {
             "status": "row"
           },
-          "59S.MU": {
+          "7M20.MU": {
             "status": "row"
           },
-          "59X.MU": {
+          "7MR.MU": {
             "status": "row"
           },
-          "59Z.MU": {
+          "7NV.MU": {
             "status": "row"
           },
-          "5AP.MU": {
+          "7OK.MU": {
             "status": "row"
           },
-          "5B9.MU": {
+          "7PI.MU": {
             "status": "row"
           },
-          "5BG.MU": {
+          "7PV.MU": {
             "status": "row"
           },
-          "5BP.MU": {
+          "7QD.MU": {
             "status": "row"
           },
-          "5CI.MU": {
+          "7RA.MU": {
             "status": "row"
           },
-          "5EA.MU": {
+          "7RM.MU": {
             "status": "row"
           },
-          "5EW.MU": {
+          "7SB0.MU": {
             "status": "row"
           },
-          "5F1.MU": {
+          "7SN.MU": {
             "status": "row"
           },
-          "5F6.MU": {
+          "7T2.MU": {
             "status": "row"
           },
-          "5F7.MU": {
+          "7TI.MU": {
             "status": "row"
           },
-          "5FA.MU": {
+          "7U7.MU": {
             "status": "row"
           },
-          "5FF.MU": {
+          "7UB.MU": {
             "status": "row"
           },
-          "5FG.MU": {
+          "7US.MU": {
             "status": "row"
           },
-          "5FJ.MU": {
+          "7VK.MU": {
             "status": "row"
           },
-          "5G8.MU": {
+          "7VR.MU": {
             "status": "row"
           },
-          "5GD.MU": {
+          "7VS.MU": {
             "status": "row"
           },
-          "5GH.MU": {
+          "7W71.MU": {
             "status": "row"
           },
-          "5GR.MU": {
+          "7XC.MU": {
             "status": "row"
           },
-          "5HZ1.MU": {
+          "7XP.MU": {
             "status": "row"
           },
-          "5IW.MU": {
+          "7XU.MU": {
             "status": "row"
           },
-          "5JP.MU": {
+          "7YE.MU": {
             "status": "row"
           },
-          "5JY.MU": {
+          "7YF.MU": {
             "status": "row"
           },
-          "5K4.MU": {
+          "7Z5.MU": {
             "status": "row"
           },
-          "5K7.MU": {
+          "7ZD.MU": {
             "status": "row"
           },
-          "5KBA.MU": {
+          "813.MU": {
             "status": "row"
           },
-          "5LF.MU": {
+          "818.MU": {
             "status": "row"
           },
-          "5MO.MU": {
+          "81G.MU": {
             "status": "row"
           },
-          "5NR.MU": {
+          "81M.MU": {
             "status": "row"
           },
-          "5NT.MU": {
+          "822.MU": {
             "status": "row"
           },
-          "5NU.MU": {
+          "82P.MU": {
             "status": "row"
           },
-          "5O2.MU": {
+          "82W.MU": {
             "status": "row"
           },
-          "5O7.MU": {
+          "8320.MU": {
             "status": "row"
           },
-          "5OO.MU": {
+          "83I.MU": {
             "status": "row"
           },
-          "5PP.MU": {
+          "83PN.MU": {
             "status": "row"
           },
-          "5PT.MU": {
+          "83S2.MU": {
             "status": "row"
           },
-          "5QG.MU": {
+          "83X.MU": {
             "status": "row"
           },
-          "5RF.MU": {
+          "847.MU": {
             "status": "row"
           },
-          "5VA.MU": {
+          "84N.MU": {
             "status": "row"
           },
-          "5WS.MU": {
+          "855.MU": {
             "status": "row"
           },
-          "5XB.MU": {
-            "status": "row"
+          "859064.MU": {
+            "status": "price_failure"
           },
-          "5XE.MU": {
+          "85H1.MU": {
             "status": "row"
           },
-          "5XR.MU": {
+          "85S.MU": {
             "status": "row"
           },
-          "5Y2.MU": {
+          "86G.MU": {
             "status": "row"
           },
-          "5YM.MU": {
+          "872.MU": {
             "status": "row"
           },
-          "5Z0.MU": {
+          "87E.MU": {
             "status": "row"
           },
-          "5ZT.MU": {
+          "87N.MU": {
             "status": "row"
           },
-          "60N.MU": {
+          "87S.MU": {
             "status": "row"
           },
-          "618.MU": {
+          "87W.MU": {
             "status": "row"
           },
-          "61W.MU": {
+          "88E.MU": {
             "status": "row"
           },
-          "62M.MU": {
+          "88F.MU": {
             "status": "row"
           },
-          "62XA.MU": {
+          "88L.MU": {
             "status": "row"
           },
-          "636.MU": {
+          "89C.MU": {
             "status": "row"
           },
-          "639.MU": {
+          "89M.MU": {
             "status": "row"
           },
-          "63G.MU": {
+          "8A0.MU": {
             "status": "row"
           },
-          "63T.MU": {
+          "8A6.MU": {
             "status": "row"
           },
-          "63X.MU": {
+          "8AC.MU": {
             "status": "row"
           },
-          "640.MU": {
+          "8AHA.MU": {
             "status": "row"
           },
-          "64B.MU": {
+          "8AP.MU": {
             "status": "row"
           },
-          "64K.MU": {
-            "status": "row"
+          "8AT.MU": {
+            "status": "below_market_cap"
           },
-          "64N.MU": {
+          "8AU.MU": {
             "status": "row"
           },
-          "65C.MU": {
+          "8B6.MU": {
             "status": "row"
           },
-          "669.MU": {
+          "8B8.MU": {
             "status": "row"
           },
-          "66T.MU": {
+          "8BJ.MU": {
             "status": "row"
           },
-          "67X.MU": {
+          "8BO.MU": {
             "status": "row"
           },
-          "68F.MU": {
+          "8BU.MU": {
             "status": "row"
           },
-          "68M.MU": {
+          "8BZ.MU": {
             "status": "row"
           },
-          "68S.MU": {
+          "8CF.MU": {
             "status": "row"
           },
-          "68V.MU": {
+          "8CW.MU": {
             "status": "row"
           },
-          "690E.MU": {
+          "8CZ.MU": {
             "status": "row"
           },
-          "696.MU": {
+          "8D7.MU": {
             "status": "row"
           },
-          "69B.MU": {
+          "8EQ.MU": {
             "status": "row"
           },
-          "6AA0.MU": {
+          "8FS.MU": {
             "status": "row"
           },
-          "6AE.MU": {
+          "8GB.MU": {
             "status": "row"
           },
-          "6B0.MU": {
+          "8GC.MU": {
             "status": "row"
           },
-          "6B4.MU": {
+          "8GM.MU": {
             "status": "row"
           },
-          "6B6.MU": {
+          "8H0.MU": {
             "status": "row"
           },
-          "6BD0.MU": {
+          "8H1.MU": {
             "status": "row"
           },
-          "6BE.MU": {
+          "8HI.MU": {
             "status": "row"
           },
-          "6BF.MU": {
+          "8HT.MU": {
             "status": "row"
           },
-          "6BW.MU": {
+          "8I2.MU": {
             "status": "row"
           },
-          "6C2.MU": {
+          "8IF1.MU": {
             "status": "row"
           },
-          "6CF.MU": {
+          "8IG.MU": {
             "status": "row"
           },
-          "6CL.MU": {
+          "8JM.MU": {
             "status": "row"
           },
-          "6DA.MU": {
+          "8JO1.MU": {
             "status": "row"
           },
-          "6DE.MU": {
+          "8JQ.MU": {
             "status": "row"
           },
-          "6E0.MU": {
+          "8K2.MU": {
             "status": "row"
           },
-          "6E2.MU": {
+          "8K7.MU": {
             "status": "row"
           },
-          "6EQ.MU": {
+          "8KC.MU": {
             "status": "row"
           },
-          "6F1.MU": {
+          "8KO.MU": {
             "status": "row"
           },
-          "6FLA.MU": {
+          "8LCA.MU": {
             "status": "row"
           },
-          "6GF.MU": {
+          "8OM.MU": {
             "status": "row"
           },
-          "6GI.MU": {
+          "8PM.MU": {
             "status": "row"
           },
-          "6HN.MU": {
+          "8QA.MU": {
             "status": "row"
           },
-          "6HW.MU": {
+          "8QB0.MU": {
             "status": "row"
           },
-          "6IB.MU": {
+          "8QJ0.MU": {
             "status": "row"
           },
-          "6IV.MU": {
+          "8QP.MU": {
             "status": "row"
           },
-          "6JL.MU": {
+          "8QQ.MU": {
             "status": "row"
           },
-          "6JM.MU": {
+          "8QV.MU": {
             "status": "row"
           },
-          "6JR.MU": {
+          "8RJ.MU": {
             "status": "row"
           },
-          "6KF.MU": {
+          "8SO.MU": {
             "status": "row"
           },
-          "6L8.MU": {
+          "8SP.MU": {
             "status": "row"
           },
-          "6LA.MU": {
+          "8T8.MU": {
             "status": "row"
           },
-          "6LS0.MU": {
+          "8TI.MU": {
             "status": "row"
           },
-          "6LT.MU": {
+          "8TQ.MU": {
             "status": "row"
           },
-          "6LU.MU": {
+          "8TRA.MU": {
             "status": "row"
           },
-          "6MA.MU": {
+          "8UX.MU": {
             "status": "row"
           },
-          "6MB0.MU": {
+          "8VR.MU": {
             "status": "row"
           },
-          "6MD.MU": {
+          "8WF.MU": {
             "status": "row"
           },
-          "6MK.MU": {
+          "8WY.MU": {
             "status": "row"
           },
-          "6MO.MU": {
+          "8XC0.MU": {
             "status": "row"
           },
-          "6N5.MU": {
+          "8XP.MU": {
             "status": "row"
           },
-          "6NE.MU": {
+          "8XW.MU": {
             "status": "row"
           },
-          "6NF.MU": {
+          "8YO.MU": {
             "status": "row"
           },
-          "6NM.MU": {
+          "8Z4.MU": {
             "status": "row"
           },
-          "6O4.MU": {
+          "8ZQ.MU": {
             "status": "row"
           },
-          "6P8.MU": {
+          "8ZU.MU": {
             "status": "row"
           },
-          "6PG.MU": {
+          "90E.MU": {
             "status": "row"
           },
-          "6PU.MU": {
+          "910.MU": {
             "status": "row"
           },
-          "6Q81.MU": {
+          "915.MU": {
             "status": "row"
           },
-          "6QS.MU": {
+          "917.MU": {
             "status": "row"
           },
-          "6R9.MU": {
+          "91A.MU": {
             "status": "row"
           },
-          "6RI.MU": {
+          "91S0.MU": {
             "status": "row"
           },
-          "6RJ0.MU": {
+          "92K.MU": {
             "status": "row"
           },
-          "6RK.MU": {
+          "938.MU": {
             "status": "row"
           },
-          "6RR.MU": {
+          "93N.MU": {
             "status": "row"
           },
-          "6RV.MU": {
+          "943.MU": {
             "status": "row"
           },
-          "6SZA.MU": {
+          "96L.MU": {
             "status": "row"
           },
-          "6TB.MU": {
+          "97S.MU": {
             "status": "row"
           },
-          "6TF0.MU": {
+          "97Y.MU": {
             "status": "row"
           },
-          "6TP.MU": {
+          "97Z.MU": {
             "status": "row"
           },
-          "6U30.MU": {
+          "983.MU": {
             "status": "row"
           },
-          "6UP.MU": {
+          "98K.MU": {
             "status": "row"
           },
-          "6V5.MU": {
+          "98M.MU": {
             "status": "row"
           },
-          "6VH.MU": {
+          "9A1.MU": {
             "status": "row"
           },
-          "6VO.MU": {
+          "9BFA.MU": {
             "status": "row"
           },
-          "6VY.MU": {
+          "9BM.MU": {
             "status": "row"
           },
-          "6VZ.MU": {
+          "9C6.MU": {
             "status": "row"
           },
-          "6WX.MU": {
+          "9CM0.MU": {
             "status": "row"
           },
-          "6X5.MU": {
+          "9D2.MU": {
             "status": "row"
           },
-          "6XY.MU": {
+          "9DL0.MU": {
             "status": "row"
           },
-          "6Z1.MU": {
+          "9E2.MU": {
             "status": "row"
           },
-          "71BB.MU": {
+          "9EI.MU": {
             "status": "row"
           },
-          "71Y.MU": {
+          "9EN.MU": {
             "status": "row"
           },
-          "724.MU": {
+          "9F7.MU": {
             "status": "row"
           },
-          "72R.MU": {
+          "9FS.MU": {
             "status": "row"
           },
-          "72Z.MU": {
+          "9FZ.MU": {
             "status": "row"
           },
-          "735.MU": {
+          "9IFA.MU": {
             "status": "row"
           },
-          "74L.MU": {
+          "9IL.MU": {
             "status": "row"
           },
-          "74W.MU": {
+          "9J7.MU": {
             "status": "row"
           },
-          "751.MU": {
+          "9JB0.MU": {
             "status": "row"
           },
-          "752.MU": {
+          "9JD.MU": {
             "status": "row"
           },
-          "75C.MU": {
+          "9JG.MU": {
             "status": "row"
           },
-          "75X.MU": {
+          "9JL.MU": {
             "status": "row"
           },
-          "761.MU": {
+          "9LM.MU": {
             "status": "row"
           },
-          "76C0.MU": {
+          "9LX0.MU": {
             "status": "row"
           },
-          "76J.MU": {
+          "9M1.MU": {
             "status": "row"
           },
-          "76N.MU": {
+          "9M7.MU": {
             "status": "row"
           },
-          "77F.MU": {
+          "9MD.MU": {
             "status": "row"
           },
-          "781.MU": {
+          "9MIB.MU": {
             "status": "row"
           },
-          "788.MU": {
+          "9MK.MU": {
             "status": "row"
           },
-          "78Y.MU": {
+          "9MW.MU": {
             "status": "row"
           },
-          "791.MU": {
+          "9N8.MU": {
             "status": "row"
           },
-          "7A2.MU": {
+          "9NJ1.MU": {
             "status": "row"
           },
-          "7A6.MU": {
+          "9O1.MU": {
             "status": "row"
           },
-          "7AA.MU": {
+          "9O2.MU": {
             "status": "row"
           },
-          "7AQ0.MU": {
+          "9OU.MU": {
             "status": "row"
           },
-          "7B0.MU": {
+          "9PC.MU": {
             "status": "row"
           },
-          "7BV.MU": {
+          "9R4.MU": {
             "status": "row"
           },
-          "7C4.MU": {
+          "9RK.MU": {
             "status": "row"
           },
-          "7CD.MU": {
+          "9SA0.MU": {
             "status": "row"
           },
-          "7CH.MU": {
+          "9SG0.MU": {
             "status": "row"
           },
-          "7CI.MU": {
+          "9SH.MU": {
             "status": "row"
           },
-          "7CX.MU": {
+          "9TA1.MU": {
             "status": "row"
           },
-          "7DB.MU": {
+          "9TG.MU": {
             "status": "row"
           },
-          "7DF.MU": {
+          "9TN.MU": {
             "status": "row"
           },
-          "7DG.MU": {
+          "9TO.MU": {
             "status": "row"
           },
-          "7DZ.MU": {
+          "9TX.MU": {
             "status": "row"
           },
-          "7EL.MU": {
+          "9U8.MU": {
             "status": "row"
           },
-          "7EX.MU": {
+          "9UV.MU": {
             "status": "row"
           },
-          "7F0.MU": {
+          "9VU.MU": {
             "status": "row"
           },
-          "7F4.MU": {
+          "9VY.MU": {
             "status": "row"
           },
-          "7FP.MU": {
+          "9W9.MU": {
             "status": "row"
           },
-          "7FZ.MU": {
+          "9X9.MU": {
             "status": "row"
           },
-          "7G9.MU": {
+          "9ZF.MU": {
             "status": "row"
           },
-          "7GA.MU": {
+          "A00.MU": {
             "status": "row"
           },
-          "7GV.MU": {
+          "A0T.MU": {
             "status": "row"
           },
-          "7HL.MU": {
+          "A16.MU": {
             "status": "row"
           },
-          "7HP.MU": {
+          "A1A0.MU": {
             "status": "row"
           },
-          "7I9.MU": {
+          "A1B.MU": {
             "status": "row"
           },
-          "7J70.MU": {
+          "A1C0.MU": {
             "status": "row"
           }
         }
@@ -1985,245 +1985,47 @@
         "7CA.MU": 12,
         "7CZ.MU": 12,
         "7HD.MU": 1,
-        "7JA.MU": 0,
-        "7JR.MU": 0,
         "7JS.MU": 1,
-        "7JU.MU": 0,
-        "7JZ.MU": 0,
-        "7K6.MU": 0,
-        "7KY.MU": 0,
         "7LI.MU": 12,
-        "7M1.MU": 0,
-        "7M20.MU": 0,
         "7MP.MU": 12,
-        "7MR.MU": 0,
         "7NF.MU": 1,
-        "7NV.MU": 0,
         "7NX.MU": 1,
-        "7OK.MU": 0,
-        "7PI.MU": 0,
-        "7PV.MU": 0,
         "7PZ.MU": 1,
-        "7QD.MU": 0,
-        "7RA.MU": 0,
-        "7RM.MU": 0,
         "7RY.MU": 12,
-        "7SB0.MU": 0,
-        "7SN.MU": 0,
-        "7T2.MU": 0,
         "7T8.MU": 1,
         "7TC.MU": 12,
-        "7TI.MU": 0,
-        "7U7.MU": 0,
-        "7UB.MU": 0,
-        "7US.MU": 0,
-        "7VK.MU": 0,
-        "7VR.MU": 0,
-        "7VS.MU": 0,
-        "7W71.MU": 0,
         "7WE.MU": 12,
-        "7XC.MU": 0,
-        "7XP.MU": 0,
-        "7XU.MU": 0,
-        "7YE.MU": 0,
-        "7YF.MU": 0,
         "7Z2.MU": 12,
-        "7Z5.MU": 0,
-        "7ZD.MU": 0,
-        "813.MU": 0,
-        "818.MU": 0,
-        "81G.MU": 0,
-        "81M.MU": 0,
-        "822.MU": 0,
-        "82P.MU": 0,
-        "82W.MU": 0,
-        "8320.MU": 0,
         "83B.MU": 1,
-        "83I.MU": 0,
-        "83PN.MU": 0,
-        "83S2.MU": 0,
-        "83X.MU": 0,
-        "847.MU": 0,
-        "84N.MU": 0,
-        "855.MU": 0,
-        "859064.MU": 0,
-        "85H1.MU": 0,
-        "85S.MU": 0,
+        "859064.MU": 1,
         "85T.MU": 12,
         "8610.MU": 12,
-        "86G.MU": 0,
         "871.MU": 12,
-        "872.MU": 0,
-        "87E.MU": 0,
-        "87N.MU": 0,
-        "87S.MU": 0,
-        "87W.MU": 0,
-        "88E.MU": 0,
-        "88F.MU": 0,
-        "88L.MU": 0,
         "891.MU": 1,
-        "89C.MU": 0,
-        "89M.MU": 0,
-        "8A0.MU": 0,
-        "8A6.MU": 0,
-        "8AC.MU": 0,
         "8AF.MU": 1,
-        "8AHA.MU": 0,
         "8AN.MU": 1,
-        "8AP.MU": 0,
-        "8AT.MU": 0,
-        "8AU.MU": 0,
-        "8B6.MU": 0,
-        "8B8.MU": 0,
-        "8BJ.MU": 0,
-        "8BO.MU": 0,
-        "8BU.MU": 0,
-        "8BZ.MU": 0,
-        "8CF.MU": 0,
-        "8CW.MU": 0,
-        "8CZ.MU": 0,
-        "8D7.MU": 0,
-        "8EQ.MU": 0,
-        "8FS.MU": 0,
-        "8GB.MU": 0,
-        "8GC.MU": 0,
-        "8GM.MU": 0,
-        "8H0.MU": 0,
-        "8H1.MU": 0,
-        "8HI.MU": 0,
-        "8HT.MU": 0,
-        "8I2.MU": 0,
-        "8IF1.MU": 0,
-        "8IG.MU": 0,
-        "8JM.MU": 0,
-        "8JO1.MU": 0,
-        "8JQ.MU": 0,
-        "8K2.MU": 0,
-        "8K7.MU": 0,
-        "8KC.MU": 0,
-        "8KO.MU": 0,
-        "8LCA.MU": 0,
+        "8AT.MU": 1,
         "8MP.MU": 12,
         "8NX.MU": 12,
-        "8OM.MU": 0,
-        "8PM.MU": 0,
-        "8QA.MU": 0,
-        "8QB0.MU": 0,
-        "8QJ0.MU": 0,
-        "8QP.MU": 0,
-        "8QQ.MU": 0,
-        "8QV.MU": 0,
-        "8RJ.MU": 0,
-        "8SO.MU": 0,
-        "8SP.MU": 0,
-        "8T8.MU": 0,
-        "8TI.MU": 0,
-        "8TQ.MU": 0,
-        "8TRA.MU": 0,
-        "8UX.MU": 0,
-        "8VR.MU": 0,
-        "8WF.MU": 0,
-        "8WY.MU": 0,
-        "8XC0.MU": 0,
-        "8XP.MU": 0,
-        "8XW.MU": 0,
-        "8YO.MU": 0,
-        "8Z4.MU": 0,
-        "8ZQ.MU": 0,
-        "8ZU.MU": 0,
         "90B.MU": 12,
-        "90E.MU": 0,
-        "910.MU": 0,
-        "915.MU": 0,
-        "917.MU": 0,
-        "91A.MU": 0,
-        "91S0.MU": 0,
-        "92K.MU": 0,
         "9301.MU": 12,
-        "938.MU": 0,
-        "93N.MU": 0,
-        "943.MU": 0,
-        "96L.MU": 0,
         "96S.MU": 12,
-        "97S.MU": 0,
-        "97Y.MU": 0,
-        "97Z.MU": 0,
-        "983.MU": 0,
-        "98K.MU": 0,
-        "98M.MU": 0,
         "98P.MU": 12,
-        "9A1.MU": 0,
         "9A5.MU": 12,
         "9AA.MU": 1,
         "9AS.MU": 1,
         "9AX.MU": 12,
-        "9BFA.MU": 0,
-        "9BM.MU": 0,
-        "9C6.MU": 0,
-        "9CM0.MU": 0,
         "9CN.MU": 12,
-        "9D2.MU": 0,
         "9DC.MU": 12,
-        "9DL0.MU": 0,
-        "9E2.MU": 0,
-        "9EI.MU": 0,
-        "9EN.MU": 0,
-        "9F7.MU": 0,
         "9FM.MU": 12,
-        "9FS.MU": 0,
-        "9FZ.MU": 0,
-        "9IFA.MU": 0,
-        "9IL.MU": 0,
-        "9J7.MU": 0,
-        "9JB0.MU": 0,
-        "9JD.MU": 0,
-        "9JG.MU": 0,
-        "9JL.MU": 0,
-        "9LM.MU": 0,
-        "9LX0.MU": 0,
-        "9M1.MU": 0,
-        "9M7.MU": 0,
-        "9MD.MU": 0,
-        "9MIB.MU": 0,
-        "9MK.MU": 0,
-        "9MW.MU": 0,
-        "9N8.MU": 0,
         "9NI.MU": 12,
-        "9NJ1.MU": 0,
-        "9O1.MU": 0,
-        "9O2.MU": 0,
-        "9OU.MU": 0,
         "9PB.MU": 1,
-        "9PC.MU": 0,
         "9PR.MU": 1,
         "9QQ.MU": 1,
-        "9R4.MU": 0,
-        "9RK.MU": 0,
-        "9SA0.MU": 0,
-        "9SG0.MU": 0,
-        "9SH.MU": 0,
         "9SL.MU": 12,
-        "9TA1.MU": 0,
         "9TF.MU": 12,
-        "9TG.MU": 0,
-        "9TN.MU": 0,
-        "9TO.MU": 0,
-        "9TX.MU": 0,
-        "9U8.MU": 0,
-        "9UV.MU": 0,
-        "9VU.MU": 0,
-        "9VY.MU": 0,
-        "9W9.MU": 0,
         "9WY.MU": 12,
-        "9X9.MU": 0,
-        "9ZF.MU": 0,
-        "A00.MU": 0,
-        "A0T.MU": 0,
-        "A16.MU": 0,
         "A19.MU": 12,
-        "A1A0.MU": 0,
-        "A1B.MU": 0,
-        "A1C0.MU": 0,
         "A1C7QJ.MU": 0,
         "A1CXQA.MU": 12,
         "A2A.MU": 0,
@@ -5325,16 +5127,16 @@
         "ZYE1.MU": 0,
         "ZZA.MU": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:53:32+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T04:53:50+01:00",
       "label": "Gettex",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 3688,
+      "remaining_symbols": 3490,
       "requested_this_run": 200,
-      "result_rows": 1104,
-      "returned_this_run": 200,
-      "started_at": "2026-09-25T03:53:32+01:00",
+      "result_rows": 1302,
+      "returned_this_run": 198,
+      "started_at": "2026-09-25T04:53:50+01:00",
       "status": "partial",
       "universe_symbols": 7596
     },
@@ -5391,21 +5193,21 @@
       },
       "eligible_symbols": 280,
       "error": "RuntimeError: scan returned no results: {'requested': 11, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 11, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': []}",
-      "failed_at": "2026-09-25T03:52:01+01:00",
+      "failed_at": "2026-09-25T04:52:23+01:00",
       "gap_fill_dispatch_counts": {
-        "AO-.L": 4,
-        "AV-.L": 56,
-        "BA-.L": 56,
-        "BP-.L": 56,
-        "JD-.L": 56,
-        "NG-.L": 56,
-        "QQ-.L": 56,
-        "RR-.L": 56,
-        "SN-.L": 56,
-        "TW-.L": 56,
-        "UU-.L": 56
+        "AO-.L": 5,
+        "AV-.L": 57,
+        "BA-.L": 57,
+        "BP-.L": 57,
+        "JD-.L": 57,
+        "NG-.L": 57,
+        "QQ-.L": 57,
+        "RR-.L": 57,
+        "SN-.L": 57,
+        "TW-.L": 57,
+        "UU-.L": 57
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:51:58+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T04:52:19+01:00",
       "label": "London Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -5414,7 +5216,7 @@
       "requested_this_run": 11,
       "result_rows": 269,
       "returned_this_run": 0,
-      "started_at": "2026-09-25T03:51:58+01:00",
+      "started_at": "2026-09-25T04:52:19+01:00",
       "status": "failed",
       "universe_symbols": 572
     },
@@ -5422,7 +5224,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 21,
-      "completed_at": "2026-09-25T03:54:50+01:00",
+      "completed_at": "2026-09-25T04:55:07+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 21,
       "diagnostics": {
@@ -5538,11 +5340,11 @@
       },
       "eligible_symbols": 94,
       "error": "RuntimeError: scan returned no results: {'requested': 1, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 1, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': []}",
-      "failed_at": "2026-09-25T03:59:35+01:00",
+      "failed_at": "2026-09-25T04:59:52+01:00",
       "gap_fill_dispatch_counts": {
-        "SCHST.MC": 57
+        "SCHST.MC": 58
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:59:34+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T04:59:51+01:00",
       "label": "Bolsa de Madrid",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -5551,7 +5353,7 @@
       "requested_this_run": 1,
       "result_rows": 93,
       "returned_this_run": 0,
-      "started_at": "2026-09-25T03:59:34+01:00",
+      "started_at": "2026-09-25T04:59:51+01:00",
       "status": "failed",
       "universe_symbols": 297
     },
@@ -6305,10 +6107,10 @@
     "six": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 101,
-      "completed_at": "2026-09-25T03:59:34+01:00",
-      "coverage_pct": 77.7,
-      "coverage_symbols": 244,
+      "chunk_symbols": 70,
+      "completed_at": "2026-09-25T04:59:51+01:00",
+      "coverage_pct": 78.3,
+      "coverage_symbols": 246,
       "diagnostics": {
         "below_min_market_cap": 1,
         "error_samples": [
@@ -6316,50 +6118,17 @@
           "SCHNE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
           "SCHPE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
           "SCMN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "SFSN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
+          "SENS.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
         ],
         "market_cap_failures": 0,
         "other_errors": 0,
-        "price_failures": 26,
-        "rate_limit_errors": 43,
-        "requested": 101,
-        "returned": 31,
+        "price_failures": 27,
+        "rate_limit_errors": 40,
+        "requested": 70,
+        "returned": 2,
         "symbol_outcomes": {
           "AAPL-USD.SW": {
             "status": "price_failure"
-          },
-          "ABBNE.SW": {
-            "status": "row"
-          },
-          "ACLN.SW": {
-            "status": "row"
-          },
-          "ACLNE.SW": {
-            "status": "row"
-          },
-          "AD.SW": {
-            "status": "row"
-          },
-          "ADBE-USD.SW": {
-            "status": "row"
-          },
-          "AEVS.SW": {
-            "status": "row"
-          },
-          "AI1.SW": {
-            "status": "row"
-          },
-          "ALC.SW": {
-            "status": "row"
-          },
-          "ALLN.SW": {
-            "status": "row"
-          },
-          "ALSN.SW": {
-            "status": "row"
-          },
-          "ALV.SW": {
-            "status": "row"
           },
           "AMAT-USD.SW": {
             "status": "price_failure"
@@ -6450,9 +6219,6 @@
             "rate_limited": true,
             "status": "error"
           },
-          "SDZ.SW": {
-            "status": "row"
-          },
           "SENS.SW": {
             "message": "SENS.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
@@ -6463,16 +6229,10 @@
             "rate_limited": true,
             "status": "error"
           },
-          "SGKN.SW": {
-            "status": "row"
-          },
           "SGSN.SW": {
             "message": "SGSN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
             "status": "error"
-          },
-          "SHL.SW": {
-            "status": "row"
           },
           "SIGN.SW": {
             "message": "SIGN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -6504,9 +6264,6 @@
             "rate_limited": true,
             "status": "error"
           },
-          "SNOW.SW": {
-            "status": "row"
-          },
           "SOON.SW": {
             "message": "SOON.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
@@ -6522,19 +6279,10 @@
             "rate_limited": true,
             "status": "error"
           },
-          "SPSN.SW": {
-            "status": "row"
-          },
-          "SQN.SW": {
-            "status": "row"
-          },
           "SRAIL.SW": {
             "message": "SRAIL.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
             "status": "error"
-          },
-          "SREN.SW": {
-            "status": "row"
           },
           "SRENE.SW": {
             "message": "SRENE.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -6565,9 +6313,6 @@
             "message": "SWTQ.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
             "status": "error"
-          },
-          "T.SW": {
-            "status": "row"
           },
           "TECN.SW": {
             "message": "TECN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
@@ -6617,12 +6362,6 @@
             "rate_limited": true,
             "status": "error"
           },
-          "UHR.SW": {
-            "status": "row"
-          },
-          "UHRN.SW": {
-            "status": "row"
-          },
           "UUUU-USD.SW": {
             "message": "UUUU-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
@@ -6658,9 +6397,6 @@
             "rate_limited": true,
             "status": "error"
           },
-          "VONN.SW": {
-            "status": "row"
-          },
           "VPBN.SW": {
             "message": "VPBN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
             "rate_limited": true,
@@ -6669,136 +6405,101 @@
           "VZ-USD.SW": {
             "status": "price_failure"
           },
-          "VZN.SW": {
-            "status": "row"
-          },
           "WARN.SW": {
-            "message": "WARN.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "WDAY-USD.SW": {
-            "message": "WDAY-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "row"
           },
           "WFC-USD.SW": {
-            "message": "WFC-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
-          },
-          "WKBN.SW": {
-            "status": "row"
-          },
-          "WMT.SW": {
-            "status": "row"
+            "status": "price_failure"
           },
           "XOM-USD.SW": {
             "status": "price_failure"
-          },
-          "YPSN.SW": {
-            "status": "row"
-          },
-          "ZAL.SW": {
-            "status": "row"
-          },
-          "ZEHN.SW": {
-            "status": "row"
-          },
-          "ZM-USD.SW": {
-            "status": "row"
-          },
-          "ZUGN.SW": {
-            "status": "row"
-          },
-          "ZURN.SW": {
-            "status": "row"
           }
         }
       },
       "eligible_symbols": 314,
       "gap_fill_dispatch_counts": {
-        "AAPL-USD.SW": 56,
-        "AMAT-USD.SW": 56,
-        "AMD-USD.SW": 3,
-        "BA-USD.SW": 56,
-        "BAC-USD.SW": 56,
-        "BLK-USD.SW": 56,
-        "CAT-USD.SW": 56,
-        "CL-USD.SW": 56,
-        "COIN-USD.SW": 56,
-        "DB1.SW": 56,
-        "DIS-USD.SW": 56,
-        "GBF.SW": 56,
-        "GE-USD.SW": 56,
-        "GME-USD.SW": 3,
-        "GOOGL-USD.SW": 56,
-        "GS-USD.SW": 56,
-        "HPQ-USD.SW": 56,
-        "INTC-USD.SW": 56,
-        "JPM-USD.SW": 56,
-        "MDLZ-USD.SW": 56,
-        "METN.SW": 3,
-        "MS-USD.SW": 56,
-        "ORCL-USD.SW": 56,
-        "OXY-USD.SW": 3,
-        "SCHN.SW": 2,
-        "SCHNE.SW": 2,
-        "SCHPE.SW": 2,
-        "SCMN.SW": 2,
-        "SENS.SW": 2,
-        "SFSN.SW": 2,
-        "SGSN.SW": 2,
-        "SIGN.SW": 2,
-        "SIKA.SW": 2,
-        "SKAN.SW": 2,
-        "SLHN.SW": 2,
-        "SMCI.SW": 2,
-        "SMG.SW": 2,
-        "SOON.SW": 2,
-        "SPCX-USD.SW": 2,
-        "SPCX.SW": 2,
-        "SRAIL.SW": 2,
-        "SRENE.SW": 2,
-        "STMN.SW": 2,
-        "SUN.SW": 2,
-        "SUNN.SW": 2,
-        "SWON.SW": 2,
-        "SWTQ.SW": 2,
-        "TECN.SW": 2,
-        "TEMN.SW": 2,
-        "TKBP.SW": 2,
-        "TLX.SW": 56,
-        "TSLA.SW": 2,
-        "TTE.SW": 2,
-        "TXGN.SW": 2,
-        "TXGNE.SW": 2,
-        "UBER-USD.SW": 2,
-        "UBER.SW": 2,
-        "UUUU-USD.SW": 2,
-        "V-USD.SW": 2,
-        "VACN.SW": 2,
-        "VAHN.SW": 2,
-        "VATN.SW": 2,
-        "VATNE.SW": 2,
-        "VNA.SW": 2,
-        "VPBN.SW": 2,
-        "VZ-USD.SW": 56,
-        "WARN.SW": 2,
-        "WDAY-USD.SW": 2,
-        "WFC-USD.SW": 2,
-        "XOM-USD.SW": 56
+        "AAPL-USD.SW": 57,
+        "AMAT-USD.SW": 57,
+        "AMD-USD.SW": 4,
+        "BA-USD.SW": 57,
+        "BAC-USD.SW": 57,
+        "BLK-USD.SW": 57,
+        "CAT-USD.SW": 57,
+        "CL-USD.SW": 57,
+        "COIN-USD.SW": 57,
+        "DB1.SW": 57,
+        "DIS-USD.SW": 57,
+        "GBF.SW": 57,
+        "GE-USD.SW": 57,
+        "GME-USD.SW": 4,
+        "GOOGL-USD.SW": 57,
+        "GS-USD.SW": 57,
+        "HPQ-USD.SW": 57,
+        "INTC-USD.SW": 57,
+        "JPM-USD.SW": 57,
+        "MDLZ-USD.SW": 57,
+        "METN.SW": 4,
+        "MS-USD.SW": 57,
+        "ORCL-USD.SW": 57,
+        "OXY-USD.SW": 4,
+        "SCHN.SW": 3,
+        "SCHNE.SW": 3,
+        "SCHPE.SW": 3,
+        "SCMN.SW": 3,
+        "SENS.SW": 3,
+        "SFSN.SW": 3,
+        "SGSN.SW": 3,
+        "SIGN.SW": 3,
+        "SIKA.SW": 3,
+        "SKAN.SW": 3,
+        "SLHN.SW": 3,
+        "SMCI.SW": 3,
+        "SMG.SW": 3,
+        "SOON.SW": 3,
+        "SPCX-USD.SW": 3,
+        "SPCX.SW": 3,
+        "SRAIL.SW": 3,
+        "SRENE.SW": 3,
+        "STMN.SW": 3,
+        "SUN.SW": 3,
+        "SUNN.SW": 3,
+        "SWON.SW": 3,
+        "SWTQ.SW": 3,
+        "TECN.SW": 3,
+        "TEMN.SW": 3,
+        "TKBP.SW": 3,
+        "TLX.SW": 57,
+        "TSLA.SW": 3,
+        "TTE.SW": 3,
+        "TXGN.SW": 3,
+        "TXGNE.SW": 3,
+        "UBER-USD.SW": 3,
+        "UBER.SW": 3,
+        "UUUU-USD.SW": 3,
+        "V-USD.SW": 3,
+        "VACN.SW": 3,
+        "VAHN.SW": 3,
+        "VATN.SW": 3,
+        "VATNE.SW": 3,
+        "VNA.SW": 3,
+        "VPBN.SW": 3,
+        "VZ-USD.SW": 57,
+        "WFC-USD.SW": 3,
+        "XOM-USD.SW": 57
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:54:50+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T04:55:07+01:00",
       "label": "SIX Swiss Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 70,
-      "requested_this_run": 101,
-      "result_rows": 244,
-      "returned_this_run": 31,
-      "started_at": "2026-09-25T03:54:50+01:00",
+      "remaining_symbols": 68,
+      "requested_this_run": 70,
+      "result_rows": 246,
+      "returned_this_run": 2,
+      "started_at": "2026-09-25T04:55:07+01:00",
       "status": "partial",
       "universe_symbols": 381
     },
@@ -6877,617 +6578,617 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T04:00:14+01:00",
-      "coverage_pct": 72.2,
-      "coverage_symbols": 690,
+      "completed_at": "2026-09-25T05:00:59+01:00",
+      "coverage_pct": 93.1,
+      "coverage_symbols": 890,
       "diagnostics": {
-        "below_min_market_cap": 1,
+        "below_min_market_cap": 0,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
         "requested": 200,
-        "returned": 199,
+        "returned": 200,
         "symbol_outcomes": {
-          "ICK.VI": {
+          "PMOR.VI": {
             "status": "row"
           },
-          "IDR.VI": {
+          "PNCF.VI": {
             "status": "row"
           },
-          "IDXX.VI": {
+          "PNDO.VI": {
             "status": "row"
           },
-          "IFF.VI": {
+          "PNE3.VI": {
             "status": "row"
           },
-          "IFX.VI": {
+          "POS.VI": {
             "status": "row"
           },
-          "IG.VI": {
+          "POST.VI": {
             "status": "row"
           },
-          "ILMN.VI": {
+          "PPG.VI": {
             "status": "row"
           },
-          "IMCD.VI": {
+          "PRLB.VI": {
             "status": "row"
           },
-          "INGA.VI": {
+          "PRLD.VI": {
             "status": "row"
           },
-          "INH.VI": {
+          "PROX.VI": {
             "status": "row"
           },
-          "INIO.VI": {
+          "PRU.VI": {
             "status": "row"
           },
-          "INPS.VI": {
+          "PRX.VI": {
             "status": "row"
           },
-          "INTC.VI": {
+          "PRY.VI": {
             "status": "row"
           },
-          "INTU.VI": {
+          "PSAG.VI": {
             "status": "row"
           },
-          "INW.VI": {
+          "PSM.VI": {
             "status": "row"
           },
-          "IOC.VI": {
+          "PSPN.VI": {
             "status": "row"
           },
-          "IOS.VI": {
+          "PST.VI": {
             "status": "row"
           },
-          "IP.VI": {
+          "PSXC.VI": {
             "status": "row"
           },
-          "IPCO.VI": {
+          "PTON.VI": {
             "status": "row"
           },
-          "IPN.VI": {
+          "PUB.VI": {
             "status": "row"
           },
-          "IQVH.VI": {
+          "PUIG.VI": {
             "status": "row"
           },
-          "ISP.VI": {
+          "PUM.VI": {
             "status": "row"
           },
-          "ISRG.VI": {
+          "PYPL.VI": {
             "status": "row"
           },
-          "ISS.VI": {
+          "PZX.VI": {
             "status": "row"
           },
-          "ITW.VI": {
+          "QCOM.VI": {
             "status": "row"
           },
-          "ITX.VI": {
+          "QGE4.VI": {
             "status": "row"
           },
-          "IVG.VI": {
+          "RAA.VI": {
             "status": "row"
           },
-          "IWA.VI": {
+          "RACE.VI": {
             "status": "row"
           },
-          "IXX.VI": {
-            "status": "below_market_cap"
+          "RAND.VI": {
+            "status": "row"
           },
-          "JAT.VI": {
+          "RBI.VI": {
             "status": "row"
           },
-          "JBHT.VI": {
+          "RBRE.VI": {
             "status": "row"
           },
-          "JEN.VI": {
+          "RCO.VI": {
             "status": "row"
           },
-          "JPM.VI": {
+          "REAL.VI": {
             "status": "row"
           },
-          "JSTG.VI": {
+          "REC.VI": {
             "status": "row"
           },
-          "JUV2.VI": {
+          "REE.VI": {
             "status": "row"
           },
-          "JYSK.VI": {
+          "REGN.VI": {
             "status": "row"
           },
-          "KBC.VI": {
+          "RENK.VI": {
             "status": "row"
           },
-          "KBCA.VI": {
+          "REP.VI": {
             "status": "row"
           },
-          "KBX.VI": {
+          "REY.VI": {
             "status": "row"
           },
-          "KCO.VI": {
+          "RF.VI": {
             "status": "row"
           },
-          "KD.VI": {
+          "RHIM.VI": {
             "status": "row"
           },
-          "KDP.VI": {
+          "RHK.VI": {
             "status": "row"
           },
-          "KER.VI": {
+          "RHM.VI": {
             "status": "row"
           },
-          "KEY.VI": {
+          "RI.VI": {
             "status": "row"
           },
-          "KEYS.VI": {
+          "RILB.VI": {
             "status": "row"
           },
-          "KGX.VI": {
+          "RKLB.VI": {
             "status": "row"
           },
-          "KHC.VI": {
+          "RMD.VI": {
             "status": "row"
           },
-          "KKRO.VI": {
+          "RMS.VI": {
             "status": "row"
           },
-          "KLAC.VI": {
+          "RNO.VI": {
             "status": "row"
           },
-          "KLEP.VI": {
+          "ROCK.VI": {
             "status": "row"
           },
-          "KMBC.VI": {
+          "ROGH.VI": {
             "status": "row"
           },
-          "KMI.VI": {
+          "ROGP.VI": {
             "status": "row"
           },
-          "KNIN.VI": {
+          "ROK.VI": {
             "status": "row"
           },
-          "KOMT.VI": {
+          "ROKU.VI": {
             "status": "row"
           },
-          "KPN.VI": {
+          "ROP.VI": {
             "status": "row"
           },
-          "KR.VI": {
+          "ROS.VI": {
             "status": "row"
           },
-          "KRKG.VI": {
+          "ROST.VI": {
             "status": "row"
           },
-          "KRN.VI": {
+          "ROVI.VI": {
             "status": "row"
           },
-          "KSBG.VI": {
+          "RTL.VI": {
             "status": "row"
           },
-          "KTN.VI": {
+          "RUI.VI": {
             "status": "row"
           },
-          "LDO.VI": {
+          "RUN.VI": {
             "status": "row"
           },
-          "LEG.VI": {
+          "RWE.VI": {
             "status": "row"
           },
-          "LEVI.VI": {
+          "RXL.VI": {
             "status": "row"
           },
-          "LGHT.VI": {
+          "S92.VI": {
             "status": "row"
           },
-          "LHA.VI": {
+          "SAB.VI": {
             "status": "row"
           },
-          "LHXT.VI": {
+          "SAF.VI": {
             "status": "row"
           },
-          "LIME.VI": {
+          "SAN.VI": {
             "status": "row"
           },
-          "LIN.VI": {
+          "SANO.VI": {
             "status": "row"
           },
-          "LISN.VI": {
+          "SAP.VI": {
             "status": "row"
           },
-          "LITE.VI": {
+          "SATG.VI": {
             "status": "row"
           },
-          "LKFT.VI": {
+          "SAX.VI": {
             "status": "row"
           },
-          "LLYC.VI": {
+          "SBMO.VI": {
             "status": "row"
           },
-          "LMT.VI": {
+          "SBUX.VI": {
             "status": "row"
           },
-          "LNZ.VI": {
+          "SCHN.VI": {
             "status": "row"
           },
-          "LOGN.VI": {
+          "SCHW.VI": {
             "status": "row"
           },
-          "LOWE.VI": {
+          "SCMN.VI": {
             "status": "row"
           },
-          "LR.VI": {
+          "SCR.VI": {
             "status": "row"
           },
-          "LTMC.VI": {
+          "SDF.VI": {
             "status": "row"
           },
-          "LULU.VI": {
+          "SDZ.VI": {
             "status": "row"
           },
-          "LUNA.VI": {
+          "SEBS.VI": {
             "status": "row"
           },
-          "LUNB.VI": {
+          "SEDG.VI": {
             "status": "row"
           },
-          "LUV.VI": {
+          "SFER.VI": {
             "status": "row"
           },
-          "LVSC.VI": {
+          "SFQ2.VI": {
             "status": "row"
           },
-          "LXS.VI": {
+          "SFSN.VI": {
             "status": "row"
           },
-          "LYFT.VI": {
+          "SFZN.VI": {
             "status": "row"
           },
-          "MAP.VI": {
+          "SGL.VI": {
             "status": "row"
           },
-          "MAR.VI": {
+          "SGO.VI": {
             "status": "row"
           },
-          "MARA.VI": {
+          "SGSN.VI": {
             "status": "row"
           },
-          "MAST.VI": {
+          "SHA1.VI": {
             "status": "row"
           },
-          "MAT.VI": {
+          "SHFG.VI": {
             "status": "row"
           },
-          "MAT1.VI": {
+          "SHL.VI": {
             "status": "row"
           },
-          "MB.VI": {
+          "SHM.VI": {
             "status": "row"
           },
-          "MBBG.VI": {
+          "SHOP.VI": {
             "status": "row"
           },
-          "MBG.VI": {
+          "SHWW.VI": {
             "status": "row"
           },
-          "MBGL.VI": {
+          "SIE.VI": {
             "status": "row"
           },
-          "MC.VI": {
+          "SIGN.VI": {
             "status": "row"
           },
-          "MCD.VI": {
+          "SIS.VI": {
             "status": "row"
           },
-          "MCK.VI": {
+          "SIX2.VI": {
             "status": "row"
           },
-          "MDLZ.VI": {
+          "SLHN.VI": {
             "status": "row"
           },
-          "MDT.VI": {
+          "SLR.VI": {
             "status": "row"
           },
-          "MEL.VI": {
+          "SMC2.VI": {
             "status": "row"
           },
-          "MELI.VI": {
+          "SMGC.VI": {
             "status": "row"
           },
-          "MEO2.VI": {
+          "SMHN.VI": {
             "status": "row"
           },
-          "MERL.VI": {
+          "SMRX.VI": {
             "status": "row"
           },
-          "META.VI": {
+          "SNAP.VI": {
             "status": "row"
           },
-          "METL.VI": {
+          "SNDK.VI": {
             "status": "row"
           },
-          "MF.VI": {
+          "SNOW.VI": {
             "status": "row"
           },
-          "MFE2.VI": {
+          "SOF.VI": {
             "status": "row"
           },
-          "MITT.VI": {
+          "SOI.VI": {
             "status": "row"
           },
-          "MKC.VI": {
+          "SOLB.VI": {
             "status": "row"
           },
-          "MLP.VI": {
+          "SON1.VI": {
             "status": "row"
           },
-          "MMCO.VI": {
+          "SONO.VI": {
             "status": "row"
           },
-          "MMK.VI": {
+          "SOON.VI": {
             "status": "row"
           },
-          "MNST.VI": {
+          "SOP.VI": {
             "status": "row"
           },
-          "MOCO.VI": {
+          "SOUT.VI": {
             "status": "row"
           },
-          "MONC.VI": {
+          "SPCX.VI": {
             "status": "row"
           },
-          "MOSI.VI": {
+          "SPG.VI": {
             "status": "row"
           },
-          "MPC.VI": {
+          "SPGI.VI": {
             "status": "row"
           },
-          "MPWR.VI": {
+          "SPGR.VI": {
             "status": "row"
           },
-          "MRCK.VI": {
+          "SPIE.VI": {
             "status": "row"
           },
-          "MRK.VI": {
+          "SPM3.VI": {
             "status": "row"
           },
-          "MRNA.VI": {
+          "SPOT.VI": {
             "status": "row"
           },
-          "MRSA.VI": {
+          "SPSN.VI": {
             "status": "row"
           },
-          "MRSK.VI": {
+          "SQN2.VI": {
             "status": "row"
           },
-          "MRVL.VI": {
+          "SQU.VI": {
             "status": "row"
           },
-          "MSCI.VI": {
+          "SREN.VI": {
             "status": "row"
           },
-          "MSFT.VI": {
+          "SRG.VI": {
             "status": "row"
           },
-          "MSTR.VI": {
+          "STLA.VI": {
             "status": "row"
           },
-          "MT.VI": {
+          "STMI.VI": {
             "status": "row"
           },
-          "MTD.VI": {
+          "STMN.VI": {
             "status": "row"
           },
-          "MTX.VI": {
+          "STR.VI": {
             "status": "row"
           },
-          "MU.VI": {
+          "STXH.VI": {
             "status": "row"
           },
-          "MUMG.VI": {
+          "STZ.VI": {
             "status": "row"
           },
-          "MUV.VI": {
+          "SU.VI": {
             "status": "row"
           },
-          "MUX2.VI": {
+          "SUNN.VI": {
             "status": "row"
           },
-          "MUXG.VI": {
+          "SW.VI": {
             "status": "row"
           },
-          "MVV1.VI": {
+          "SWK.VI": {
             "status": "row"
           },
-          "MWD.VI": {
+          "SWKS.VI": {
             "status": "row"
           },
-          "NA9N.VI": {
+          "SY1.VI": {
             "status": "row"
           },
-          "NBIS.VI": {
+          "SYEN.VI": {
             "status": "row"
           },
-          "NCH2.VI": {
+          "SYK.VI": {
             "status": "row"
           },
-          "NDA.VI": {
+          "SYY.VI": {
             "status": "row"
           },
-          "NDAQ.VI": {
+          "SZG.VI": {
             "status": "row"
           },
-          "NDX1.VI": {
+          "SZU.VI": {
             "status": "row"
           },
-          "NEE.VI": {
+          "TDG.VI": {
             "status": "row"
           },
-          "NEM.VI": {
+          "TECN.VI": {
             "status": "row"
           },
-          "NESN.VI": {
+          "TEEN.VI": {
             "status": "row"
           },
-          "NEWM.VI": {
+          "TEF.VI": {
             "status": "row"
           },
-          "NEX.VI": {
+          "TEG.VI": {
             "status": "row"
           },
-          "NEXI.VI": {
+          "TEMN.VI": {
             "status": "row"
           },
-          "NFLX.VI": {
+          "TENA.VI": {
             "status": "row"
           },
-          "NIB.VI": {
+          "TEP.VI": {
             "status": "row"
           },
-          "NISA.VI": {
+          "TER.VI": {
             "status": "row"
           },
-          "NITT.VI": {
+          "TFC.VI": {
             "status": "row"
           },
-          "NKE.VI": {
+          "TGHN.VI": {
             "status": "row"
           },
-          "NKT.VI": {
+          "TGTC.VI": {
             "status": "row"
           },
-          "NLBR.VI": {
+          "THAL.VI": {
             "status": "row"
           },
-          "NLOK.VI": {
+          "TIMA.VI": {
             "status": "row"
           },
-          "NN.VI": {
+          "TIT2.VI": {
             "status": "row"
           },
-          "NNND.VI": {
+          "TJXC.VI": {
             "status": "row"
           },
-          "NOEJ.VI": {
+          "TKA.VI": {
             "status": "row"
           },
-          "NOKI.VI": {
+          "TKMS.VI": {
             "status": "row"
           },
-          "NRE1.VI": {
+          "TKR.VI": {
             "status": "row"
           },
-          "NTO.VI": {
+          "TLX.VI": {
             "status": "row"
           },
-          "NVAX.VI": {
+          "TMOF.VI": {
             "status": "row"
           },
-          "NVDA.VI": {
+          "TMUS.VI": {
             "status": "row"
           },
-          "NXPI.VI": {
+          "TMV.VI": {
             "status": "row"
           },
-          "NZYM.VI": {
+          "TNIE.VI": {
             "status": "row"
           },
-          "OBCK.VI": {
+          "TOM.VI": {
             "status": "row"
           },
-          "OBS.VI": {
+          "TOWN.VI": {
             "status": "row"
           },
-          "OHB.VI": {
+          "TPEG.VI": {
             "status": "row"
           },
-          "OKE2.VI": {
+          "TRE.VI": {
             "status": "row"
           },
-          "OMV.VI": {
+          "TRMD.VI": {
             "status": "row"
           },
-          "ONSE.VI": {
+          "TRN.VI": {
             "status": "row"
           },
-          "OR.VI": {
+          "TROW.VI": {
             "status": "row"
           },
-          "ORA.VI": {
+          "TRV.VI": {
             "status": "row"
           },
-          "ORAT.VI": {
+          "TRYG.VI": {
             "status": "row"
           },
-          "ORCL.VI": {
+          "TSLA.VI": {
             "status": "row"
           },
-          "ORP2.VI": {
+          "TSN.VI": {
             "status": "row"
           },
-          "OTIS.VI": {
+          "TTD.VI": {
             "status": "row"
           },
-          "OXYP.VI": {
+          "TTEC.VI": {
             "status": "row"
           },
-          "P1Z.VI": {
+          "TTWO.VI": {
             "status": "row"
           },
-          "PAL.VI": {
+          "TUBI.VI": {
             "status": "row"
           },
-          "PANW.VI": {
+          "TUI1.VI": {
             "status": "row"
           },
-          "PC.VI": {
+          "TWLO.VI": {
             "status": "row"
           },
-          "PCZH.VI": {
+          "TXN.VI": {
             "status": "row"
           },
-          "PEG.VI": {
+          "UAA.VI": {
             "status": "row"
           },
-          "PEPS.VI": {
+          "UAC.VI": {
             "status": "row"
           },
-          "PETG.VI": {
+          "UAL.VI": {
             "status": "row"
           },
-          "PFE.VI": {
+          "UBER.VI": {
             "status": "row"
           },
-          "PFV.VI": {
+          "UBIS.VI": {
             "status": "row"
           },
-          "PG.VI": {
+          "UCB.VI": {
             "status": "row"
           },
-          "PGHN.VI": {
+          "UCG.VI": {
             "status": "row"
           },
-          "PGR.VI": {
+          "UHR.VI": {
             "status": "row"
           },
-          "PH.VI": {
+          "ULTA.VI": {
             "status": "row"
           },
-          "PHIA.VI": {
+          "UMG.VI": {
             "status": "row"
           },
-          "PHM.VI": {
+          "UMI.VI": {
             "status": "row"
           },
-          "PLNW.VI": {
+          "UN02.VI": {
             "status": "row"
           },
-          "PLTR.VI": {
+          "UNBA.VI": {
             "status": "row"
           },
-          "PLUX.VI": {
+          "UNH.VI": {
             "status": "row"
           }
         }
@@ -7496,206 +7197,6 @@
       "gap_fill_dispatch_counts": {
         "DDD.VI": 1,
         "IXX.VI": 1,
-        "PMOR.VI": 0,
-        "PNCF.VI": 0,
-        "PNDO.VI": 0,
-        "PNE3.VI": 0,
-        "POS.VI": 0,
-        "POST.VI": 0,
-        "PPG.VI": 0,
-        "PRLB.VI": 0,
-        "PRLD.VI": 0,
-        "PROX.VI": 0,
-        "PRU.VI": 0,
-        "PRX.VI": 0,
-        "PRY.VI": 0,
-        "PSAG.VI": 0,
-        "PSM.VI": 0,
-        "PSPN.VI": 0,
-        "PST.VI": 0,
-        "PSXC.VI": 0,
-        "PTON.VI": 0,
-        "PUB.VI": 0,
-        "PUIG.VI": 0,
-        "PUM.VI": 0,
-        "PYPL.VI": 0,
-        "PZX.VI": 0,
-        "QCOM.VI": 0,
-        "QGE4.VI": 0,
-        "RAA.VI": 0,
-        "RACE.VI": 0,
-        "RAND.VI": 0,
-        "RBI.VI": 0,
-        "RBRE.VI": 0,
-        "RCO.VI": 0,
-        "REAL.VI": 0,
-        "REC.VI": 0,
-        "REE.VI": 0,
-        "REGN.VI": 0,
-        "RENK.VI": 0,
-        "REP.VI": 0,
-        "REY.VI": 0,
-        "RF.VI": 0,
-        "RHIM.VI": 0,
-        "RHK.VI": 0,
-        "RHM.VI": 0,
-        "RI.VI": 0,
-        "RILB.VI": 0,
-        "RKLB.VI": 0,
-        "RMD.VI": 0,
-        "RMS.VI": 0,
-        "RNO.VI": 0,
-        "ROCK.VI": 0,
-        "ROGH.VI": 0,
-        "ROGP.VI": 0,
-        "ROK.VI": 0,
-        "ROKU.VI": 0,
-        "ROP.VI": 0,
-        "ROS.VI": 0,
-        "ROST.VI": 0,
-        "ROVI.VI": 0,
-        "RTL.VI": 0,
-        "RUI.VI": 0,
-        "RUN.VI": 0,
-        "RWE.VI": 0,
-        "RXL.VI": 0,
-        "S92.VI": 0,
-        "SAB.VI": 0,
-        "SAF.VI": 0,
-        "SAN.VI": 0,
-        "SANO.VI": 0,
-        "SAP.VI": 0,
-        "SATG.VI": 0,
-        "SAX.VI": 0,
-        "SBMO.VI": 0,
-        "SBUX.VI": 0,
-        "SCHN.VI": 0,
-        "SCHW.VI": 0,
-        "SCMN.VI": 0,
-        "SCR.VI": 0,
-        "SDF.VI": 0,
-        "SDZ.VI": 0,
-        "SEBS.VI": 0,
-        "SEDG.VI": 0,
-        "SFER.VI": 0,
-        "SFQ2.VI": 0,
-        "SFSN.VI": 0,
-        "SFZN.VI": 0,
-        "SGL.VI": 0,
-        "SGO.VI": 0,
-        "SGSN.VI": 0,
-        "SHA1.VI": 0,
-        "SHFG.VI": 0,
-        "SHL.VI": 0,
-        "SHM.VI": 0,
-        "SHOP.VI": 0,
-        "SHWW.VI": 0,
-        "SIE.VI": 0,
-        "SIGN.VI": 0,
-        "SIS.VI": 0,
-        "SIX2.VI": 0,
-        "SLHN.VI": 0,
-        "SLR.VI": 0,
-        "SMC2.VI": 0,
-        "SMGC.VI": 0,
-        "SMHN.VI": 0,
-        "SMRX.VI": 0,
-        "SNAP.VI": 0,
-        "SNDK.VI": 0,
-        "SNOW.VI": 0,
-        "SOF.VI": 0,
-        "SOI.VI": 0,
-        "SOLB.VI": 0,
-        "SON1.VI": 0,
-        "SONO.VI": 0,
-        "SOON.VI": 0,
-        "SOP.VI": 0,
-        "SOUT.VI": 0,
-        "SPCX.VI": 0,
-        "SPG.VI": 0,
-        "SPGI.VI": 0,
-        "SPGR.VI": 0,
-        "SPIE.VI": 0,
-        "SPM3.VI": 0,
-        "SPOT.VI": 0,
-        "SPSN.VI": 0,
-        "SQN2.VI": 0,
-        "SQU.VI": 0,
-        "SREN.VI": 0,
-        "SRG.VI": 0,
-        "STLA.VI": 0,
-        "STMI.VI": 0,
-        "STMN.VI": 0,
-        "STR.VI": 0,
-        "STXH.VI": 0,
-        "STZ.VI": 0,
-        "SU.VI": 0,
-        "SUNN.VI": 0,
-        "SW.VI": 0,
-        "SWK.VI": 0,
-        "SWKS.VI": 0,
-        "SY1.VI": 0,
-        "SYEN.VI": 0,
-        "SYK.VI": 0,
-        "SYY.VI": 0,
-        "SZG.VI": 0,
-        "SZU.VI": 0,
-        "TDG.VI": 0,
-        "TECN.VI": 0,
-        "TEEN.VI": 0,
-        "TEF.VI": 0,
-        "TEG.VI": 0,
-        "TEMN.VI": 0,
-        "TENA.VI": 0,
-        "TEP.VI": 0,
-        "TER.VI": 0,
-        "TFC.VI": 0,
-        "TGHN.VI": 0,
-        "TGTC.VI": 0,
-        "THAL.VI": 0,
-        "TIMA.VI": 0,
-        "TIT2.VI": 0,
-        "TJXC.VI": 0,
-        "TKA.VI": 0,
-        "TKMS.VI": 0,
-        "TKR.VI": 0,
-        "TLX.VI": 0,
-        "TMOF.VI": 0,
-        "TMUS.VI": 0,
-        "TMV.VI": 0,
-        "TNIE.VI": 0,
-        "TOM.VI": 0,
-        "TOWN.VI": 0,
-        "TPEG.VI": 0,
-        "TRE.VI": 0,
-        "TRMD.VI": 0,
-        "TRN.VI": 0,
-        "TROW.VI": 0,
-        "TRV.VI": 0,
-        "TRYG.VI": 0,
-        "TSLA.VI": 0,
-        "TSN.VI": 0,
-        "TTD.VI": 0,
-        "TTEC.VI": 0,
-        "TTWO.VI": 0,
-        "TUBI.VI": 0,
-        "TUI1.VI": 0,
-        "TWLO.VI": 0,
-        "TXN.VI": 0,
-        "UAA.VI": 0,
-        "UAC.VI": 0,
-        "UAL.VI": 0,
-        "UBER.VI": 0,
-        "UBIS.VI": 0,
-        "UCB.VI": 0,
-        "UCG.VI": 0,
-        "UHR.VI": 0,
-        "ULTA.VI": 0,
-        "UMG.VI": 0,
-        "UMI.VI": 0,
-        "UN02.VI": 0,
-        "UNBA.VI": 0,
-        "UNH.VI": 0,
         "UNI.VI": 0,
         "UNPC.VI": 0,
         "UPSI.VI": 0,
@@ -7761,16 +7262,16 @@
         "ZOTS.VI": 0,
         "ZSCA.VI": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:59:35+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T04:59:52+01:00",
       "label": "Wiener B\u00f6rse",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 266,
+      "remaining_symbols": 66,
       "requested_this_run": 200,
-      "result_rows": 690,
-      "returned_this_run": 199,
-      "started_at": "2026-09-25T03:59:35+01:00",
+      "result_rows": 890,
+      "returned_this_run": 200,
+      "started_at": "2026-09-25T04:59:52+01:00",
       "status": "partial",
       "universe_symbols": 1068
     },
@@ -7778,776 +7279,636 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T03:53:32+01:00",
-      "coverage_pct": 64.8,
-      "coverage_symbols": 729,
+      "completed_at": "2026-09-25T04:53:50+01:00",
+      "coverage_pct": 82.6,
+      "coverage_symbols": 929,
       "diagnostics": {
-        "below_min_market_cap": 1,
+        "below_min_market_cap": 0,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
         "requested": 200,
-        "returned": 199,
+        "returned": 200,
         "symbol_outcomes": {
-          "OMV.DE": {
+          "01P.DE": {
             "status": "row"
           },
-          "OO6.DE": {
+          "04Q.DE": {
             "status": "row"
           },
-          "OPC.DE": {
+          "07G0.DE": {
             "status": "row"
           },
-          "ORC.DE": {
+          "096.DE": {
             "status": "row"
           },
-          "OYC.DE": {
+          "0B2.DE": {
             "status": "row"
           },
-          "P2H.DE": {
+          "0EF.DE": {
             "status": "row"
           },
-          "P8S0.DE": {
+          "0GS.DE": {
             "status": "row"
           },
-          "PA9.DE": {
+          "0L5.DE": {
             "status": "row"
           },
-          "PAR.DE": {
+          "0L8.DE": {
             "status": "row"
           },
-          "PAT.DE": {
+          "0NU.DE": {
             "status": "row"
           },
-          "PCE1.DE": {
+          "0OK.DE": {
             "status": "row"
           },
-          "PCU.DE": {
+          "0P0.DE": {
             "status": "row"
           },
-          "PCZ.DE": {
+          "0P7.DE": {
             "status": "row"
           },
-          "PEA.DE": {
+          "0P8.DE": {
             "status": "row"
           },
-          "PEN.DE": {
+          "0QF.DE": {
             "status": "row"
           },
-          "PEO.DE": {
+          "0QN.DE": {
             "status": "row"
           },
-          "PEP.DE": {
+          "0S0.DE": {
             "status": "row"
           },
-          "PER.DE": {
+          "0SU.DE": {
             "status": "row"
           },
-          "PES.DE": {
+          "0VD.DE": {
             "status": "row"
           },
-          "PFE.DE": {
+          "0YB0.DE": {
             "status": "row"
           },
-          "PFSE.DE": {
+          "0ZC.DE": {
             "status": "row"
           },
-          "PFV.DE": {
+          "1170.DE": {
             "status": "row"
           },
-          "PFZ0.DE": {
+          "12DA.DE": {
             "status": "row"
           },
-          "PG4.DE": {
+          "17M.DE": {
             "status": "row"
           },
-          "PGV.DE": {
+          "185.DE": {
             "status": "row"
           },
-          "PHGN.DE": {
+          "19X.DE": {
             "status": "row"
           },
-          "PHI1.DE": {
+          "1A7.DE": {
             "status": "row"
           },
-          "PHM7.DE": {
+          "1AE.DE": {
             "status": "row"
           },
-          "PKA.DE": {
+          "1AST.DE": {
             "status": "row"
           },
-          "PKN.DE": {
+          "1AW.DE": {
             "status": "row"
           },
-          "PL6.DE": {
+          "1B8.DE": {
             "status": "row"
           },
-          "PLQ.DE": {
+          "1C5.DE": {
             "status": "row"
           },
-          "PMTA.DE": {
+          "1F80.DE": {
             "status": "row"
           },
-          "PNE3.DE": {
+          "1FA.DE": {
             "status": "row"
           },
-          "PP9.DE": {
+          "1FD.DE": {
             "status": "row"
           },
-          "PPX.DE": {
+          "1HTA.DE": {
             "status": "row"
           },
-          "PSAN.DE": {
+          "1INN.DE": {
             "status": "row"
           },
-          "PSE.DE": {
+          "1KT.DE": {
             "status": "row"
           },
-          "PSM.DE": {
+          "1MU.DE": {
             "status": "row"
           },
-          "PU4.DE": {
+          "1N8.DE": {
             "status": "row"
           },
-          "PU7.DE": {
+          "1NBA.DE": {
             "status": "row"
           },
-          "PUM.DE": {
+          "1PM.DE": {
             "status": "row"
           },
-          "PVH.DE": {
+          "1QZ.DE": {
             "status": "row"
           },
-          "PW2.DE": {
+          "1S2.DE": {
             "status": "row"
           },
-          "Q23.DE": {
+          "1SI.DE": {
             "status": "row"
           },
-          "Q41.DE": {
+          "1SXP.DE": {
             "status": "row"
           },
-          "QEN.DE": {
+          "1T1.DE": {
             "status": "row"
           },
-          "QGJ.DE": {
+          "1TY.DE": {
             "status": "row"
           },
-          "QH9.DE": {
-            "status": "below_market_cap"
+          "1U1.DE": {
+            "status": "row"
           },
-          "QIA.DE": {
+          "1VT.DE": {
             "status": "row"
           },
-          "QTS.DE": {
+          "1XJ.DE": {
             "status": "row"
           },
-          "R1D.DE": {
+          "1YD.DE": {
             "status": "row"
           },
-          "R35.DE": {
+          "1ZB.DE": {
             "status": "row"
           },
-          "R3D.DE": {
+          "22Z.DE": {
             "status": "row"
           },
-          "R3NK.DE": {
+          "25M.DE": {
             "status": "row"
           },
-          "R5A.DE": {
+          "26CA.DE": {
             "status": "row"
           },
-          "R66.DE": {
+          "28K1.DE": {
             "status": "row"
           },
-          "R7R.DE": {
+          "2BD.DE": {
             "status": "row"
           },
-          "RAA.DE": {
+          "2BH.DE": {
             "status": "row"
           },
-          "RAX.DE": {
+          "2CL.DE": {
             "status": "row"
           },
-          "RB8.DE": {
+          "2ED.DE": {
             "status": "row"
           },
-          "RCF.DE": {
+          "2FE.DE": {
             "status": "row"
           },
-          "RDC.DE": {
+          "2GB.DE": {
             "status": "row"
           },
-          "RE21.DE": {
+          "2HE.DE": {
             "status": "row"
           },
-          "REP.DE": {
+          "2IL.DE": {
             "status": "row"
           },
-          "RF6.DE": {
+          "2IS.DE": {
             "status": "row"
           },
-          "RHK.DE": {
+          "2KD.DE": {
             "status": "row"
           },
-          "RIO1.DE": {
+          "2LO.DE": {
             "status": "row"
           },
-          "RJF.DE": {
+          "2M6.DE": {
             "status": "row"
           },
-          "RLS.DE": {
+          "2NN.DE": {
             "status": "row"
           },
-          "RNL.DE": {
+          "2OY.DE": {
             "status": "row"
           },
-          "RO7.DE": {
+          "2PP.DE": {
             "status": "row"
           },
-          "ROP.DE": {
+          "2SI.DE": {
             "status": "row"
           },
-          "ROW.DE": {
+          "2U3.DE": {
             "status": "row"
           },
-          "RP8.DE": {
+          "2WY.DE": {
             "status": "row"
           },
-          "RPD.DE": {
+          "2X0.DE": {
             "status": "row"
           },
-          "RPL.DE": {
+          "2Y7.DE": {
             "status": "row"
           },
-          "RPU.DE": {
+          "33L.DE": {
             "status": "row"
           },
-          "RQ0.DE": {
+          "34U.DE": {
             "status": "row"
           },
-          "RRTL.DE": {
+          "37C.DE": {
             "status": "row"
           },
-          "RS6.DE": {
+          "38D.DE": {
             "status": "row"
           },
-          "RTO1.DE": {
+          "38I.DE": {
             "status": "row"
           },
-          "RV7.DE": {
+          "3A9.DE": {
             "status": "row"
           },
-          "RWE.DE": {
+          "3E1.DE": {
             "status": "row"
           },
-          "RYD.DE": {
+          "3E2.DE": {
             "status": "row"
           },
-          "RZ2.DE": {
+          "3EC.DE": {
             "status": "row"
           },
-          "S92.DE": {
+          "3HH.DE": {
             "status": "row"
           },
-          "S94.DE": {
+          "3LN.DE": {
             "status": "row"
           },
-          "SAX.DE": {
+          "3PL.DE": {
             "status": "row"
           },
-          "SCT.DE": {
+          "3QD.DE": {
             "status": "row"
           },
-          "SD5.DE": {
+          "3RB0.DE": {
             "status": "row"
           },
-          "SDF.DE": {
+          "3S9.DE": {
             "status": "row"
           },
-          "SE4.DE": {
+          "3UB.DE": {
             "status": "row"
           },
-          "SFQ.DE": {
+          "3UX.DE": {
             "status": "row"
           },
-          "SGL.DE": {
+          "3VU.DE": {
             "status": "row"
           },
-          "SGM.DE": {
+          "3ZU0.DE": {
             "status": "row"
           },
-          "SHA0.DE": {
+          "42Z.DE": {
             "status": "row"
           },
-          "SHF.DE": {
+          "43D.DE": {
             "status": "row"
           },
-          "SI3.DE": {
+          "45C.DE": {
             "status": "row"
           },
-          "SIE.DE": {
+          "45E.DE": {
             "status": "row"
           },
-          "SII.DE": {
+          "472.DE": {
             "status": "row"
           },
-          "SIS.DE": {
+          "48CA.DE": {
             "status": "row"
           },
-          "SIX2.DE": {
+          "48D.DE": {
             "status": "row"
           },
-          "SJL.DE": {
+          "49G.DE": {
             "status": "row"
           },
-          "SM1.DE": {
+          "4BE.DE": {
             "status": "row"
           },
-          "SMHN.DE": {
+          "4BW.DE": {
             "status": "row"
           },
-          "SNW.DE": {
+          "4J2.DE": {
             "status": "row"
           },
-          "SOBA.DE": {
+          "4KB.DE": {
             "status": "row"
           },
-          "SOH1.DE": {
+          "4LT1.DE": {
             "status": "row"
           },
-          "SOT.DE": {
+          "4PN.DE": {
             "status": "row"
           },
-          "SPEA.DE": {
+          "4T0.DE": {
             "status": "row"
           },
-          "SPW0.DE": {
+          "4VK.DE": {
             "status": "row"
           },
-          "SPX.DE": {
+          "4XY.DE": {
             "status": "row"
           },
-          "SQ3.DE": {
+          "526.DE": {
             "status": "row"
           },
-          "SQR.DE": {
+          "56S1.DE": {
             "status": "row"
           },
-          "SRB.DE": {
+          "58H.DE": {
             "status": "row"
           },
-          "SRT.DE": {
+          "5AP.DE": {
             "status": "row"
           },
-          "SUX.DE": {
+          "5B9.DE": {
             "status": "row"
           },
-          "SVC.DE": {
+          "5PT.DE": {
             "status": "row"
           },
-          "SWN.DE": {
+          "5VA.DE": {
             "status": "row"
           },
-          "SZG.DE": {
+          "60A.DE": {
             "status": "row"
           },
-          "SZU.DE": {
+          "64B.DE": {
             "status": "row"
           },
-          "T12.DE": {
+          "68S.DE": {
             "status": "row"
           },
-          "T2T.DE": {
+          "6B0.DE": {
             "status": "row"
           },
-          "T2V1.DE": {
+          "6DA.DE": {
             "status": "row"
           },
-          "T54.DE": {
+          "6F1.DE": {
             "status": "row"
           },
-          "T7D.DE": {
+          "6IC.DE": {
             "status": "row"
           },
-          "TAR.DE": {
+          "6IV.DE": {
             "status": "row"
           },
-          "TCO0.DE": {
+          "6MK.DE": {
             "status": "row"
           },
-          "TCS.DE": {
+          "6PU.DE": {
             "status": "row"
           },
-          "TEG.DE": {
+          "6RJ0.DE": {
             "status": "row"
           },
-          "TEY.DE": {
+          "6V5.DE": {
             "status": "row"
           },
-          "TGHN.DE": {
+          "6VO.DE": {
             "status": "row"
           },
-          "THC1.DE": {
+          "71Y.DE": {
             "status": "row"
           },
-          "TII.DE": {
+          "77F.DE": {
             "status": "row"
           },
-          "TIMA.DE": {
+          "788.DE": {
             "status": "row"
           },
-          "TKA.DE": {
+          "7A6.DE": {
             "status": "row"
           },
-          "TKE.DE": {
+          "7B0.DE": {
             "status": "row"
           },
-          "TKH.DE": {
+          "7DB.DE": {
             "status": "row"
           },
-          "TKMS.DE": {
+          "7DG.DE": {
             "status": "row"
           },
-          "TL0.DE": {
+          "VNX.DE": {
             "status": "row"
           },
-          "TLX.DE": {
+          "VODI.DE": {
             "status": "row"
           },
-          "TM5.DE": {
+          "VOS.DE": {
             "status": "row"
           },
-          "TMJ.DE": {
+          "VOW.DE": {
             "status": "row"
           },
-          "TMV.DE": {
+          "VS1.DE": {
             "status": "row"
           },
-          "TN8.DE": {
+          "VS3.DE": {
             "status": "row"
           },
-          "TNE5.DE": {
+          "VUL.DE": {
             "status": "row"
           },
-          "TNIE.DE": {
+          "VVD.DE": {
             "status": "row"
           },
-          "TOTB.DE": {
+          "VVU.DE": {
             "status": "row"
           },
-          "TPD.DE": {
+          "VWSB.DE": {
             "status": "row"
           },
-          "TPE.DE": {
+          "VX1.DE": {
             "status": "row"
           },
-          "TQI0.DE": {
+          "W7D.DE": {
             "status": "row"
           },
-          "TRL.DE": {
+          "WA3.DE": {
             "status": "row"
           },
-          "TRR.DE": {
+          "WAC.DE": {
             "status": "row"
           },
-          "TRVC.DE": {
+          "WAF.DE": {
             "status": "row"
           },
-          "TT8.DE": {
+          "WAZ.DE": {
             "status": "row"
           },
-          "TUI1.DE": {
+          "WB2.DE": {
             "status": "row"
           },
-          "TW10.DE": {
+          "WCH.DE": {
             "status": "row"
           },
-          "TWH.DE": {
+          "WDC.DE": {
             "status": "row"
           },
-          "TXT.DE": {
+          "WDH1.DE": {
             "status": "row"
           },
-          "TYP.DE": {
+          "WDP.DE": {
             "status": "row"
           },
-          "U1N.DE": {
+          "WEA.DE": {
             "status": "row"
           },
-          "UAO.DE": {
+          "WF5A.DE": {
             "status": "row"
           },
-          "UCE.DE": {
+          "WGSA.DE": {
             "status": "row"
           },
-          "UCM.DE": {
+          "WIB.DE": {
             "status": "row"
           },
-          "UEN.DE": {
+          "WIC.DE": {
             "status": "row"
           },
-          "UFH.DE": {
+          "WJ4.DE": {
             "status": "row"
           },
-          "UH3.DE": {
+          "WL9.DE": {
             "status": "row"
           },
-          "UHS.DE": {
+          "WM1.DE": {
             "status": "row"
           },
-          "UIPN.DE": {
+          "WMB.DE": {
             "status": "row"
           },
-          "UN0.DE": {
+          "WMT.DE": {
             "status": "row"
           },
-          "UN9.DE": {
+          "WOSB.DE": {
             "status": "row"
           },
-          "UNC.DE": {
+          "WP7.DE": {
             "status": "row"
           },
-          "UNH.DE": {
+          "WTY.DE": {
             "status": "row"
           },
-          "UNP.DE": {
+          "WUW.DE": {
             "status": "row"
           },
-          "UNV0.DE": {
+          "WYR.DE": {
             "status": "row"
           },
-          "UPAB.DE": {
+          "X06.DE": {
             "status": "row"
           },
-          "UR3.DE": {
+          "X68.DE": {
             "status": "row"
           },
-          "US3.DE": {
+          "XCA.DE": {
             "status": "row"
           },
-          "UT8.DE": {
+          "XD4.DE": {
             "status": "row"
           },
-          "UTDI.DE": {
+          "XPH.DE": {
             "status": "row"
           },
-          "UU2.DE": {
+          "XS4.DE": {
             "status": "row"
           },
-          "UUM.DE": {
+          "XTY.DE": {
             "status": "row"
           },
-          "UWS.DE": {
+          "XUP.DE": {
             "status": "row"
           },
-          "V0Y.DE": {
+          "XXA1.DE": {
             "status": "row"
           },
-          "V1L.DE": {
+          "XY6.DE": {
             "status": "row"
           },
-          "V1NC.DE": {
+          "YCP.DE": {
             "status": "row"
           },
-          "V71.DE": {
+          "YDO1.DE": {
             "status": "row"
           },
-          "V76.DE": {
+          "YDX.DE": {
             "status": "row"
           },
-          "VAI.DE": {
+          "YL8.DE": {
             "status": "row"
           },
-          "VAS.DE": {
+          "YSN.DE": {
             "status": "row"
           },
-          "VBK.DE": {
+          "Z0Y.DE": {
             "status": "row"
           },
-          "VCV.DE": {
+          "Z5O.DE": {
             "status": "row"
           },
-          "VEE.DE": {
+          "Z98.DE": {
             "status": "row"
           },
-          "VH2.DE": {
+          "ZAL.DE": {
             "status": "row"
           },
-          "VHY.DE": {
+          "ZOE.DE": {
             "status": "row"
           },
-          "VIA.DE": {
+          "ZS3.DE": {
             "status": "row"
           },
-          "VNA.DE": {
+          "ZT1A.DE": {
             "status": "row"
           },
-          "VNB.DE": {
+          "ZT8.DE": {
             "status": "row"
           },
-          "VNI.DE": {
+          "ZX6.DE": {
             "status": "row"
           }
         }
       },
       "eligible_symbols": 1125,
       "gap_fill_dispatch_counts": {
-        "01P.DE": 1,
-        "04Q.DE": 1,
-        "07G0.DE": 1,
-        "096.DE": 1,
-        "0B2.DE": 1,
-        "0EF.DE": 1,
-        "0GS.DE": 1,
-        "0L5.DE": 1,
-        "0L8.DE": 1,
-        "0NU.DE": 1,
-        "0OK.DE": 1,
-        "0P0.DE": 1,
-        "0P7.DE": 1,
-        "0P8.DE": 1,
-        "0QF.DE": 1,
-        "0QN.DE": 1,
-        "0S0.DE": 1,
-        "0SU.DE": 1,
-        "0VD.DE": 1,
-        "0YB0.DE": 1,
-        "0ZC.DE": 1,
-        "1170.DE": 1,
-        "12DA.DE": 1,
-        "17M.DE": 1,
-        "185.DE": 1,
-        "19X.DE": 1,
-        "1A7.DE": 1,
-        "1AE.DE": 1,
-        "1AST.DE": 1,
-        "1AW.DE": 1,
-        "1B8.DE": 1,
-        "1C5.DE": 1,
-        "1F80.DE": 1,
-        "1FA.DE": 1,
-        "1FD.DE": 1,
-        "1HTA.DE": 1,
-        "1INN.DE": 1,
-        "1KT.DE": 1,
-        "1MU.DE": 1,
-        "1N8.DE": 1,
-        "1NBA.DE": 1,
-        "1PM.DE": 1,
-        "1QZ.DE": 1,
-        "1S2.DE": 1,
-        "1SI.DE": 1,
-        "1SXP.DE": 1,
-        "1T1.DE": 1,
-        "1TY.DE": 1,
-        "1U1.DE": 1,
-        "1VT.DE": 1,
-        "1XJ.DE": 1,
-        "1YD.DE": 1,
-        "1ZB.DE": 1,
-        "22Z.DE": 1,
-        "25M.DE": 1,
-        "26CA.DE": 1,
-        "28K1.DE": 1,
-        "2BD.DE": 1,
-        "2BH.DE": 1,
-        "2CL.DE": 1,
-        "2ED.DE": 1,
-        "2FE.DE": 1,
-        "2GB.DE": 1,
-        "2HE.DE": 1,
-        "2IL.DE": 1,
-        "2IS.DE": 1,
-        "2KD.DE": 1,
-        "2LO.DE": 1,
-        "2M6.DE": 1,
-        "2NN.DE": 1,
-        "2OY.DE": 1,
-        "2PP.DE": 1,
-        "2SI.DE": 1,
-        "2U3.DE": 1,
-        "2WY.DE": 1,
-        "2X0.DE": 1,
-        "2Y7.DE": 1,
-        "33L.DE": 1,
-        "34U.DE": 1,
-        "37C.DE": 1,
-        "38D.DE": 1,
-        "38I.DE": 1,
-        "3A9.DE": 1,
-        "3E1.DE": 1,
-        "3E2.DE": 1,
-        "3EC.DE": 1,
-        "3HH.DE": 1,
         "3HM.DE": 2,
-        "3LN.DE": 1,
         "3P7.DE": 2,
-        "3PL.DE": 1,
-        "3QD.DE": 1,
-        "3RB0.DE": 1,
-        "3S9.DE": 1,
         "3SM.DE": 2,
-        "3UB.DE": 1,
-        "3UX.DE": 1,
         "3V64.DE": 2,
-        "3VU.DE": 1,
-        "3ZU0.DE": 1,
-        "42Z.DE": 1,
-        "43D.DE": 1,
-        "45C.DE": 1,
-        "45E.DE": 1,
-        "472.DE": 1,
-        "48CA.DE": 1,
-        "48D.DE": 1,
         "48Z.DE": 2,
-        "49G.DE": 1,
         "49V.DE": 2,
-        "4BE.DE": 1,
-        "4BW.DE": 1,
         "4I1.DE": 2,
-        "4J2.DE": 1,
-        "4KB.DE": 1,
-        "4LT1.DE": 1,
         "4PG.DE": 2,
-        "4PN.DE": 1,
         "4S0.DE": 2,
-        "4T0.DE": 1,
-        "4VK.DE": 1,
-        "4XY.DE": 1,
-        "526.DE": 1,
-        "56S1.DE": 1,
-        "58H.DE": 1,
-        "5AP.DE": 1,
-        "5B9.DE": 1,
-        "5PT.DE": 1,
-        "5VA.DE": 1,
-        "60A.DE": 1,
         "639.DE": 2,
-        "64B.DE": 1,
-        "68S.DE": 1,
         "690D.DE": 2,
-        "6B0.DE": 1,
-        "6DA.DE": 1,
-        "6F1.DE": 1,
-        "6IC.DE": 1,
-        "6IV.DE": 1,
-        "6MK.DE": 1,
-        "6PU.DE": 1,
-        "6RJ0.DE": 1,
         "6RV.DE": 2,
-        "6V5.DE": 1,
-        "6VO.DE": 1,
         "6Z1.DE": 2,
-        "71Y.DE": 1,
-        "77F.DE": 1,
-        "788.DE": 1,
-        "7A6.DE": 1,
-        "7B0.DE": 1,
-        "7DB.DE": 1,
-        "7DG.DE": 1,
         "7DZ.DE": 1,
         "7FP.DE": 1,
         "7HP.DE": 2,
@@ -8730,78 +8091,18 @@
         "STD.DE": 1,
         "SWG.DE": 1,
         "SY1.DE": 1,
-        "SYK.DE": 1,
-        "VNX.DE": 0,
-        "VODI.DE": 0,
-        "VOS.DE": 0,
-        "VOW.DE": 0,
-        "VS1.DE": 0,
-        "VS3.DE": 0,
-        "VUL.DE": 0,
-        "VVD.DE": 0,
-        "VVU.DE": 0,
-        "VWSB.DE": 0,
-        "VX1.DE": 0,
-        "W7D.DE": 0,
-        "WA3.DE": 0,
-        "WAC.DE": 0,
-        "WAF.DE": 0,
-        "WAZ.DE": 0,
-        "WB2.DE": 0,
-        "WCH.DE": 0,
-        "WDC.DE": 0,
-        "WDH1.DE": 0,
-        "WDP.DE": 0,
-        "WEA.DE": 0,
-        "WF5A.DE": 0,
-        "WGSA.DE": 0,
-        "WIB.DE": 0,
-        "WIC.DE": 0,
-        "WJ4.DE": 0,
-        "WL9.DE": 0,
-        "WM1.DE": 0,
-        "WMB.DE": 0,
-        "WMT.DE": 0,
-        "WOSB.DE": 0,
-        "WP7.DE": 0,
-        "WTY.DE": 0,
-        "WUW.DE": 0,
-        "WYR.DE": 0,
-        "X06.DE": 0,
-        "X68.DE": 0,
-        "XCA.DE": 0,
-        "XD4.DE": 0,
-        "XPH.DE": 0,
-        "XS4.DE": 0,
-        "XTY.DE": 0,
-        "XUP.DE": 0,
-        "XXA1.DE": 0,
-        "XY6.DE": 0,
-        "YCP.DE": 0,
-        "YDO1.DE": 0,
-        "YDX.DE": 0,
-        "YL8.DE": 0,
-        "YSN.DE": 0,
-        "Z0Y.DE": 0,
-        "Z5O.DE": 0,
-        "Z98.DE": 0,
-        "ZAL.DE": 0,
-        "ZOE.DE": 0,
-        "ZS3.DE": 0,
-        "ZT1A.DE": 0,
-        "ZT8.DE": 0,
-        "ZX6.DE": 0
+        "SYK.DE": 1
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T03:52:01+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T04:52:23+01:00",
       "label": "Deutsche B\u00f6rse Xetra",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 396,
+      "remaining_symbols": 196,
       "requested_this_run": 200,
-      "result_rows": 729,
-      "returned_this_run": 199,
-      "started_at": "2026-09-25T03:52:01+01:00",
+      "result_rows": 929,
+      "returned_this_run": 200,
+      "started_at": "2026-09-25T04:52:23+01:00",
       "status": "partial",
       "universe_symbols": 1396
     }
@@ -8810,5 +8111,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-09-24T23:01:31+01:00",
   "schema_version": 1,
-  "updated_at": "2026-09-25T04:00:14+01:00"
+  "updated_at": "2026-09-25T05:00:59+01:00"
 }
