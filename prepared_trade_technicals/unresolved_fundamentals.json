@@ -16,16 +16,16 @@
       "symbols": []
     },
     "euronext_paris": {
-      "count": 1,
+      "count": 0,
       "label": "Euronext Paris",
-      "symbols": [
-        "ALDAT.PA"
-      ]
+      "symbols": []
     },
     "gettex": {
-      "count": 0,
+      "count": 1,
       "label": "Gettex",
-      "symbols": []
+      "symbols": [
+        "LSR.MU"
+      ]
     },
     "lse": {
       "count": 16,
@@ -81,11 +81,9 @@
       ]
     },
     "otc": {
-      "count": 1,
+      "count": 0,
       "label": "OTC Markets",
-      "symbols": [
-        "JAAHF"
-      ]
+      "symbols": []
     },
     "six": {
       "count": 72,
@@ -270,8 +268,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-25T08:21:50+01:00",
+  "recorded_at": "2026-09-25T10:21:36+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-25T07:30:30+01:00",
-  "total_unresolved": 186
+  "source_fundamentals_updated_at": "2026-09-25T09:27:02+01:00",
+  "total_unresolved": 185
 }
