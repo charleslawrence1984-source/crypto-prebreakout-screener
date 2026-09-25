@@ -1,11 +1,24 @@
 {
   "exchanges": {
+    "gettex": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Gettex",
+      "new_count": 3,
+      "new_symbols": [
+        "A428R1.MU",
+        "A42CJA.MU",
+        "H4S.MU"
+      ]
+    },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
       "label": "London Stock Exchange",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "1947.L"
+      ]
     },
     "lse_aim": {
       "changed_count": 0,
@@ -18,8 +31,10 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "Bolsa de Madrid",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "S1013.MC"
+      ]
     },
     "six": {
       "changed_count": 0,
@@ -29,6 +44,6 @@
       "new_symbols": []
     }
   },
-  "generated_at": "2026-09-25T05:25:43+01:00",
+  "generated_at": "2026-09-25T07:30:30+01:00",
   "rulebook_build": "2026.09.18.12"
 }
