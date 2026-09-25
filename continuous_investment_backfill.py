@@ -1,4 +1,4 @@
-"""Bounded consecutive missing-only batches; checkpoint before deciding to continue."""
+"""Gentle missing-only Investment backfill; checkpoint every hourly batch."""
 import ast
 import json
 import subprocess
@@ -108,15 +108,16 @@ def main():
     git("config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com")
     started = time.monotonic()
     last_code = 0
-    for batch in range(1, 13):
+    max_batches = 1
+    for batch in range(1, max_batches + 1):
         # Leave time for the next bounded batch and a final checkpoint.
         if time.monotonic() - started > 270 * 60:
             break
         git("pull", "--rebase", "origin", "main")
         before = snapshot()
-        print(f"Starting consecutive Investment batch {batch}/12", flush=True)
+        print(f"Starting Investment batch {batch}/{max_batches}", flush=True)
         command = [sys.executable, "scheduled_investment_scan.py", "--exchange", "all",
-                   "--max-symbols-per-exchange", "200", "--min-market-cap-bn", "0.5",
+                   "--max-symbols-per-exchange", "75", "--min-market-cap-bn", "0.5",
                    "--workers", "2", "--gap-fill", "--closed-markets-only", "--resume"]
         try:
             last_code = subprocess.run(command, timeout=20 * 60).returncode
@@ -138,8 +139,8 @@ def main():
                     flush=True,
                 )
             break
-        if batch < 12:
-            time.sleep(30)
+        if batch < max_batches:
+            time.sleep(60)
 
     # If the bounded batch allowance ends while only expected provider/data gaps
     # remain, preserve the checkpoint and report a healthy scheduled run.
