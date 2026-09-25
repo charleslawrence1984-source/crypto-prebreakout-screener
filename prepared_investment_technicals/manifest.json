@@ -575,8 +575,8 @@
     "lse": {
       "coverage_symbols": 100,
       "dispatch_counts": {
-        "AC8.L": 16,
-        "BVS.L": 16
+        "AC8.L": 17,
+        "BVS.L": 17
       },
       "eligible_symbols": 102,
       "errors": [
@@ -590,8 +590,8 @@
         }
       ],
       "remaining_symbols": 2,
-      "requested_this_run": 43,
-      "returned_this_run": 41,
+      "requested_this_run": 2,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-25T22:53:49+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
@@ -1033,21 +1033,33 @@
     "vienna": {
       "coverage_symbols": 97,
       "dispatch_counts": {
-        "ACN.VI": 1,
-        "CATL.VI": 1,
-        "IBKR.VI": 1,
-        "ODFL.VI": 1
+        "ACN.VI": 2,
+        "CATL.VI": 2,
+        "IBKR.VI": 2,
+        "ODFL.VI": 2
       },
       "eligible_symbols": 101,
       "errors": [
+        {
+          "error": "1y: 8 rows, insufficient usable history/indicators; 2y: 8 rows, insufficient usable history/indicators",
+          "symbol": "ACN.VI"
+        },
+        {
+          "error": "1y: 8 rows, insufficient usable history/indicators; 2y: 8 rows, insufficient usable history/indicators",
+          "symbol": "CATL.VI"
+        },
+        {
+          "error": "1y: 11 rows, insufficient usable history/indicators; 2y: 11 rows, insufficient usable history/indicators",
+          "symbol": "IBKR.VI"
+        },
         {
           "error": "1y: 11 rows, insufficient usable history/indicators; 2y: 11 rows, insufficient usable history/indicators",
           "symbol": "ODFL.VI"
         }
       ],
       "remaining_symbols": 4,
-      "requested_this_run": 50,
-      "returned_this_run": 49,
+      "requested_this_run": 4,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-25T22:54:24+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
@@ -1283,5 +1295,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-25T21:55:34.669502+00:00"
+  "updated_at": "2026-09-25T22:27:16.481820+00:00"
 }
