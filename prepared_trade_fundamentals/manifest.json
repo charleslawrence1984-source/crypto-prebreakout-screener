@@ -3,7 +3,7 @@
     "euronext_amsterdam": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-09-25T01:32:32+01:00",
+      "completed_at": "2026-09-25T03:23:42+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 102,
       "fresh_coverage_pct": 100.0,
@@ -20,7 +20,7 @@
     "euronext_brussels": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-09-25T01:32:32+01:00",
+      "completed_at": "2026-09-25T03:23:41+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 109,
       "fresh_coverage_pct": 100.0,
@@ -37,7 +37,7 @@
     "euronext_lisbon": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-09-25T01:32:33+01:00",
+      "completed_at": "2026-09-25T03:23:42+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 33,
       "fresh_coverage_pct": 100.0,
@@ -54,7 +54,7 @@
     "euronext_paris": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-09-25T01:32:32+01:00",
+      "completed_at": "2026-09-25T03:23:41+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 594,
       "fresh_coverage_pct": 100.0,
@@ -71,7 +71,7 @@
     "gettex": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-09-25T01:32:31+01:00",
+      "completed_at": "2026-09-25T03:23:40+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 7596,
       "fresh_coverage_pct": 100.0,
@@ -88,7 +88,7 @@
     "lse": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-25T01:32:30+01:00",
+      "completed_at": "2026-09-25T03:23:40+01:00",
       "coverage_pct": 97.2,
       "coverage_symbols": 556,
       "fresh_coverage_pct": 0.0,
@@ -98,14 +98,14 @@
       "remaining_symbols": 16,
       "requested_this_run": 16,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-25T01:32:30+01:00",
+      "started_at": "2026-09-25T03:23:39+01:00",
       "status": "partial",
       "universe_symbols": 572
     },
     "lse_aim": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-25T01:32:31+01:00",
+      "completed_at": "2026-09-25T03:23:41+01:00",
       "coverage_pct": 99.8,
       "coverage_symbols": 520,
       "fresh_coverage_pct": 0.0,
@@ -115,14 +115,14 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-25T01:32:31+01:00",
+      "started_at": "2026-09-25T03:23:40+01:00",
       "status": "partial",
       "universe_symbols": 521
     },
     "madrid": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-25T01:32:32+01:00",
+      "completed_at": "2026-09-25T03:23:41+01:00",
       "coverage_pct": 99.7,
       "coverage_symbols": 296,
       "fresh_coverage_pct": 0.0,
@@ -132,7 +132,7 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-25T01:32:32+01:00",
+      "started_at": "2026-09-25T03:23:41+01:00",
       "status": "partial",
       "universe_symbols": 297
     },
@@ -190,7 +190,7 @@
     "six": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-09-25T01:32:32+01:00",
+      "completed_at": "2026-09-25T03:23:41+01:00",
       "coverage_pct": 80.6,
       "coverage_symbols": 307,
       "fresh_coverage_pct": 0.0,
@@ -200,7 +200,7 @@
       "remaining_symbols": 74,
       "requested_this_run": 74,
       "rulebook_build": "2026.09.18.12",
-      "started_at": "2026-09-25T01:32:32+01:00",
+      "started_at": "2026-09-25T03:23:41+01:00",
       "status": "partial",
       "universe_symbols": 381
     },
@@ -224,7 +224,7 @@
     "vienna": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-09-25T01:32:32+01:00",
+      "completed_at": "2026-09-25T03:23:42+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 1068,
       "fresh_coverage_pct": 100.0,
@@ -241,7 +241,7 @@
     "xetra": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-09-25T01:32:31+01:00",
+      "completed_at": "2026-09-25T03:23:40+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 1396,
       "fresh_coverage_pct": 100.0,
@@ -259,5 +259,5 @@
   "last_completed_exchange": "madrid",
   "rulebook_build": "2026.09.18.12",
   "schema_version": 1,
-  "updated_at": "2026-09-25T01:32:33+01:00"
+  "updated_at": "2026-09-25T03:23:42+01:00"
 }
