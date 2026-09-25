@@ -62,9 +62,11 @@
       ]
     },
     "nasdaq": {
-      "count": 0,
+      "count": 1,
       "label": "NASDAQ",
-      "symbols": []
+      "symbols": [
+        "ADRX"
+      ]
     },
     "nyse": {
       "count": 6,
@@ -266,8 +268,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-25T12:21:11+01:00",
+  "recorded_at": "2026-09-25T14:22:41+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-25T11:25:33+01:00",
-  "total_unresolved": 184
+  "source_fundamentals_updated_at": "2026-09-25T13:30:29+01:00",
+  "total_unresolved": 185
 }
