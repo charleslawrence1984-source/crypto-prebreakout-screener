@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 61,
-      "completed_at": "2026-09-25T09:01:12+01:00",
+      "completed_at": "2026-09-25T09:55:27+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 63,
       "diagnostics": {
@@ -221,7 +221,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 49,
-      "completed_at": "2026-09-25T09:01:12+01:00",
+      "completed_at": "2026-09-25T09:55:27+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 52,
       "diagnostics": {
@@ -402,7 +402,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 16,
-      "completed_at": "2026-09-25T09:01:12+01:00",
+      "completed_at": "2026-09-25T09:55:27+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 16,
       "diagnostics": {
@@ -484,7 +484,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 167,
-      "completed_at": "2026-09-25T08:58:11+01:00",
+      "completed_at": "2026-09-25T09:55:13+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 175,
       "diagnostics": {
@@ -1019,9 +1019,9 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T08:58:11+01:00",
-      "coverage_pct": 60.5,
-      "coverage_symbols": 2898,
+      "completed_at": "2026-09-25T09:55:13+01:00",
+      "coverage_pct": 64.7,
+      "coverage_symbols": 3098,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -1032,604 +1032,604 @@
         "requested": 200,
         "returned": 200,
         "symbol_outcomes": {
-          "MKQ.MU": {
+          "OB8.MU": {
             "status": "row"
           },
-          "MLE.MU": {
+          "OBA.MU": {
             "status": "row"
           },
-          "MLI.MU": {
+          "OBB.MU": {
             "status": "row"
           },
-          "MLP.MU": {
+          "OBCK.MU": {
             "status": "row"
           },
-          "MLU.MU": {
+          "OC9.MU": {
             "status": "row"
           },
-          "MM0.MU": {
+          "OCBA.MU": {
             "status": "row"
           },
-          "MM3.MU": {
+          "OCI1.MU": {
             "status": "row"
           },
-          "MMO.MU": {
+          "OCM.MU": {
             "status": "row"
           },
-          "MMQ0.MU": {
+          "OCN.MU": {
             "status": "row"
           },
-          "MMT.MU": {
+          "OCW.MU": {
             "status": "row"
           },
-          "MMX.MU": {
+          "OD3.MU": {
             "status": "row"
           },
-          "MMY.MU": {
+          "OD8.MU": {
             "status": "row"
           },
-          "MNGN.MU": {
+          "OEWA.MU": {
             "status": "row"
           },
-          "MNL.MU": {
+          "OFK.MU": {
             "status": "row"
           },
-          "MNV6.MU": {
+          "OG9.MU": {
             "status": "row"
           },
-          "MO7A.MU": {
+          "OGL.MU": {
             "status": "row"
           },
-          "MOB.MU": {
+          "OHB.MU": {
             "status": "row"
           },
-          "MOGB.MU": {
+          "OHP.MU": {
             "status": "row"
           },
-          "MOH.MU": {
+          "OIC.MU": {
             "status": "row"
           },
-          "MOI.MU": {
+          "OII.MU": {
             "status": "row"
           },
-          "MOS.MU": {
+          "OIX.MU": {
             "status": "row"
           },
-          "MOV.MU": {
+          "OKL.MU": {
             "status": "row"
           },
-          "MP2.MU": {
+          "OKN.MU": {
             "status": "row"
           },
-          "MPI0.MU": {
+          "OL6.MU": {
             "status": "row"
           },
-          "MPN.MU": {
+          "OL7.MU": {
             "status": "row"
           },
-          "MPW.MU": {
+          "OLD.MU": {
             "status": "row"
           },
-          "MQ2.MU": {
+          "OLN.MU": {
             "status": "row"
           },
-          "MQ7.MU": {
+          "OM0.MU": {
             "status": "row"
           },
-          "MRI.MU": {
+          "OM40.MU": {
             "status": "row"
           },
-          "MRK.MU": {
+          "OMR1.MU": {
             "status": "row"
           },
-          "MRY.MU": {
+          "OMV.MU": {
             "status": "row"
           },
-          "MS51.MU": {
+          "ON4.MU": {
             "status": "row"
           },
-          "MS6N.MU": {
+          "OORD.MU": {
             "status": "row"
           },
-          "MS8.MU": {
+          "OPA1.MU": {
             "status": "row"
           },
-          "MSF.MU": {
+          "OPC.MU": {
             "status": "row"
           },
-          "MSI.MU": {
+          "OR8.MU": {
             "status": "row"
           },
-          "MSN.MU": {
+          "ORC.MU": {
             "status": "row"
           },
-          "MSRB.MU": {
+          "ORW.MU": {
             "status": "row"
           },
-          "MT0.MU": {
+          "OS2.MU": {
             "status": "row"
           },
-          "MTA.MU": {
+          "OS70.MU": {
             "status": "row"
           },
-          "MTE.MU": {
+          "OSG.MU": {
             "status": "row"
           },
-          "MTLA.MU": {
+          "OSOB.MU": {
             "status": "row"
           },
-          "MTO.MU": {
+          "OTP.MU": {
             "status": "row"
           },
-          "MTT.MU": {
+          "OTX.MU": {
             "status": "row"
           },
-          "MTW.MU": {
+          "OUTA.MU": {
             "status": "row"
           },
-          "MTX.MU": {
+          "OUW0.MU": {
             "status": "row"
           },
-          "MTZ.MU": {
+          "OVI.MU": {
             "status": "row"
           },
-          "MUB.MU": {
+          "OWQ.MU": {
             "status": "row"
           },
-          "MUD.MU": {
+          "OWX.MU": {
             "status": "row"
           },
-          "MUF.MU": {
+          "OX3.MU": {
             "status": "row"
           },
-          "MUG.MU": {
+          "OXOA.MU": {
             "status": "row"
           },
-          "MUM.MU": {
+          "OYC.MU": {
             "status": "row"
           },
-          "MUV2.MU": {
+          "OZTA.MU": {
             "status": "row"
           },
-          "MUX.MU": {
+          "P1I.MU": {
             "status": "row"
           },
-          "MV3.MU": {
+          "P22.MU": {
             "status": "row"
           },
-          "MV91.MU": {
+          "P2H.MU": {
             "status": "row"
           },
-          "MVV1.MU": {
+          "P2U.MU": {
             "status": "row"
           },
-          "MW1A.MU": {
+          "P4Q.MU": {
             "status": "row"
           },
-          "MWI.MU": {
+          "P55.MU": {
             "status": "row"
           },
-          "MWK.MU": {
+          "P7S.MU": {
             "status": "row"
           },
-          "MWZ.MU": {
+          "P8S0.MU": {
             "status": "row"
           },
-          "MX5.MU": {
+          "PA2.MU": {
             "status": "row"
           },
-          "MX6A.MU": {
+          "PA9.MU": {
             "status": "row"
           },
-          "MX7A.MU": {
+          "PAR.MU": {
             "status": "row"
           },
-          "MY4.MU": {
+          "PAT.MU": {
             "status": "row"
           },
-          "MYM.MU": {
+          "PB8.MU": {
             "status": "row"
           },
-          "MZ4.MU": {
+          "PBE.MU": {
             "status": "row"
           },
-          "MZ8.MU": {
+          "PBW.MU": {
             "status": "row"
           },
-          "MZA.MU": {
+          "PC6.MU": {
             "status": "row"
           },
-          "N0S.MU": {
+          "PCE1.MU": {
             "status": "row"
           },
-          "N0XA.MU": {
+          "PCU.MU": {
             "status": "row"
           },
-          "N14.MU": {
+          "PCX.MU": {
             "status": "row"
           },
-          "N1M.MU": {
+          "PCZ.MU": {
             "status": "row"
           },
-          "N2E0.MU": {
+          "PD9.MU": {
             "status": "row"
           },
-          "N2S.MU": {
+          "PE1.MU": {
             "status": "row"
           },
-          "N33.MU": {
+          "PE9.MU": {
             "status": "row"
           },
-          "N3I.MU": {
+          "PEA.MU": {
             "status": "row"
           },
-          "N3Y.MU": {
+          "PEKB.MU": {
             "status": "row"
           },
-          "N4W1.MU": {
+          "PEN.MU": {
             "status": "row"
           },
-          "N5G.MU": {
+          "PEO.MU": {
             "status": "row"
           },
-          "N6B.MU": {
+          "PEP.MU": {
             "status": "row"
           },
-          "N7I.MU": {
+          "PER.MU": {
             "status": "row"
           },
-          "N7T.MU": {
+          "PES.MU": {
             "status": "row"
           },
-          "N9J.MU": {
+          "PFE.MU": {
             "status": "row"
           },
-          "N9Q.MU": {
+          "PFI.MU": {
             "status": "row"
           },
-          "N9U.MU": {
+          "PFQ.MU": {
             "status": "row"
           },
-          "N9Z1.MU": {
+          "PFSE.MU": {
             "status": "row"
           },
-          "NA9.MU": {
+          "PFV.MU": {
             "status": "row"
           },
-          "NAGF.MU": {
+          "PG4.MU": {
             "status": "row"
           },
-          "NAL.MU": {
+          "PGB1.MU": {
             "status": "row"
           },
-          "NAQ.MU": {
+          "PGJ.MU": {
             "status": "row"
           },
-          "NB2.MU": {
+          "PGR.MU": {
             "status": "row"
           },
-          "NB3.MU": {
+          "PGV.MU": {
             "status": "row"
           },
-          "NB5.MU": {
+          "PH4.MU": {
             "status": "row"
           },
-          "NBC.MU": {
+          "PH8.MU": {
             "status": "row"
           },
-          "NBF.MU": {
+          "PHBN.MU": {
             "status": "row"
           },
-          "NBG6.MU": {
+          "PHGN.MU": {
             "status": "row"
           },
-          "NBI1.MU": {
+          "PHH2.MU": {
             "status": "row"
           },
-          "NC0.MU": {
+          "PHI1.MU": {
             "status": "row"
           },
-          "NC0B.MU": {
+          "PHM7.MU": {
             "status": "row"
           },
-          "NCB.MU": {
+          "PI3.MU": {
             "status": "row"
           },
-          "NCGB.MU": {
+          "PI6.MU": {
             "status": "row"
           },
-          "NCH2.MU": {
+          "PI7.MU": {
             "status": "row"
           },
-          "NCL.MU": {
+          "PIG.MU": {
             "status": "row"
           },
-          "NCO.MU": {
+          "PJM.MU": {
             "status": "row"
           },
-          "NCR1.MU": {
+          "PJXC.MU": {
             "status": "row"
           },
-          "NCYD.MU": {
+          "PK5.MU": {
             "status": "row"
           },
-          "ND1.MU": {
+          "PKA.MU": {
             "status": "row"
           },
-          "ND3.MU": {
+          "PKE.MU": {
             "status": "row"
           },
-          "NDA.MU": {
+          "PKF1.MU": {
             "status": "row"
           },
-          "NDH1.MU": {
+          "PKN.MU": {
             "status": "row"
           },
-          "NDX1.MU": {
+          "PKY1.MU": {
             "status": "row"
           },
-          "NE0.MU": {
+          "PL6.MU": {
             "status": "row"
           },
-          "NE3.MU": {
+          "PL8.MU": {
             "status": "row"
           },
-          "NE9.MU": {
+          "PLL.MU": {
             "status": "row"
           },
-          "NEC1.MU": {
+          "PLQ.MU": {
             "status": "row"
           },
-          "NEF.MU": {
+          "PLR.MU": {
             "status": "row"
           },
-          "NEM.MU": {
+          "PMC.MU": {
             "status": "row"
           },
-          "NEN.MU": {
+          "PMRA.MU": {
             "status": "row"
           },
-          "NESR.MU": {
+          "PMTA.MU": {
             "status": "row"
           },
-          "NF2.MU": {
+          "PND.MU": {
             "status": "row"
           },
-          "NFC.MU": {
+          "PNE3.MU": {
             "status": "row"
           },
-          "NFG.MU": {
+          "PNP.MU": {
             "status": "row"
           },
-          "NG9.MU": {
+          "PNS.MU": {
             "status": "row"
           },
-          "NGI.MU": {
+          "PNT.MU": {
             "status": "row"
           },
-          "NGJ.MU": {
+          "PNU.MU": {
             "status": "row"
           },
-          "NGR.MU": {
+          "PO0.MU": {
             "status": "row"
           },
-          "NHK.MU": {
+          "POJN.MU": {
             "status": "row"
           },
-          "NI7.MU": {
+          "POX.MU": {
             "status": "row"
           },
-          "NI9.MU": {
+          "PP1.MU": {
             "status": "row"
           },
-          "NIB.MU": {
+          "PP4A.MU": {
             "status": "row"
           },
-          "NISA.MU": {
+          "PP51.MU": {
             "status": "row"
           },
-          "NJ1.MU": {
+          "PP9.MU": {
             "status": "row"
           },
-          "NJB.MU": {
+          "PPB.MU": {
             "status": "row"
           },
-          "NK1A.MU": {
+          "PPQ.MU": {
             "status": "row"
           },
-          "NKB2.MU": {
+          "PPX.MU": {
             "status": "row"
           },
-          "NKC.MU": {
+          "PQ2.MU": {
             "status": "row"
           },
-          "NKE.MU": {
+          "PQ51.MU": {
             "status": "row"
           },
-          "NKN.MU": {
+          "PQ9.MU": {
             "status": "row"
           },
-          "NKT.MU": {
+          "PQN.MU": {
             "status": "row"
           },
-          "NKX.MU": {
+          "PQQ0.MU": {
             "status": "row"
           },
-          "NKZ0.MU": {
+          "PR4.MU": {
             "status": "row"
           },
-          "NL0.MU": {
+          "PRG.MU": {
             "status": "row"
           },
-          "NMM.MU": {
+          "PRHA.MU": {
             "status": "row"
           },
-          "NNA.MU": {
+          "PRU.MU": {
             "status": "row"
           },
-          "NNFN.MU": {
+          "PRZ.MU": {
             "status": "row"
           },
-          "NNGF.MU": {
+          "PS8.MU": {
             "status": "row"
           },
-          "NNW.MU": {
+          "PS9A.MU": {
             "status": "row"
           },
-          "NOA3.MU": {
+          "PSAN.MU": {
             "status": "row"
           },
-          "NOEJ.MU": {
+          "PSE.MU": {
             "status": "row"
           },
-          "NOH1.MU": {
+          "PSM.MU": {
             "status": "row"
           },
-          "NP9.MU": {
+          "PSRA.MU": {
             "status": "row"
           },
-          "NPS.MU": {
+          "PTQ.MU": {
             "status": "row"
           },
-          "NPW1.MU": {
+          "PTX.MU": {
             "status": "row"
           },
-          "NPX.MU": {
+          "PU4.MU": {
             "status": "row"
           },
-          "NQG.MU": {
+          "PU7.MU": {
             "status": "row"
           },
-          "NQL1.MU": {
+          "PU8.MU": {
             "status": "row"
           },
-          "NR7.MU": {
+          "PUM.MU": {
             "status": "row"
           },
-          "NRA.MU": {
+          "PUP.MU": {
             "status": "row"
           },
-          "NRN.MU": {
+          "PUR.MU": {
             "status": "row"
           },
-          "NRSA.MU": {
+          "PUWA.MU": {
             "status": "row"
           },
-          "NS1.MU": {
+          "PV6.MU": {
             "status": "row"
           },
-          "NS7.MU": {
+          "PVH.MU": {
             "status": "row"
           },
-          "NSE.MU": {
+          "PVJA.MU": {
             "status": "row"
           },
-          "NSK.MU": {
+          "PVQ.MU": {
             "status": "row"
           },
-          "NTA.MU": {
+          "PW9.MU": {
             "status": "row"
           },
-          "NTN.MU": {
+          "PWC.MU": {
             "status": "row"
           },
-          "NTO.MU": {
+          "PXI.MU": {
             "status": "row"
           },
-          "NTT.MU": {
+          "PXK.MU": {
             "status": "row"
           },
-          "NUO.MU": {
+          "PY3.MU": {
             "status": "row"
           },
-          "NVD.MU": {
+          "PY9.MU": {
             "status": "row"
           },
-          "NVJP.MU": {
+          "PYA.MU": {
             "status": "row"
           },
-          "NVV1.MU": {
+          "PYXB.MU": {
             "status": "row"
           },
-          "NW0.MU": {
+          "PZE.MU": {
             "status": "row"
           },
-          "NW7.MU": {
+          "PZX.MU": {
             "status": "row"
           },
-          "NWC.MU": {
+          "Q1D.MU": {
             "status": "row"
           },
-          "NWDA.MU": {
+          "Q23.MU": {
             "status": "row"
           },
-          "NWK.MU": {
+          "Q64.MU": {
             "status": "row"
           },
-          "NWT.MU": {
+          "QA4A.MU": {
             "status": "row"
           },
-          "NWZA.MU": {
+          "QAN.MU": {
             "status": "row"
           },
-          "NXG.MU": {
+          "QC9.MU": {
             "status": "row"
           },
-          "NXS.MU": {
+          "QCG.MU": {
             "status": "row"
           },
-          "NXZ.MU": {
+          "QCI.MU": {
             "status": "row"
           },
-          "NY41.MU": {
+          "QDI.MU": {
             "status": "row"
           },
-          "NY7.MU": {
+          "QEN.MU": {
             "status": "row"
           },
-          "NYKA.MU": {
+          "QGJ.MU": {
             "status": "row"
           },
-          "NYT.MU": {
+          "QHH.MU": {
             "status": "row"
           },
-          "NZM2.MU": {
+          "QI7.MU": {
             "status": "row"
           },
-          "NZR.MU": {
+          "QIA.MU": {
             "status": "row"
           },
-          "NZT.MU": {
+          "QJQ.MU": {
             "status": "row"
           },
-          "O15.MU": {
+          "QL1A.MU": {
             "status": "row"
           },
-          "O3I.MU": {
+          "QMC.MU": {
             "status": "row"
           },
-          "O3P.MU": {
+          "QN0.MU": {
             "status": "row"
           },
-          "O5F.MU": {
+          "QNT.MU": {
             "status": "row"
           },
-          "O5L.MU": {
+          "QO1.MU": {
             "status": "row"
           },
-          "O5Q.MU": {
+          "QOL.MU": {
             "status": "row"
           },
-          "O64.MU": {
+          "QPA1.MU": {
             "status": "row"
           },
-          "O6O.MU": {
+          "QRL.MU": {
             "status": "row"
           },
-          "O7S.MU": {
+          "QS2A.MU": {
             "status": "row"
           },
-          "OA2.MU": {
+          "QS51.MU": {
             "status": "row"
           }
         }
@@ -2360,258 +2360,58 @@
         "O4D.MU": 11,
         "O4H.MU": 11,
         "O7F.MU": 11,
-        "OB8.MU": 0,
-        "OBA.MU": 0,
-        "OBB.MU": 0,
-        "OBCK.MU": 0,
-        "OC9.MU": 0,
-        "OCBA.MU": 0,
-        "OCI1.MU": 0,
         "OCJ.MU": 1,
-        "OCM.MU": 0,
-        "OCN.MU": 0,
         "OCT.MU": 11,
-        "OCW.MU": 0,
-        "OD3.MU": 0,
-        "OD8.MU": 0,
         "OEA1.MU": 1,
-        "OEWA.MU": 0,
         "OEX.MU": 11,
-        "OFK.MU": 0,
         "OG5.MU": 11,
-        "OG9.MU": 0,
-        "OGL.MU": 0,
-        "OHB.MU": 0,
         "OHCB.MU": 1,
-        "OHP.MU": 0,
         "OHZ.MU": 11,
-        "OIC.MU": 0,
-        "OII.MU": 0,
-        "OIX.MU": 0,
         "OJI.MU": 11,
         "OK3.MU": 11,
         "OKI.MU": 11,
-        "OKL.MU": 0,
-        "OKN.MU": 0,
-        "OL6.MU": 0,
-        "OL7.MU": 0,
-        "OLD.MU": 0,
         "OLL.MU": 1,
-        "OLN.MU": 0,
-        "OM0.MU": 0,
-        "OM40.MU": 0,
-        "OMR1.MU": 0,
         "OMS1.MU": 11,
-        "OMV.MU": 0,
         "ON1.MU": 11,
-        "ON4.MU": 0,
         "ONE.MU": 11,
-        "OORD.MU": 0,
-        "OPA1.MU": 0,
-        "OPC.MU": 0,
-        "OR8.MU": 0,
-        "ORC.MU": 0,
         "ORJ.MU": 1,
-        "ORW.MU": 0,
         "OS1.MU": 1,
-        "OS2.MU": 0,
-        "OS70.MU": 0,
         "OSA.MU": 11,
-        "OSG.MU": 0,
         "OSK.MU": 1,
-        "OSOB.MU": 0,
         "OT4.MU": 11,
         "OTK.MU": 11,
-        "OTP.MU": 0,
-        "OTX.MU": 0,
-        "OUTA.MU": 0,
-        "OUW0.MU": 0,
-        "OVI.MU": 0,
-        "OWQ.MU": 0,
-        "OWX.MU": 0,
-        "OX3.MU": 0,
-        "OXOA.MU": 0,
-        "OYC.MU": 0,
-        "OZTA.MU": 0,
         "P04.MU": 11,
-        "P1I.MU": 0,
-        "P22.MU": 0,
-        "P2H.MU": 0,
-        "P2U.MU": 0,
         "P4L.MU": 11,
-        "P4Q.MU": 0,
-        "P55.MU": 0,
-        "P7S.MU": 0,
         "P8Q.MU": 11,
-        "P8S0.MU": 0,
-        "PA2.MU": 0,
-        "PA9.MU": 0,
-        "PAR.MU": 0,
-        "PAT.MU": 0,
-        "PB8.MU": 0,
-        "PBE.MU": 0,
-        "PBW.MU": 0,
-        "PC6.MU": 0,
-        "PCE1.MU": 0,
         "PCG.MU": 11,
-        "PCU.MU": 0,
-        "PCX.MU": 0,
-        "PCZ.MU": 0,
         "PD1A.MU": 11,
-        "PD9.MU": 0,
-        "PE1.MU": 0,
         "PE2.MU": 11,
-        "PE9.MU": 0,
-        "PEA.MU": 0,
-        "PEKB.MU": 0,
-        "PEN.MU": 0,
-        "PEO.MU": 0,
-        "PEP.MU": 0,
-        "PER.MU": 0,
-        "PES.MU": 0,
-        "PFE.MU": 0,
-        "PFI.MU": 0,
-        "PFQ.MU": 0,
-        "PFSE.MU": 0,
-        "PFV.MU": 0,
         "PFZ0.MU": 11,
-        "PG4.MU": 0,
-        "PGB1.MU": 0,
-        "PGJ.MU": 0,
-        "PGR.MU": 0,
-        "PGV.MU": 0,
-        "PH4.MU": 0,
-        "PH8.MU": 0,
-        "PHBN.MU": 0,
-        "PHGN.MU": 0,
-        "PHH2.MU": 0,
-        "PHI1.MU": 0,
-        "PHM7.MU": 0,
-        "PI3.MU": 0,
-        "PI6.MU": 0,
-        "PI7.MU": 0,
-        "PIG.MU": 0,
         "PIV.MU": 11,
         "PJC.MU": 1,
-        "PJM.MU": 0,
-        "PJXC.MU": 0,
         "PJZ.MU": 11,
         "PK2.MU": 11,
-        "PK5.MU": 0,
-        "PKA.MU": 0,
-        "PKE.MU": 0,
-        "PKF1.MU": 0,
-        "PKN.MU": 0,
-        "PKY1.MU": 0,
-        "PL6.MU": 0,
-        "PL8.MU": 0,
-        "PLL.MU": 0,
-        "PLQ.MU": 0,
-        "PLR.MU": 0,
-        "PMC.MU": 0,
-        "PMRA.MU": 0,
-        "PMTA.MU": 0,
         "PMV.MU": 11,
-        "PND.MU": 0,
-        "PNE3.MU": 0,
-        "PNP.MU": 0,
-        "PNS.MU": 0,
-        "PNT.MU": 0,
-        "PNU.MU": 0,
-        "PO0.MU": 0,
         "PO6.MU": 11,
         "PO9.MU": 11,
-        "POJN.MU": 0,
         "POV1.MU": 11,
-        "POX.MU": 0,
-        "PP1.MU": 0,
-        "PP4A.MU": 0,
-        "PP51.MU": 0,
-        "PP9.MU": 0,
-        "PPB.MU": 0,
-        "PPQ.MU": 0,
-        "PPX.MU": 0,
-        "PQ2.MU": 0,
         "PQ3.MU": 11,
-        "PQ51.MU": 0,
-        "PQ9.MU": 0,
         "PQIA.MU": 11,
-        "PQN.MU": 0,
-        "PQQ0.MU": 0,
-        "PR4.MU": 0,
         "PRE1.MU": 11,
-        "PRG.MU": 0,
-        "PRHA.MU": 0,
-        "PRU.MU": 0,
-        "PRZ.MU": 0,
         "PS3.MU": 11,
-        "PS8.MU": 0,
-        "PS9A.MU": 0,
-        "PSAN.MU": 0,
-        "PSE.MU": 0,
-        "PSM.MU": 0,
-        "PSRA.MU": 0,
-        "PTQ.MU": 0,
-        "PTX.MU": 0,
         "PTY.MU": 11,
-        "PU4.MU": 0,
-        "PU7.MU": 0,
-        "PU8.MU": 0,
-        "PUM.MU": 0,
-        "PUP.MU": 0,
-        "PUR.MU": 0,
-        "PUWA.MU": 0,
-        "PV6.MU": 0,
-        "PVH.MU": 0,
-        "PVJA.MU": 0,
-        "PVQ.MU": 0,
         "PW2.MU": 11,
-        "PW9.MU": 0,
-        "PWC.MU": 0,
         "PWI.MU": 11,
         "PX4.MU": 11,
-        "PXI.MU": 0,
-        "PXK.MU": 0,
-        "PY3.MU": 0,
-        "PY9.MU": 0,
-        "PYA.MU": 0,
-        "PYXB.MU": 0,
-        "PZE.MU": 0,
-        "PZX.MU": 0,
-        "Q1D.MU": 0,
-        "Q23.MU": 0,
         "Q41.MU": 11,
-        "Q64.MU": 0,
-        "QA4A.MU": 0,
-        "QAN.MU": 0,
         "QBE.MU": 11,
         "QC10.MU": 11,
-        "QC9.MU": 0,
-        "QCG.MU": 0,
         "QCH.MU": 11,
-        "QCI.MU": 0,
-        "QDI.MU": 0,
-        "QEN.MU": 0,
         "QFI.MU": 1,
         "QGI.MU": 11,
-        "QGJ.MU": 0,
-        "QHH.MU": 0,
-        "QI7.MU": 0,
-        "QIA.MU": 0,
         "QJE.MU": 11,
-        "QJQ.MU": 0,
-        "QL1A.MU": 0,
-        "QMC.MU": 0,
-        "QN0.MU": 0,
-        "QNT.MU": 0,
-        "QO1.MU": 0,
-        "QOL.MU": 0,
-        "QPA1.MU": 0,
         "QPJ.MU": 11,
         "QPX.MU": 11,
-        "QRL.MU": 0,
-        "QS2A.MU": 0,
-        "QS51.MU": 0,
         "QSV.MU": 0,
         "QTL.MU": 11,
         "QTS.MU": 0,
@@ -3526,18 +3326,18 @@
         "ZY8.MU": 0,
         "ZZA.MU": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T08:56:55+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T09:53:27+01:00",
       "label": "Gettex",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 1889,
+      "remaining_symbols": 1689,
       "requested_this_run": 200,
-      "result_rows": 2898,
+      "result_rows": 3098,
       "returned_this_run": 200,
-      "started_at": "2026-09-25T08:56:55+01:00",
+      "started_at": "2026-09-25T09:53:27+01:00",
       "status": "partial",
-      "universe_symbols": 7597
+      "universe_symbols": 7598
     },
     "lse": {
       "analysed_limit": 0,
@@ -3589,20 +3389,20 @@
       },
       "eligible_symbols": 280,
       "error": "RuntimeError: scan returned no results: {'requested': 10, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 10, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': []}",
-      "failed_at": "2026-09-25T08:56:54+01:00",
+      "failed_at": "2026-09-25T09:53:26+01:00",
       "gap_fill_dispatch_counts": {
-        "AV-.L": 65,
-        "BA-.L": 65,
-        "BP-.L": 65,
-        "JD-.L": 65,
-        "NG-.L": 65,
-        "QQ-.L": 65,
-        "RR-.L": 65,
-        "SN-.L": 65,
-        "TW-.L": 65,
-        "UU-.L": 65
+        "AV-.L": 66,
+        "BA-.L": 66,
+        "BP-.L": 66,
+        "JD-.L": 66,
+        "NG-.L": 66,
+        "QQ-.L": 66,
+        "RR-.L": 66,
+        "SN-.L": 66,
+        "TW-.L": 66,
+        "UU-.L": 66
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T08:56:51+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T09:53:21+01:00",
       "label": "London Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -3611,7 +3411,7 @@
       "requested_this_run": 10,
       "result_rows": 270,
       "returned_this_run": 0,
-      "started_at": "2026-09-25T08:56:51+01:00",
+      "started_at": "2026-09-25T09:53:21+01:00",
       "status": "failed",
       "universe_symbols": 572
     },
@@ -3619,7 +3419,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-09-25T08:58:11+01:00",
+      "completed_at": "2026-09-25T09:55:13+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 22,
       "diagnostics": {
@@ -3675,11 +3475,11 @@
       },
       "eligible_symbols": 94,
       "error": "RuntimeError: scan returned no results: {'requested': 1, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 1, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': []}",
-      "failed_at": "2026-09-25T09:01:12+01:00",
+      "failed_at": "2026-09-25T09:55:27+01:00",
       "gap_fill_dispatch_counts": {
-        "SCHST.MC": 66
+        "SCHST.MC": 67
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T09:01:11+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T09:55:25+01:00",
       "label": "Bolsa de Madrid",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -3688,7 +3488,7 @@
       "requested_this_run": 1,
       "result_rows": 93,
       "returned_this_run": 0,
-      "started_at": "2026-09-25T09:01:11+01:00",
+      "started_at": "2026-09-25T09:55:25+01:00",
       "status": "failed",
       "universe_symbols": 297
     },
@@ -4448,146 +4248,90 @@
       "coverage_symbols": 286,
       "diagnostics": {
         "below_min_market_cap": 0,
-        "error_samples": [
-          "WFC-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "GME-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "OXY-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "AAPL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-          "AMAT-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while."
-        ],
+        "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
-        "price_failures": 2,
-        "rate_limit_errors": 25,
+        "price_failures": 27,
+        "rate_limit_errors": 0,
         "requested": 27,
         "symbol_outcomes": {
           "AAPL-USD.SW": {
-            "message": "AAPL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "AMAT-USD.SW": {
-            "message": "AMAT-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "AMD-USD.SW": {
             "status": "price_failure"
           },
           "BA-USD.SW": {
-            "message": "BA-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "BAC-USD.SW": {
-            "message": "BAC-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "BLK-USD.SW": {
-            "message": "BLK-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "CAT-USD.SW": {
-            "message": "CAT-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "CL-USD.SW": {
-            "message": "CL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "COIN-USD.SW": {
-            "message": "COIN-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "DB1.SW": {
-            "message": "DB1.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "DIS-USD.SW": {
-            "message": "DIS-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "GBF.SW": {
-            "message": "GBF.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "GE-USD.SW": {
-            "message": "GE-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "GME-USD.SW": {
-            "message": "GME-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "GOOGL-USD.SW": {
-            "message": "GOOGL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "GS-USD.SW": {
-            "message": "GS-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "HPQ-USD.SW": {
-            "message": "HPQ-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "INTC-USD.SW": {
-            "message": "INTC-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "JPM-USD.SW": {
-            "message": "JPM-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "MDLZ-USD.SW": {
-            "message": "MDLZ-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "MS-USD.SW": {
-            "message": "MS-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "ORCL-USD.SW": {
-            "message": "ORCL-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "OXY-USD.SW": {
-            "message": "OXY-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "TLX.SW": {
-            "message": "TLX.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "VZ-USD.SW": {
-            "message": "VZ-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "WFC-USD.SW": {
-            "message": "WFC-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.",
-            "rate_limited": true,
-            "status": "error"
+            "status": "price_failure"
           },
           "XOM-USD.SW": {
             "status": "price_failure"
@@ -4595,38 +4339,38 @@
         }
       },
       "eligible_symbols": 313,
-      "error": "RuntimeError: scan returned no results: {'requested': 27, 'rate_limit_errors': 25, 'other_errors': 0, 'price_failures': 2, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': ['WFC-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.', 'GME-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.', 'OXY-USD.SW @ price: YFRateLimitError: Too Many Requests. Rate limited. Try after a while.', 'AAPL-USD.SW @ price: YFRateLimitError: T",
-      "failed_at": "2026-09-25T09:01:11+01:00",
+      "error": "RuntimeError: scan returned no results: {'requested': 27, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 27, 'market_cap_failures': 0, 'below_min_market_cap': 0, 'error_samples': []}",
+      "failed_at": "2026-09-25T09:55:25+01:00",
       "gap_fill_dispatch_counts": {
-        "AAPL-USD.SW": 65,
-        "AMAT-USD.SW": 65,
-        "AMD-USD.SW": 12,
-        "BA-USD.SW": 65,
-        "BAC-USD.SW": 65,
-        "BLK-USD.SW": 65,
-        "CAT-USD.SW": 65,
-        "CL-USD.SW": 65,
-        "COIN-USD.SW": 65,
-        "DB1.SW": 65,
-        "DIS-USD.SW": 65,
-        "GBF.SW": 65,
-        "GE-USD.SW": 65,
-        "GME-USD.SW": 12,
-        "GOOGL-USD.SW": 65,
-        "GS-USD.SW": 65,
-        "HPQ-USD.SW": 65,
-        "INTC-USD.SW": 65,
-        "JPM-USD.SW": 65,
-        "MDLZ-USD.SW": 65,
-        "MS-USD.SW": 65,
-        "ORCL-USD.SW": 65,
-        "OXY-USD.SW": 12,
-        "TLX.SW": 65,
-        "VZ-USD.SW": 65,
-        "WFC-USD.SW": 11,
-        "XOM-USD.SW": 65
+        "AAPL-USD.SW": 66,
+        "AMAT-USD.SW": 66,
+        "AMD-USD.SW": 13,
+        "BA-USD.SW": 66,
+        "BAC-USD.SW": 66,
+        "BLK-USD.SW": 66,
+        "CAT-USD.SW": 66,
+        "CL-USD.SW": 66,
+        "COIN-USD.SW": 66,
+        "DB1.SW": 66,
+        "DIS-USD.SW": 66,
+        "GBF.SW": 66,
+        "GE-USD.SW": 66,
+        "GME-USD.SW": 13,
+        "GOOGL-USD.SW": 66,
+        "GS-USD.SW": 66,
+        "HPQ-USD.SW": 66,
+        "INTC-USD.SW": 66,
+        "JPM-USD.SW": 66,
+        "MDLZ-USD.SW": 66,
+        "MS-USD.SW": 66,
+        "ORCL-USD.SW": 66,
+        "OXY-USD.SW": 13,
+        "TLX.SW": 66,
+        "VZ-USD.SW": 66,
+        "WFC-USD.SW": 12,
+        "XOM-USD.SW": 66
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T08:58:11+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T09:55:13+01:00",
       "label": "SIX Swiss Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -4635,7 +4379,7 @@
       "requested_this_run": 27,
       "result_rows": 286,
       "returned_this_run": 0,
-      "started_at": "2026-09-25T08:58:11+01:00",
+      "started_at": "2026-09-25T09:55:13+01:00",
       "status": "failed",
       "universe_symbols": 381
     },
@@ -4714,7 +4458,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-25T09:01:12+01:00",
+      "completed_at": "2026-09-25T09:55:27+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 953,
       "diagnostics": {
@@ -4776,12 +4520,12 @@
       },
       "eligible_symbols": 1122,
       "error": "RuntimeError: scan returned no results: {'requested': 2, 'rate_limit_errors': 0, 'other_errors': 0, 'price_failures': 0, 'market_cap_failures': 0, 'below_min_market_cap': 2, 'error_samples': []}",
-      "failed_at": "2026-09-25T08:56:55+01:00",
+      "failed_at": "2026-09-25T09:53:27+01:00",
       "gap_fill_dispatch_counts": {
-        "BYW6.DE": 9,
-        "NOEJ.DE": 9
+        "BYW6.DE": 10,
+        "NOEJ.DE": 10
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T08:56:54+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-25T09:53:26+01:00",
       "label": "Deutsche B\u00f6rse Xetra",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -4790,7 +4534,7 @@
       "requested_this_run": 2,
       "result_rows": 1120,
       "returned_this_run": 0,
-      "started_at": "2026-09-25T08:56:54+01:00",
+      "started_at": "2026-09-25T09:53:26+01:00",
       "status": "failed",
       "universe_symbols": 1395
     }
@@ -4799,5 +4543,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-09-24T23:01:31+01:00",
   "schema_version": 1,
-  "updated_at": "2026-09-25T09:01:12+01:00"
+  "updated_at": "2026-09-25T09:55:27+01:00"
 }
