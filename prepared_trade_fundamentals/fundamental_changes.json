@@ -1,23 +1,5 @@
 {
   "exchanges": {
-    "euronext_paris": {
-      "changed_count": 0,
-      "changed_symbols": [],
-      "label": "Euronext Paris",
-      "new_count": 1,
-      "new_symbols": [
-        "MLSTR.PA"
-      ]
-    },
-    "gettex": {
-      "changed_count": 0,
-      "changed_symbols": [],
-      "label": "Gettex",
-      "new_count": 1,
-      "new_symbols": [
-        "LSR.MU"
-      ]
-    },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
@@ -47,6 +29,6 @@
       "new_symbols": []
     }
   },
-  "generated_at": "2026-09-25T11:25:33+01:00",
+  "generated_at": "2026-09-25T13:30:29+01:00",
   "rulebook_build": "2026.09.18.12"
 }
