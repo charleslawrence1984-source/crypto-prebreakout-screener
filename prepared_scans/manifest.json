@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-25T23:54:47+01:00",
+      "completed_at": "2026-09-26T00:53:23+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 63,
       "coverage_target_symbols": 63,
@@ -52,7 +52,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-25T23:54:47+01:00",
+      "completed_at": "2026-09-26T00:53:23+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 52,
       "coverage_target_symbols": 52,
@@ -100,7 +100,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 16,
-      "completed_at": "2026-09-25T23:54:47+01:00",
+      "completed_at": "2026-09-26T00:53:23+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 16,
       "coverage_target_symbols": 16,
@@ -190,7 +190,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 6,
-      "completed_at": "2026-09-25T23:54:46+01:00",
+      "completed_at": "2026-09-26T00:53:22+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 175,
       "coverage_target_symbols": 175,
@@ -250,7 +250,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 604,
-      "completed_at": "2026-09-25T23:54:03+01:00",
+      "completed_at": "2026-09-26T00:52:38+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 4217,
       "coverage_target_symbols": 4217,
@@ -2799,9 +2799,9 @@
         },
         "0AK.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "0C2.MU": {
           "attempts": 13,
@@ -2871,9 +2871,9 @@
         },
         "0Q2.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "0QN.MU": {
           "attempts": 13,
@@ -2889,9 +2889,9 @@
         },
         "0S1.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "0T5.MU": {
           "attempts": 13,
@@ -3039,9 +3039,9 @@
         },
         "1U4.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "1UY.MU": {
           "attempts": 13,
@@ -3081,9 +3081,9 @@
         },
         "2CF.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "2EC.MU": {
           "attempts": 13,
@@ -3165,9 +3165,9 @@
         },
         "37H.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "3AD1.MU": {
           "attempts": 13,
@@ -3213,9 +3213,9 @@
         },
         "3MI.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "3MU.MU": {
           "attempts": 13,
@@ -3303,9 +3303,9 @@
         },
         "46T.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "48T.MU": {
           "attempts": 13,
@@ -3327,9 +3327,9 @@
         },
         "4C9.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "4D7.MU": {
           "attempts": 13,
@@ -3345,9 +3345,9 @@
         },
         "4F31.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "4FB.MU": {
           "attempts": 13,
@@ -3453,9 +3453,9 @@
         },
         "5Q8.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "5TI.MU": {
           "attempts": 13,
@@ -3741,9 +3741,9 @@
         },
         "A19.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "A1C7QJ.MU": {
           "attempts": 7,
@@ -3807,9 +3807,9 @@
         },
         "AB5.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "AF72.MU": {
           "attempts": 13,
@@ -3855,9 +3855,9 @@
         },
         "ARCC.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "ASF.MU": {
           "attempts": 13,
@@ -3957,9 +3957,9 @@
         },
         "BHI.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "BI5.MU": {
           "attempts": 13,
@@ -3999,15 +3999,15 @@
         },
         "BLD.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "BM0.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "BPS.MU": {
           "attempts": 13,
@@ -4137,9 +4137,9 @@
         },
         "CJ5A.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "CLZ.MU": {
           "attempts": 13,
@@ -4155,9 +4155,9 @@
         },
         "CPK.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "CPZ1.MU": {
           "attempts": 13,
@@ -4365,9 +4365,9 @@
         },
         "EYI.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "EZ2A.MU": {
           "attempts": 13,
@@ -4413,15 +4413,15 @@
         },
         "FFC0.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "FG5.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "FG9.MU": {
           "attempts": 13,
@@ -4539,9 +4539,9 @@
         },
         "GOU.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "GRL.MU": {
           "attempts": 13,
@@ -4575,9 +4575,9 @@
         },
         "H7H.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "HA4.MU": {
           "attempts": 13,
@@ -4671,9 +4671,9 @@
         },
         "I2X2.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "I4F.MU": {
           "attempts": 13,
@@ -4701,9 +4701,9 @@
         },
         "IEA.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "IFZ0.MU": {
           "attempts": 13,
@@ -4743,9 +4743,9 @@
         },
         "IMA.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "IMW.MU": {
           "attempts": 13,
@@ -4773,9 +4773,9 @@
         },
         "IT6.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "J1F.MU": {
           "attempts": 13,
@@ -4845,15 +4845,15 @@
         },
         "KPSN.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "KUR.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "KUY.MU": {
           "attempts": 13,
@@ -4869,9 +4869,9 @@
         },
         "L53.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "LAV0.MU": {
           "attempts": 13,
@@ -4881,9 +4881,9 @@
         },
         "LC4.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "LH6.MU": {
           "attempts": 13,
@@ -4977,9 +4977,9 @@
         },
         "MG9.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "MGM.MU": {
           "attempts": 13,
@@ -4989,9 +4989,9 @@
         },
         "MHC.MU": {
           "attempts": 13,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "MIU.MU": {
           "attempts": 13,
@@ -5037,9 +5037,9 @@
         },
         "MM6A.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "MMF.MU": {
           "attempts": 12,
@@ -5253,9 +5253,9 @@
         },
         "NWG0.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "NWP.MU": {
           "attempts": 12,
@@ -5313,15 +5313,15 @@
         },
         "OG5.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "OHZ.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "OJI.MU": {
           "attempts": 12,
@@ -5331,9 +5331,9 @@
         },
         "OK3.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "OKI.MU": {
           "attempts": 12,
@@ -5343,9 +5343,9 @@
         },
         "OMS1.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "ON1.MU": {
           "attempts": 12,
@@ -5379,9 +5379,9 @@
         },
         "P04.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "P4L.MU": {
           "attempts": 12,
@@ -5391,15 +5391,15 @@
         },
         "P8Q.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "PCG.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "PD1A.MU": {
           "attempts": 12,
@@ -5433,9 +5433,9 @@
         },
         "PK2.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "PMV.MU": {
           "attempts": 12,
@@ -5535,9 +5535,9 @@
         },
         "QGI.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "QJE.MU": {
           "attempts": 12,
@@ -5637,15 +5637,15 @@
         },
         "RMZ.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "RO41.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "RSK.MU": {
           "attempts": 12,
@@ -5673,9 +5673,9 @@
         },
         "S1R.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "S3K.MU": {
           "attempts": 12,
@@ -5685,9 +5685,9 @@
         },
         "S7V.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "S8N0.MU": {
           "attempts": 12,
@@ -5775,21 +5775,21 @@
         },
         "SU4.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "SUI.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "SUK.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "SVHH.MU": {
           "attempts": 12,
@@ -5871,9 +5871,9 @@
         },
         "TKM.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "TN1.MU": {
           "attempts": 12,
@@ -5895,9 +5895,9 @@
         },
         "TOH.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "TPX.MU": {
           "attempts": 12,
@@ -5949,9 +5949,9 @@
         },
         "UG9.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "UNK.MU": {
           "attempts": 12,
@@ -6081,9 +6081,9 @@
         },
         "WML2.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "WOA.MU": {
           "attempts": 12,
@@ -6183,9 +6183,9 @@
         },
         "YRB.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "YSON.MU": {
           "attempts": 12,
@@ -6195,9 +6195,9 @@
         },
         "YTR.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         },
         "YZA0.MU": {
           "attempts": 12,
@@ -6207,9 +6207,9 @@
         },
         "ZB1.MU": {
           "attempts": 12,
-          "deferred_at": "2026-09-25T22:29:00+01:00",
-          "reason": "rate_limited",
-          "until": "2026-09-26T00:29:00+01:00"
+          "deferred_at": "2026-09-26T00:50:23+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-03T00:50:23+01:00"
         }
       },
       "provider_deferred_symbols": 570,
@@ -6226,7 +6226,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 8,
-      "completed_at": "2026-09-25T23:54:02+01:00",
+      "completed_at": "2026-09-26T00:52:37+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 280,
       "coverage_target_symbols": 280,
@@ -6292,7 +6292,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-09-25T23:54:03+01:00",
+      "completed_at": "2026-09-26T00:52:38+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 22,
       "coverage_target_symbols": 22,
@@ -6337,7 +6337,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 4,
-      "completed_at": "2026-09-25T23:54:47+01:00",
+      "completed_at": "2026-09-26T00:53:23+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 93,
       "coverage_target_symbols": 93,
@@ -6400,9 +6400,9 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 75,
-      "completed_at": "2026-09-25T23:52:33+01:00",
-      "coverage_pct": 19.9,
-      "coverage_symbols": 255,
+      "completed_at": "2026-09-26T00:51:08+01:00",
+      "coverage_pct": 25.8,
+      "coverage_symbols": 330,
       "coverage_target_symbols": 1281,
       "diagnostics": {
         "below_min_market_cap": 0,
@@ -6414,229 +6414,229 @@
         "requested": 75,
         "returned": 75,
         "symbol_outcomes": {
-          "BHRB": {
+          "CELH": {
             "status": "row"
           },
-          "BIIB": {
+          "CENT": {
             "status": "row"
           },
-          "BJRI": {
+          "CENTA": {
             "status": "row"
           },
-          "BKNG": {
+          "CENX": {
             "status": "row"
           },
-          "BKR": {
+          "CEPF": {
             "status": "row"
           },
-          "BL": {
+          "CERS": {
             "status": "row"
           },
-          "BLBD": {
+          "CERT": {
             "status": "row"
           },
-          "BLDP": {
+          "CEVA": {
             "status": "row"
           },
-          "BLFS": {
+          "CFFN": {
             "status": "row"
           },
-          "BLKB": {
+          "CG": {
             "status": "row"
           },
-          "BLLN": {
+          "CGEM": {
             "status": "row"
           },
-          "BLMN": {
+          "CGNT": {
             "status": "row"
           },
-          "BLSM": {
+          "CGNX": {
             "status": "row"
           },
-          "BLZE": {
+          "CGON": {
             "status": "row"
           },
-          "BMRN": {
+          "CHCO": {
             "status": "row"
           },
-          "BOKF": {
+          "CHDN": {
             "status": "row"
           },
-          "BPOP": {
+          "CHEF": {
             "status": "row"
           },
-          "BRAI": {
+          "CHKP": {
             "status": "row"
           },
-          "BRKR": {
+          "CHRD": {
             "status": "row"
           },
-          "BRUN": {
+          "CHRN": {
             "status": "row"
           },
-          "BRVE": {
+          "CHRW": {
             "status": "row"
           },
-          "BRZE": {
+          "CHTR": {
             "status": "row"
           },
-          "BSP": {
+          "CHYM": {
             "status": "row"
           },
-          "BSRR": {
+          "CIFR": {
             "status": "row"
           },
-          "BSVN": {
+          "CIGI": {
             "status": "row"
           },
-          "BSY": {
+          "CINF": {
             "status": "row"
           },
-          "BTBT": {
+          "CIVB": {
             "status": "row"
           },
-          "BTDR": {
+          "CLBK": {
             "status": "row"
           },
-          "BULL": {
+          "CLBT": {
             "status": "row"
           },
-          "BUSE": {
+          "CLDX": {
             "status": "row"
           },
-          "BUUU": {
+          "CLMB": {
             "status": "row"
           },
-          "BVS": {
+          "CLMT": {
             "status": "row"
           },
-          "BWB": {
+          "CLOV": {
             "status": "row"
           },
-          "BWFG": {
+          "CLSK": {
             "status": "row"
           },
-          "BWIN": {
+          "CLYM": {
             "status": "row"
           },
-          "BWMN": {
+          "CMCSA": {
             "status": "row"
           },
-          "BXBL": {
+          "CME": {
             "status": "row"
           },
-          "CAC": {
+          "CMPR": {
             "status": "row"
           },
-          "CACC": {
+          "CNL": {
             "status": "row"
           },
-          "CADL": {
+          "CNOB": {
             "status": "row"
           },
-          "CAE": {
+          "CNXC": {
             "status": "row"
           },
-          "CAI": {
+          "CNXN": {
             "status": "row"
           },
-          "CAKE": {
+          "COAG": {
             "status": "row"
           },
-          "CALM": {
+          "COCO": {
             "status": "row"
           },
-          "CAMT": {
+          "COGT": {
             "status": "row"
           },
-          "CAR": {
+          "COHU": {
             "status": "row"
           },
-          "CARE": {
+          "COIN": {
             "status": "row"
           },
-          "CARG": {
+          "COKE": {
             "status": "row"
           },
-          "CART": {
+          "COLB": {
             "status": "row"
           },
-          "CASH": {
+          "COLL": {
             "status": "row"
           },
-          "CASS": {
+          "COLM": {
             "status": "row"
           },
-          "CASY": {
+          "COO": {
             "status": "row"
           },
-          "CATY": {
+          "CORT": {
             "status": "row"
           },
-          "CBC": {
+          "CORZ": {
             "status": "row"
           },
-          "CBIO": {
+          "CPB": {
             "status": "row"
           },
-          "CBLL": {
+          "CPRT": {
             "status": "row"
           },
-          "CBNK": {
+          "CRAI": {
             "status": "row"
           },
-          "CBRS": {
+          "CRCT": {
             "status": "row"
           },
-          "CBSH": {
+          "CRDO": {
             "status": "row"
           },
-          "CCB": {
+          "CRMD": {
             "status": "row"
           },
-          "CCBG": {
+          "CRML": {
             "status": "row"
           },
-          "CCC": {
+          "CROX": {
             "status": "row"
           },
-          "CCEC": {
+          "CRSP": {
             "status": "row"
           },
-          "CCEP": {
+          "CRSR": {
             "status": "row"
           },
-          "CCNE": {
+          "CRTO": {
             "status": "row"
           },
-          "CCSI": {
+          "CRUS": {
             "status": "row"
           },
-          "CCXI": {
+          "CRVL": {
             "status": "row"
           },
-          "CD": {
+          "CRVS": {
             "status": "row"
           },
-          "CDNA": {
+          "CRWD": {
             "status": "row"
           },
-          "CDNL": {
+          "CRWV": {
             "status": "row"
           },
-          "CDNS": {
+          "CSCO": {
             "status": "row"
           },
-          "CDW": {
+          "CSGP": {
             "status": "row"
           },
-          "CECO": {
+          "CSHR": {
             "status": "row"
           },
-          "CEG": {
+          "CSIQ": {
             "status": "row"
           },
-          "CELC": {
+          "CSTL": {
             "status": "row"
           }
         }
@@ -6644,81 +6644,6 @@
       "eligible_symbols": 1288,
       "gap_fill_dispatch_counts": {
         "AGCC": 51,
-        "CELH": 0,
-        "CENT": 0,
-        "CENTA": 0,
-        "CENX": 0,
-        "CEPF": 0,
-        "CERS": 0,
-        "CERT": 0,
-        "CEVA": 0,
-        "CFFN": 0,
-        "CG": 0,
-        "CGEM": 0,
-        "CGNT": 0,
-        "CGNX": 0,
-        "CGON": 0,
-        "CHCO": 0,
-        "CHDN": 0,
-        "CHEF": 0,
-        "CHKP": 0,
-        "CHRD": 0,
-        "CHRN": 0,
-        "CHRW": 0,
-        "CHTR": 0,
-        "CHYM": 0,
-        "CIFR": 0,
-        "CIGI": 0,
-        "CINF": 0,
-        "CIVB": 0,
-        "CLBK": 0,
-        "CLBT": 0,
-        "CLDX": 0,
-        "CLMB": 0,
-        "CLMT": 0,
-        "CLOV": 0,
-        "CLSK": 0,
-        "CLYM": 0,
-        "CMCSA": 0,
-        "CME": 0,
-        "CMPR": 0,
-        "CNL": 0,
-        "CNOB": 0,
-        "CNXC": 0,
-        "CNXN": 0,
-        "COAG": 0,
-        "COCO": 0,
-        "COGT": 0,
-        "COHU": 0,
-        "COIN": 0,
-        "COKE": 0,
-        "COLB": 0,
-        "COLL": 0,
-        "COLM": 0,
-        "COO": 0,
-        "CORT": 0,
-        "CORZ": 0,
-        "CPB": 0,
-        "CPRT": 0,
-        "CRAI": 0,
-        "CRCT": 0,
-        "CRDO": 0,
-        "CRMD": 0,
-        "CRML": 0,
-        "CROX": 0,
-        "CRSP": 0,
-        "CRSR": 0,
-        "CRTO": 0,
-        "CRUS": 0,
-        "CRVL": 0,
-        "CRVS": 0,
-        "CRWD": 0,
-        "CRWV": 0,
-        "CSCO": 0,
-        "CSGP": 0,
-        "CSHR": 0,
-        "CSIQ": 0,
-        "CSTL": 0,
         "CSWC": 0,
         "CSX": 0,
         "CTBI": 0,
@@ -7677,7 +7602,7 @@
         "ZVRA": 0,
         "ZYME": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T23:51:49+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-26T00:50:23+01:00",
       "label": "NASDAQ",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -7727,11 +7652,11 @@
       },
       "provider_deferred_symbols": 7,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 1026,
+      "remaining_symbols": 951,
       "requested_this_run": 75,
-      "result_rows": 255,
+      "result_rows": 330,
       "returned_this_run": 75,
-      "started_at": "2026-09-25T23:51:49+01:00",
+      "started_at": "2026-09-26T00:50:23+01:00",
       "status": "partial",
       "universe_symbols": 3328
     },
@@ -7739,9 +7664,9 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 75,
-      "completed_at": "2026-09-25T23:53:18+01:00",
-      "coverage_pct": 18.2,
-      "coverage_symbols": 265,
+      "completed_at": "2026-09-26T00:51:53+01:00",
+      "coverage_pct": 23.4,
+      "coverage_symbols": 340,
       "coverage_target_symbols": 1455,
       "diagnostics": {
         "below_min_market_cap": 0,
@@ -7753,310 +7678,235 @@
         "requested": 75,
         "returned": 75,
         "symbol_outcomes": {
-          "BB": {
+          "BURL": {
             "status": "row"
           },
-          "BBAI": {
+          "BW": {
             "status": "row"
           },
-          "BBDC": {
+          "BWA": {
             "status": "row"
           },
-          "BBT": {
+          "BWLP": {
             "status": "row"
           },
-          "BBUC": {
+          "BWMX": {
             "status": "row"
           },
-          "BBWI": {
+          "BWXT": {
             "status": "row"
           },
-          "BBY": {
+          "BX": {
             "status": "row"
           },
-          "BC": {
+          "BXC": {
             "status": "row"
           },
-          "BCC": {
+          "BXDC": {
             "status": "row"
           },
-          "BCE": {
+          "BXMT": {
             "status": "row"
           },
-          "BCO": {
+          "BXP": {
             "status": "row"
           },
-          "BCSF": {
+          "BY": {
             "status": "row"
           },
-          "BCSS": {
+          "BYD": {
             "status": "row"
           },
-          "BDC": {
+          "BZH": {
             "status": "row"
           },
-          "BDX": {
+          "C": {
             "status": "row"
           },
-          "BE": {
+          "CAAP": {
             "status": "row"
           },
-          "BEN": {
+          "CACI": {
             "status": "row"
           },
-          "BEPC": {
+          "CAG": {
             "status": "row"
           },
-          "BETA": {
+          "CAH": {
             "status": "row"
           },
-          "BF-A": {
+          "CALX": {
             "status": "row"
           },
-          "BF-B": {
+          "CALY": {
             "status": "row"
           },
-          "BFH": {
+          "CARR": {
             "status": "row"
           },
-          "BFLY": {
+          "CAT": {
             "status": "row"
           },
-          "BFS": {
+          "CAVA": {
             "status": "row"
           },
-          "BG": {
+          "CB": {
             "status": "row"
           },
-          "BGSI": {
+          "CBL": {
             "status": "row"
           },
-          "BH": {
+          "CBRE": {
             "status": "row"
           },
-          "BH-A": {
+          "CBT": {
             "status": "row"
           },
-          "BHC": {
+          "CBU": {
             "status": "row"
           },
-          "BHE": {
+          "CBZ": {
             "status": "row"
           },
-          "BHVN": {
+          "CC": {
             "status": "row"
           },
-          "BILL": {
+          "CCI": {
             "status": "row"
           },
-          "BIO": {
+          "CCJ": {
             "status": "row"
           },
-          "BIPC": {
+          "CCK": {
             "status": "row"
           },
-          "BIRK": {
+          "CCL": {
             "status": "row"
           },
-          "BJ": {
+          "CCO": {
             "status": "row"
           },
-          "BKD": {
+          "CCS": {
             "status": "row"
           },
-          "BKE": {
+          "CDE": {
             "status": "row"
           },
-          "BKH": {
+          "CDP": {
             "status": "row"
           },
-          "BKSY": {
+          "CDRE": {
             "status": "row"
           },
-          "BKU": {
+          "CE": {
             "status": "row"
           },
-          "BKV": {
+          "CF": {
             "status": "row"
           },
-          "BLCO": {
+          "CFG": {
             "status": "row"
           },
-          "BLDR": {
+          "CFR": {
             "status": "row"
           },
-          "BLK": {
+          "CHD": {
             "status": "row"
           },
-          "BLSH": {
+          "CHE": {
             "status": "row"
           },
-          "BLX": {
+          "CHH": {
             "status": "row"
           },
-          "BMI": {
+          "CHWY": {
             "status": "row"
           },
-          "BMNR": {
+          "CI": {
             "status": "row"
           },
-          "BMO": {
+          "CIEN": {
             "status": "row"
           },
-          "BMY": {
+          "CIM": {
             "status": "row"
           },
-          "BN": {
+          "CL": {
             "status": "row"
           },
-          "BNL": {
+          "CLDT": {
             "status": "row"
           },
-          "BNS": {
+          "CLF": {
             "status": "row"
           },
-          "BNT": {
+          "CLH": {
             "status": "row"
           },
-          "BNY": {
+          "CLVT": {
             "status": "row"
           },
-          "BOBS": {
+          "CLX": {
             "status": "row"
           },
-          "BOH": {
+          "CM": {
             "status": "row"
           },
-          "BOOT": {
+          "CMC": {
             "status": "row"
           },
-          "BORR": {
+          "CMDB": {
             "status": "row"
           },
-          "BOW": {
+          "CMG": {
             "status": "row"
           },
-          "BOX": {
+          "CMI": {
             "status": "row"
           },
-          "BR": {
+          "CMP": {
             "status": "row"
           },
-          "BRBR": {
+          "CMRE": {
             "status": "row"
           },
-          "BRC": {
+          "CMS": {
             "status": "row"
           },
-          "BRK-A": {
+          "CNA": {
             "status": "row"
           },
-          "BRK-B": {
+          "CNC": {
             "status": "row"
           },
-          "BRO": {
+          "CNH": {
             "status": "row"
           },
-          "BROS": {
+          "CNI": {
             "status": "row"
           },
-          "BRX": {
+          "CNK": {
             "status": "row"
           },
-          "BSX": {
+          "CNM": {
             "status": "row"
           },
-          "BTE": {
+          "CNMD": {
             "status": "row"
           },
-          "BTGO": {
+          "CNNE": {
             "status": "row"
           },
-          "BTU": {
+          "CNO": {
             "status": "row"
           },
-          "BUR": {
+          "CNP": {
             "status": "row"
           }
         }
       },
       "eligible_symbols": 1460,
       "gap_fill_dispatch_counts": {
-        "BURL": 0,
-        "BW": 0,
-        "BWA": 0,
-        "BWLP": 0,
-        "BWMX": 0,
-        "BWXT": 0,
-        "BX": 0,
-        "BXC": 0,
-        "BXDC": 0,
-        "BXMT": 0,
-        "BXP": 0,
-        "BY": 0,
-        "BYD": 0,
-        "BZH": 0,
-        "C": 0,
-        "CAAP": 0,
-        "CACI": 0,
-        "CAG": 0,
-        "CAH": 0,
-        "CALX": 0,
-        "CALY": 0,
-        "CARR": 0,
-        "CAT": 0,
-        "CAVA": 0,
-        "CB": 0,
-        "CBL": 0,
-        "CBRE": 0,
-        "CBT": 0,
-        "CBU": 0,
-        "CBZ": 0,
-        "CC": 0,
-        "CCI": 0,
-        "CCJ": 0,
-        "CCK": 0,
-        "CCL": 0,
-        "CCO": 0,
-        "CCS": 0,
-        "CDE": 0,
-        "CDP": 0,
-        "CDRE": 0,
-        "CE": 0,
-        "CF": 0,
-        "CFG": 0,
-        "CFR": 0,
-        "CHD": 0,
-        "CHE": 0,
-        "CHH": 0,
-        "CHWY": 0,
-        "CI": 0,
-        "CIEN": 0,
-        "CIM": 0,
-        "CL": 0,
-        "CLDT": 0,
-        "CLF": 0,
-        "CLH": 0,
-        "CLVT": 0,
-        "CLX": 0,
-        "CM": 0,
-        "CMC": 0,
-        "CMDB": 0,
-        "CMG": 0,
-        "CMI": 0,
-        "CMP": 0,
-        "CMRE": 0,
-        "CMS": 0,
-        "CNA": 0,
-        "CNC": 0,
-        "CNH": 0,
-        "CNI": 0,
-        "CNK": 0,
-        "CNM": 0,
-        "CNMD": 0,
-        "CNNE": 0,
-        "CNO": 0,
-        "CNP": 0,
         "CNQ": 0,
         "CNR": 0,
         "CNS": 0,
@@ -9178,7 +9028,7 @@
         "ZTS": 0,
         "ZWS": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T23:52:33+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-26T00:51:08+01:00",
       "label": "NYSE",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -9216,11 +9066,11 @@
       },
       "provider_deferred_symbols": 5,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 1190,
+      "remaining_symbols": 1115,
       "requested_this_run": 75,
-      "result_rows": 265,
+      "result_rows": 340,
       "returned_this_run": 75,
-      "started_at": "2026-09-25T23:52:33+01:00",
+      "started_at": "2026-09-26T00:51:08+01:00",
       "status": "partial",
       "universe_symbols": 1872
     },
@@ -9228,9 +9078,9 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 75,
-      "completed_at": "2026-09-25T23:54:02+01:00",
-      "coverage_pct": 32.4,
-      "coverage_symbols": 467,
+      "completed_at": "2026-09-26T00:52:37+01:00",
+      "coverage_pct": 37.6,
+      "coverage_symbols": 542,
       "coverage_target_symbols": 1442,
       "diagnostics": {
         "below_min_market_cap": 0,
@@ -9242,229 +9092,229 @@
         "requested": 75,
         "returned": 75,
         "symbol_outcomes": {
-          "BRETF": {
+          "CLOEF": {
             "status": "row"
           },
-          "BRLAF": {
+          "CLPBF": {
             "status": "row"
           },
-          "BRSGF": {
+          "CLPHF": {
             "status": "row"
           },
-          "BSDGF": {
+          "CLRPF": {
             "status": "row"
           },
-          "BSLAF": {
+          "CMCLF": {
             "status": "row"
           },
-          "BTAFF": {
+          "CMOPF": {
             "status": "row"
           },
-          "BTGOF": {
+          "CMPGF": {
             "status": "row"
           },
-          "BTSEF": {
+          "CMRF": {
             "status": "row"
           },
-          "BUDFF": {
+          "CMSQF": {
             "status": "row"
           },
-          "BVILF": {
+          "CMXHF": {
             "status": "row"
           },
-          "BWAGF": {
+          "CNSWF": {
             "status": "row"
           },
-          "BWEFF": {
+          "COENF": {
             "status": "row"
           },
-          "BWEL": {
+          "COVCF": {
             "status": "row"
           },
-          "BWOSF": {
+          "CPAMF": {
             "status": "row"
           },
-          "BXRBF": {
+          "CPCAF": {
             "status": "row"
           },
-          "BYAGF": {
+          "CPPKF": {
             "status": "row"
           },
-          "BYCBF": {
+          "CPPTL": {
             "status": "row"
           },
-          "BYDDF": {
+          "CPXGF": {
             "status": "row"
           },
-          "BYDIF": {
+          "CPYYF": {
             "status": "row"
           },
-          "BYLOF": {
+          "CRARF": {
             "status": "row"
           },
-          "BZLYF": {
+          "CRERF": {
             "status": "row"
           },
-          "BZZUF": {
+          "CRHKF": {
             "status": "row"
           },
-          "CABJF": {
+          "CRLFF": {
             "status": "row"
           },
-          "CADNF": {
+          "CRNLF": {
             "status": "row"
           },
-          "CADYF": {
+          "CROMF": {
             "status": "row"
           },
-          "CAIAF": {
+          "CRRSF": {
             "status": "row"
           },
-          "CAJFF": {
+          "CRSLF": {
             "status": "row"
           },
-          "CALEF": {
+          "CRWOF": {
             "status": "row"
           },
-          "CAPMF": {
+          "CRZBF": {
             "status": "row"
           },
-          "CASBF": {
+          "CSCCF": {
             "status": "row"
           },
-          "CAZGF": {
+          "CSGNF": {
             "status": "row"
           },
-          "CCDBF": {
+          "CSNVF": {
             "status": "row"
           },
-          "CCHBF": {
+          "CSPHF": {
             "status": "row"
           },
-          "CCLHF": {
+          "CSYJF": {
             "status": "row"
           },
-          "CCORF": {
+          "CTATF": {
             "status": "row"
           },
-          "CCPPF": {
+          "CTOUF": {
             "status": "row"
           },
-          "CCRDF": {
+          "CTRRF": {
             "status": "row"
           },
-          "CDDRF": {
+          "CTVIF": {
             "status": "row"
           },
-          "CDNAF": {
+          "CTYMF": {
             "status": "row"
           },
-          "CDPYF": {
+          "CUAI": {
             "status": "row"
           },
-          "CDUAF": {
+          "CUPUF": {
             "status": "row"
           },
-          "CEBCF": {
+          "CURLF": {
             "status": "row"
           },
-          "CELJF": {
+          "CVCCF": {
             "status": "row"
           },
-          "CESDF": {
+          "CWSRF": {
             "status": "row"
           },
-          "CFPZF": {
+          "CWYUF": {
             "status": "row"
           },
-          "CFRHF": {
+          "CXMSF": {
             "status": "row"
           },
-          "CGEAF": {
+          "CZMWF": {
             "status": "row"
           },
-          "CGIFF": {
+          "DAIUF": {
             "status": "row"
           },
-          "CGJTF": {
+          "DALXF": {
             "status": "row"
           },
-          "CGPVF": {
+          "DAWIF": {
             "status": "row"
           },
-          "CHBJF": {
+          "DBIN": {
             "status": "row"
           },
-          "CHDGF": {
+          "DBOEF": {
             "status": "row"
           },
-          "CHDRF": {
+          "DBSDF": {
             "status": "row"
           },
-          "CHEOF": {
+          "DBVTF": {
             "status": "row"
           },
-          "CHFFF": {
+          "DCCPF": {
             "status": "row"
           },
-          "CHGCF": {
+          "DCNSF": {
             "status": "row"
           },
-          "CHHQF": {
+          "DETRF": {
             "status": "row"
           },
-          "CHKGF": {
+          "DEUZF": {
             "status": "row"
           },
-          "CHKIF": {
+          "DGIPF": {
             "status": "row"
           },
-          "CHRHF": {
+          "DGTCF": {
             "status": "row"
           },
-          "CHVKF": {
+          "DHTRF": {
             "status": "row"
           },
-          "CHWRF": {
+          "DINRF": {
             "status": "row"
           },
-          "CHXMF": {
+          "DISPF": {
             "status": "row"
           },
-          "CIAFF": {
+          "DITTF": {
             "status": "row"
           },
-          "CICHF": {
+          "DKILF": {
             "status": "row"
           },
-          "CICOF": {
+          "DLAKF": {
             "status": "row"
           },
-          "CIHHF": {
+          "DLGEF": {
             "status": "row"
           },
-          "CILJF": {
+          "DLMAF": {
             "status": "row"
           },
-          "CITAF": {
+          "DNACF": {
             "status": "row"
           },
-          "CJEWF": {
+          "DNBBF": {
             "status": "row"
           },
-          "CKHUF": {
+          "DNGYF": {
             "status": "row"
           },
-          "CKNHF": {
+          "DNOPF": {
             "status": "row"
           },
-          "CLCMF": {
+          "DNPUF": {
             "status": "row"
           },
-          "CLNFF": {
+          "DNZOF": {
             "status": "row"
           },
-          "CLNXF": {
+          "DOGEF": {
             "status": "row"
           }
         }
@@ -9473,82 +9323,7 @@
       "gap_fill_dispatch_counts": {
         "BEIJF": 1,
         "CGPZF": 50,
-        "CLOEF": 0,
-        "CLPBF": 0,
-        "CLPHF": 0,
-        "CLRPF": 0,
-        "CMCLF": 0,
-        "CMOPF": 0,
-        "CMPGF": 0,
-        "CMRF": 0,
-        "CMSQF": 0,
-        "CMXHF": 0,
-        "CNSWF": 0,
-        "COENF": 0,
-        "COVCF": 0,
-        "CPAMF": 0,
-        "CPCAF": 0,
-        "CPPKF": 0,
-        "CPPTL": 0,
-        "CPXGF": 0,
-        "CPYYF": 0,
-        "CRARF": 0,
-        "CRERF": 0,
-        "CRHKF": 0,
-        "CRLFF": 0,
-        "CRNLF": 0,
-        "CROMF": 0,
-        "CRRSF": 0,
-        "CRSLF": 0,
-        "CRWOF": 0,
-        "CRZBF": 0,
-        "CSCCF": 0,
-        "CSGNF": 0,
-        "CSNVF": 0,
-        "CSPHF": 0,
-        "CSYJF": 0,
-        "CTATF": 0,
-        "CTOUF": 0,
-        "CTRRF": 0,
         "CTRYQ": 50,
-        "CTVIF": 0,
-        "CTYMF": 0,
-        "CUAI": 0,
-        "CUPUF": 0,
-        "CURLF": 0,
-        "CVCCF": 0,
-        "CWSRF": 0,
-        "CWYUF": 0,
-        "CXMSF": 0,
-        "CZMWF": 0,
-        "DAIUF": 0,
-        "DALXF": 0,
-        "DAWIF": 0,
-        "DBIN": 0,
-        "DBOEF": 0,
-        "DBSDF": 0,
-        "DBVTF": 0,
-        "DCCPF": 0,
-        "DCNSF": 0,
-        "DETRF": 0,
-        "DEUZF": 0,
-        "DGIPF": 0,
-        "DGTCF": 0,
-        "DHTRF": 0,
-        "DINRF": 0,
-        "DISPF": 0,
-        "DITTF": 0,
-        "DKILF": 0,
-        "DLAKF": 0,
-        "DLGEF": 0,
-        "DLMAF": 0,
-        "DNACF": 0,
-        "DNBBF": 0,
-        "DNGYF": 0,
-        "DNOPF": 0,
-        "DNPUF": 0,
-        "DNZOF": 0,
-        "DOGEF": 0,
         "DPLMF": 0,
         "DPMLF": 0,
         "DPSTF": 0,
@@ -10457,7 +10232,7 @@
         "ZSINF": 0,
         "ZTCOF": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T23:53:18+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-26T00:51:53+01:00",
       "label": "OTC Markets",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -10525,11 +10300,11 @@
       },
       "provider_deferred_symbols": 10,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 975,
+      "remaining_symbols": 900,
       "requested_this_run": 75,
-      "result_rows": 467,
+      "result_rows": 542,
       "returned_this_run": 75,
-      "started_at": "2026-09-25T23:53:18+01:00",
+      "started_at": "2026-09-26T00:51:53+01:00",
       "status": "partial",
       "universe_symbols": 5964
     },
@@ -10537,7 +10312,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 9,
-      "completed_at": "2026-09-25T23:54:46+01:00",
+      "completed_at": "2026-09-26T00:53:22+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 285,
       "coverage_target_symbols": 285,
@@ -10790,243 +10565,243 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 75,
-      "completed_at": "2026-09-25T23:54:46+01:00",
-      "coverage_pct": 56.8,
-      "coverage_symbols": 233,
+      "completed_at": "2026-09-26T00:53:22+01:00",
+      "coverage_pct": 75.1,
+      "coverage_symbols": 308,
       "coverage_target_symbols": 410,
       "diagnostics": {
-        "below_min_market_cap": 2,
+        "below_min_market_cap": 0,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
         "requested": 75,
-        "returned": 73,
+        "returned": 75,
         "symbol_outcomes": {
-          "FF.TO": {
+          "LUN.TO": {
             "status": "row"
           },
-          "FFH.TO": {
+          "LUNR.TO": {
             "status": "row"
           },
-          "FIH-U.TO": {
+          "MAI.TO": {
             "status": "row"
           },
-          "FM.TO": {
+          "MAL.TO": {
             "status": "row"
           },
-          "FNV.TO": {
+          "MARI.TO": {
             "status": "row"
           },
-          "FRU.TO": {
+          "MATR.TO": {
             "status": "row"
           },
-          "FRX.TO": {
+          "MAU.TO": {
             "status": "row"
           },
-          "FSV.TO": {
+          "MDA.TO": {
             "status": "row"
           },
-          "FTG.TO": {
+          "MDI.TO": {
             "status": "row"
           },
-          "FTS.TO": {
+          "MEQ.TO": {
             "status": "row"
           },
-          "FTT.TO": {
+          "MER.TO": {
             "status": "row"
           },
-          "FVI.TO": {
+          "MFC.TO": {
             "status": "row"
           },
-          "FVL.TO": {
+          "MFI.TO": {
             "status": "row"
           },
-          "GAU.TO": {
+          "MG.TO": {
             "status": "row"
           },
-          "GEI.TO": {
+          "MHC-U.TO": {
             "status": "row"
           },
-          "GFL.TO": {
+          "MHC-UN.TO": {
             "status": "row"
           },
-          "GFR.TO": {
+          "MKP.TO": {
             "status": "row"
           },
-          "GGD.TO": {
+          "MNO.TO": {
             "status": "row"
           },
-          "GIB-A.TO": {
+          "MRC.TO": {
             "status": "row"
           },
-          "GIL.TO": {
+          "MRD.TO": {
             "status": "row"
           },
-          "GMIN.TO": {
+          "MRE.TO": {
             "status": "row"
           },
-          "GOOS.TO": {
+          "MRG-UN.TO": {
             "status": "row"
           },
-          "GRGD.TO": {
+          "MRU.TO": {
             "status": "row"
           },
-          "GRT-UN.TO": {
+          "MSA.TO": {
             "status": "row"
           },
-          "GSY.TO": {
+          "MTL.TO": {
             "status": "row"
           },
-          "GTE.TO": {
-            "status": "below_market_cap"
+          "MTY.TO": {
+            "status": "row"
           },
-          "GUD.TO": {
+          "MUX.TO": {
             "status": "row"
           },
-          "GWO.TO": {
+          "MX.TO": {
             "status": "row"
           },
-          "H.TO": {
+          "NA.TO": {
             "status": "row"
           },
-          "HBM.TO": {
+          "NDM.TO": {
             "status": "row"
           },
-          "HIVE.TO": {
+          "NEO.TO": {
             "status": "row"
           },
-          "HMMC.TO": {
+          "NFGC.TO": {
             "status": "row"
           },
-          "HOM-U.TO": {
-            "status": "below_market_cap"
+          "NFI.TO": {
+            "status": "row"
           },
-          "HOM-UN.TO": {
+          "NG.TO": {
             "status": "row"
           },
-          "HPS-A.TO": {
+          "NGEX.TO": {
             "status": "row"
           },
-          "HR-UN.TO": {
+          "NICU.TO": {
             "status": "row"
           },
-          "HSLV.TO": {
+          "NOU.TO": {
             "status": "row"
           },
-          "HUT.TO": {
+          "NPI.TO": {
             "status": "row"
           },
-          "HWX.TO": {
+          "NTR.TO": {
             "status": "row"
           },
-          "IAG.TO": {
+          "NUAG.TO": {
             "status": "row"
           },
-          "IAU.TO": {
+          "NXE.TO": {
             "status": "row"
           },
-          "IE.TO": {
+          "NXR-UN.TO": {
             "status": "row"
           },
-          "IFC.TO": {
+          "OBE.TO": {
             "status": "row"
           },
-          "IFP.TO": {
+          "OGC.TO": {
             "status": "row"
           },
-          "IGM.TO": {
+          "OM.TO": {
             "status": "row"
           },
-          "III.TO": {
+          "ONEX.TO": {
             "status": "row"
           },
-          "IMG.TO": {
+          "OR.TO": {
             "status": "row"
           },
-          "IMO.TO": {
+          "ORE.TO": {
             "status": "row"
           },
-          "IPCO.TO": {
+          "OTEX.TO": {
             "status": "row"
           },
-          "ISO.TO": {
+          "OVV.TO": {
             "status": "row"
           },
-          "ITH.TO": {
+          "PAAS.TO": {
             "status": "row"
           },
-          "IVN.TO": {
+          "PBH.TO": {
             "status": "row"
           },
-          "JAG.TO": {
+          "PD.TO": {
             "status": "row"
           },
-          "JWEL.TO": {
+          "PDI.TO": {
             "status": "row"
           },
-          "K.TO": {
+          "PDN.TO": {
             "status": "row"
           },
-          "KBL.TO": {
+          "PET.TO": {
             "status": "row"
           },
-          "KEEL.TO": {
+          "PEY.TO": {
             "status": "row"
           },
-          "KEL.TO": {
+          "PHX.TO": {
             "status": "row"
           },
-          "KEY.TO": {
+          "PLZ-UN.TO": {
             "status": "row"
           },
-          "KITS.TO": {
+          "PMET.TO": {
             "status": "row"
           },
-          "KMP-UN.TO": {
+          "PMZ-UN.TO": {
             "status": "row"
           },
-          "KNT.TO": {
+          "POU.TO": {
             "status": "row"
           },
-          "KXS.TO": {
+          "POW.TO": {
             "status": "row"
           },
-          "L.TO": {
+          "PPL.TO": {
             "status": "row"
           },
-          "LAC.TO": {
+          "PPTA.TO": {
             "status": "row"
           },
-          "LAR.TO": {
+          "PRL.TO": {
             "status": "row"
           },
-          "LAS-A.TO": {
+          "PRU.TO": {
             "status": "row"
           },
-          "LB.TO": {
+          "PRV-UN.TO": {
             "status": "row"
           },
-          "LCFS.TO": {
+          "PSI.TO": {
             "status": "row"
           },
-          "LGD.TO": {
+          "PSK.TO": {
             "status": "row"
           },
-          "LIF.TO": {
+          "PXT.TO": {
             "status": "row"
           },
-          "LMCU.TO": {
+          "QBR-A.TO": {
             "status": "row"
           },
-          "LNF.TO": {
+          "QBR-B.TO": {
             "status": "row"
           },
-          "LSPD.TO": {
+          "QRC.TO": {
             "status": "row"
           },
-          "LUG.TO": {
+          "QSP-UN.TO": {
             "status": "row"
           }
         }
@@ -11037,81 +10812,6 @@
         "FFH-U.TO": 53,
         "GTE.TO": 1,
         "HOM-U.TO": 1,
-        "LUN.TO": 0,
-        "LUNR.TO": 0,
-        "MAI.TO": 0,
-        "MAL.TO": 0,
-        "MARI.TO": 0,
-        "MATR.TO": 0,
-        "MAU.TO": 0,
-        "MDA.TO": 0,
-        "MDI.TO": 0,
-        "MEQ.TO": 0,
-        "MER.TO": 0,
-        "MFC.TO": 0,
-        "MFI.TO": 0,
-        "MG.TO": 0,
-        "MHC-U.TO": 0,
-        "MHC-UN.TO": 0,
-        "MKP.TO": 0,
-        "MNO.TO": 0,
-        "MRC.TO": 0,
-        "MRD.TO": 0,
-        "MRE.TO": 0,
-        "MRG-UN.TO": 0,
-        "MRU.TO": 0,
-        "MSA.TO": 0,
-        "MTL.TO": 0,
-        "MTY.TO": 0,
-        "MUX.TO": 0,
-        "MX.TO": 0,
-        "NA.TO": 0,
-        "NDM.TO": 0,
-        "NEO.TO": 0,
-        "NFGC.TO": 0,
-        "NFI.TO": 0,
-        "NG.TO": 0,
-        "NGEX.TO": 0,
-        "NICU.TO": 0,
-        "NOU.TO": 0,
-        "NPI.TO": 0,
-        "NTR.TO": 0,
-        "NUAG.TO": 0,
-        "NXE.TO": 0,
-        "NXR-UN.TO": 0,
-        "OBE.TO": 0,
-        "OGC.TO": 0,
-        "OM.TO": 0,
-        "ONEX.TO": 0,
-        "OR.TO": 0,
-        "ORE.TO": 0,
-        "OTEX.TO": 0,
-        "OVV.TO": 0,
-        "PAAS.TO": 0,
-        "PBH.TO": 0,
-        "PD.TO": 0,
-        "PDI.TO": 0,
-        "PDN.TO": 0,
-        "PET.TO": 0,
-        "PEY.TO": 0,
-        "PHX.TO": 0,
-        "PLZ-UN.TO": 0,
-        "PMET.TO": 0,
-        "PMZ-UN.TO": 0,
-        "POU.TO": 0,
-        "POW.TO": 0,
-        "PPL.TO": 0,
-        "PPTA.TO": 0,
-        "PRL.TO": 0,
-        "PRU.TO": 0,
-        "PRV-UN.TO": 0,
-        "PSI.TO": 0,
-        "PSK.TO": 0,
-        "PXT.TO": 0,
-        "QBR-A.TO": 0,
-        "QBR-B.TO": 0,
-        "QRC.TO": 0,
-        "QSP-UN.TO": 0,
         "QSR.TO": 0,
         "RAY.TO": 0,
         "RBA.TO": 0,
@@ -11215,7 +10915,7 @@
         "X.TO": 0,
         "XNDU.TO": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-25T23:54:03+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-26T00:52:38+01:00",
       "label": "Toronto Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -11247,11 +10947,11 @@
       },
       "provider_deferred_symbols": 4,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 177,
+      "remaining_symbols": 102,
       "requested_this_run": 75,
-      "result_rows": 233,
-      "returned_this_run": 73,
-      "started_at": "2026-09-25T23:54:03+01:00",
+      "result_rows": 308,
+      "returned_this_run": 75,
+      "started_at": "2026-09-26T00:52:38+01:00",
       "status": "partial",
       "universe_symbols": 680
     },
@@ -11259,7 +10959,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 85,
-      "completed_at": "2026-09-25T23:54:47+01:00",
+      "completed_at": "2026-09-26T00:53:23+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 953,
       "coverage_target_symbols": 953,
@@ -11556,7 +11256,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 127,
-      "completed_at": "2026-09-25T23:54:02+01:00",
+      "completed_at": "2026-09-26T00:52:38+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 1120,
       "coverage_target_symbols": 1120,
@@ -11996,5 +11696,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-09-25T22:39:38+01:00",
   "schema_version": 1,
-  "updated_at": "2026-09-25T23:54:47+01:00"
+  "updated_at": "2026-09-26T00:53:23+01:00"
 }
