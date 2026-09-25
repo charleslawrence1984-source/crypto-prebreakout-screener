@@ -78,9 +78,11 @@
       ]
     },
     "otc": {
-      "count": 0,
+      "count": 1,
       "label": "OTC Markets",
-      "symbols": []
+      "symbols": [
+        "JAAHF"
+      ]
     },
     "six": {
       "count": 74,
@@ -267,8 +269,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-24T23:01:30+01:00",
+  "recorded_at": "2026-09-25T02:19:24+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-24T22:28:24+01:00",
-  "total_unresolved": 185
+  "source_fundamentals_updated_at": "2026-09-25T01:32:33+01:00",
+  "total_unresolved": 186
 }
