@@ -55,9 +55,10 @@
       ]
     },
     "madrid": {
-      "count": 1,
+      "count": 2,
       "label": "Bolsa de Madrid",
       "symbols": [
+        "S1013.MC",
         "SAI-B.MC"
       ]
     },
@@ -269,8 +270,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-25T04:20:04+01:00",
+  "recorded_at": "2026-09-25T06:20:23+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-25T03:23:42+01:00",
-  "total_unresolved": 186
+  "source_fundamentals_updated_at": "2026-09-25T05:25:43+01:00",
+  "total_unresolved": 187
 }
