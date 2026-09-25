@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 61,
-      "completed_at": "2026-09-25T16:36:31+01:00",
+      "completed_at": "2026-09-25T16:38:33+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 63,
       "coverage_target_symbols": 63,
@@ -224,7 +224,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 49,
-      "completed_at": "2026-09-25T16:36:30+01:00",
+      "completed_at": "2026-09-25T16:38:33+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 52,
       "coverage_target_symbols": 52,
@@ -408,7 +408,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 16,
-      "completed_at": "2026-09-25T16:36:31+01:00",
+      "completed_at": "2026-09-25T16:38:34+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 16,
       "coverage_target_symbols": 16,
@@ -493,7 +493,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 167,
-      "completed_at": "2026-09-25T16:36:23+01:00",
+      "completed_at": "2026-09-25T16:38:32+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 175,
       "coverage_target_symbols": 175,
@@ -1031,10 +1031,10 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 200,
-      "completed_at": "2026-09-25T16:36:23+01:00",
-      "coverage_pct": 89.5,
+      "completed_at": "2026-09-25T16:38:32+01:00",
+      "coverage_pct": 100.0,
       "coverage_symbols": 4216,
-      "coverage_target_symbols": 4712,
+      "coverage_target_symbols": 4216,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -6066,17 +6066,995 @@
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
       "provider_backoff": {
+        "07M.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "08T.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0AK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0C2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0C6.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0CL.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0DI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0DPS.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0HE1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0JM.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0KD.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0OH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0OT.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0P7.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0Q2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0QN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0QW.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0S1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0T5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0TB.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0U5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0W7.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "0WKA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "10I.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "10J.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "11T.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "14T.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "17Q1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "188H.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "19H.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1AW.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1C5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1C9.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1EX.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1FH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1GIA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1K3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1KT.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1MH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1MU.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1PM.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1S1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1U4.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1UY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1V2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "1WT.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "22E.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "27E.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2B9.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2CF.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2EC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2EN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2FB.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2G2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2HE.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2J2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2K3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2KH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2SI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2THA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2XD.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "2ZI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "32P.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "37H.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3AD1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3C3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3E7.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3EQ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3KC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3L1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3LL.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3MI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3MU.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3NR.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3NW.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3PN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3PS.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "3UF.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "41B.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "41Z0.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "42B0.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "42W.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "44H.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "44Y.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "45T.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "46K.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "46T.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "48T.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4A5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4BE.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4C9.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4D7.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4DH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4F31.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4FB.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4FK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4HP.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4HQ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4M7A.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4P0.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4QI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4XY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "4ZQ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "52C.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "54E.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "59FE.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "59P.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5D4.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5JZ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5LP.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5OJ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5Q8.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5TI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5TOA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5UI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "5UM.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "60A.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "61P.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "684.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6C1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6CMB.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6FE0.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6GC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6HA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6IC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6IY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6JK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6PP.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "6QC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "71N.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "73GN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "75H.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7CA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7CZ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7LI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7MP.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7RY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7TC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7WE.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "7Z2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
         "859064.MU": {
           "attempts": 7,
           "deferred_at": "2026-09-25T16:36:01+01:00",
           "reason": "price_failure",
           "until": "2026-10-02T16:36:01+01:00"
         },
+        "85T.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "8610.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "871.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "8MP.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "8NX.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "90B.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9301.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "96S.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "98P.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9A5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9AX.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9CN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9DC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9FM.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9NI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9SL.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9TF.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "9WY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "A19.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
         "A1C7QJ.MU": {
           "attempts": 7,
           "deferred_at": "2026-09-25T16:36:01+01:00",
           "reason": "price_failure",
           "until": "2026-10-02T16:36:01+01:00"
+        },
+        "A1CXQA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "A35.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "A3P.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "A421M9.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
         },
         "A428R1.MU": {
           "attempts": 7,
@@ -6090,11 +7068,833 @@
           "reason": "price_failure",
           "until": "2026-10-02T16:36:01+01:00"
         },
+        "A531.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "A59.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AAO.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AB5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AF72.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AGH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AI7.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ANP.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AOA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AOY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AQA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ARCC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ASF.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AVX.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AWG.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AY1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "AZD.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "B1F.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "B24.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "B3K.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "B7S.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BAQ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BB1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BC3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BCZ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BE4A.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BF2B.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BGJ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BHI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BI5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BJX1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BK3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BK8N.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BKD.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BKJ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BLD.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BM0.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BPS.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BQE.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BW3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "BZ3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "C0Q.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "C15.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "C1C1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "C2H.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "C7G.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "C7K.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CBE.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CBR.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CC3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CC5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CCT.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CE9.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CFH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CFZ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CI50.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CIAH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CIH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CJ5A.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CLZ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CO8.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CPK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CPZ1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CS2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CS7.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CSB.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CUX1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CWK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CWN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CXA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CXM.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CYA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CYL.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "CZH.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "D1NC.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "D51.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "D8EN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "D8Q.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DA3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DAO.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DDL.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DFQ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DI60.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DIK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DMI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DNP.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DPN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DVY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "DYI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "E5S1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ECN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "EF3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "EFC1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "EGB.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "EM4.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ETY.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "EYI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "EZ2A.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "EZM.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "F5X.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "F6O1.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FAN.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FC6A.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FCA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FFC0.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FG5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FG9.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FGR.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FJK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FLI.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FMG.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FNV2.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FTZ.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FUD.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FUR.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "FXMA.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "G2O.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "G7W.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GAV.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GBE.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GD6.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GDW.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GGK.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GI4.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GO4.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GOU.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GRL.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
         "GVP1.MU": {
           "attempts": 6,
           "deferred_at": "2026-09-25T16:36:01+01:00",
           "reason": "price_failure",
           "until": "2026-10-02T16:36:01+01:00"
+        },
+        "GWS.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "GZ3.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "H221.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "H7H.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "HA4.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "HBO.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "HC1A.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "HHI0.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "HI6.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "HL5.MU": {
+          "attempts": 13,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
         },
         "HL9C.MU": {
           "attempts": 13,
@@ -6515,23 +8315,1199 @@
           "deferred_at": "2026-09-25T16:36:01+01:00",
           "reason": "price_failure",
           "until": "2026-10-02T16:36:01+01:00"
+        },
+        "MM6A.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MMF.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MMG.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MMPI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MNK.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MO7R.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MQI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MRTA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MU1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MUI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MUJ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MW7.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MY1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MY8.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "MYP.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "N4SA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "N9L.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NBO.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ND5.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NFR.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NG0.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NG2.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NHS.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NI3.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NI6.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NK7.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NMR.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NNL.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NO4.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NP7.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NPG.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NRB.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NRE.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NRM.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NSZ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NT4.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NWG0.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NWP.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "NZE.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "O03.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "O3H.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "O4D.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "O4H.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "O7F.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OCT.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OEX.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OG5.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OHZ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OJI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OK3.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OKI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OMS1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ON1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ONE.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OSA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OT4.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "OTK.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "P04.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "P4L.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "P8Q.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PCG.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PD1A.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PE2.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PFZ0.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PIV.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PJZ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PK2.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PMV.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PO6.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PO9.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "POV1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PQ3.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PQIA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PRE1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PS3.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PTY.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PW2.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PWI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "PX4.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "Q41.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QBE.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QC10.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QCH.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QGI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QJE.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QPJ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QPX.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "QTL.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "R1H.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "R6N.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "R7D.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RAC.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RCZ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "REG.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RHJ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RI6.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RK6A.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RKM0.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RKN.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RL1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RMZ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RO41.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RSK.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RSM.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "RUNA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "S01.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "S1R.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "S3K.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "S7V.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "S8N0.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "S9L.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SC3.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SHA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SKM.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SKT.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SKWA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SN6.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SNQB.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SOC.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SQ7B.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SQQ1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "STP.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SU2.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SU4.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SUI.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SUK.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SVHH.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SVT1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SWI1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SY2.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "SZD.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "T37.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "T7U.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "T8F.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TE8N.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TEM.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TGC.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TK2A.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TKH.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TKM.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TN1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TO7.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TOG.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TOH.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TPX.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TQN.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TR8.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TRY.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TSA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TTA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TWA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "TYG.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "UG9.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "UNK.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "UP0.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "UPH.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "UQ1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "V22.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "V3J.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VAT.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VCV.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VI1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VIC.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VIP.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VJC.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VMC.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VNB.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VO1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VS3.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "VSU.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WE1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WEJ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WF9.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WI1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WML2.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WOA.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WPOB.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WPU.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "WX5.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XEB.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XIN.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XOA1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XSE.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XSK.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XST.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XSZ.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XT1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XTY.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "XY81.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "Y1F.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "YKE.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "YRB.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "YSON.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "YTR.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "YZA0.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
+        },
+        "ZB1.MU": {
+          "attempts": 12,
+          "deferred_at": "2026-09-25T16:38:31+01:00",
+          "reason": "repeated_unresolved",
+          "until": "2026-10-02T16:38:31+01:00"
         }
       },
-      "provider_deferred_symbols": 75,
+      "provider_deferred_symbols": 571,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 496,
+      "remaining_symbols": 0,
       "requested_this_run": 75,
       "result_rows": 4216,
       "returned_this_run": 0,
       "started_at": "2026-09-25T14:53:50+01:00",
-      "status": "partial",
+      "status": "complete",
       "universe_symbols": 7599
     },
     "lse": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 10,
-      "completed_at": "2026-09-25T16:36:06+01:00",
+      "completed_at": "2026-09-25T16:38:31+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 280,
       "coverage_target_symbols": 280,
@@ -6598,7 +9574,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-09-25T16:36:23+01:00",
+      "completed_at": "2026-09-25T16:38:32+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 22,
       "coverage_target_symbols": 22,
@@ -6638,7 +9614,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 21,
-      "completed_at": "2026-09-25T16:36:30+01:00",
+      "completed_at": "2026-09-25T16:38:33+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 93,
       "coverage_target_symbols": 93,
@@ -7528,7 +10504,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 28,
-      "completed_at": "2026-09-25T16:36:29+01:00",
+      "completed_at": "2026-09-25T16:38:32+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 285,
       "coverage_target_symbols": 285,
@@ -7904,7 +10880,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-25T16:36:30+01:00",
+      "completed_at": "2026-09-25T16:38:33+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 953,
       "coverage_target_symbols": 953,
@@ -7947,7 +10923,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-09-25T16:36:07+01:00",
+      "completed_at": "2026-09-25T16:38:31+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 1120,
       "coverage_target_symbols": 1120,
@@ -9128,5 +12104,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-09-24T23:01:31+01:00",
   "schema_version": 1,
-  "updated_at": "2026-09-25T16:36:31+01:00"
+  "updated_at": "2026-09-25T16:38:34+01:00"
 }
