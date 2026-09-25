@@ -16,9 +16,11 @@
       "symbols": []
     },
     "euronext_paris": {
-      "count": 0,
+      "count": 1,
       "label": "Euronext Paris",
-      "symbols": []
+      "symbols": [
+        "ALDAT.PA"
+      ]
     },
     "gettex": {
       "count": 0,
@@ -55,10 +57,9 @@
       ]
     },
     "madrid": {
-      "count": 2,
+      "count": 1,
       "label": "Bolsa de Madrid",
       "symbols": [
-        "S1013.MC",
         "SAI-B.MC"
       ]
     },
@@ -68,14 +69,15 @@
       "symbols": []
     },
     "nyse": {
-      "count": 5,
+      "count": 6,
       "label": "NYSE",
       "symbols": [
         "AQNB",
         "BEPJ",
         "BIPI",
         "BNJ",
-        "DCBG"
+        "DCBG",
+        "PNAQ"
       ]
     },
     "otc": {
@@ -86,7 +88,7 @@
       ]
     },
     "six": {
-      "count": 74,
+      "count": 72,
       "label": "SIX Swiss Exchange",
       "symbols": [
         "AAPL-USD.SW",
@@ -141,7 +143,6 @@
         "MRVL-USD.SW",
         "MS-USD.SW",
         "MSFT-USD.SW",
-        "MSTR-USD.SW",
         "MU-USD.SW",
         "NKE-USD.SW",
         "NOW-USD.SW",
@@ -156,7 +157,6 @@
         "QCOM-USD.SW",
         "SPCX-USD.SW",
         "UBER-USD.SW",
-        "UUUU-USD.SW",
         "V-USD.SW",
         "VZ-USD.SW",
         "WDAY-USD.SW",
@@ -270,8 +270,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-25T06:20:23+01:00",
+  "recorded_at": "2026-09-25T08:21:50+01:00",
   "rulebook_build": "2026.09.18.12",
-  "source_fundamentals_updated_at": "2026-09-25T05:25:43+01:00",
-  "total_unresolved": 187
+  "source_fundamentals_updated_at": "2026-09-25T07:30:30+01:00",
+  "total_unresolved": 186
 }
