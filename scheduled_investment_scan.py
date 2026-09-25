@@ -237,6 +237,23 @@ def main() -> int:
                 symbol: previous.get("gap_fill_dispatch_counts", {}).get(symbol, 0)
                 for symbol in eligible
             }
+            if args.gap_fill:
+                # Symbols still missing after several separate dispatches are not
+                # allowed to consume every hourly batch forever. Defer them for a
+                # week, then automatically retry in case the upstream provider has
+                # repaired the listing.
+                for symbol, attempt_count in attempts.items():
+                    if (
+                        symbol not in existing_symbols
+                        and int(attempt_count or 0) >= 3
+                        and symbol not in provider_backoff
+                    ):
+                        provider_backoff[symbol] = {
+                            "reason": "repeated_unresolved",
+                            "attempts": int(attempt_count or 0),
+                            "deferred_at": london_now.isoformat(timespec="seconds"),
+                            "until": (london_now + timedelta(days=7)).isoformat(timespec="seconds"),
+                        }
 
             if selected_symbols_by_kind is not None:
                 requested = set(selected_symbols_by_kind.get(kind, []))
