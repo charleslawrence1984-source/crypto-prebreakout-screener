@@ -6,7 +6,16 @@
       "label": "Euronext Paris",
       "new_count": 1,
       "new_symbols": [
-        "ALDAT.PA"
+        "MLSTR.PA"
+      ]
+    },
+    "gettex": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Gettex",
+      "new_count": 1,
+      "new_symbols": [
+        "LSR.MU"
       ]
     },
     "lse": {
@@ -38,6 +47,6 @@
       "new_symbols": []
     }
   },
-  "generated_at": "2026-09-25T09:27:02+01:00",
+  "generated_at": "2026-09-25T11:25:33+01:00",
   "rulebook_build": "2026.09.18.12"
 }
