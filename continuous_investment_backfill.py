@@ -38,6 +38,51 @@ def may_continue(before, after, returncode):
     return any(v.get("remaining_symbols", 0) > 0 for v in after.values())
 
 
+def is_soft_provider_pause(before, after, returncode):
+    """Return True when a non-zero scan was caused only by provider/data gaps.
+
+    These are expected backfill conditions (rate limiting, missing prices/market caps,
+    or symbols that no longer meet the market-cap floor). Progress is already
+    checkpointed, so they should pause the hourly worker without making GitHub
+    Actions report a broken workflow. Unexpected exceptions still fail normally.
+    """
+    if returncode != 1:
+        return False
+
+    prefix = "RuntimeError: scan returned no results: "
+    saw_soft_failure = False
+    for kind, meta in after.items():
+        if meta == before.get(kind) or meta.get("status") != "failed":
+            continue
+
+        error = meta.get("error", "")
+        if not error.startswith(prefix):
+            return False
+        try:
+            diagnostics = ast.literal_eval(error[len(prefix):])
+        except (ValueError, SyntaxError):
+            return False
+
+        if int(diagnostics.get("other_errors", 0) or 0):
+            return False
+
+        requested = int(diagnostics.get("requested", 0) or 0)
+        explained = sum(
+            int(diagnostics.get(key, 0) or 0)
+            for key in (
+                "rate_limit_errors",
+                "price_failures",
+                "market_cap_failures",
+                "below_min_market_cap",
+            )
+        )
+        if requested <= 0 or explained < requested:
+            return False
+        saw_soft_failure = True
+
+    return saw_soft_failure
+
+
 def git(*args):
     return subprocess.run(["git", *args], check=True)
 
@@ -81,10 +126,29 @@ def main():
         checkpoint()
         after = snapshot()
         if not may_continue(before, after, last_code):
-            print("Pausing: no further progress, completion, provider limit, or operational error.", flush=True)
+            if is_soft_provider_pause(before, after, last_code):
+                print(
+                    "Pausing cleanly: provider/data gaps remain; saved progress will retry next run.",
+                    flush=True,
+                )
+                last_code = 0
+            else:
+                print(
+                    "Pausing: no further progress, completion, provider limit, or operational error.",
+                    flush=True,
+                )
             break
         if batch < 12:
             time.sleep(30)
+
+    # If the bounded batch allowance ends while only expected provider/data gaps
+    # remain, preserve the checkpoint and report a healthy scheduled run.
+    if "before" in locals() and "after" in locals() and is_soft_provider_pause(before, after, last_code):
+        print(
+            "Batch allowance reached with only provider/data gaps; exiting cleanly for the next hourly retry.",
+            flush=True,
+        )
+        return 0
     return last_code
 
 
