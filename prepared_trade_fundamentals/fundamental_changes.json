@@ -1,24 +1,20 @@
 {
   "exchanges": {
-    "gettex": {
+    "euronext_paris": {
       "changed_count": 0,
       "changed_symbols": [],
-      "label": "Gettex",
-      "new_count": 3,
+      "label": "Euronext Paris",
+      "new_count": 1,
       "new_symbols": [
-        "A428R1.MU",
-        "A42CJA.MU",
-        "H4S.MU"
+        "ALDAT.PA"
       ]
     },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
       "label": "London Stock Exchange",
-      "new_count": 1,
-      "new_symbols": [
-        "1947.L"
-      ]
+      "new_count": 0,
+      "new_symbols": []
     },
     "lse_aim": {
       "changed_count": 0,
@@ -31,10 +27,8 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "Bolsa de Madrid",
-      "new_count": 1,
-      "new_symbols": [
-        "S1013.MC"
-      ]
+      "new_count": 0,
+      "new_symbols": []
     },
     "six": {
       "changed_count": 0,
@@ -44,6 +38,6 @@
       "new_symbols": []
     }
   },
-  "generated_at": "2026-09-25T07:30:30+01:00",
+  "generated_at": "2026-09-25T09:27:02+01:00",
   "rulebook_build": "2026.09.18.12"
 }
