@@ -575,8 +575,8 @@
     "lse": {
       "coverage_symbols": 100,
       "dispatch_counts": {
-        "AC8.L": 35,
-        "BVS.L": 35
+        "AC8.L": 36,
+        "BVS.L": 36
       },
       "eligible_symbols": 102,
       "errors": [
@@ -1737,10 +1737,10 @@
     "vienna": {
       "coverage_symbols": 97,
       "dispatch_counts": {
-        "ACN.VI": 20,
-        "CATL.VI": 20,
-        "IBKR.VI": 20,
-        "ODFL.VI": 20
+        "ACN.VI": 21,
+        "CATL.VI": 21,
+        "IBKR.VI": 21,
+        "ODFL.VI": 21
       },
       "eligible_symbols": 101,
       "errors": [
@@ -1999,5 +1999,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-26T06:57:22.825798+00:00"
+  "updated_at": "2026-09-26T07:35:50.520949+00:00"
 }
