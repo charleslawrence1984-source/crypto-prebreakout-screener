@@ -575,8 +575,8 @@
     "lse": {
       "coverage_symbols": 100,
       "dispatch_counts": {
-        "AC8.L": 37,
-        "BVS.L": 37
+        "AC8.L": 38,
+        "BVS.L": 38
       },
       "eligible_symbols": 102,
       "errors": [
@@ -585,7 +585,7 @@
           "symbol": "AC8.L"
         },
         {
-          "error": "1y: 41 rows, insufficient usable history/indicators; 2y: 41 rows, insufficient usable history/indicators",
+          "error": "1y: 42 rows, insufficient usable history/indicators; 2y: 42 rows, insufficient usable history/indicators",
           "symbol": "BVS.L"
         }
       ],
@@ -1796,10 +1796,10 @@
     "vienna": {
       "coverage_symbols": 97,
       "dispatch_counts": {
-        "ACN.VI": 22,
-        "CATL.VI": 22,
-        "IBKR.VI": 22,
-        "ODFL.VI": 22
+        "ACN.VI": 23,
+        "CATL.VI": 23,
+        "IBKR.VI": 23,
+        "ODFL.VI": 23
       },
       "eligible_symbols": 101,
       "errors": [
@@ -2058,5 +2058,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-26T07:53:25.746433+00:00"
+  "updated_at": "2026-09-26T08:38:00.798124+00:00"
 }
