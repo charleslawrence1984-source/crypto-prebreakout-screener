@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-26T12:51:56+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 63,
       "coverage_target_symbols": 63,
@@ -52,7 +52,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-26T12:51:55+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 52,
       "coverage_target_symbols": 52,
@@ -100,7 +100,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 16,
-      "completed_at": "2026-09-26T12:51:56+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 16,
       "coverage_target_symbols": 16,
@@ -190,7 +190,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 6,
-      "completed_at": "2026-09-26T12:51:55+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 174,
       "coverage_target_symbols": 174,
@@ -250,7 +250,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 9,
-      "completed_at": "2026-09-26T12:51:55+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 4216,
       "coverage_target_symbols": 4216,
@@ -8520,7 +8520,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 8,
-      "completed_at": "2026-09-26T12:51:53+01:00",
+      "completed_at": "2026-09-26T13:54:29+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 279,
       "coverage_target_symbols": 279,
@@ -8852,7 +8852,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-09-26T12:51:55+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 22,
       "coverage_target_symbols": 22,
@@ -8897,7 +8897,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-09-26T12:51:55+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 93,
       "coverage_target_symbols": 93,
@@ -8945,10 +8945,10 @@
     "nasdaq": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 75,
-      "completed_at": "2026-09-26T12:50:36+01:00",
-      "coverage_pct": 95.9,
-      "coverage_symbols": 1229,
+      "chunk_symbols": 52,
+      "completed_at": "2026-09-26T13:53:50+01:00",
+      "coverage_pct": 100.0,
+      "coverage_symbols": 1281,
       "coverage_target_symbols": 1281,
       "diagnostics": {
         "below_min_market_cap": 0,
@@ -8957,232 +8957,163 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 75,
-        "returned": 75,
+        "requested": 52,
+        "returned": 52,
         "symbol_outcomes": {
-          "TRST": {
+          "WDAY": {
             "status": "row"
           },
-          "TRUP": {
+          "WDC": {
             "status": "row"
           },
-          "TRVI": {
+          "WDFC": {
             "status": "row"
           },
-          "TSCO": {
+          "WEN": {
             "status": "row"
           },
-          "TSEM": {
+          "WERN": {
             "status": "row"
           },
-          "TSHA": {
+          "WEST": {
             "status": "row"
           },
-          "TSLA": {
+          "WFRD": {
             "status": "row"
           },
-          "TTAN": {
+          "WGS": {
             "status": "row"
           },
-          "TTD": {
+          "WINA": {
             "status": "row"
           },
-          "TTEK": {
+          "WING": {
             "status": "row"
           },
-          "TTMI": {
+          "WIX": {
             "status": "row"
           },
-          "TTWO": {
+          "WLDN": {
             "status": "row"
           },
-          "TVTX": {
+          "WLFC": {
             "status": "row"
           },
-          "TW": {
+          "WLTH": {
             "status": "row"
           },
-          "TWST": {
+          "WMG": {
             "status": "row"
           },
-          "TXG": {
+          "WMT": {
             "status": "row"
           },
-          "TXN": {
+          "WOOF": {
             "status": "row"
           },
-          "TXRH": {
+          "WRLD": {
             "status": "row"
           },
-          "TYRA": {
+          "WSBC": {
             "status": "row"
           },
-          "UAL": {
+          "WSC": {
             "status": "row"
           },
-          "UCTT": {
+          "WSE": {
             "status": "row"
           },
-          "UFCS": {
+          "WSFS": {
             "status": "row"
           },
-          "UFPI": {
+          "WTFC": {
             "status": "row"
           },
-          "UFPT": {
+          "WTW": {
             "status": "row"
           },
-          "ULCC": {
+          "WULF": {
             "status": "row"
           },
-          "ULTA": {
+          "WVE": {
             "status": "row"
           },
-          "UMBF": {
+          "WWD": {
             "status": "row"
           },
-          "UNIT": {
+          "WYFI": {
             "status": "row"
           },
-          "UNTY": {
+          "WYNN": {
             "status": "row"
           },
-          "UPBD": {
+          "XE": {
             "status": "row"
           },
-          "UPST": {
+          "XEL": {
             "status": "row"
           },
-          "UPWK": {
+          "XENE": {
             "status": "row"
           },
-          "URBN": {
+          "XERS": {
             "status": "row"
           },
-          "URGN": {
+          "XMAX": {
             "status": "row"
           },
-          "USAR": {
+          "XMTR": {
             "status": "row"
           },
-          "USLM": {
+          "XNCR": {
             "status": "row"
           },
-          "UTHR": {
+          "XNDU": {
             "status": "row"
           },
-          "UVSP": {
+          "XP": {
             "status": "row"
           },
-          "VBNK": {
+          "XPEL": {
             "status": "row"
           },
-          "VC": {
+          "XRAY": {
             "status": "row"
           },
-          "VCEL": {
+          "YORW": {
             "status": "row"
           },
-          "VCTR": {
+          "YSWY": {
             "status": "row"
           },
-          "VCYT": {
+          "Z": {
             "status": "row"
           },
-          "VECO": {
+          "ZBIO": {
             "status": "row"
           },
-          "VERA": {
+          "ZBRA": {
             "status": "row"
           },
-          "VERX": {
+          "ZD": {
             "status": "row"
           },
-          "VFS": {
+          "ZG": {
             "status": "row"
           },
-          "VIAV": {
+          "ZION": {
             "status": "row"
           },
-          "VICR": {
+          "ZM": {
             "status": "row"
           },
-          "VINP": {
+          "ZS": {
             "status": "row"
           },
-          "VIR": {
+          "ZVRA": {
             "status": "row"
           },
-          "VISN": {
-            "status": "row"
-          },
-          "VKTX": {
-            "status": "row"
-          },
-          "VLGEA": {
-            "status": "row"
-          },
-          "VLY": {
-            "status": "row"
-          },
-          "VMET": {
-            "status": "row"
-          },
-          "VNOM": {
-            "status": "row"
-          },
-          "VOR": {
-            "status": "row"
-          },
-          "VRDN": {
-            "status": "row"
-          },
-          "VREX": {
-            "status": "row"
-          },
-          "VRNS": {
-            "status": "row"
-          },
-          "VRSK": {
-            "status": "row"
-          },
-          "VRTX": {
-            "status": "row"
-          },
-          "VSAT": {
-            "status": "row"
-          },
-          "VSEC": {
-            "status": "row"
-          },
-          "VSNT": {
-            "status": "row"
-          },
-          "VSTM": {
-            "status": "row"
-          },
-          "VTRS": {
-            "status": "row"
-          },
-          "WABC": {
-            "status": "row"
-          },
-          "WAFD": {
-            "status": "row"
-          },
-          "WASH": {
-            "status": "row"
-          },
-          "WAY": {
-            "status": "row"
-          },
-          "WBD": {
-            "status": "row"
-          },
-          "WBTN": {
-            "status": "row"
-          },
-          "WCCB": {
+          "ZYME": {
             "status": "row"
           }
         }
@@ -9196,61 +9127,9 @@
         "NNNN": 51,
         "REAX": 1,
         "RMR": 51,
-        "TWFG": 51,
-        "WDAY": 0,
-        "WDC": 0,
-        "WDFC": 0,
-        "WEN": 0,
-        "WERN": 0,
-        "WEST": 0,
-        "WFRD": 0,
-        "WGS": 0,
-        "WINA": 0,
-        "WING": 0,
-        "WIX": 0,
-        "WLDN": 0,
-        "WLFC": 0,
-        "WLTH": 0,
-        "WMG": 0,
-        "WMT": 0,
-        "WOOF": 0,
-        "WRLD": 0,
-        "WSBC": 0,
-        "WSC": 0,
-        "WSE": 0,
-        "WSFS": 0,
-        "WTFC": 0,
-        "WTW": 0,
-        "WULF": 0,
-        "WVE": 0,
-        "WWD": 0,
-        "WYFI": 0,
-        "WYNN": 0,
-        "XE": 0,
-        "XEL": 0,
-        "XENE": 0,
-        "XERS": 0,
-        "XMAX": 0,
-        "XMTR": 0,
-        "XNCR": 0,
-        "XNDU": 0,
-        "XP": 0,
-        "XPEL": 0,
-        "XRAY": 0,
-        "YORW": 0,
-        "YSWY": 0,
-        "Z": 0,
-        "ZBIO": 0,
-        "ZBRA": 0,
-        "ZD": 0,
-        "ZG": 0,
-        "ZION": 0,
-        "ZM": 0,
-        "ZS": 0,
-        "ZVRA": 0,
-        "ZYME": 0
+        "TWFG": 51
       },
-      "gap_fill_last_dispatched_at": "2026-09-26T12:49:57+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-26T13:53:26+01:00",
       "label": "NASDAQ",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -9306,21 +9185,21 @@
       },
       "provider_deferred_symbols": 8,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 52,
-      "requested_this_run": 75,
-      "result_rows": 1229,
-      "returned_this_run": 75,
-      "started_at": "2026-09-26T12:49:57+01:00",
-      "status": "partial",
+      "remaining_symbols": 0,
+      "requested_this_run": 52,
+      "result_rows": 1281,
+      "returned_this_run": 52,
+      "started_at": "2026-09-26T13:53:26+01:00",
+      "status": "complete",
       "universe_symbols": 3328
     },
     "nyse": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 75,
-      "completed_at": "2026-09-26T12:51:15+01:00",
-      "coverage_pct": 85.2,
-      "coverage_symbols": 1238,
+      "completed_at": "2026-09-26T13:54:27+01:00",
+      "coverage_pct": 90.4,
+      "coverage_symbols": 1313,
       "coverage_target_symbols": 1453,
       "diagnostics": {
         "below_min_market_cap": 0,
@@ -9332,229 +9211,229 @@
         "requested": 75,
         "returned": 75,
         "symbol_outcomes": {
-          "SD": {
+          "SW": {
             "status": "row"
           },
-          "SDRL": {
+          "SWK": {
             "status": "row"
           },
-          "SECZ": {
+          "SWX": {
             "status": "row"
           },
-          "SEI": {
+          "SXC": {
             "status": "row"
           },
-          "SF": {
+          "SXI": {
             "status": "row"
           },
-          "SFBS": {
+          "SXT": {
             "status": "row"
           },
-          "SFL": {
+          "SYF": {
             "status": "row"
           },
-          "SG": {
+          "SYK": {
             "status": "row"
           },
-          "SGHC": {
+          "SYY": {
             "status": "row"
           },
-          "SGI": {
+          "T": {
             "status": "row"
           },
-          "SHAK": {
+          "TAC": {
             "status": "row"
           },
-          "SHO": {
+          "TALO": {
             "status": "row"
           },
-          "SHW": {
+          "TAP": {
             "status": "row"
           },
-          "SIG": {
+          "TAP-A": {
             "status": "row"
           },
-          "SII": {
+          "TBBB": {
             "status": "row"
           },
-          "SIND": {
+          "TBN": {
             "status": "row"
           },
-          "SITE": {
+          "TCBX": {
             "status": "row"
           },
-          "SJM": {
+          "TD": {
             "status": "row"
           },
-          "SKE": {
+          "TDAY": {
             "status": "row"
           },
-          "SKT": {
+          "TDC": {
             "status": "row"
           },
-          "SKY": {
+          "TDG": {
             "status": "row"
           },
-          "SKYH": {
+          "TDOC": {
             "status": "row"
           },
-          "SLB": {
+          "TDS": {
             "status": "row"
           },
-          "SLF": {
+          "TDW": {
             "status": "row"
           },
-          "SLG": {
+          "TDY": {
             "status": "row"
           },
-          "SLGN": {
+          "TE": {
             "status": "row"
           },
-          "SLVM": {
+          "TECK": {
             "status": "row"
           },
-          "SM": {
+          "TEL": {
             "status": "row"
           },
-          "SMA": {
+          "TEN": {
             "status": "row"
           },
-          "SMBK": {
+          "TEVA": {
             "status": "row"
           },
-          "SMG": {
+          "TEX": {
             "status": "row"
           },
-          "SMP": {
+          "TFC": {
             "status": "row"
           },
-          "SMR": {
+          "TFII": {
             "status": "row"
           },
-          "SMWB": {
+          "TFIN": {
             "status": "row"
           },
-          "SN": {
+          "TFX": {
             "status": "row"
           },
-          "SNA": {
+          "TGLS": {
             "status": "row"
           },
-          "SNAP": {
+          "TGT": {
             "status": "row"
           },
-          "SNDA": {
+          "THC": {
             "status": "row"
           },
-          "SNDR": {
+          "THG": {
             "status": "row"
           },
-          "SNOW": {
+          "TIC": {
             "status": "row"
           },
-          "SNX": {
+          "TJX": {
             "status": "row"
           },
-          "SO": {
+          "TK": {
             "status": "row"
           },
-          "SOBO": {
+          "TKO": {
             "status": "row"
           },
-          "SOC": {
+          "TKR": {
             "status": "row"
           },
-          "SOLV": {
+          "TMO": {
             "status": "row"
           },
-          "SON": {
+          "TNC": {
             "status": "row"
           },
-          "SPB": {
+          "TNET": {
             "status": "row"
           },
-          "SPG": {
+          "TNK": {
             "status": "row"
           },
-          "SPGI": {
+          "TNL": {
             "status": "row"
           },
-          "SPH": {
+          "TOL": {
             "status": "row"
           },
-          "SPHR": {
+          "TOST": {
             "status": "row"
           },
-          "SPNT": {
+          "TPB": {
             "status": "row"
           },
-          "SPOT": {
+          "TPC": {
             "status": "row"
           },
-          "SPXC": {
+          "TPL": {
             "status": "row"
           },
-          "SR": {
+          "TPR": {
             "status": "row"
           },
-          "SRE": {
+          "TR": {
             "status": "row"
           },
-          "SSD": {
+          "TREX": {
             "status": "row"
           },
-          "SSMR": {
+          "TRGP": {
             "status": "row"
           },
-          "ST": {
+          "TRIN": {
             "status": "row"
           },
-          "STAG": {
+          "TRLV": {
             "status": "row"
           },
-          "STC": {
+          "TRN": {
             "status": "row"
           },
-          "STDN": {
+          "TRNO": {
             "status": "row"
           },
-          "STE": {
+          "TROX": {
             "status": "row"
           },
-          "STLA": {
+          "TRP": {
             "status": "row"
           },
-          "STN": {
+          "TRTX": {
             "status": "row"
           },
-          "STNG": {
+          "TRU": {
             "status": "row"
           },
-          "STT": {
+          "TRV": {
             "status": "row"
           },
-          "STUB": {
+          "TSLX": {
             "status": "row"
           },
-          "STVN": {
+          "TSN": {
             "status": "row"
           },
-          "STWD": {
+          "TT": {
             "status": "row"
           },
-          "STZ": {
+          "TTAM": {
             "status": "row"
           },
-          "SU": {
+          "TTC": {
             "status": "row"
           },
-          "SUI": {
+          "TTI": {
             "status": "row"
           },
-          "SUNB": {
+          "TU": {
             "status": "row"
           },
-          "SVV": {
+          "TWLO": {
             "status": "row"
           }
         }
@@ -9568,81 +9447,6 @@
         "MAX": 1,
         "SDHC": 50,
         "SMC": 50,
-        "SW": 0,
-        "SWK": 0,
-        "SWX": 0,
-        "SXC": 0,
-        "SXI": 0,
-        "SXT": 0,
-        "SYF": 0,
-        "SYK": 0,
-        "SYY": 0,
-        "T": 0,
-        "TAC": 0,
-        "TALO": 0,
-        "TAP": 0,
-        "TAP-A": 0,
-        "TBBB": 0,
-        "TBN": 0,
-        "TCBX": 0,
-        "TD": 0,
-        "TDAY": 0,
-        "TDC": 0,
-        "TDG": 0,
-        "TDOC": 0,
-        "TDS": 0,
-        "TDW": 0,
-        "TDY": 0,
-        "TE": 0,
-        "TECK": 0,
-        "TEL": 0,
-        "TEN": 0,
-        "TEVA": 0,
-        "TEX": 0,
-        "TFC": 0,
-        "TFII": 0,
-        "TFIN": 0,
-        "TFX": 0,
-        "TGLS": 0,
-        "TGT": 0,
-        "THC": 0,
-        "THG": 0,
-        "TIC": 0,
-        "TJX": 0,
-        "TK": 0,
-        "TKO": 0,
-        "TKR": 0,
-        "TMO": 0,
-        "TNC": 0,
-        "TNET": 0,
-        "TNK": 0,
-        "TNL": 0,
-        "TOL": 0,
-        "TOST": 0,
-        "TPB": 0,
-        "TPC": 0,
-        "TPL": 0,
-        "TPR": 0,
-        "TR": 0,
-        "TREX": 0,
-        "TRGP": 0,
-        "TRIN": 0,
-        "TRLV": 0,
-        "TRN": 0,
-        "TRNO": 0,
-        "TROX": 0,
-        "TRP": 0,
-        "TRTX": 0,
-        "TRU": 0,
-        "TRV": 0,
-        "TSLX": 0,
-        "TSN": 0,
-        "TT": 0,
-        "TTAM": 0,
-        "TTC": 0,
-        "TTI": 0,
-        "TU": 0,
-        "TWLO": 0,
         "TXNM": 0,
         "TXT": 0,
         "TYL": 0,
@@ -9784,7 +9588,7 @@
         "ZTS": 0,
         "ZWS": 0
       },
-      "gap_fill_last_dispatched_at": "2026-09-26T12:50:36+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-26T13:53:50+01:00",
       "label": "NYSE",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -9834,255 +9638,36 @@
       },
       "provider_deferred_symbols": 7,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 215,
+      "remaining_symbols": 140,
       "requested_this_run": 75,
-      "result_rows": 1238,
+      "result_rows": 1313,
       "returned_this_run": 75,
-      "started_at": "2026-09-26T12:50:36+01:00",
+      "started_at": "2026-09-26T13:53:50+01:00",
       "status": "partial",
       "universe_symbols": 1872
     },
     "otc": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 75,
-      "completed_at": "2026-09-26T12:51:53+01:00",
+      "chunk_symbols": 2,
+      "completed_at": "2026-09-26T13:54:29+01:00",
       "coverage_pct": 99.9,
-      "coverage_symbols": 1433,
+      "coverage_symbols": 1434,
       "coverage_target_symbols": 1435,
       "diagnostics": {
-        "below_min_market_cap": 1,
+        "below_min_market_cap": 0,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 1,
         "rate_limit_errors": 0,
-        "requested": 75,
-        "returned": 73,
+        "requested": 2,
+        "returned": 1,
         "symbol_outcomes": {
-          "VLERF": {
-            "status": "row"
-          },
-          "VLKAF": {
-            "status": "row"
-          },
-          "VLOUF": {
-            "status": "row"
-          },
-          "VLSOF": {
-            "status": "row"
-          },
-          "VLVOF": {
-            "status": "row"
-          },
-          "VLXGF": {
-            "status": "row"
-          },
-          "VODPF": {
-            "status": "row"
-          },
-          "VOLVF": {
-            "status": "row"
-          },
-          "VRNO": {
-            "status": "below_market_cap"
-          },
-          "VTKLF": {
-            "status": "row"
-          },
-          "VTSYF": {
-            "status": "row"
-          },
-          "VULNF": {
-            "status": "row"
-          },
-          "VVVNF": {
-            "status": "row"
-          },
-          "VWSYF": {
-            "status": "row"
-          },
-          "WBRBF": {
-            "status": "row"
-          },
-          "WBTNF": {
-            "status": "row"
-          },
-          "WCPRF": {
-            "status": "row"
-          },
-          "WDOFF": {
-            "status": "row"
-          },
-          "WDPSF": {
-            "status": "row"
-          },
-          "WEBNF": {
-            "status": "row"
-          },
-          "WEICF": {
-            "status": "row"
-          },
-          "WEIGF": {
-            "status": "row"
-          },
-          "WFAFF": {
-            "status": "row"
-          },
-          "WFHG": {
-            "status": "row"
-          },
-          "WGXRF": {
-            "status": "row"
-          },
-          "WHGRF": {
-            "status": "row"
-          },
-          "WHITF": {
-            "status": "row"
-          },
-          "WHTAF": {
-            "status": "row"
-          },
-          "WHTCF": {
-            "status": "row"
-          },
-          "WIPKF": {
-            "status": "row"
-          },
-          "WJXFF": {
-            "status": "row"
-          },
-          "WKCMF": {
-            "status": "row"
-          },
-          "WMMVF": {
-            "status": "row"
-          },
-          "WNDLF": {
-            "status": "row"
-          },
-          "WNGRF": {
-            "status": "row"
-          },
-          "WOPEF": {
-            "status": "row"
-          },
-          "WOSGF": {
-            "status": "row"
-          },
-          "WPPGF": {
-            "status": "row"
-          },
           "WRDIF": {
             "status": "price_failure"
           },
-          "WRTBF": {
-            "status": "row"
-          },
-          "WSIOF": {
-            "status": "row"
-          },
-          "WTBFB": {
-            "status": "row"
-          },
-          "WTCHF": {
-            "status": "row"
-          },
-          "WTSHF": {
-            "status": "row"
-          },
-          "WUXIF": {
-            "status": "row"
-          },
-          "WYNMF": {
-            "status": "row"
-          },
-          "XFABF": {
-            "status": "row"
-          },
-          "XIORF": {
-            "status": "row"
-          },
-          "XNGSF": {
-            "status": "row"
-          },
-          "XNYIF": {
-            "status": "row"
-          },
-          "XPNGF": {
-            "status": "row"
-          },
-          "XROLF": {
-            "status": "row"
-          },
-          "XVIPF": {
-            "status": "row"
-          },
-          "YACAF": {
-            "status": "row"
-          },
-          "YAHOF": {
-            "status": "row"
-          },
-          "YAMHF": {
-            "status": "row"
-          },
-          "YASKF": {
-            "status": "row"
-          },
-          "YCSBF": {
-            "status": "row"
-          },
-          "YGWAF": {
-            "status": "row"
-          },
-          "YLLXF": {
-            "status": "row"
-          },
-          "YMATF": {
-            "status": "row"
-          },
-          "YNGFF": {
-            "status": "row"
-          },
-          "YPHDF": {
-            "status": "row"
-          },
-          "YSHLF": {
-            "status": "row"
-          },
-          "YUBCF": {
-            "status": "row"
-          },
-          "ZEGLF": {
-            "status": "row"
-          },
-          "ZFSVF": {
-            "status": "row"
-          },
-          "ZHEXF": {
-            "status": "row"
-          },
-          "ZIJMF": {
-            "status": "row"
-          },
-          "ZIZTF": {
-            "status": "row"
-          },
-          "ZJLMF": {
-            "status": "row"
-          },
-          "ZLDPF": {
-            "status": "row"
-          },
-          "ZNOG": {
-            "status": "row"
-          },
-          "ZNZNF": {
-            "status": "row"
-          },
-          "ZSINF": {
+          "ZTCOF": {
             "status": "row"
           }
         }
@@ -10107,10 +9692,9 @@
         "SYPOF": 50,
         "VLNT": 50,
         "VRNO": 1,
-        "WRDIF": 1,
-        "ZTCOF": 0
+        "WRDIF": 2
       },
-      "gap_fill_last_dispatched_at": "2026-09-26T12:51:15+01:00",
+      "gap_fill_last_dispatched_at": "2026-09-26T13:54:27+01:00",
       "label": "OTC Markets",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -10226,11 +9810,11 @@
       },
       "provider_deferred_symbols": 18,
       "refresh_mode": "gap_fill",
-      "remaining_symbols": 2,
-      "requested_this_run": 75,
-      "result_rows": 1433,
-      "returned_this_run": 73,
-      "started_at": "2026-09-26T12:51:15+01:00",
+      "remaining_symbols": 1,
+      "requested_this_run": 2,
+      "result_rows": 1434,
+      "returned_this_run": 1,
+      "started_at": "2026-09-26T13:54:27+01:00",
       "status": "partial",
       "universe_symbols": 5967
     },
@@ -10238,7 +9822,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 9,
-      "completed_at": "2026-09-26T12:51:55+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 285,
       "coverage_target_symbols": 285,
@@ -10491,7 +10075,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-09-26T12:51:55+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 411,
       "coverage_target_symbols": 411,
@@ -10570,7 +10154,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 85,
-      "completed_at": "2026-09-26T12:51:56+01:00",
+      "completed_at": "2026-09-26T13:54:30+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 952,
       "coverage_target_symbols": 952,
@@ -11595,7 +11179,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-09-26T12:51:53+01:00",
+      "completed_at": "2026-09-26T13:54:29+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 1121,
       "coverage_target_symbols": 1121,
@@ -11671,5 +11255,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-09-25T22:39:38+01:00",
   "schema_version": 1,
-  "updated_at": "2026-09-26T12:51:56+01:00"
+  "updated_at": "2026-09-26T13:54:30+01:00"
 }
