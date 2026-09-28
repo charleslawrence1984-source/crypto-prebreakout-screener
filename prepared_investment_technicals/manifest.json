@@ -6,8 +6,8 @@
       "eligible_symbols": 1,
       "errors": [],
       "remaining_symbols": 0,
-      "requested_this_run": 1,
-      "returned_this_run": 1,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-28T22:37:57+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
@@ -42,8 +42,8 @@
       "eligible_symbols": 1,
       "errors": [],
       "remaining_symbols": 0,
-      "requested_this_run": 1,
-      "returned_this_run": 1,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-09-28T22:37:23+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
@@ -2618,5 +2618,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-09-28T21:50:31.571477+00:00"
+  "updated_at": "2026-09-28T22:27:35.121144+00:00"
 }
