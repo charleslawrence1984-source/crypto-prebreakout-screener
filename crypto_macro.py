@@ -76,6 +76,42 @@ def _fred_series(series_id: str, timeout: float = 8.0) -> pd.Series:
     return pd.Series(dtype=float)
 
 
+def _fred_bundle(series_ids: Tuple[str, ...] = FRED_SERIES, timeout: float = 15.0) -> Dict[str, pd.Series]:
+    """Fetch all FRED inputs in one request.
+
+    GitHub-hosted runners were opening several simultaneous FRED requests and
+    occasionally timing out every series in the same run. FRED's graph CSV
+    endpoint supports multiple IDs, so one bundled request is materially more
+    reliable and lighter on the upstream service.
+    """
+    start_date = (
+        pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=450)
+    ).strftime("%Y-%m-%d")
+    response = requests.get(
+        "https://fred.stlouisfed.org/graph/fredgraph.csv",
+        params={"id": ",".join(series_ids), "cosd": start_date},
+        headers={"User-Agent": "cl-signal/1.0"},
+        timeout=max(timeout, 30.0),
+    )
+    response.raise_for_status()
+    frame = pd.read_csv(io.StringIO(response.text))
+    if frame.empty or len(frame.columns) < 2:
+        return {}
+
+    date_col = frame.columns[0]
+    dates = pd.to_datetime(frame[date_col], errors="coerce", utc=True)
+    out: Dict[str, pd.Series] = {}
+    for series_id in series_ids:
+        if series_id not in frame.columns:
+            continue
+        values = pd.to_numeric(frame[series_id], errors="coerce")
+        series = pd.Series(values.to_numpy(), index=dates).dropna()
+        series = series[~series.index.isna()].sort_index()
+        if not series.empty:
+            out[series_id] = series
+    return out
+
+
 def _stablecoin_supply_series(timeout: float = 8.0) -> pd.Series:
     response = requests.get(
         "https://stablecoins.llama.fi/stablecoincharts/all",
@@ -146,18 +182,29 @@ def calculate_macro_liquidity_regime(timeout: float = 8.0) -> Dict:
             return name, _stablecoin_supply_series(timeout)
         return name, _fred_series(name, timeout)
 
-    names = [*FRED_SERIES, "STABLECOINS"]
-    # Keep FRED concurrency modest. Seven simultaneous full-history requests
-    # were causing the scheduled runner to time out every macro series at once.
-    with ThreadPoolExecutor(max_workers=4) as executor:
-        futures = {executor.submit(load, name): name for name in names}
-        for future in as_completed(futures):
-            name = futures[future]
-            try:
-                key, value = future.result()
-                series[key] = value
-            except Exception as exc:
-                errors.append(f"{name}: {type(exc).__name__}: {str(exc)[:180]}")
+    # Fetch FRED as one bundle first. This avoids the failure mode where the
+    # GitHub runner times out several concurrent FRED requests at once.
+    try:
+        series.update(_fred_bundle(FRED_SERIES, max(timeout, 15.0)))
+    except Exception as exc:
+        errors.append(f"FRED bundle: {type(exc).__name__}: {str(exc)[:180]}")
+
+    # If the bundled response is partial, retry only the missing IDs. Keep these
+    # retries sequential so we do not recreate the original connection storm.
+    for name in FRED_SERIES:
+        if name in series and series[name] is not None and not series[name].empty:
+            continue
+        try:
+            series[name] = _fred_series(name, max(timeout, 12.0))
+        except Exception as exc:
+            errors.append(f"{name}: {type(exc).__name__}: {str(exc)[:180]}")
+
+    # DefiLlama is independent of FRED and can still contribute when one macro
+    # source is temporarily unavailable.
+    try:
+        series["STABLECOINS"] = _stablecoin_supply_series(max(timeout, 12.0))
+    except Exception as exc:
+        errors.append(f"STABLECOINS: {type(exc).__name__}: {str(exc)[:180]}")
 
     factors = []
 
