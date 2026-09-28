@@ -2893,26 +2893,34 @@ def crypto_dashboard_summary(frame: pd.DataFrame, cfg: ScreenerConfig, macro_now
         if "Market trend" in df.columns and not df["Market trend"].dropna().empty:
             summary["btc_trend"] = str(df["Market trend"].dropna().iloc[0])
 
-        technical = df[
-            df["Trade verdict"].isin([
-                "QUALIFIES — PRE-BREAKOUT SETUP",
-                "QUALIFIES — FRESH BREAKOUT",
-                "QUALIFIES — BULLISH RETEST",
-            ])
-            & (pd.to_numeric(df["Score"], errors="coerce") >= cfg.score_threshold)
-        ].copy()
-        if not technical.empty:
-            rs_pass = (technical["Coin"] == "BTC") | (pd.to_numeric(technical["RS vs BTC %"], errors="coerce") > 0)
-            final = technical[
-                rs_pass
-                & technical["Tokenomics gate"].eq("PASS")
-                & technical["Major CEX gate"].eq("PASS")
-                & technical["Candle caution"].ne("CAUTION")
-                & technical["Context confidence"].ne("LOW")
-                & technical["Known event risk"].ne("HIGH")
-            ]
-            if macro_now.get("allows_new_swing_risk", True):
-                summary["swing_buy"] = len(final)
+        # Use the same final BUY result shown on the decision card/export.
+        # Context (macro, tokenomics, exchange breadth, event risk) may warn or
+        # reduce confidence, but it must not silently apply a different BUY
+        # definition in the dashboard summary.
+        if "Status" in df.columns:
+            summary["swing_buy"] = int(
+                df["Status"].astype(str).str.upper().eq("BUY").sum()
+            )
+        else:
+            technical = df[
+                df["Trade verdict"].isin([
+                    "QUALIFIES — PRE-BREAKOUT SETUP",
+                    "QUALIFIES — FRESH BREAKOUT",
+                    "QUALIFIES — BULLISH RETEST",
+                ])
+                & (pd.to_numeric(df["Score"], errors="coerce") >= cfg.score_threshold)
+            ].copy()
+            if not technical.empty:
+                rs_pass = (
+                    technical["Coin"].astype(str).str.upper().eq("BTC")
+                    | (pd.to_numeric(technical["RS vs BTC %"], errors="coerce") > 0)
+                )
+                candle_pass = technical["Candle caution"].astype(str).str.upper().ne("CAUTION")
+                if "Execution liquidity pass" in technical.columns:
+                    execution_pass = technical["Execution liquidity pass"].apply(_boolish)
+                else:
+                    execution_pass = pd.Series(False, index=technical.index)
+                summary["swing_buy"] = int((rs_pass & candle_pass & execution_pass).sum())
 
         summary["accumulation"] = int(
             (df["Accumulation verdict"] == "ACCUMULATION READY").sum()
