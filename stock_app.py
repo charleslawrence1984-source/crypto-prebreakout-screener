@@ -3571,7 +3571,7 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
             "MA support": _criterion_mark(True if setup_preconditions_pass else False),
             "MACD confirm": _criterion_mark(True if ready else False),
             "Liquidity": _criterion_mark(
-                True if liquidity_gate == "PASS" else False if liquidity_gate == "FAIL" else None,
+                (liquidity_value_m >= 0.5) if math.isfinite(liquidity_value_m) else None,
                 (
                     "—" if not math.isfinite(liquidity_value_m)
                     else f"£{liquidity_value_m:.2f}m {liquidity_tier.title()}"
