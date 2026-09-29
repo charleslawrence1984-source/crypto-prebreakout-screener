@@ -4825,9 +4825,9 @@ with tab_opportunities:
                     st.caption("Buy + watch")
             with t4:
                 with st.container(border=True):
-                    st.caption("🌍 MARKETS")
-                    st.markdown(f"## {market_count}")
-                    st.caption("Markets represented")
+                    st.caption("🌍 ACTIVE MARKETS")
+                    st.markdown(f"## {market_count} / {len(EXCHANGE_UNIVERSES)}")
+                    st.caption("Markets with shortlisted Trade opportunities")
 
             st.caption(
                 "🟢 **Ready to verify** = the prepared technical setup has reached the confirmation stage. "
@@ -4994,9 +4994,9 @@ with tab_opportunities:
                     st.caption("Valuation refresh pending")
             with i4:
                 with st.container(border=True):
-                    st.caption("🌍 MARKETS")
-                    st.markdown(f"## {investment_market_count}")
-                    st.caption("Markets represented")
+                    st.caption("🌍 ACTIVE MARKETS")
+                    st.markdown(f"## {investment_market_count} / {len(EXCHANGE_UNIVERSES)}")
+                    st.caption("Markets with shortlisted Investment opportunities")
 
             validation = load_investment_validation_coverage()
             priority_refreshed_at = str(validation.get("priority_price_refreshed_at") or "")
