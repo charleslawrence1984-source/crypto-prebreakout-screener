@@ -19,6 +19,16 @@ ROOT = Path(__file__).resolve().parent
 TRADE_TECHNICAL_DIR = ROOT / "prepared_trade_technicals"
 PREPARED_CRYPTO_DIR = ROOT / "prepared_crypto"
 
+# Kraken Funded challenge overlay. The underlying CL Signal rulebooks are unchanged.
+FUNDED_START_BALANCE = 1_000.0
+FUNDED_TARGET_BALANCE = 1_120.0
+FUNDED_FAIL_BALANCE = 970.0
+FUNDED_STANDARD_RISK_USD = 4.0
+FUNDED_MAX_RISK_USD = 5.0
+FUNDED_MAX_TOTAL_OPEN_RISK_USD = 10.0
+FUNDED_MIN_RR = 2.5
+FUNDED_MAX_POSITION_PCT = 35.0
+
 KRAKEN_FUNDED_STOCKS = [
     "NVDA", "NFLX", "SPCX", "GOOGL", "CRCL", "AAPL", "TSLA", "MSTR", "HOOD",
     "SNDK", "META", "AMZN", "BABA", "AMD", "ARM", "AVGO", "BB", "CBRS",
@@ -47,6 +57,42 @@ def first_existing(frame: pd.DataFrame, names: list[str]) -> str | None:
         if name in frame.columns:
             return name
     return None
+
+
+def funded_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD):
+    entry = safe_number(entry)
+    stop = safe_number(stop)
+    if not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop or entry <= 0:
+        return np.nan, np.nan, np.nan
+
+    per_unit_risk = entry - stop
+    risk_units = risk_usd / per_unit_risk
+    max_notional = FUNDED_START_BALANCE * FUNDED_MAX_POSITION_PCT / 100
+    notional = min(risk_units * entry, max_notional)
+    units = notional / entry
+    actual_risk = units * per_unit_risk
+    return units, notional, actual_risk
+
+
+def funded_stock_status(row: pd.Series) -> str:
+    state = str(row.get("Technical state") or "")
+    if state == "WATCH":
+        return "🟡 FUNDED WATCH"
+    if state not in {"ENTRY READY", "AWAITING NEXT OPEN"}:
+        return "⚪ NO CURRENT SETUP"
+
+    rr = safe_number(row.get("R:R"))
+    liquidity = safe_number(row.get("Median traded value GBPm"))
+    entry = safe_number(row.get("Entry"))
+    stop = safe_number(row.get("Stop"))
+
+    if not np.isfinite(rr) or rr < FUNDED_MIN_RR:
+        return "🟡 FUNDED WATCH · R:R"
+    if not np.isfinite(liquidity) or liquidity < 0.5:
+        return "🔴 FUNDED PASS · LIQUIDITY"
+    if not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
+        return "🟡 FUNDED WATCH · RISK PLAN"
+    return "🟢 FUNDED READY"
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -124,6 +170,14 @@ def load_funded_stock_rows() -> pd.DataFrame:
     output["Stop"] = pd.to_numeric(output.get("Stop"), errors="coerce")
     output["Target"] = pd.to_numeric(output.get("Target"), errors="coerce")
     output["R:R"] = pd.to_numeric(output.get("R:R"), errors="coerce").round(2)
+
+    output["Funded status"] = output.apply(funded_stock_status, axis=1)
+    stock_plans = output.apply(
+        lambda row: funded_position_plan(row.get("Entry"), row.get("Stop")),
+        axis=1,
+    )
+    output["Risk $"] = [round(plan[2], 2) if np.isfinite(plan[2]) else np.nan for plan in stock_plans]
+    output["Position $"] = [round(plan[1], 2) if np.isfinite(plan[1]) else np.nan for plan in stock_plans]
 
     return output
 
