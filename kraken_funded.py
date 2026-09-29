@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import io
 import json
+import math
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -9,8 +11,12 @@ import numpy as np
 import pandas as pd
 import requests
 import streamlit as st
+import yfinance as yf
 
 from cl_signal_ui import render_module_header
+from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot
+from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
+from crypto_rule_engine import ScreenerConfig, score_setup
 
 
 st.set_page_config(page_title="CL Signal · Kraken Funded", page_icon="💼", layout="wide")
@@ -18,6 +24,7 @@ st.set_page_config(page_title="CL Signal · Kraken Funded", page_icon="💼", la
 ROOT = Path(__file__).resolve().parent
 TRADE_TECHNICAL_DIR = ROOT / "prepared_trade_technicals"
 PREPARED_CRYPTO_DIR = ROOT / "prepared_crypto"
+TRADE_FUNDAMENTAL_DIR = ROOT / "prepared_trade_fundamentals"
 
 # Kraken Funded challenge overlay. The underlying CL Signal rulebooks are unchanged.
 FUNDED_START_BALANCE = 1_000.0
@@ -57,6 +64,329 @@ def first_existing(frame: pd.DataFrame, names: list[str]) -> str | None:
         if name in frame.columns:
             return name
     return None
+
+
+
+def _json_list(value):
+    if isinstance(value, list):
+        return value
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return []
+    try:
+        parsed = json.loads(str(value))
+        return parsed if isinstance(parsed, list) else []
+    except Exception:
+        return []
+
+
+def _text(value, default=""):
+    if value is None or (isinstance(value, float) and np.isnan(value)):
+        return default
+    text = str(value).strip()
+    return text or default
+
+
+def snapshot_from_record(row: dict) -> FundamentalSnapshot:
+    earnings_date = None
+    try:
+        parsed = pd.to_datetime(row.get("Earnings date"), errors="coerce")
+        if not pd.isna(parsed):
+            earnings_date = pd.Timestamp(parsed)
+    except Exception:
+        pass
+    symbol = _text(row.get("Ticker"))
+    return FundamentalSnapshot(
+        symbol=symbol,
+        company=_text(row.get("Company"), symbol),
+        sector=_text(row.get("Sector"), "UNAVAILABLE"),
+        industry=_text(row.get("Industry"), "UNAVAILABLE"),
+        currency=_text(row.get("Currency"), "USD").upper(),
+        market_cap=safe_number(row.get("Market cap")),
+        roic=safe_number(row.get("ROIC")),
+        roe=safe_number(row.get("ROE")),
+        operating_margin=safe_number(row.get("Operating margin")),
+        fcf_margin=safe_number(row.get("FCF margin")),
+        annual_fcf=[safe_number(v) for v in _json_list(row.get("Annual FCF")) if np.isfinite(safe_number(v))],
+        annual_net_income=[safe_number(v) for v in _json_list(row.get("Annual net income")) if np.isfinite(safe_number(v))],
+        net_debt_to_fcf=safe_number(row.get("Net debt / FCF")),
+        interest_coverage=safe_number(row.get("Interest coverage")),
+        no_interest_expense=str(row.get("No interest expense")).strip().lower() in {"true", "1", "yes"},
+        current_ratio=safe_number(row.get("Current ratio")),
+        revenue_growth=safe_number(row.get("Revenue growth")),
+        earnings_growth=safe_number(row.get("Earnings growth")),
+        operating_growth=safe_number(row.get("Operating growth")),
+        growth_source=_text(row.get("Growth source"), "PREPARED"),
+        share_change=safe_number(row.get("Share change")),
+        distribution_ratio=safe_number(row.get("Distribution ratio")),
+        earnings_date=earnings_date,
+        earnings_source=_text(row.get("Earnings source"), "UNVERIFIED"),
+        trailing_pe=safe_number(row.get("Trailing PE")),
+        price_sales=safe_number(row.get("Price sales")),
+        missing_hard_inputs=[str(v) for v in _json_list(row.get("Missing hard inputs"))],
+        trailing_fcf=safe_number(row.get("Trailing FCF")),
+    )
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def funded_fundamental_results() -> dict:
+    frames = []
+    for kind in ("nasdaq", "nyse", "otc"):
+        path = TRADE_FUNDAMENTAL_DIR / f"{kind}.csv.gz"
+        if not path.exists():
+            continue
+        try:
+            frame = pd.read_csv(path, compression="gzip")
+            if not frame.empty:
+                frames.append(frame)
+        except Exception:
+            continue
+    if not frames:
+        return {}
+
+    prepared = pd.concat(frames, ignore_index=True).drop_duplicates("Ticker", keep="last")
+    snapshots = []
+    for record in prepared.to_dict(orient="records"):
+        try:
+            snapshots.append(snapshot_from_record(record))
+        except Exception:
+            continue
+
+    usd_to_gbp = np.nan
+    try:
+        fx = yf.download("GBPUSD=X", period="5d", interval="1d", auto_adjust=False, progress=False)
+        close = pd.to_numeric(fx["Close"], errors="coerce").dropna()
+        if len(close):
+            usd_to_gbp = 1.0 / float(close.iloc[-1])
+    except Exception:
+        pass
+    if not np.isfinite(usd_to_gbp):
+        usd_to_gbp = 0.75
+
+    output = {}
+    for snapshot in snapshots:
+        if snapshot.symbol not in KRAKEN_FUNDED_STOCKS:
+            continue
+        rate = usd_to_gbp if snapshot.currency == "USD" else 1.0
+        try:
+            result = score_fundamental_snapshot(
+                snapshot, snapshots, rate, earnings_sessions=None,
+                official_event_verified=False, apply_event_gate=False,
+            )
+            failures = list(result.get("fundamental_failures", []))
+            score = float(result.get("fundamental_score", 0) or 0)
+            output[snapshot.symbol] = {
+                "score": score,
+                "pass": not failures and score >= 65,
+                "reason": "; ".join(failures) if failures else "PASS",
+            }
+        except Exception as exc:
+            output[snapshot.symbol] = {"score": np.nan, "pass": False, "reason": f"FUNDAMENTAL ERROR: {type(exc).__name__}"}
+    return output
+
+
+def _extract_yahoo_frame(batch: pd.DataFrame, symbol: str):
+    if batch is None or batch.empty:
+        return None
+    if isinstance(batch.columns, pd.MultiIndex):
+        level0 = set(str(v) for v in batch.columns.get_level_values(0))
+        level1 = set(str(v) for v in batch.columns.get_level_values(1))
+        if symbol in level0:
+            frame = batch[symbol].copy()
+        elif symbol in level1:
+            frame = batch.xs(symbol, level=1, axis=1).copy()
+        else:
+            return None
+    else:
+        frame = batch.copy()
+    frame = frame.rename(columns={str(col): str(col).title() for col in frame.columns})
+    needed = {"Open", "High", "Low", "Close", "Volume"}
+    return frame if needed.issubset(frame.columns) else None
+
+
+def scan_funded_stocks_live() -> pd.DataFrame:
+    fundamentals = funded_fundamental_results()
+    benchmark_raw = yf.download("^GSPC", period="3y", interval="1d", auto_adjust=False, progress=False)
+    benchmark = _extract_yahoo_frame(benchmark_raw, "^GSPC") or benchmark_raw
+    prices = yf.download(
+        KRAKEN_FUNDED_STOCKS, period="3y", interval="1d", group_by="ticker",
+        auto_adjust=False, threads=True, progress=False,
+    )
+
+    rows = []
+    for symbol in KRAKEN_FUNDED_STOCKS:
+        fundamental = fundamentals.get(symbol, {})
+        fscore = safe_number(fundamental.get("score"))
+        if not fundamental:
+            rows.append({
+                "Ticker": symbol, "Fundamentals": "— unavailable", "Technical state": "DATA UNAVAILABLE",
+                "Gate": "FUNDAMENTALS NOT PREPARED", "Fundamental score": np.nan,
+            })
+            continue
+        if not fundamental.get("pass"):
+            rows.append({
+                "Ticker": symbol, "Fundamentals": f"❌ {fscore:.0f}" if np.isfinite(fscore) else "❌",
+                "Technical state": "BLOCKED", "Gate": fundamental.get("reason", "FUNDAMENTAL FAIL"),
+                "Fundamental score": fscore,
+            })
+            continue
+        frame = _extract_yahoo_frame(prices, symbol)
+        if frame is None or len(frame.dropna(subset=["Close", "Volume"])) < 252:
+            rows.append({
+                "Ticker": symbol, "Fundamentals": f"✅ {fscore:.0f}", "Technical state": "DATA UNAVAILABLE",
+                "Gate": "INSUFFICIENT PRICE HISTORY", "Fundamental score": fscore,
+            })
+            continue
+        technical = evaluate_price_setup(frame, benchmark)
+        clean = frame.dropna(subset=["Close", "Volume"])
+        turnover_usd = float((clean["Close"] * clean["Volume"]).tail(20).median())
+        liquidity_gbpm = turnover_usd * 0.75 / 1_000_000
+        row = {
+            "Ticker": symbol,
+            "Fundamentals": f"✅ {fscore:.0f}",
+            "Fundamental score": fscore,
+            "Technical state": technical.get("technical_state"),
+            "Gate": technical.get("technical_reason"),
+            "MACD progress": technical.get("macd_progress"),
+            "RSI": technical.get("rsi"),
+            "Entry": technical.get("entry"),
+            "Stop": technical.get("stop"),
+            "Target": technical.get("target"),
+            "R:R": technical.get("reward_risk"),
+            "Median traded value GBPm": liquidity_gbpm,
+        }
+        row["Funded status"] = funded_stock_status(pd.Series(row))
+        plan = funded_position_plan(row.get("Entry"), row.get("Stop"))
+        row["Position $"] = round(plan[1], 2) if np.isfinite(plan[1]) else np.nan
+        row["Risk $"] = round(plan[2], 2) if np.isfinite(plan[2]) else np.nan
+        rows.append(row)
+
+    output = pd.DataFrame(rows)
+    if "Funded status" not in output.columns:
+        output["Funded status"] = output.apply(funded_stock_status, axis=1)
+    return output
+
+
+async def scan_funded_crypto_live_async() -> pd.DataFrame:
+    exchange = make_exchange("kraken")
+    rows = []
+    try:
+        await exchange.load_markets()
+        tickers = await exchange.fetch_tickers()
+        btc4 = ohlcv_frame(await exchange.fetch_ohlcv("BTC/USD", timeframe="4h", limit=180))
+        btcd = ohlcv_frame(await exchange.fetch_ohlcv("BTC/USD", timeframe="1d", limit=365))
+
+        for base in KRAKEN_FUNDED_CRYPTO:
+            symbol = f"{base}/USD"
+            market = exchange.markets.get(symbol)
+            if market is None:
+                # Kraken/CCXT sometimes exposes USD pairs through an alias; try USDT.
+                symbol = f"{base}/USDT"
+                market = exchange.markets.get(symbol)
+            if market is None:
+                rows.append({"Coin": base, "CL Signal": "⚪ DATA UNAVAILABLE", "Funded status": "⚪ PAIR NOT FOUND", "Gate": "PAIR NOT FOUND ON KRAKEN"})
+                continue
+
+            try:
+                raw4, rawd, raww = await asyncio.gather(
+                    exchange.fetch_ohlcv(symbol, timeframe="4h", limit=180),
+                    exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365),
+                    exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220),
+                )
+                df4, dfd, dfw = ohlcv_frame(raw4), ohlcv_frame(rawd), ohlcv_frame(raww)
+                cfg = ScreenerConfig(
+                    exchange_id="kraken", quote=symbol.split("/")[-1],
+                    universe_size=len(KRAKEN_FUNDED_CRYPTO), min_quote_volume=0,
+                    score_threshold=80,
+                )
+                result = score_setup(df4, dfd, btc4, cfg, dfw=dfw, btcd=btcd)
+                ticker = tickers.get(symbol, {}) or {}
+                quote_volume = safe_number(ticker.get("quoteVolume"))
+                if not np.isfinite(quote_volume):
+                    quote_volume = 0.0
+                item = {
+                    "Base": base, "Symbol": symbol, "Exchange": "Kraken", "Exchange id": "kraken",
+                    "24h quote volume": quote_volume,
+                    "Eligible exchange count": 1, "Eligible exchanges": "Kraken",
+                    "Major venue listing count": 1, "Major venue listings": "Kraken", "Major venues checked": 1,
+                    "Cross-exchange quote volume": quote_volume,
+                    "Kraken available": True, "Crypto.com available": False,
+                    "Kraken USD-like 24h volume": quote_volume, "Crypto.com USD-like 24h volume": 0.0,
+                    "Execution available": True, "Execution venues": "Kraken",
+                    "Execution max USD-like 24h volume": quote_volume,
+                    "Execution liquidity pass": quote_volume >= 1_000_000,
+                    "Execution reason": "PASS" if quote_volume >= 1_000_000 else "Kraken 24h volume below $1m",
+                }
+                flat = flatten_deep_score(item, result)
+                flat["Coin"] = base
+                rows.append(flat)
+            except Exception as exc:
+                rows.append({
+                    "Coin": base, "CL Signal": "⚪ DATA UNAVAILABLE", "Funded status": "⚪ SCAN ERROR",
+                    "Gate": f"{type(exc).__name__}: {str(exc)[:120]}",
+                })
+    finally:
+        await exchange.close()
+
+    return pd.DataFrame(rows)
+
+
+def scan_funded_crypto_live() -> pd.DataFrame:
+    raw = asyncio.run(scan_funded_crypto_live_async())
+    if raw.empty:
+        return raw
+
+    # Reuse the same funded overlay fields used by the prepared crypto view.
+    raw["CL Signal"] = np.select(
+        [
+            raw.get("Swing status", pd.Series("", index=raw.index)).astype(str).str.upper().eq("BUY"),
+            raw.get("Swing status", pd.Series("", index=raw.index)).astype(str).str.upper().eq("WATCH"),
+            raw.get("Swing status", pd.Series("", index=raw.index)).astype(str).str.upper().eq("PASS"),
+        ],
+        ["🟢 READY / BUY", "🟡 WATCH", "🔴 PASS"],
+        default=raw.get("CL Signal", pd.Series("⚪ DATA UNAVAILABLE", index=raw.index)),
+    )
+    raw["Score"] = pd.to_numeric(raw.get("Swing score"), errors="coerce").round(1)
+    raw["Entry timing"] = raw.get("Entry timing", "—")
+    raw["RSI"] = pd.to_numeric(raw.get("RSI"), errors="coerce").round(1)
+    raw["To resistance %"] = pd.to_numeric(raw.get("Distance %"), errors="coerce").round(1)
+    raw["Funded entry"] = pd.to_numeric(raw.get("Active entry"), errors="coerce")
+    raw["Funded stop"] = pd.to_numeric(raw.get("Invalidation"), errors="coerce")
+    raw["Funded target"] = pd.to_numeric(raw.get("First technical target"), errors="coerce")
+    raw["Funded R:R"] = pd.to_numeric(raw.get("Current R:R", raw.get("R:R")), errors="coerce").round(2)
+    raw["Execution"] = raw.get("Execution liquidity pass", False).apply(lambda v: "✅" if bool(v) else "❌")
+
+    funded_status, positions, risks = [], [], []
+    for _, row in raw.iterrows():
+        core = str(row.get("CL Signal") or "")
+        timing = str(row.get("Entry timing") or "").upper()
+        execution = str(row.get("Execution") or "")
+        rr = safe_number(row.get("Funded R:R"))
+        entry = safe_number(row.get("Funded entry"))
+        stop = safe_number(row.get("Funded stop"))
+        if core == "🔴 PASS":
+            status = "🔴 FUNDED PASS"
+        elif core == "🟡 WATCH":
+            status = "🟡 FUNDED WATCH"
+        elif core.startswith("⚪"):
+            status = str(row.get("Funded status") or "⚪ DATA UNAVAILABLE")
+        elif "EXTENDED" in timing or "TOO LATE" in timing:
+            status = "🔴 FUNDED PASS · LATE"
+        elif execution == "❌":
+            status = "🔴 FUNDED PASS · EXECUTION"
+        elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
+            status = "🟡 FUNDED WATCH · R:R"
+        elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
+            status = "🟡 FUNDED WATCH · RISK PLAN"
+        else:
+            status = "🟢 FUNDED READY"
+        plan = funded_position_plan(entry, stop)
+        funded_status.append(status)
+        positions.append(round(plan[1], 2) if np.isfinite(plan[1]) else np.nan)
+        risks.append(round(plan[2], 2) if np.isfinite(plan[2]) else np.nan)
+    raw["Funded status"] = funded_status
+    raw["Position $"] = positions
+    raw["Risk $"] = risks
+    return raw
 
 
 def funded_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD):
