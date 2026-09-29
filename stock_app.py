@@ -3517,6 +3517,125 @@ def render_live_watchlist_quotes() -> None:
 
 
 @st.cache_data(ttl=300, show_spinner=False)
+def _criterion_mark(passed: bool | None, value: str = "") -> str:
+    """Compact visual criterion for Opportunities matrices."""
+    if passed is None:
+        return f"— {value}".strip()
+    return f"{'✅' if passed else '❌'} {value}".strip()
+
+
+def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
+    """Turn prepared Trade rows into an at-a-glance gate matrix."""
+    if frame is None or frame.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for _, row in frame.iterrows():
+        status = str(row.get("Status") or "")
+        ready = status == "READY TO VERIFY"
+        watch = status == "WATCH"
+
+        fundamental_score = safe(row.get("Fundamental score"))
+        rsi_value = safe(row.get("RSI"))
+        liquidity_gate = str(row.get("Liquidity gate") or "").upper()
+        entry = safe(row.get("Entry"))
+        stop = safe(row.get("Stop"))
+        upside = safe(row.get("Upside %"))
+        reward_risk = safe(row.get("R:R"))
+
+        # A row only reaches WATCH after the RSI exhaustion, rising MA trend,
+        # and MA-zone-contact checks pass in evaluate_price_setup().
+        setup_preconditions_pass = ready or watch
+
+        rows.append({
+            "Ticker": str(row.get("Ticker") or ""),
+            "Company": str(row.get("Company") or ""),
+            "Fundamentals ≥65": _criterion_mark(
+                None if np.isnan(fundamental_score) else fundamental_score >= 65,
+                "—" if np.isnan(fundamental_score) else f"{fundamental_score:.0f}",
+            ),
+            "RSI setup": _criterion_mark(
+                True if setup_preconditions_pass else False,
+                "—" if np.isnan(rsi_value) else f"{rsi_value:.1f}",
+            ),
+            "MA trend": _criterion_mark(True if setup_preconditions_pass else False),
+            "MA support": _criterion_mark(True if setup_preconditions_pass else False),
+            "MACD confirm": _criterion_mark(True if ready else False),
+            "Liquidity": _criterion_mark(
+                True if liquidity_gate == "PASS" else False if liquidity_gate == "FAIL" else None
+            ),
+            "Entry quality": _criterion_mark(
+                True if ready and math.isfinite(entry) else None,
+                "" if not math.isfinite(entry) else f"{entry:.2f}",
+            ),
+            "Stop risk": _criterion_mark(
+                True if ready and math.isfinite(stop) else None,
+                "" if not math.isfinite(stop) else f"{stop:.2f}",
+            ),
+            "Upside ≥10%": _criterion_mark(
+                (upside >= 10) if ready and math.isfinite(upside) else None,
+                "" if not math.isfinite(upside) else f"{upside:.1f}%",
+            ),
+            "R:R ≥2:1": _criterion_mark(
+                (reward_risk >= 2) if ready and math.isfinite(reward_risk) else None,
+                "" if not math.isfinite(reward_risk) else f"{reward_risk:.2f}",
+            ),
+            "Overall": "🟢 READY" if ready else "🟡 WATCH",
+        })
+    return pd.DataFrame(rows)
+
+
+def build_investment_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
+    """Turn prepared Investment rows into an at-a-glance gate matrix."""
+    if frame is None or frame.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for _, row in frame.iterrows():
+        action = str(row.get("Action") or "")
+        quality = safe(row.get("Quality score"))
+        hard_gates = str(row.get("Hard gates") or "").upper()
+        valuation_gate = str(row.get("Valuation gate") or "").upper()
+        fx_status = str(row.get("Valuation FX status") or "").upper()
+        mos_gap = safe(row.get("MOS gap %"))
+        base_mos = safe(row.get("Base margin of safety %"))
+        required_mos = safe(row.get("Required margin of safety %"))
+
+        rows.append({
+            "Ticker": str(row.get("Ticker") or ""),
+            "Company": str(row.get("Company") or ""),
+            "Quality ≥70": _criterion_mark(
+                None if np.isnan(quality) else quality >= MIN_INVESTMENT_QUALITY_SCORE,
+                "—" if np.isnan(quality) else f"{quality:.0f}",
+            ),
+            "Hard gates": _criterion_mark(
+                True if hard_gates == "PASS" else False if hard_gates == "FAIL" else None
+            ),
+            "FX-safe valuation": _criterion_mark(
+                True if fx_status in {"PASS", "FX SAFE", "FX-SAFE", "VALID"} else
+                False if fx_status in {"FAIL", "INVALID"} else
+                (True if action in {"BUY CANDIDATE", "WAIT"} and valuation_gate != "REVALUE" else None)
+            ),
+            "Valuation gate": _criterion_mark(
+                True if valuation_gate == "PASS" else
+                False if valuation_gate == "WAIT" else None
+            ),
+            "Margin of safety": _criterion_mark(
+                None if np.isnan(mos_gap) else mos_gap >= 0,
+                (
+                    "—" if np.isnan(base_mos) or np.isnan(required_mos)
+                    else f"{base_mos:.1f}% / {required_mos:.1f}%"
+                ),
+            ),
+            "Overall": (
+                "🟢 BUY" if action == "BUY CANDIDATE"
+                else "🟡 WAIT" if action == "WAIT"
+                else "🔵 REVALUE"
+            ),
+        })
+    return pd.DataFrame(rows)
+
+
 def load_all_trade_opportunities() -> pd.DataFrame:
     """Combine prepared Trade technicals across exchanges for a simple user-facing opportunity feed."""
     frames = []
@@ -4888,57 +5007,22 @@ with tab_opportunities:
             if shown_trade.empty:
                 st.info("No Trade opportunities match those filters.")
             else:
-                ready_trade = shown_trade[shown_trade["Status"] == "READY TO VERIFY"].copy()
-                watch_trade = shown_trade[shown_trade["Status"] == "WATCH"].copy()
+                st.markdown("#### Trade criteria matrix")
+                st.caption(
+                    "✅ = criterion currently passes · ❌ = criterion currently fails · "
+                    "— = that criterion cannot be tested until a later signal stage."
+                )
+                trade_matrix = build_trade_criteria_matrix(shown_trade)
+                render_watchlist_selector(
+                    trade_matrix,
+                    key=f"trade_matrix_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
+                )
 
-                if not ready_trade.empty:
-                    st.markdown("#### 🟢 Ready to verify")
+                with st.expander("Why a WATCH can still have several green ticks", expanded=False):
                     st.caption(
-                        "These have a confirmed technical setup, so Entry, Stop, Target, R:R, Upside and Technical score are available."
-                    )
-                    ready_cols = [
-                        "Status", "Ticker", "Company", "Sector",
-                        "Technical score", "R:R", "Upside %",
-                        "Entry", "Stop", "Target",
-                    ]
-                    ready_cols = [col for col in ready_cols if col in ready_trade.columns]
-                    render_watchlist_selector(
-                        ready_trade[ready_cols],
-                        key=f"trade_ready_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
-                        column_config={
-                            "Technical score": st.column_config.ProgressColumn(
-                                "Technical", min_value=0, max_value=100, format="%.0f"
-                            ),
-                            "R:R": st.column_config.NumberColumn("R:R", format="%.2f"),
-                            "Upside %": st.column_config.NumberColumn("Upside", format="%.1f%%"),
-                            "Entry": st.column_config.NumberColumn("Entry", format="%.2f"),
-                            "Stop": st.column_config.NumberColumn("Stop", format="%.2f"),
-                            "Target": st.column_config.NumberColumn("Target", format="%.2f"),
-                        },
-                    )
-
-                if not watch_trade.empty:
-                    st.markdown("#### 🟡 Developing watchlist")
-                    st.caption(
-                        "WATCH is deliberately pre-signal. These companies have an active RSI/pullback setup, "
-                        "but there is no current MACD confirmation yet — so Entry, Stop, Target, R:R, Upside "
-                        "and final Technical score do not exist at this stage."
-                    )
-                    watch_cols = [
-                        "Status", "Ticker", "Company", "Sector",
-                        "Price", "RSI", "Fundamental score", "Technical reason",
-                    ]
-                    watch_cols = [col for col in watch_cols if col in watch_trade.columns]
-                    render_watchlist_selector(
-                        watch_trade[watch_cols],
-                        key=f"trade_developing_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
-                        column_config={
-                            "Price": st.column_config.NumberColumn(format="%.2f"),
-                            "RSI": st.column_config.NumberColumn(format="%.1f"),
-                            "Fundamental score": st.column_config.ProgressColumn(
-                                "Fundamental", min_value=0, max_value=100, format="%.0f"
-                            ),
-                        },
+                        "A WATCH has already passed the active RSI/pullback check, both long moving-average trend checks "
+                        "and MA-zone contact. It remains WATCH because there is no current confirmed MACD crossover. "
+                        "Entry, stop, target, upside and reward/risk are therefore deliberately shown as — until that confirmation exists."
                     )
 
                 with st.expander("More Trade detail", expanded=False):
@@ -4946,23 +5030,13 @@ with tab_opportunities:
                         "Status", "Ticker", "Company", "Exchange", "Sector",
                         "Technical reason", "Fundamental score", "Technical score",
                         "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
+                        "Liquidity gate",
                     ]
                     detail_trade_cols = [col for col in detail_trade_cols if col in shown_trade.columns]
                     st.dataframe(
                         shown_trade[detail_trade_cols],
                         hide_index=True,
                         use_container_width=True,
-                        column_config={
-                            "Fundamental score": st.column_config.ProgressColumn(
-                                "Fundamental", min_value=0, max_value=100, format="%.0f"
-                            ),
-                            "Technical score": st.column_config.ProgressColumn(
-                                "Technical", min_value=0, max_value=100, format="%.0f"
-                            ),
-                            "R:R": st.column_config.NumberColumn(format="%.2f"),
-                            "Upside %": st.column_config.NumberColumn(format="%.1f%%"),
-                            "RSI": st.column_config.NumberColumn(format="%.1f"),
-                        },
                     )
 
             st.caption(
@@ -5081,57 +5155,15 @@ with tab_opportunities:
             if shown_investment.empty:
                 st.info("No Investment opportunities match those filters.")
             else:
-                st.markdown("#### Best on screen")
-                spotlight_cols = st.columns(min(3, len(shown_investment)))
-                for spotlight_col, (_, row) in zip(spotlight_cols, shown_investment.head(3).iterrows()):
-                    with spotlight_col:
-                        with st.container(border=True):
-                            action = str(row.get("Action") or "—")
-                            icon = "🟢" if action == "BUY CANDIDATE" else ("🟡" if action == "WAIT" else "🔵")
-                            ticker = str(row.get("Ticker") or "—")
-                            company = str(row.get("Company") or "")
-                            st.markdown(f"**{icon} {ticker}**")
-                            if company:
-                                st.caption(company)
-                            quality = safe(row.get("Quality score"))
-                            moat = safe(row.get("Moat score"))
-                            mos = safe(row.get("Base margin of safety %"))
-                            st.markdown(
-                                f"**{action.replace('_', ' ').title()}**  \\n"
-                                f"Quality: **{'—' if np.isnan(quality) else f'{quality:.0f}/100'}** · "
-                                f"Moat: **{'—' if np.isnan(moat) else f'{moat:.0f}/100'}** · "
-                                f"MOS: **{'—' if np.isnan(mos) else f'{mos:.1f}%'}**"
-                            )
-                            reason = str(row.get("Decision reason") or "").strip()
-                            if reason:
-                                st.caption(reason[:180] + ("…" if len(reason) > 180 else ""))
-
-                st.markdown("#### Shortlist")
-                investment_cols = [
-                    "Action", "Ticker", "Company", "Sector",
-                    "Quality score", "Moat score",
-                    "Base margin of safety %", "MOS gap %",
-                    "Price",
-                ]
-                visible_investment_cols = [
-                    col for col in investment_cols if col in shown_investment.columns
-                ]
+                st.markdown("#### Investment criteria matrix")
+                st.caption(
+                    "✅ = criterion currently passes · ❌ = criterion currently fails · "
+                    "— = unavailable or awaiting a fresh valuation."
+                )
+                investment_matrix = build_investment_criteria_matrix(shown_investment)
                 render_watchlist_selector(
-                    shown_investment[visible_investment_cols],
-                    key=f"investment_opportunity_watch_{investment_filter}_{investment_sector}_{investment_market}_{_query_param_text('wl')[:8]}",
-                    column_config={
-                        "Quality score": st.column_config.ProgressColumn(
-                            "Quality", min_value=0, max_value=100, format="%.0f"
-                        ),
-                        "Moat score": st.column_config.ProgressColumn(
-                            "Moat", min_value=0, max_value=100, format="%.0f"
-                        ),
-                        "Base margin of safety %": st.column_config.NumberColumn(
-                            "Margin of safety", format="%.1f%%"
-                        ),
-                        "MOS gap %": st.column_config.NumberColumn("MOS gap", format="%.1f%%"),
-                        "Price": st.column_config.NumberColumn(format="%.2f"),
-                    },
+                    investment_matrix,
+                    key=f"investment_matrix_watch_{investment_filter}_{investment_sector}_{investment_market}_{_query_param_text('wl')[:8]}",
                 )
 
                 with st.expander("More Investment detail", expanded=False):
@@ -5149,17 +5181,6 @@ with tab_opportunities:
                         shown_investment[investment_detail_cols],
                         hide_index=True,
                         use_container_width=True,
-                        column_config={
-                            "Quality score": st.column_config.ProgressColumn(
-                                min_value=0, max_value=100, format="%.0f"
-                            ),
-                            "Moat score": st.column_config.ProgressColumn(
-                                min_value=0, max_value=100, format="%.0f"
-                            ),
-                            "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
-                            "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
-                            "MOS gap %": st.column_config.NumberColumn(format="%.1f%%"),
-                        },
                     )
 
             with st.expander("Validation coverage", expanded=False):
