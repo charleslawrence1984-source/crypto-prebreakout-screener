@@ -3132,7 +3132,7 @@ with tab_crypto_home:
             + " · context only; it cannot turn a weak technical setup into a BUY."
         )
 
-    home_a, home_b, home_c = st.columns(3)
+    home_a, home_b, home_c, home_d = st.columns(4)
     with home_a:
         with st.container(border=True):
             st.markdown("#### 🔎 Analyse a coin")
@@ -3185,6 +3185,18 @@ with tab_crypto_home:
                 st.write("Your crypto watchlist is empty.")
                 st.caption("Use **Quick Analysis** and tick **Watch** to start tracking a coin.")
             st.caption("Open **Watchlist** above to manage the coins you are following.")
+
+    with home_d:
+        with st.container(border=True):
+            st.markdown("#### 🐸 Meme Coins")
+            st.write("Open the dedicated meme-coin engine for early discovery, brand-new launches and higher-risk setups.")
+            st.page_link(
+                "meme_app.py",
+                label="Open Meme Coins",
+                icon="🐸",
+                use_container_width=True,
+            )
+            st.caption("Part of Crypto, with its own stricter rules and safety checks.")
 
     if crypto_home_analyse and crypto_home_query:
         with st.spinner(f"Analysing {crypto_home_query.strip()}…"):
