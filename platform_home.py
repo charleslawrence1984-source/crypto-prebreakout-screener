@@ -207,6 +207,29 @@ st.markdown(
     .market-card-link .market-copy {
         flex:1 1 auto;
     }
+    .funded-card {
+        margin-top:16px;
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        gap:20px;
+        padding:18px 22px;
+        border:1px solid #e2e9f3;
+        border-radius:18px;
+        background:#ffffff;
+        box-shadow:0 8px 22px rgba(16,45,92,.04);
+    }
+    .funded-card-title {
+        color:#0a1735;
+        font-size:1.35rem;
+        font-weight:900;
+        margin:0;
+    }
+    .funded-card-copy {
+        color:#687c96;
+        font-size:.96rem;
+        margin-top:4px;
+    }
     .market-card-cta {
         display:flex;
         align-items:center;
@@ -397,6 +420,12 @@ st.markdown(
             <div class="tags"><span class="tag">Pre-breakout</span><span class="tag">Accumulation</span><span class="tag">RS vs BTC</span></div>
             <div class="market-card-cta"><span>Open Crypto</span><span aria-hidden="true">→</span></div>
         </a>
+    </div>
+    <div class="funded-card" aria-label="Kraken Funded">
+        <div>
+            <div class="funded-card-title">💼 Kraken Funded</div>
+            <div class="funded-card-copy">Funded-account trading workspace.</div>
+        </div>
     </div>
     """,
     unsafe_allow_html=True,
