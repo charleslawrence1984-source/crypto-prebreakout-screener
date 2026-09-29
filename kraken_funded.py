@@ -333,6 +333,56 @@ def load_funded_crypto_rows() -> pd.DataFrame:
     else:
         output["Execution"] = "—"
 
+    entry_col = first_existing(output, ["Active entry", "Planned entry", "Entry"])
+    stop_col = first_existing(output, ["Invalidation", "Stop"])
+    target_col = first_existing(output, ["First technical target", "Target"])
+    rr_funded_col = first_existing(output, ["Current R:R", "R:R", "Reward/Risk", "Reward risk"])
+
+    output["Funded entry"] = pd.to_numeric(output[entry_col], errors="coerce") if entry_col else np.nan
+    output["Funded stop"] = pd.to_numeric(output[stop_col], errors="coerce") if stop_col else np.nan
+    output["Funded target"] = pd.to_numeric(output[target_col], errors="coerce") if target_col else np.nan
+    output["Funded R:R"] = (
+        pd.to_numeric(output[rr_funded_col], errors="coerce").round(2)
+        if rr_funded_col else output["R:R"]
+    )
+
+    funded_status = []
+    positions = []
+    risks = []
+    for _, row in output.iterrows():
+        core = str(row.get("CL Signal") or "")
+        timing = str(row.get("Entry timing") or "").upper()
+        execution = str(row.get("Execution") or "")
+        rr = safe_number(row.get("Funded R:R"))
+        entry = safe_number(row.get("Funded entry"))
+        stop = safe_number(row.get("Funded stop"))
+
+        if core == "🔴 PASS":
+            status = "🔴 FUNDED PASS"
+        elif core == "⚪ NOT DEEP-SCORED":
+            status = "⚪ NOT DEEP-SCORED"
+        elif core == "🟡 WATCH":
+            status = "🟡 FUNDED WATCH"
+        elif "EXTENDED" in timing or "TOO LATE" in timing:
+            status = "🔴 FUNDED PASS · LATE"
+        elif execution == "❌":
+            status = "🔴 FUNDED PASS · EXECUTION"
+        elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
+            status = "🟡 FUNDED WATCH · R:R"
+        elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
+            status = "🟡 FUNDED WATCH · RISK PLAN"
+        else:
+            status = "🟢 FUNDED READY"
+
+        plan = funded_position_plan(entry, stop)
+        funded_status.append(status)
+        positions.append(round(plan[1], 2) if np.isfinite(plan[1]) else np.nan)
+        risks.append(round(plan[2], 2) if np.isfinite(plan[2]) else np.nan)
+
+    output["Funded status"] = funded_status
+    output["Position $"] = positions
+    output["Risk $"] = risks
+
     return output
 
 
@@ -343,9 +393,31 @@ render_module_header(
 )
 
 st.info(
-    "This is a restricted universe, not a new strategy. Stocks use the existing CL Signal Stock Trade rules; "
-    "crypto uses the existing CL Signal Swing rules. A funded asset only becomes actionable when the same rules pass."
+    "This is a restricted universe, not a new strategy. The normal Stock Trade and Crypto Swing rulebooks still decide "
+    "whether a setup is valid. The Funded overlay then asks whether that valid setup is suitable for a challenge with "
+    "very little drawdown room."
 )
+
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("Starting balance", "$1,000")
+m2.metric("Pass target", "$1,120", "+12%")
+m3.metric("Failure level", "$970", "-3%")
+m4.metric("Standard risk / trade", "$4", "0.4%")
+
+with st.expander("Kraken Funded overlay rules", expanded=False):
+    st.markdown(
+        """
+        **Core CL Signal rules stay unchanged.** The Funded layer is deliberately more selective:
+
+        - Normal CL Signal **READY / BUY** is required before a Funded READY is possible.
+        - Minimum Funded reward/risk: **2.5:1**. A normal 2.0–2.49R setup remains WATCH for the challenge.
+        - Standard planned loss: **$4 per trade**; never intentionally exceed **$5**.
+        - Maximum combined planned open risk: **$10** so most of the $30 failure buffer remains unused.
+        - Position size is calculated from **entry → invalidation/stop**, capped at **35% of the $1,000 account**.
+        - Crypto marked **EXTENDED / TOO LATE** is not eligible for Funded READY.
+        - There is **no need to force trades** because the challenge has no time limit.
+        """
+    )
 
 stock_tab, crypto_tab = st.tabs(["📈 Stocks", "⚡ Crypto"])
 
