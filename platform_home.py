@@ -178,7 +178,7 @@ st.markdown(
     }
     .market-grid {
         display:grid;
-        grid-template-columns:repeat(3,minmax(0,1fr));
+        grid-template-columns:repeat(2,minmax(0,1fr));
         gap:16px;
         align-items:stretch;
     }
@@ -329,7 +329,7 @@ with left:
     st.markdown(
         """
         <div class="eyebrow">Smarter insights. Brighter opportunities.</div>
-        <div class="hero-title">Find opportunities across stocks, crypto and meme coins.</div>
+        <div class="hero-title">Find opportunities across stocks and crypto.</div>
         <div class="hero-copy">
             CL Signal helps you find, understand and track potential opportunities without
             digging through endless charts, indicators and raw market data yourself.
@@ -348,11 +348,12 @@ with right:
     st.markdown(
         """
         <div class="hero-panel">
-            <div class="panel-kicker">One platform · Three specialist engines</div>
+            <div class="panel-kicker">One platform · Specialist market engines</div>
             <div class="panel-title">Complex analysis underneath. Clear decisions on top.</div>
             <div class="panel-copy">
-                Stocks, crypto and meme coins need different rules. CL Signal keeps those
-                specialist models separate while giving you one consistent way to use them.
+                Stocks and crypto need different rules. CL Signal keeps those specialist
+                models separate while giving you one consistent way to use them. Meme-coin
+                discovery now sits inside the Crypto section where it belongs.
             </div>
             <div class="mini-row">
                 <div class="mini-card">
@@ -362,10 +363,6 @@ with right:
                 <div class="mini-card">
                     <div class="mini-label">Crypto</div>
                     <div class="mini-value">Swing + Accumulate</div>
-                </div>
-                <div class="mini-card">
-                    <div class="mini-label">Meme Coins</div>
-                    <div class="mini-value">Early Discovery</div>
                 </div>
                 <div class="mini-card">
                     <div class="mini-label">Workflow</div>
@@ -399,13 +396,6 @@ st.markdown(
             <div class="market-copy">Look for compression before expansion while checking relative strength, tokenomics, exchange breadth, market structure and macro liquidity.</div>
             <div class="tags"><span class="tag">Pre-breakout</span><span class="tag">Accumulation</span><span class="tag">RS vs BTC</span></div>
             <div class="market-card-cta"><span>Open Crypto</span><span aria-hidden="true">→</span></div>
-        </a>
-        <a class="market-card-link" href="memes" target="_self" aria-label="Open Meme Coins">
-            <div class="market-heading">🐸 Meme Coins</div>
-            <div class="market-sub">Early-stage discovery with stricter filters.</div>
-            <div class="market-copy">Cut through the noise using liquidity, activity, community, narrative, tokenomics and anti-chase rules designed for a much higher-risk market.</div>
-            <div class="tags"><span class="tag">Early stage</span><span class="tag">High risk</span><span class="tag">Community</span></div>
-            <div class="market-card-cta"><span>Open Meme Coins</span><span aria-hidden="true">→</span></div>
         </a>
     </div>
     """,
