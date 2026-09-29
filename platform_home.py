@@ -207,6 +207,11 @@ st.markdown(
     .market-card-link .market-copy {
         flex:1 1 auto;
     }
+    .funded-card-link {
+        display:block;
+        color:inherit !important;
+        text-decoration:none !important;
+    }
     .funded-card {
         margin-top:16px;
         display:flex;
@@ -421,12 +426,15 @@ st.markdown(
             <div class="market-card-cta"><span>Open Crypto</span><span aria-hidden="true">→</span></div>
         </a>
     </div>
-    <div class="funded-card" aria-label="Kraken Funded">
-        <div>
-            <div class="funded-card-title">💼 Kraken Funded</div>
-            <div class="funded-card-copy">Funded-account trading workspace.</div>
+    <a class="funded-card-link" href="kraken_funded" target="_self" aria-label="Open Kraken Funded">
+        <div class="funded-card">
+            <div>
+                <div class="funded-card-title">💼 Kraken Funded</div>
+                <div class="funded-card-copy">Apply CL Signal Trade rules to your Kraken Funded stocks and crypto universe.</div>
+            </div>
+            <div class="market-card-cta"><span>Open Kraken Funded</span><span aria-hidden="true">→</span></div>
         </div>
-    </div>
+    </a>
     """,
     unsafe_allow_html=True,
 )
