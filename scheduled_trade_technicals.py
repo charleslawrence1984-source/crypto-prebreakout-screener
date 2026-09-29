@@ -70,7 +70,14 @@ def technical_row(symbol: str, technical: dict, turnover_gbp: float, source_time
         "R:R": technical.get("reward_risk"),
         "RSI": technical.get("rsi"),
         "Median traded value GBPm": turnover_gbp / 1_000_000 if math.isfinite(turnover_gbp) else np.nan,
-        "Liquidity gate": "PASS" if math.isfinite(turnover_gbp) and turnover_gbp >= 5_000_000 else "FAIL",
+        "Liquidity gate": "PASS" if math.isfinite(turnover_gbp) and turnover_gbp >= 500_000 else "FAIL",
+        "Liquidity tier": (
+            "EXCELLENT" if math.isfinite(turnover_gbp) and turnover_gbp >= 20_000_000 else
+            "STRONG" if math.isfinite(turnover_gbp) and turnover_gbp >= 5_000_000 else
+            "ACCEPTABLE" if math.isfinite(turnover_gbp) and turnover_gbp >= 1_000_000 else
+            "CAUTION" if math.isfinite(turnover_gbp) and turnover_gbp >= 500_000 else
+            "FAIL"
+        ),
         "Technical score": technical.get("technical_score"),
         "Tier": technical.get("technical_tier"),
         "Market regime": technical.get("market_state"),
