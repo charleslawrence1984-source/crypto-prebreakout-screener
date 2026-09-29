@@ -2056,7 +2056,7 @@ def approved_trade_market_scan(
                     continue
                 raw_turnover = (frame["Close"] * frame["Volume"]).dropna().tail(20).median()
                 turnover_gbp = raw_turnover * context["price_scale"] * quote_to_gbp
-                if not math.isfinite(turnover_gbp) or turnover_gbp < 5_000_000:
+                if not math.isfinite(turnover_gbp) or turnover_gbp < 500_000:
                     liquidity_failures += 1
                     continue
                 technical = evaluate_price_setup(frame, benchmark)
@@ -2069,7 +2069,7 @@ def approved_trade_market_scan(
                     deep_candidates.append((symbol, technical))
                 elif technical.get("technical_state") in {"ENTRY READY", "AWAITING NEXT OPEN"}:
                     exact_turnover_gbp = technical["turnover_median_20"] * context["price_scale"] * quote_to_gbp
-                    if not math.isfinite(exact_turnover_gbp) or exact_turnover_gbp < 5_000_000:
+                    if not math.isfinite(exact_turnover_gbp) or exact_turnover_gbp < 500_000:
                         continue
                     technical["turnover_gbp"] = exact_turnover_gbp
                     deep_candidates.append((symbol, technical))
@@ -3537,6 +3537,16 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         fundamental_score = safe(row.get("Fundamental score"))
         rsi_value = safe(row.get("RSI"))
         liquidity_gate = str(row.get("Liquidity gate") or "").upper()
+        liquidity_value_m = safe(row.get("Median traded value GBPm"))
+        liquidity_tier = str(row.get("Liquidity tier") or "").upper()
+        if not liquidity_tier and math.isfinite(liquidity_value_m):
+            liquidity_tier = (
+                "EXCELLENT" if liquidity_value_m >= 20 else
+                "STRONG" if liquidity_value_m >= 5 else
+                "ACCEPTABLE" if liquidity_value_m >= 1 else
+                "CAUTION" if liquidity_value_m >= 0.5 else
+                "FAIL"
+            )
         entry = safe(row.get("Entry"))
         stop = safe(row.get("Stop"))
         upside = safe(row.get("Upside %"))
@@ -3561,7 +3571,11 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
             "MA support": _criterion_mark(True if setup_preconditions_pass else False),
             "MACD confirm": _criterion_mark(True if ready else False),
             "Liquidity": _criterion_mark(
-                True if liquidity_gate == "PASS" else False if liquidity_gate == "FAIL" else None
+                True if liquidity_gate == "PASS" else False if liquidity_gate == "FAIL" else None,
+                (
+                    "—" if not math.isfinite(liquidity_value_m)
+                    else f"£{liquidity_value_m:.2f}m {liquidity_tier.title()}"
+                ),
             ),
             "Entry quality": _criterion_mark(
                 True if ready and math.isfinite(entry) else None,
@@ -5538,7 +5552,7 @@ with tab3:
                         if price_history_failures:
                             st.write(f"**{price_history_failures:,}** — insufficient usable price history")
                         if liquidity_failures:
-                            st.write(f"**{liquidity_failures:,}** — below the £5m median traded-value gate")
+                            st.write(f"**{liquidity_failures:,}** — below the £500k median traded-value hard floor")
             else:
                 paper_count = int((pre["Status"] == "PAPER CANDIDATE").sum())
                 watch_count = int((pre["Status"] == "WATCH").sum())
