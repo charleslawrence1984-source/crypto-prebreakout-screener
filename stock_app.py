@@ -3656,7 +3656,6 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
             "Overall": "🟢 READY" if ready else "🟡 WATCH",
             "Ticker": ticker,
             "Company": str(row.get("Company") or ""),
-            "Listing": listing_note,
             "Fundamentals ≥65": _criterion_mark(
                 None if np.isnan(fundamental_score) else fundamental_score >= 65,
                 "—" if np.isnan(fundamental_score) else f"{fundamental_score:.0f}",
@@ -5128,7 +5127,7 @@ with tab_opportunities:
                 st.caption(
                     "✅ = criterion currently passes · ❌ = criterion currently fails · "
                     "— = that criterion cannot be tested until a later signal stage. "
-                    "Liquidity below £0.01m is shown as <£0.01m; the Listing column flags thinner alternative/secondary venues."
+                    "Liquidity below £0.01m is shown as <£0.01m."
                 )
 
                 refresh_col, refresh_note_col = st.columns([1, 3])
