@@ -206,7 +206,9 @@ def _extract_yahoo_frame(batch: pd.DataFrame, symbol: str):
 def scan_funded_stocks_live() -> pd.DataFrame:
     fundamentals = funded_fundamental_results()
     benchmark_raw = yf.download("^GSPC", period="3y", interval="1d", auto_adjust=False, progress=False)
-    benchmark = _extract_yahoo_frame(benchmark_raw, "^GSPC") or benchmark_raw
+    benchmark = _extract_yahoo_frame(benchmark_raw, "^GSPC")
+    if benchmark is None:
+        benchmark = benchmark_raw
     prices = yf.download(
         KRAKEN_FUNDED_STOCKS, period="3y", interval="1d", group_by="ticker",
         auto_adjust=False, threads=True, progress=False,
@@ -353,7 +355,13 @@ def scan_funded_crypto_live() -> pd.DataFrame:
     raw["Funded stop"] = pd.to_numeric(raw.get("Invalidation"), errors="coerce")
     raw["Funded target"] = pd.to_numeric(raw.get("First technical target"), errors="coerce")
     raw["Funded R:R"] = pd.to_numeric(raw.get("Current R:R", raw.get("R:R")), errors="coerce").round(2)
-    raw["Execution"] = raw.get("Execution liquidity pass", False).apply(lambda v: "✅" if bool(v) else "❌")
+    execution_series = raw.get(
+        "Execution liquidity pass",
+        pd.Series(False, index=raw.index),
+    )
+    if not isinstance(execution_series, pd.Series):
+        execution_series = pd.Series(bool(execution_series), index=raw.index)
+    raw["Execution"] = execution_series.apply(lambda v: "✅" if bool(v) else "❌")
 
     funded_status, positions, risks = [], [], []
     for _, row in raw.iterrows():
