@@ -3613,6 +3613,7 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         setup_preconditions_pass = ready or watch
 
         rows.append({
+            "Overall": "🟢 READY" if ready else "🟡 WATCH",
             "Ticker": str(row.get("Ticker") or ""),
             "Company": str(row.get("Company") or ""),
             "Fundamentals ≥65": _criterion_mark(
@@ -3655,7 +3656,6 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
                 (reward_risk >= 2) if ready and math.isfinite(reward_risk) else None,
                 "" if not math.isfinite(reward_risk) else f"{reward_risk:.2f}",
             ),
-            "Overall": "🟢 READY" if ready else "🟡 WATCH",
         })
     return pd.DataFrame(rows)
 
