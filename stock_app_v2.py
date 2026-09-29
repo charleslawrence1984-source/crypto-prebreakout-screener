@@ -31,9 +31,15 @@ memes = st.Page(
     icon="🐸",
     url_path="memes",
 )
+kraken_funded = st.Page(
+    "kraken_funded.py",
+    title="Kraken Funded",
+    icon="💼",
+    url_path="kraken-funded",
+)
 
 page = st.navigation(
-    [home, stocks, crypto, memes],
+    [home, stocks, crypto, memes, kraken_funded],
     position="hidden",
 )
 page.run()
