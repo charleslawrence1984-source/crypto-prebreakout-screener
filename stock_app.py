@@ -3526,6 +3526,58 @@ def _criterion_mark(passed: bool | None, value: str = "") -> str:
     return f"{'✅' if passed else '❌'} {value}".strip()
 
 
+def refresh_macd_progress_now(frame: pd.DataFrame) -> Dict[str, Dict]:
+    """Refresh MACD progress for the visible Trade shortlist from completed daily bars."""
+    if frame is None or frame.empty or "Ticker" not in frame.columns:
+        return {}
+
+    symbols = [str(value).strip().upper() for value in frame["Ticker"].dropna().tolist() if str(value).strip()]
+    symbols = list(dict.fromkeys(symbols))
+    if not symbols:
+        return {}
+
+    # Use an exclusive end date of today so an in-progress daily candle can never
+    # accidentally upgrade a WATCH to Confirmed.
+    end_date = datetime.datetime.now(datetime.timezone.utc).date().isoformat()
+    refreshed: Dict[str, Dict] = {}
+
+    for start in range(0, len(symbols), 60):
+        chunk = symbols[start:start + 60]
+        try:
+            data = yf.download(
+                tickers=chunk,
+                period="3y",
+                end=end_date,
+                interval="1d",
+                group_by="ticker",
+                auto_adjust=False,
+                threads=True,
+                progress=False,
+            )
+        except Exception:
+            continue
+
+        for symbol in chunk:
+            try:
+                price_frame = extract_ticker_frame(data, symbol)
+                if price_frame is None or price_frame.empty:
+                    continue
+                technical = evaluate_price_setup(price_frame, benchmark=None)
+                state = str(technical.get("technical_state") or "BLOCKED")
+                progress = str(technical.get("macd_progress") or "").upper()
+                if not progress:
+                    progress = "CONFIRMED" if state in {"ENTRY READY", "AWAITING NEXT OPEN"} else "WEAK"
+                refreshed[symbol] = {
+                    "MACD progress": progress,
+                    "RSI": technical.get("rsi"),
+                    "Technical state": state,
+                    "Technical reason": technical.get("technical_reason"),
+                }
+            except Exception:
+                continue
+    return refreshed
+
+
 def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
     """Turn prepared Trade rows into an at-a-glance gate matrix."""
     if frame is None or frame.empty:
@@ -5036,6 +5088,43 @@ with tab_opportunities:
                     "✅ = criterion currently passes · ❌ = criterion currently fails · "
                     "— = that criterion cannot be tested until a later signal stage."
                 )
+
+                refresh_col, refresh_note_col = st.columns([1, 3])
+                with refresh_col:
+                    refresh_macd_clicked = st.button(
+                        "↻ Refresh MACD now",
+                        key="refresh_trade_macd_now",
+                        use_container_width=True,
+                        help="Recalculate MACD progress for the currently displayed Trade shortlist using the latest completed daily candles.",
+                    )
+                with refresh_note_col:
+                    st.caption("Uses completed daily candles only; it will not confirm from an unfinished intraday candle.")
+
+                if refresh_macd_clicked:
+                    with st.spinner("Refreshing MACD progress…"):
+                        refreshed_macd = refresh_macd_progress_now(shown_trade)
+                    st.session_state["trade_macd_refresh"] = refreshed_macd
+                    st.session_state["trade_macd_refresh_time"] = datetime.datetime.now().strftime("%d %b %Y %H:%M")
+                    if refreshed_macd:
+                        st.success(f"Refreshed MACD for {len(refreshed_macd)} displayed companies.")
+                    else:
+                        st.warning("No MACD rows could be refreshed from the price feed.")
+
+                refreshed_macd = st.session_state.get("trade_macd_refresh", {})
+                if refreshed_macd:
+                    shown_trade = shown_trade.copy()
+                    for idx, row in shown_trade.iterrows():
+                        symbol = str(row.get("Ticker") or "").strip().upper()
+                        update = refreshed_macd.get(symbol)
+                        if not update:
+                            continue
+                        shown_trade.at[idx, "MACD progress"] = update.get("MACD progress")
+                        if update.get("RSI") is not None:
+                            shown_trade.at[idx, "RSI"] = update.get("RSI")
+                    refresh_time = st.session_state.get("trade_macd_refresh_time")
+                    if refresh_time:
+                        st.caption(f"MACD manually refreshed: **{refresh_time}**")
+
                 trade_matrix = build_trade_criteria_matrix(shown_trade)
                 render_watchlist_selector(
                     trade_matrix,
