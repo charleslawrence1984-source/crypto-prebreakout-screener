@@ -207,33 +207,12 @@ st.markdown(
     .market-card-link .market-copy {
         flex:1 1 auto;
     }
-    .funded-card-link {
-        display:block;
-        color:inherit !important;
-        text-decoration:none !important;
-    }
-    .funded-card {
+    .market-card-link.funded-wide {
         margin-top:16px;
-        display:flex;
-        align-items:center;
-        justify-content:space-between;
-        gap:20px;
-        padding:18px 22px;
-        border:1px solid #e2e9f3;
-        border-radius:18px;
-        background:#ffffff;
-        box-shadow:0 8px 22px rgba(16,45,92,.04);
+        min-height:210px;
     }
-    .funded-card-title {
-        color:#0a1735;
-        font-size:1.35rem;
-        font-weight:900;
-        margin:0;
-    }
-    .funded-card-copy {
-        color:#687c96;
-        font-size:.96rem;
-        margin-top:4px;
+    .market-card-link.funded-wide .market-copy {
+        min-height:0;
     }
     .market-card-cta {
         display:flex;
@@ -426,20 +405,15 @@ st.markdown(
             <div class="market-card-cta"><span>Open Crypto</span><span aria-hidden="true">→</span></div>
         </a>
     </div>
-    <div class="funded-card" aria-label="Kraken Funded">
-        <div>
-            <div class="funded-card-title">💼 Kraken Funded</div>
-            <div class="funded-card-copy">Apply CL Signal Trade rules to your Kraken Funded stocks and crypto universe.</div>
-        </div>
-    </div>
+    <a class="market-card-link funded-wide" href="kraken-funded" target="_self" aria-label="Open Kraken Funded">
+        <div class="market-heading">💼 Kraken Funded</div>
+        <div class="market-sub">Trade only the stocks and crypto available in your Kraken Funded challenge.</div>
+        <div class="market-copy">Apply the same CL Signal Trade and Swing rules to your funded-account universe, with clear READY, WATCH and PASS decisions.</div>
+        <div class="tags"><span class="tag">Funded challenge</span><span class="tag">Stocks + Crypto</span><span class="tag">Risk focused</span></div>
+        <div class="market-card-cta"><span>Open Kraken Funded</span><span aria-hidden="true">→</span></div>
+    </a>
     """,
     unsafe_allow_html=True,
-)
-st.page_link(
-    "kraken_funded.py",
-    label="Open Kraken Funded",
-    icon="💼",
-    use_container_width=True,
 )
 
 st.markdown('<div class="section-title">How CL Signal works</div>', unsafe_allow_html=True)
