@@ -3516,7 +3516,6 @@ def render_live_watchlist_quotes() -> None:
     st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
 
 
-@st.cache_data(ttl=300, show_spinner=False)
 def _criterion_mark(passed: bool | None, value: str = "") -> str:
     """Compact visual criterion for Opportunities matrices."""
     if passed is None:
@@ -3636,6 +3635,7 @@ def build_investment_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def load_all_trade_opportunities() -> pd.DataFrame:
     """Combine prepared Trade technicals across exchanges for a simple user-facing opportunity feed."""
     frames = []
