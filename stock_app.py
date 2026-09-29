@@ -4786,12 +4786,12 @@ with tab1:
 with tab_opportunities:
     st.subheader("Opportunities")
     st.caption(
-        "The screener brings the prepared markets together for you. "
-        "You do not need to choose an exchange unless you want to use the advanced searches."
+        "A cleaner shortlist of the companies worth your attention now. "
+        "Start with the status and headline scores; open More detail only when you want the full scanner output."
     )
 
     trade_feed_tab, investment_feed_tab = st.tabs(
-        ["Trade opportunities", "Investment opportunities"]
+        ["⚡ Trade opportunities", "🌱 Investment opportunities"]
     )
 
     with trade_feed_tab:
@@ -4806,60 +4806,161 @@ with tab_opportunities:
             watch_count = int((trade_opportunities["Status"] == "WATCH").sum())
             market_count = int(trade_opportunities["Exchange"].nunique())
 
+            st.markdown("### Trade snapshot")
             t1, t2, t3, t4 = st.columns(4)
-            t1.metric(
-                "Trades to Buy",
-                ready_count,
-                help="Prepared Trade setups at the ready-to-verify stage. Run Quick Analysis before acting so current price and event gates are checked.",
-            )
-            t2.metric(
-                "Trades to Watch",
-                watch_count,
-                help="Developing Trade setups that pass the prepared filters but have not yet reached the confirmation stage.",
-            )
-            t3.metric(
-                "Total opportunities",
-                len(trade_opportunities),
-                help="All current prepared Trade opportunities in this shortlist, including Buy and Watch statuses.",
-            )
-            t4.metric(
-                "Markets represented",
-                market_count,
-                help="The number of different stock-market universes represented by the current Trade shortlist.",
-            )
+            with t1:
+                with st.container(border=True):
+                    st.caption("🟢 TRADES TO BUY")
+                    st.markdown(f"## {ready_count}")
+                    st.caption("Ready to verify now")
+            with t2:
+                with st.container(border=True):
+                    st.caption("🟡 TRADES TO WATCH")
+                    st.markdown(f"## {watch_count}")
+                    st.caption("Developing setups")
+            with t3:
+                with st.container(border=True):
+                    st.caption("📋 TOTAL SHORTLIST")
+                    st.markdown(f"## {len(trade_opportunities)}")
+                    st.caption("Buy + watch")
+            with t4:
+                with st.container(border=True):
+                    st.caption("🌍 MARKETS")
+                    st.markdown(f"## {market_count}")
+                    st.caption("Markets represented")
 
             st.caption(
-                "READY TO VERIFY means the prepared technical setup has reached the confirmation stage. "
-                "Run Quick Analysis or Advanced Trade Search before acting so current price and event gates are checked. "
-                "WATCH means the setup is developing but is not ready yet."
+                "🟢 **Ready to verify** = the prepared technical setup has reached the confirmation stage. "
+                "🟡 **Watch** = constructive, but not ready yet. "
+                "Run Quick Analysis or Advanced Trade Search before acting so current price and event gates are checked."
             )
 
-            trade_status_filter = st.radio(
-                "Show",
-                ["Best opportunities", "Ready to verify", "WATCH", "All"],
-                horizontal=True,
-                key="opportunity_trade_filter",
-            )
+            st.markdown("#### Find what matters")
+            f1, f2, f3 = st.columns([2, 1, 1])
+            with f1:
+                trade_status_filter = st.radio(
+                    "Status",
+                    ["Best opportunities", "Trades to Buy", "Trades to Watch", "All"],
+                    horizontal=True,
+                    key="opportunity_trade_filter",
+                    label_visibility="collapsed",
+                )
+            with f2:
+                trade_sector_options = ["All sectors"] + sorted(
+                    {
+                        str(value)
+                        for value in trade_opportunities.get("Sector", pd.Series(dtype=str)).dropna()
+                        if str(value).strip()
+                    }
+                )
+                trade_sector = st.selectbox(
+                    "Sector",
+                    trade_sector_options,
+                    key="opportunity_trade_sector",
+                )
+            with f3:
+                trade_market_options = ["All markets"] + sorted(
+                    {
+                        str(value)
+                        for value in trade_opportunities.get("Exchange", pd.Series(dtype=str)).dropna()
+                        if str(value).strip()
+                    }
+                )
+                trade_market = st.selectbox(
+                    "Market",
+                    trade_market_options,
+                    key="opportunity_trade_market",
+                )
+
             shown_trade = trade_opportunities.copy()
-            if trade_status_filter == "Ready to verify":
+            if trade_status_filter == "Trades to Buy":
                 shown_trade = shown_trade[shown_trade["Status"] == "READY TO VERIFY"]
-            elif trade_status_filter == "WATCH":
+            elif trade_status_filter == "Trades to Watch":
                 shown_trade = shown_trade[shown_trade["Status"] == "WATCH"]
             elif trade_status_filter == "Best opportunities":
                 shown_trade = shown_trade.head(25)
 
-            trade_cols = [
-                "Status", "Ticker", "Company", "Exchange", "Sector",
-                "Technical reason", "Fundamental score", "Technical score",
-                "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
-            ]
-            visible_trade_cols = [col for col in trade_cols if col in shown_trade.columns]
-            render_watchlist_selector(
-                shown_trade[visible_trade_cols],
-                key=f"trade_opportunity_watch_{trade_status_filter}_{_query_param_text('wl')[:8]}",
-            )
+            if trade_sector != "All sectors" and "Sector" in shown_trade.columns:
+                shown_trade = shown_trade[shown_trade["Sector"].astype(str) == trade_sector]
+            if trade_market != "All markets" and "Exchange" in shown_trade.columns:
+                shown_trade = shown_trade[shown_trade["Exchange"].astype(str) == trade_market]
+
+            if shown_trade.empty:
+                st.info("No Trade opportunities match those filters.")
+            else:
+                st.markdown("#### Best on screen")
+                spotlight_cols = st.columns(min(3, len(shown_trade)))
+                for spotlight_col, (_, row) in zip(spotlight_cols, shown_trade.head(3).iterrows()):
+                    with spotlight_col:
+                        with st.container(border=True):
+                            status = str(row.get("Status") or "—")
+                            icon = "🟢" if status == "READY TO VERIFY" else "🟡"
+                            ticker = str(row.get("Ticker") or "—")
+                            company = str(row.get("Company") or "")
+                            st.markdown(f"**{icon} {ticker}**")
+                            if company:
+                                st.caption(company)
+                            score = safe(row.get("Technical score"))
+                            rr = safe(row.get("R:R"))
+                            upside = safe(row.get("Upside %"))
+                            st.markdown(
+                                f"**{status.replace('_', ' ').title()}**  \\n"
+                                f"Technical: **{'—' if np.isnan(score) else f'{score:.0f}/100'}** · "
+                                f"R:R: **{'—' if np.isnan(rr) else f'{rr:.2f}'}** · "
+                                f"Upside: **{'—' if np.isnan(upside) else f'{upside:.1f}%'}**"
+                            )
+                            reason = str(row.get("Technical reason") or "").strip()
+                            if reason:
+                                st.caption(reason[:180] + ("…" if len(reason) > 180 else ""))
+
+                st.markdown("#### Shortlist")
+                trade_cols = [
+                    "Status", "Ticker", "Company", "Sector",
+                    "Technical score", "R:R", "Upside %",
+                    "Entry", "Stop", "Target",
+                ]
+                visible_trade_cols = [col for col in trade_cols if col in shown_trade.columns]
+                render_watchlist_selector(
+                    shown_trade[visible_trade_cols],
+                    key=f"trade_opportunity_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
+                    column_config={
+                        "Technical score": st.column_config.ProgressColumn(
+                            "Technical", min_value=0, max_value=100, format="%.0f"
+                        ),
+                        "R:R": st.column_config.NumberColumn("R:R", format="%.2f"),
+                        "Upside %": st.column_config.NumberColumn("Upside", format="%.1f%%"),
+                        "Entry": st.column_config.NumberColumn("Entry", format="%.2f"),
+                        "Stop": st.column_config.NumberColumn("Stop", format="%.2f"),
+                        "Target": st.column_config.NumberColumn("Target", format="%.2f"),
+                    },
+                )
+
+                with st.expander("More Trade detail", expanded=False):
+                    detail_trade_cols = [
+                        "Status", "Ticker", "Company", "Exchange", "Sector",
+                        "Technical reason", "Fundamental score", "Technical score",
+                        "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
+                    ]
+                    detail_trade_cols = [col for col in detail_trade_cols if col in shown_trade.columns]
+                    st.dataframe(
+                        shown_trade[detail_trade_cols],
+                        hide_index=True,
+                        use_container_width=True,
+                        column_config={
+                            "Fundamental score": st.column_config.ProgressColumn(
+                                "Fundamental", min_value=0, max_value=100, format="%.0f"
+                            ),
+                            "Technical score": st.column_config.ProgressColumn(
+                                "Technical", min_value=0, max_value=100, format="%.0f"
+                            ),
+                            "R:R": st.column_config.NumberColumn(format="%.2f"),
+                            "Upside %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "RSI": st.column_config.NumberColumn(format="%.1f"),
+                        },
+                    )
+
             st.caption(
-                "For a specific company, use Quick Analysis from the first tab for the clearest current explanation."
+                "For a specific company, use Quick Analysis for the clearest current explanation and live decision check."
             )
 
     with investment_feed_tab:
@@ -4874,66 +4975,87 @@ with tab_opportunities:
             refresh_count = int((investment_opportunities["Action"] == "REVALUE").sum())
             investment_market_count = int(investment_opportunities["Exchange"].nunique())
 
+            st.markdown("### Investment snapshot")
             i1, i2, i3, i4 = st.columns(4)
-            i1.metric(
-                "Investments to Buy",
-                buy_count,
-                help="Long-term candidates whose quality gates, FX-safe valuation and margin-of-safety requirements are currently passing.",
-            )
-            i2.metric(
-                "Investments to Watch",
-                wait_count,
-                help="Quality candidates currently on WAIT because the valuation or another decision condition is not yet strong enough.",
-            )
-            i3.metric(
-                "Revaluation pending",
-                refresh_count,
-                help="Quality research is retained, but the valuation is being withheld until the FX-safe DCF refresh is complete.",
-            )
-            i4.metric(
-                "Markets represented",
-                investment_market_count,
-                help="The number of different stock-market universes represented by the current Investment shortlist.",
-            )
+            with i1:
+                with st.container(border=True):
+                    st.caption("🟢 INVESTMENTS TO BUY")
+                    st.markdown(f"## {buy_count}")
+                    st.caption("Quality + valuation pass")
+            with i2:
+                with st.container(border=True):
+                    st.caption("🟡 INVESTMENTS TO WATCH")
+                    st.markdown(f"## {wait_count}")
+                    st.caption("Quality names waiting")
+            with i3:
+                with st.container(border=True):
+                    st.caption("🔵 REVALUE")
+                    st.markdown(f"## {refresh_count}")
+                    st.caption("Valuation refresh pending")
+            with i4:
+                with st.container(border=True):
+                    st.caption("🌍 MARKETS")
+                    st.markdown(f"## {investment_market_count}")
+                    st.caption("Markets represented")
 
             validation = load_investment_validation_coverage()
             priority_refreshed_at = str(validation.get("priority_price_refreshed_at") or "")
             if priority_refreshed_at:
                 st.caption(
-                    f"Investment shortlist prices / valuation decisions refreshed: **{priority_refreshed_at}**"
+                    f"Investment shortlist refreshed: **{priority_refreshed_at}**"
                 )
             else:
                 st.caption("Investment shortlist refresh time is not yet available.")
-            if validation.get("prepared_rows"):
-                st.caption(
-                    "Validation coverage · "
-                    f"{validation['prepared_rows']:,} prepared companies · "
-                    f"{validation['hard_gate_pass']:,} pass hard quality gates · "
-                    f"{validation['old_buy_pool']:,} prior BUY candidates awaiting/under FX-safe review · "
-                    f"{validation['fx_safe_revalued']:,} priority names currently FX-safe revalued · "
-                    f"{validation.get('fx_safe_unique_buys', validation['fx_safe_buys']):,} validated unique BUY"
-                    f"{'s' if validation.get('fx_safe_unique_buys', validation['fx_safe_buys']) != 1 else ''} "
-                    f"({validation['fx_safe_buys']:,} listing-level BUY rows)."
-                )
 
             st.caption(
-                "BUY CANDIDATE requires Investment Quality 70+, the measurable hard gates, FX-safe DCF valuation and margin-of-safety gate to pass. "
-                "Quality comes before valuation: cheapness cannot rescue a sub-70 business. WAIT is a current, validated valuation that is not yet cheap enough or needs review. "
-                "REVALUE means the quality research is retained but the old valuation is deliberately withheld until the FX-safe DCF refresh completes."
+                "🟢 **Buy candidate** = quality gates and FX-safe valuation currently pass. "
+                "🟡 **Wait** = quality is acceptable but price/valuation or another decision condition is not ready. "
+                "🔵 **Revalue** = research is retained while the FX-safe valuation refresh completes."
             )
 
-            investment_filter = st.radio(
-                "Show",
-                ["Best opportunities", "BUY CANDIDATE", "WAIT", "REVALUE", "All"],
-                horizontal=True,
-                key="opportunity_investment_filter",
-            )
+            st.markdown("#### Find what matters")
+            f1, f2, f3 = st.columns([2, 1, 1])
+            with f1:
+                investment_filter = st.radio(
+                    "Status",
+                    ["Best opportunities", "Investments to Buy", "Investments to Watch", "Revalue", "All"],
+                    horizontal=True,
+                    key="opportunity_investment_filter",
+                    label_visibility="collapsed",
+                )
+            with f2:
+                investment_sector_options = ["All sectors"] + sorted(
+                    {
+                        str(value)
+                        for value in investment_opportunities.get("Sector", pd.Series(dtype=str)).dropna()
+                        if str(value).strip()
+                    }
+                )
+                investment_sector = st.selectbox(
+                    "Sector",
+                    investment_sector_options,
+                    key="opportunity_investment_sector",
+                )
+            with f3:
+                investment_market_options = ["All markets"] + sorted(
+                    {
+                        str(value)
+                        for value in investment_opportunities.get("Exchange", pd.Series(dtype=str)).dropna()
+                        if str(value).strip()
+                    }
+                )
+                investment_market = st.selectbox(
+                    "Market",
+                    investment_market_options,
+                    key="opportunity_investment_market",
+                )
+
             shown_investment = investment_opportunities.copy()
-            if investment_filter == "BUY CANDIDATE":
+            if investment_filter == "Investments to Buy":
                 shown_investment = shown_investment[shown_investment["Action"] == "BUY CANDIDATE"]
-            elif investment_filter == "WAIT":
+            elif investment_filter == "Investments to Watch":
                 shown_investment = shown_investment[shown_investment["Action"] == "WAIT"]
-            elif investment_filter == "REVALUE":
+            elif investment_filter == "Revalue":
                 shown_investment = shown_investment[shown_investment["Action"] == "REVALUE"]
             elif investment_filter == "Best opportunities":
                 validated = shown_investment[
@@ -4941,31 +5063,113 @@ with tab_opportunities:
                 ]
                 shown_investment = validated.head(25) if not validated.empty else shown_investment.head(25)
 
-            investment_cols = [
-                "Action", "Ticker", "Company", "Exchange", "Sector",
-                "Price", "Quality score", "Moat score",
-                "Base margin of safety %", "Required margin of safety %",
-                "MOS gap %", "Valuation gate", "Valuation FX status",
-                "Financial currency", "Quote currency", "Alternate listings", "Decision reason",
-            ]
-            visible_investment_cols = [
-                col for col in investment_cols if col in shown_investment.columns
-            ]
-            render_watchlist_selector(
-                shown_investment[visible_investment_cols],
-                key=f"investment_opportunity_watch_{investment_filter}_{_query_param_text('wl')[:8]}",
-                column_config={
-                    "Quality score": st.column_config.ProgressColumn(
-                        min_value=0, max_value=100, format="%.1f"
-                    ),
-                    "Moat score": st.column_config.ProgressColumn(
-                        min_value=0, max_value=100, format="%.1f"
-                    ),
-                    "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
-                    "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
-                    "MOS gap %": st.column_config.NumberColumn(format="%.1f%%"),
-                },
-            )
+            if investment_sector != "All sectors" and "Sector" in shown_investment.columns:
+                shown_investment = shown_investment[
+                    shown_investment["Sector"].astype(str) == investment_sector
+                ]
+            if investment_market != "All markets" and "Exchange" in shown_investment.columns:
+                shown_investment = shown_investment[
+                    shown_investment["Exchange"].astype(str) == investment_market
+                ]
+
+            if shown_investment.empty:
+                st.info("No Investment opportunities match those filters.")
+            else:
+                st.markdown("#### Best on screen")
+                spotlight_cols = st.columns(min(3, len(shown_investment)))
+                for spotlight_col, (_, row) in zip(spotlight_cols, shown_investment.head(3).iterrows()):
+                    with spotlight_col:
+                        with st.container(border=True):
+                            action = str(row.get("Action") or "—")
+                            icon = "🟢" if action == "BUY CANDIDATE" else ("🟡" if action == "WAIT" else "🔵")
+                            ticker = str(row.get("Ticker") or "—")
+                            company = str(row.get("Company") or "")
+                            st.markdown(f"**{icon} {ticker}**")
+                            if company:
+                                st.caption(company)
+                            quality = safe(row.get("Quality score"))
+                            moat = safe(row.get("Moat score"))
+                            mos = safe(row.get("Base margin of safety %"))
+                            st.markdown(
+                                f"**{action.replace('_', ' ').title()}**  \\n"
+                                f"Quality: **{'—' if np.isnan(quality) else f'{quality:.0f}/100'}** · "
+                                f"Moat: **{'—' if np.isnan(moat) else f'{moat:.0f}/100'}** · "
+                                f"MOS: **{'—' if np.isnan(mos) else f'{mos:.1f}%'}**"
+                            )
+                            reason = str(row.get("Decision reason") or "").strip()
+                            if reason:
+                                st.caption(reason[:180] + ("…" if len(reason) > 180 else ""))
+
+                st.markdown("#### Shortlist")
+                investment_cols = [
+                    "Action", "Ticker", "Company", "Sector",
+                    "Quality score", "Moat score",
+                    "Base margin of safety %", "MOS gap %",
+                    "Price",
+                ]
+                visible_investment_cols = [
+                    col for col in investment_cols if col in shown_investment.columns
+                ]
+                render_watchlist_selector(
+                    shown_investment[visible_investment_cols],
+                    key=f"investment_opportunity_watch_{investment_filter}_{investment_sector}_{investment_market}_{_query_param_text('wl')[:8]}",
+                    column_config={
+                        "Quality score": st.column_config.ProgressColumn(
+                            "Quality", min_value=0, max_value=100, format="%.0f"
+                        ),
+                        "Moat score": st.column_config.ProgressColumn(
+                            "Moat", min_value=0, max_value=100, format="%.0f"
+                        ),
+                        "Base margin of safety %": st.column_config.NumberColumn(
+                            "Margin of safety", format="%.1f%%"
+                        ),
+                        "MOS gap %": st.column_config.NumberColumn("MOS gap", format="%.1f%%"),
+                        "Price": st.column_config.NumberColumn(format="%.2f"),
+                    },
+                )
+
+                with st.expander("More Investment detail", expanded=False):
+                    investment_detail_cols = [
+                        "Action", "Ticker", "Company", "Exchange", "Sector",
+                        "Price", "Quality score", "Moat score",
+                        "Base margin of safety %", "Required margin of safety %",
+                        "MOS gap %", "Valuation gate", "Valuation FX status",
+                        "Financial currency", "Quote currency", "Alternate listings", "Decision reason",
+                    ]
+                    investment_detail_cols = [
+                        col for col in investment_detail_cols if col in shown_investment.columns
+                    ]
+                    st.dataframe(
+                        shown_investment[investment_detail_cols],
+                        hide_index=True,
+                        use_container_width=True,
+                        column_config={
+                            "Quality score": st.column_config.ProgressColumn(
+                                min_value=0, max_value=100, format="%.0f"
+                            ),
+                            "Moat score": st.column_config.ProgressColumn(
+                                min_value=0, max_value=100, format="%.0f"
+                            ),
+                            "Base margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "Required margin of safety %": st.column_config.NumberColumn(format="%.1f%%"),
+                            "MOS gap %": st.column_config.NumberColumn(format="%.1f%%"),
+                        },
+                    )
+
+            with st.expander("Validation coverage", expanded=False):
+                if validation.get("prepared_rows"):
+                    st.caption(
+                        f"{validation['prepared_rows']:,} prepared companies · "
+                        f"{validation['hard_gate_pass']:,} pass hard quality gates · "
+                        f"{validation['old_buy_pool']:,} prior BUY candidates awaiting/under FX-safe review · "
+                        f"{validation['fx_safe_revalued']:,} priority names currently FX-safe revalued · "
+                        f"{validation.get('fx_safe_unique_buys', validation['fx_safe_buys']):,} validated unique BUY"
+                        f"{'s' if validation.get('fx_safe_unique_buys', validation['fx_safe_buys']) != 1 else ''} "
+                        f"({validation['fx_safe_buys']:,} listing-level BUY rows)."
+                    )
+                else:
+                    st.caption("Validation coverage is not yet available.")
+
             st.caption(
                 "Prepared Investment results are a market-wide shortlist. Use Quick Analysis before making a decision so the company is refreshed individually."
             )
