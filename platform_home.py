@@ -426,17 +426,20 @@ st.markdown(
             <div class="market-card-cta"><span>Open Crypto</span><span aria-hidden="true">→</span></div>
         </a>
     </div>
-    <a class="funded-card-link" href="kraken_funded" target="_self" aria-label="Open Kraken Funded">
-        <div class="funded-card">
-            <div>
-                <div class="funded-card-title">💼 Kraken Funded</div>
-                <div class="funded-card-copy">Apply CL Signal Trade rules to your Kraken Funded stocks and crypto universe.</div>
-            </div>
-            <div class="market-card-cta"><span>Open Kraken Funded</span><span aria-hidden="true">→</span></div>
+    <div class="funded-card" aria-label="Kraken Funded">
+        <div>
+            <div class="funded-card-title">💼 Kraken Funded</div>
+            <div class="funded-card-copy">Apply CL Signal Trade rules to your Kraken Funded stocks and crypto universe.</div>
         </div>
-    </a>
+    </div>
     """,
     unsafe_allow_html=True,
+)
+st.page_link(
+    "kraken_funded.py",
+    label="Open Kraken Funded",
+    icon="💼",
+    use_container_width=True,
 )
 
 st.markdown('<div class="section-title">How CL Signal works</div>', unsafe_allow_html=True)
