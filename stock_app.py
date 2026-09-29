@@ -3583,8 +3583,25 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
     if frame is None or frame.empty:
         return pd.DataFrame()
 
+    working = frame.copy()
+    working["_company_key"] = working.apply(
+        lambda row: canonical_company_key(row.get("Company") or row.get("Ticker") or ""),
+        axis=1,
+    )
+    working["_liquidity_m"] = pd.to_numeric(
+        working.get("Median traded value GBPm"), errors="coerce"
+    )
+    best_liquidity_by_company = (
+        working.groupby("_company_key")["_liquidity_m"].max().to_dict()
+        if "_company_key" in working.columns else {}
+    )
+    listing_count_by_company = (
+        working.groupby("_company_key")["Ticker"].nunique().to_dict()
+        if "_company_key" in working.columns and "Ticker" in working.columns else {}
+    )
+
     rows = []
-    for _, row in frame.iterrows():
+    for _, row in working.iterrows():
         status = str(row.get("Status") or "")
         ready = status == "READY TO VERIFY"
         watch = status == "WATCH"
@@ -3595,6 +3612,29 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         macd_progress = str(row.get("MACD progress") or "").upper()
         liquidity_value_m = safe(row.get("Median traded value GBPm"))
         liquidity_tier = str(row.get("Liquidity tier") or "").upper()
+        company_key = str(row.get("_company_key") or "")
+        ticker = str(row.get("Ticker") or "")
+        exchange = str(row.get("Exchange") or "")
+        best_company_liquidity = safe(best_liquidity_by_company.get(company_key))
+        listing_count = int(listing_count_by_company.get(company_key, 1) or 1)
+
+        if listing_count > 1 and math.isfinite(best_company_liquidity):
+            if math.isfinite(liquidity_value_m) and abs(liquidity_value_m - best_company_liquidity) < 1e-9:
+                listing_note = "✅ Best liquid listing"
+            else:
+                listing_note = "⚠️ Alternative / thinner listing"
+        elif ticker.endswith(".MU") or exchange.upper() in {"OTC MARKETS", "GETTEX"}:
+            listing_note = "⚠️ Secondary / alternative venue"
+        else:
+            listing_note = "Primary / standard venue"
+
+        if math.isfinite(liquidity_value_m):
+            liquidity_display = (
+                "<£0.01m" if liquidity_value_m < 0.01
+                else f"£{liquidity_value_m:.2f}m"
+            )
+        else:
+            liquidity_display = "—"
         if not liquidity_tier and math.isfinite(liquidity_value_m):
             liquidity_tier = (
                 "EXCELLENT" if liquidity_value_m >= 20 else
@@ -3614,8 +3654,9 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
 
         rows.append({
             "Overall": "🟢 READY" if ready else "🟡 WATCH",
-            "Ticker": str(row.get("Ticker") or ""),
+            "Ticker": ticker,
             "Company": str(row.get("Company") or ""),
+            "Listing": listing_note,
             "Fundamentals ≥65": _criterion_mark(
                 None if np.isnan(fundamental_score) else fundamental_score >= 65,
                 "—" if np.isnan(fundamental_score) else f"{fundamental_score:.0f}",
@@ -3637,7 +3678,7 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
                 (liquidity_value_m >= 0.5) if math.isfinite(liquidity_value_m) else None,
                 (
                     "—" if not math.isfinite(liquidity_value_m)
-                    else f"£{liquidity_value_m:.2f}m {liquidity_tier.title()}"
+                    else f"{liquidity_display} {liquidity_tier.title()}"
                 ),
             ),
             "Entry quality": _criterion_mark(
@@ -5086,7 +5127,8 @@ with tab_opportunities:
                 st.markdown("#### Trade criteria matrix")
                 st.caption(
                     "✅ = criterion currently passes · ❌ = criterion currently fails · "
-                    "— = that criterion cannot be tested until a later signal stage."
+                    "— = that criterion cannot be tested until a later signal stage. "
+                    "Liquidity below £0.01m is shown as <£0.01m; the Listing column flags thinner alternative/secondary venues."
                 )
 
                 refresh_col, refresh_note_col = st.columns([1, 3])
