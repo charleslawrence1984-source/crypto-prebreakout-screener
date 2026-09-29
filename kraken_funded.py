@@ -424,9 +424,9 @@ stock_tab, crypto_tab = st.tabs(["📈 Stocks", "⚡ Crypto"])
 with stock_tab:
     stocks = load_funded_stock_rows()
 
-    ready_count = int(stocks["CL Signal"].eq("🟢 READY").sum())
-    watch_count = int(stocks["CL Signal"].eq("🟡 WATCH").sum())
-    no_setup_count = int(stocks["CL Signal"].eq("⚪ NO CURRENT SETUP").sum())
+    ready_count = int(stocks["Funded status"].eq("🟢 FUNDED READY").sum())
+    watch_count = int(stocks["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
+    no_setup_count = int(stocks["Funded status"].eq("⚪ NO CURRENT SETUP").sum())
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Funded stocks", len(KRAKEN_FUNDED_STOCKS))
@@ -442,15 +442,15 @@ with stock_tab:
     )
     shown = stocks.copy()
     if stock_filter == "Ready":
-        shown = shown[shown["CL Signal"] == "🟢 READY"]
+        shown = shown[shown["Funded status"] == "🟢 FUNDED READY"]
     elif stock_filter == "Watch":
-        shown = shown[shown["CL Signal"] == "🟡 WATCH"]
+        shown = shown[shown["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH")]
     elif stock_filter == "No current setup":
-        shown = shown[shown["CL Signal"] == "⚪ NO CURRENT SETUP"]
+        shown = shown[shown["Funded status"] == "⚪ NO CURRENT SETUP"]
 
     stock_cols = [
-        "CL Signal", "Ticker", "MACD", "RSI", "Liquidity",
-        "Entry", "Stop", "Target", "R:R",
+        "Funded status", "CL Signal", "Ticker", "MACD", "RSI", "Liquidity",
+        "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
     ]
     st.dataframe(
         shown[[column for column in stock_cols if column in shown.columns]],
@@ -458,16 +458,16 @@ with stock_tab:
         use_container_width=True,
     )
     st.caption(
-        "READY still requires the same confirmed Stock Trade setup. WATCH means the setup is developing. "
-        "No current setup means the asset is allowed by Kraken Funded but is not currently present in the approved Trade shortlist."
+        "CL Signal shows the original Stock Trade verdict. Funded status applies the extra challenge filter. "
+        "Position $ is sized from the stop so the planned loss is about $4, subject to the 35% position cap."
     )
 
 with crypto_tab:
     crypto = load_funded_crypto_rows()
 
-    ready_count = int(crypto["CL Signal"].eq("🟢 READY / BUY").sum())
-    watch_count = int(crypto["CL Signal"].eq("🟡 WATCH").sum())
-    pass_count = int(crypto["CL Signal"].eq("🔴 PASS").sum())
+    ready_count = int(crypto["Funded status"].eq("🟢 FUNDED READY").sum())
+    watch_count = int(crypto["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
+    pass_count = int(crypto["Funded status"].astype(str).str.startswith("🔴 FUNDED PASS").sum())
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Funded coins", len(KRAKEN_FUNDED_CRYPTO))
@@ -483,15 +483,16 @@ with crypto_tab:
     )
     shown = crypto.copy()
     if crypto_filter == "Ready / Buy":
-        shown = shown[shown["CL Signal"] == "🟢 READY / BUY"]
+        shown = shown[shown["Funded status"] == "🟢 FUNDED READY"]
     elif crypto_filter == "Watch":
-        shown = shown[shown["CL Signal"] == "🟡 WATCH"]
+        shown = shown[shown["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH")]
     elif crypto_filter == "Pass":
-        shown = shown[shown["CL Signal"] == "🔴 PASS"]
+        shown = shown[shown["Funded status"].astype(str).str.startswith("🔴 FUNDED PASS")]
 
     crypto_cols = [
-        "CL Signal", "Coin", "Score", "Entry timing", "RSI",
-        "To resistance %", "R:R", "Execution",
+        "Funded status", "CL Signal", "Coin", "Score", "Entry timing", "RSI",
+        "To resistance %", "Funded entry", "Funded stop", "Funded target",
+        "Funded R:R", "Execution", "Position $", "Risk $",
     ]
     st.dataframe(
         shown[[column for column in crypto_cols if column in shown.columns]],
@@ -499,6 +500,6 @@ with crypto_tab:
         use_container_width=True,
     )
     st.caption(
-        "The funded universe does not override the normal crypto Swing gates: pre-breakout structure, timing, "
-        "execution liquidity, invalidation and risk/reward still have to pass."
+        "CL Signal remains the original Swing verdict. Funded status then applies the stricter challenge overlay: "
+        "at least 2.5R, valid execution, no late/extended entry and position sizing from the invalidation."
     )
