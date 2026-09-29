@@ -4888,52 +4888,58 @@ with tab_opportunities:
             if shown_trade.empty:
                 st.info("No Trade opportunities match those filters.")
             else:
-                st.markdown("#### Best on screen")
-                spotlight_cols = st.columns(min(3, len(shown_trade)))
-                for spotlight_col, (_, row) in zip(spotlight_cols, shown_trade.head(3).iterrows()):
-                    with spotlight_col:
-                        with st.container(border=True):
-                            status = str(row.get("Status") or "—")
-                            icon = "🟢" if status == "READY TO VERIFY" else "🟡"
-                            ticker = str(row.get("Ticker") or "—")
-                            company = str(row.get("Company") or "")
-                            st.markdown(f"**{icon} {ticker}**")
-                            if company:
-                                st.caption(company)
-                            score = safe(row.get("Technical score"))
-                            rr = safe(row.get("R:R"))
-                            upside = safe(row.get("Upside %"))
-                            st.markdown(
-                                f"**{status.replace('_', ' ').title()}**  \\n"
-                                f"Technical: **{'—' if np.isnan(score) else f'{score:.0f}/100'}** · "
-                                f"R:R: **{'—' if np.isnan(rr) else f'{rr:.2f}'}** · "
-                                f"Upside: **{'—' if np.isnan(upside) else f'{upside:.1f}%'}**"
-                            )
-                            reason = str(row.get("Technical reason") or "").strip()
-                            if reason:
-                                st.caption(reason[:180] + ("…" if len(reason) > 180 else ""))
+                ready_trade = shown_trade[shown_trade["Status"] == "READY TO VERIFY"].copy()
+                watch_trade = shown_trade[shown_trade["Status"] == "WATCH"].copy()
 
-                st.markdown("#### Shortlist")
-                trade_cols = [
-                    "Status", "Ticker", "Company", "Sector",
-                    "Technical score", "R:R", "Upside %",
-                    "Entry", "Stop", "Target",
-                ]
-                visible_trade_cols = [col for col in trade_cols if col in shown_trade.columns]
-                render_watchlist_selector(
-                    shown_trade[visible_trade_cols],
-                    key=f"trade_opportunity_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
-                    column_config={
-                        "Technical score": st.column_config.ProgressColumn(
-                            "Technical", min_value=0, max_value=100, format="%.0f"
-                        ),
-                        "R:R": st.column_config.NumberColumn("R:R", format="%.2f"),
-                        "Upside %": st.column_config.NumberColumn("Upside", format="%.1f%%"),
-                        "Entry": st.column_config.NumberColumn("Entry", format="%.2f"),
-                        "Stop": st.column_config.NumberColumn("Stop", format="%.2f"),
-                        "Target": st.column_config.NumberColumn("Target", format="%.2f"),
-                    },
-                )
+                if not ready_trade.empty:
+                    st.markdown("#### 🟢 Ready to verify")
+                    st.caption(
+                        "These have a confirmed technical setup, so Entry, Stop, Target, R:R, Upside and Technical score are available."
+                    )
+                    ready_cols = [
+                        "Status", "Ticker", "Company", "Sector",
+                        "Technical score", "R:R", "Upside %",
+                        "Entry", "Stop", "Target",
+                    ]
+                    ready_cols = [col for col in ready_cols if col in ready_trade.columns]
+                    render_watchlist_selector(
+                        ready_trade[ready_cols],
+                        key=f"trade_ready_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
+                        column_config={
+                            "Technical score": st.column_config.ProgressColumn(
+                                "Technical", min_value=0, max_value=100, format="%.0f"
+                            ),
+                            "R:R": st.column_config.NumberColumn("R:R", format="%.2f"),
+                            "Upside %": st.column_config.NumberColumn("Upside", format="%.1f%%"),
+                            "Entry": st.column_config.NumberColumn("Entry", format="%.2f"),
+                            "Stop": st.column_config.NumberColumn("Stop", format="%.2f"),
+                            "Target": st.column_config.NumberColumn("Target", format="%.2f"),
+                        },
+                    )
+
+                if not watch_trade.empty:
+                    st.markdown("#### 🟡 Developing watchlist")
+                    st.caption(
+                        "WATCH is deliberately pre-signal. These companies have an active RSI/pullback setup, "
+                        "but there is no current MACD confirmation yet — so Entry, Stop, Target, R:R, Upside "
+                        "and final Technical score do not exist at this stage."
+                    )
+                    watch_cols = [
+                        "Status", "Ticker", "Company", "Sector",
+                        "Price", "RSI", "Fundamental score", "Technical reason",
+                    ]
+                    watch_cols = [col for col in watch_cols if col in watch_trade.columns]
+                    render_watchlist_selector(
+                        watch_trade[watch_cols],
+                        key=f"trade_developing_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
+                        column_config={
+                            "Price": st.column_config.NumberColumn(format="%.2f"),
+                            "RSI": st.column_config.NumberColumn(format="%.1f"),
+                            "Fundamental score": st.column_config.ProgressColumn(
+                                "Fundamental", min_value=0, max_value=100, format="%.0f"
+                            ),
+                        },
+                    )
 
                 with st.expander("More Trade detail", expanded=False):
                     detail_trade_cols = [
