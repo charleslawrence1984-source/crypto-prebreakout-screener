@@ -276,12 +276,30 @@ def evaluate_price_setup(
             if not contact:
                 result["technical_reason"] = "NO PRICE CONTACT WITH THE MA SUPPORT ZONE"
                 return result
+            macd_hist = data["MACD"] - data["MACD_SIGNAL"]
+            latest_hist = float(macd_hist.iloc[-1])
+            previous_hist = float(macd_hist.iloc[-2])
+            two_back_hist = float(macd_hist.iloc[-3])
+            close_value = float(latest["Close"])
+            normalized_gap = abs(latest_hist) / close_value if close_value > 0 else np.nan
+
+            improving_sessions = int(latest_hist > previous_hist) + int(previous_hist > two_back_hist)
+            if latest_hist < 0 and math.isfinite(normalized_gap) and normalized_gap <= 0.001 and improving_sessions >= 1:
+                macd_progress = "NEAR CROSSOVER"
+            elif latest_hist < 0 and improving_sessions >= 1:
+                macd_progress = "IMPROVING"
+            else:
+                macd_progress = "WEAK"
+
             result.update(
                 {
                     "technical_state": "WATCH",
                     "technical_reason": "RSI EXHAUSTION ACTIVE — NO CURRENT MACD CROSSOVER",
                     "rsi": round(latest_rsi, 2),
-                    "price": float(latest["Close"]),
+                    "price": close_value,
+                    "macd_progress": macd_progress,
+                    "macd_histogram": latest_hist,
+                    "macd_gap_pct": normalized_gap * 100 if math.isfinite(normalized_gap) else np.nan,
                 }
             )
         else:
@@ -439,6 +457,9 @@ def evaluate_price_setup(
             "sma200_slope_pct": sma200_slope * 100,
             "technical_score": technical_score,
             "technical_tier": tier,
+            "macd_progress": "CONFIRMED",
+            "macd_histogram": float(signal["MACD"] - signal["MACD_SIGNAL"]),
+            "macd_gap_pct": 0.0,
             "support_score": support_score,
             "relative_strength_pct": relative_strength * 100 if math.isfinite(relative_strength) else np.nan,
             "relative_strength_score": relative_score,
