@@ -749,10 +749,51 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         """
     )
 
+if "funded_stock_live_scan" not in st.session_state:
+    st.session_state["funded_stock_live_scan"] = pd.DataFrame()
+if "funded_crypto_live_scan" not in st.session_state:
+    st.session_state["funded_crypto_live_scan"] = pd.DataFrame()
+if "funded_scan_time" not in st.session_state:
+    st.session_state["funded_scan_time"] = ""
+
+scan_col, note_col = st.columns([1, 2.2], vertical_alignment="center")
+with scan_col:
+    run_funded_scan = st.button(
+        "🔄 Scan Kraken Funded universe",
+        type="primary",
+        use_container_width=True,
+        key="scan_kraken_funded_universe",
+    )
+with note_col:
+    st.caption(
+        "Runs all funded stocks and coins through the current CL Signal rule engines, "
+        "then keeps the results loaded while you move between tabs."
+    )
+
+if run_funded_scan:
+    with st.spinner("Scanning all Kraken Funded stocks…"):
+        try:
+            st.session_state["funded_stock_live_scan"] = scan_funded_stocks_live()
+        except Exception as exc:
+            st.session_state["funded_stock_live_scan"] = pd.DataFrame()
+            st.error(f"Stock scan failed: {type(exc).__name__}")
+    with st.spinner("Scanning all Kraken Funded crypto…"):
+        try:
+            st.session_state["funded_crypto_live_scan"] = scan_funded_crypto_live()
+        except Exception as exc:
+            st.session_state["funded_crypto_live_scan"] = pd.DataFrame()
+            st.error(f"Crypto scan failed: {type(exc).__name__}")
+    st.session_state["funded_scan_time"] = pd.Timestamp.now(tz="Europe/London").strftime("%d %b %Y %H:%M")
+    st.success("Kraken Funded universe scan complete.")
+
+if st.session_state.get("funded_scan_time"):
+    st.caption(f"Last full funded scan: **{st.session_state['funded_scan_time']}**")
+
 stock_tab, crypto_tab = st.tabs(["📈 Stocks", "⚡ Crypto"])
 
 with stock_tab:
-    stocks = load_funded_stock_rows()
+    live_stocks = st.session_state.get("funded_stock_live_scan", pd.DataFrame())
+    stocks = live_stocks.copy() if isinstance(live_stocks, pd.DataFrame) and not live_stocks.empty else load_funded_stock_rows()
 
     ready_count = int(stocks["Funded status"].eq("🟢 FUNDED READY").sum())
     watch_count = int(stocks["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
@@ -778,8 +819,15 @@ with stock_tab:
     elif stock_filter == "No current setup":
         shown = shown[shown["Funded status"] == "⚪ NO CURRENT SETUP"]
 
+    if "MACD" not in stocks.columns and "MACD progress" in stocks.columns:
+        stocks["MACD"] = stocks["MACD progress"].fillna("—").astype(str)
+    if "Liquidity" not in stocks.columns and "Median traded value GBPm" in stocks.columns:
+        stock_liq = pd.to_numeric(stocks["Median traded value GBPm"], errors="coerce")
+        stocks["Liquidity"] = stock_liq.apply(
+            lambda value: "—" if not np.isfinite(value) else f"{'✅' if value >= 0.5 else '❌'} £{value:.2f}m"
+        )
     stock_cols = [
-        "Funded status", "CL Signal", "Ticker", "MACD", "RSI", "Liquidity",
+        "Funded status", "CL Signal", "Ticker", "Fundamentals", "Gate", "MACD", "RSI", "Liquidity",
         "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
     ]
     st.dataframe(
@@ -793,7 +841,8 @@ with stock_tab:
     )
 
 with crypto_tab:
-    crypto = load_funded_crypto_rows()
+    live_crypto = st.session_state.get("funded_crypto_live_scan", pd.DataFrame())
+    crypto = live_crypto.copy() if isinstance(live_crypto, pd.DataFrame) and not live_crypto.empty else load_funded_crypto_rows()
 
     ready_count = int(crypto["Funded status"].eq("🟢 FUNDED READY").sum())
     watch_count = int(crypto["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
@@ -820,7 +869,7 @@ with crypto_tab:
         shown = shown[shown["Funded status"].astype(str).str.startswith("🔴 FUNDED PASS")]
 
     crypto_cols = [
-        "Funded status", "CL Signal", "Coin", "Score", "Entry timing", "RSI",
+        "Funded status", "CL Signal", "Coin", "Score", "Entry timing", "Swing reason", "Gate", "RSI",
         "To resistance %", "Funded entry", "Funded stop", "Funded target",
         "Funded R:R", "Execution", "Position $", "Risk $",
     ]
