@@ -5025,19 +5025,7 @@ with tab_opportunities:
                         "Entry, stop, target, upside and reward/risk are therefore deliberately shown as — until that confirmation exists."
                     )
 
-                with st.expander("More Trade detail", expanded=False):
-                    detail_trade_cols = [
-                        "Status", "Ticker", "Company", "Exchange", "Sector",
-                        "Technical reason", "Fundamental score", "Technical score",
-                        "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
-                        "Liquidity gate",
-                    ]
-                    detail_trade_cols = [col for col in detail_trade_cols if col in shown_trade.columns]
-                    st.dataframe(
-                        shown_trade[detail_trade_cols],
-                        hide_index=True,
-                        use_container_width=True,
-                    )
+
 
             st.caption(
                 "For a specific company, use Quick Analysis for the clearest current explanation and live decision check."
