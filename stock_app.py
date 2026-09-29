@@ -45,7 +45,7 @@ PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 PRIORITY_INVESTMENT_DIR = Path(__file__).resolve().parent / "prepared_priority_investments"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
 TRADE_TECHNICAL_DIR = Path(__file__).resolve().parent / "prepared_trade_technicals"
-TRADE_RULEBOOK_BUILD = "2026.09.18.12"
+TRADE_RULEBOOK_BUILD = "2026.09.29.13"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -2230,6 +2230,9 @@ def approved_trade_market_scan(
             "Upside %": technical.get("upside_pct"),
             "R:R": technical.get("reward_risk"),
             "RSI": technical.get("rsi"),
+            "MACD progress": technical.get("macd_progress"),
+            "MACD histogram": technical.get("macd_histogram"),
+            "MACD gap %": technical.get("macd_gap_pct"),
             "Median traded value £m": technical["turnover_gbp"] / 1_000_000,
             "Market cap £m": fundamental["market_cap_gbp"] / 1_000_000 if math.isfinite(fundamental["market_cap_gbp"]) else np.nan,
             "Fundamental score": fundamental["fundamental_score"],
@@ -3537,6 +3540,7 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         fundamental_score = safe(row.get("Fundamental score"))
         rsi_value = safe(row.get("RSI"))
         liquidity_gate = str(row.get("Liquidity gate") or "").upper()
+        macd_progress = str(row.get("MACD progress") or "").upper()
         liquidity_value_m = safe(row.get("Median traded value GBPm"))
         liquidity_tier = str(row.get("Liquidity tier") or "").upper()
         if not liquidity_tier and math.isfinite(liquidity_value_m):
@@ -3569,7 +3573,13 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
             ),
             "MA trend": _criterion_mark(True if setup_preconditions_pass else False),
             "MA support": _criterion_mark(True if setup_preconditions_pass else False),
-            "MACD confirm": _criterion_mark(True if ready else False),
+            "MACD progress": (
+                "✅ Confirmed" if ready or macd_progress == "CONFIRMED"
+                else "🟡 Near crossover" if macd_progress == "NEAR CROSSOVER"
+                else "🟠 Improving" if macd_progress == "IMPROVING"
+                else "❌ Weak" if macd_progress == "WEAK"
+                else "— Refresh needed"
+            ),
             "Liquidity": _criterion_mark(
                 (liquidity_value_m >= 0.5) if math.isfinite(liquidity_value_m) else None,
                 (
