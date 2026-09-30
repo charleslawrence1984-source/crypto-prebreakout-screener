@@ -842,12 +842,13 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         """
         **Core CL Signal rules stay unchanged.** The Funded layer is deliberately more selective:
 
-        - Normal CL Signal **READY / BUY** is required before a Funded READY is possible.
-        - Minimum Funded reward/risk: **2.5:1**. A normal 2.0–2.49R setup remains WATCH for the challenge.
-        - Standard planned loss: **$4 per trade**; never intentionally exceed **$5**.
-        - Maximum combined planned open risk: **$10** so most of the $30 failure buffer remains unused.
+        - **A+ FUNDED READY:** at least **2.5R**, actionable timing and all funded gates passed. Planned loss: **$4**.
+        - **FUNDED READY:** at least **2.0R** with stronger confirmation. Planned loss: **$3**.
+        - For crypto, a high-quality confirmed **RETEST / READY / ENTRY** with score **60+** can qualify even if the original pre-breakout engine still says WATCH.
+        - **RECLAIM NEEDED / EARLY** remains WATCH until confirmation actually arrives.
+        - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
         - Position size is calculated from **entry → invalidation/stop**, capped at **35% of the $1,000 account**.
-        - Crypto marked **EXTENDED / TOO LATE** is not eligible for Funded READY.
+        - Crypto marked **EXTENDED / TOO LATE** or failing execution/liquidity is still an automatic PASS.
         - There is **no need to force trades** because the challenge has no time limit.
         """
     )
@@ -898,24 +899,28 @@ with stock_tab:
     live_stocks = st.session_state.get("funded_stock_live_scan", pd.DataFrame())
     stocks = live_stocks.copy() if isinstance(live_stocks, pd.DataFrame) and not live_stocks.empty else load_funded_stock_rows()
 
+    aplus_count = int(stocks["Funded status"].eq("🟢 A+ FUNDED READY").sum())
     ready_count = int(stocks["Funded status"].eq("🟢 FUNDED READY").sum())
     watch_count = int(stocks["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
     no_setup_count = int(stocks["Funded status"].eq("⚪ NO CURRENT SETUP").sum())
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Funded stocks", len(KRAKEN_FUNDED_STOCKS))
-    c2.metric("Ready", ready_count)
-    c3.metric("Watch", watch_count)
-    c4.metric("No current setup", no_setup_count)
+    c2.metric("A+ Ready", aplus_count)
+    c3.metric("Ready", ready_count)
+    c4.metric("Watch", watch_count)
+    c5.metric("No current setup", no_setup_count)
 
     stock_filter = st.segmented_control(
         "Show",
-        ["All", "Ready", "Watch", "No current setup"],
+        ["All", "A+ Ready", "Ready", "Watch", "No current setup"],
         default="All",
         key="funded_stock_filter",
     )
     shown = stocks.copy()
-    if stock_filter == "Ready":
+    if stock_filter == "A+ Ready":
+        shown = shown[shown["Funded status"] == "🟢 A+ FUNDED READY"]
+    elif stock_filter == "Ready":
         shown = shown[shown["Funded status"] == "🟢 FUNDED READY"]
     elif stock_filter == "Watch":
         shown = shown[shown["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH")]
@@ -938,33 +943,62 @@ with stock_tab:
         hide_index=True,
         use_container_width=True,
     )
+    with st.expander("Why stocks are being filtered out", expanded=False):
+        stock_status = stocks["Funded status"].fillna("UNKNOWN").astype(str)
+        breakdown = pd.DataFrame({
+            "Reason": [
+                "A+ ready",
+                "Ready",
+                "Watch / developing",
+                "R:R below funded minimum",
+                "Needs stronger confirmation",
+                "Liquidity veto",
+                "Risk-plan issue",
+                "No current setup / unavailable",
+            ],
+            "Count": [
+                int(stock_status.eq("🟢 A+ FUNDED READY").sum()),
+                int(stock_status.eq("🟢 FUNDED READY").sum()),
+                int(stock_status.eq("🟡 FUNDED WATCH").sum()),
+                int(stock_status.str.contains("R:R", regex=False).sum()),
+                int(stock_status.str.contains("NEEDS CONFIRMATION", regex=False).sum()),
+                int(stock_status.str.contains("LIQUIDITY", regex=False).sum()),
+                int(stock_status.str.contains("RISK PLAN", regex=False).sum()),
+                int(stock_status.str.startswith("⚪").sum()),
+            ],
+        })
+        st.dataframe(breakdown, hide_index=True, use_container_width=True)
     st.caption(
-        "CL Signal shows the original Stock Trade verdict. Funded status applies the extra challenge filter. "
-        "Position $ is sized from the stop so the planned loss is about $4, subject to the 35% position cap."
+        "A+ READY uses about $4 planned risk at 2.5R+. READY uses about $3 risk at 2.0R+ only when confirmation is stronger. "
+        "WATCH/PASS states never receive live position sizing."
     )
 
 with crypto_tab:
     live_crypto = st.session_state.get("funded_crypto_live_scan", pd.DataFrame())
     crypto = live_crypto.copy() if isinstance(live_crypto, pd.DataFrame) and not live_crypto.empty else load_funded_crypto_rows()
 
+    aplus_count = int(crypto["Funded status"].eq("🟢 A+ FUNDED READY").sum())
     ready_count = int(crypto["Funded status"].eq("🟢 FUNDED READY").sum())
     watch_count = int(crypto["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
     pass_count = int(crypto["Funded status"].astype(str).str.startswith("🔴 FUNDED PASS").sum())
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.metric("Funded coins", len(KRAKEN_FUNDED_CRYPTO))
-    c2.metric("Ready / Buy", ready_count)
-    c3.metric("Watch", watch_count)
-    c4.metric("Pass", pass_count)
+    c2.metric("A+ Ready", aplus_count)
+    c3.metric("Ready", ready_count)
+    c4.metric("Watch", watch_count)
+    c5.metric("Pass", pass_count)
 
     crypto_filter = st.segmented_control(
         "Show",
-        ["All", "Ready / Buy", "Watch", "Pass"],
+        ["All", "A+ Ready", "Ready", "Watch", "Pass"],
         default="All",
         key="funded_crypto_filter",
     )
     shown = crypto.copy()
-    if crypto_filter == "Ready / Buy":
+    if crypto_filter == "A+ Ready":
+        shown = shown[shown["Funded status"] == "🟢 A+ FUNDED READY"]
+    elif crypto_filter == "Ready":
         shown = shown[shown["Funded status"] == "🟢 FUNDED READY"]
     elif crypto_filter == "Watch":
         shown = shown[shown["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH")]
@@ -981,7 +1015,36 @@ with crypto_tab:
         hide_index=True,
         use_container_width=True,
     )
+    with st.expander("Why crypto is being filtered out", expanded=False):
+        crypto_status = crypto["Funded status"].fillna("UNKNOWN").astype(str)
+        breakdown = pd.DataFrame({
+            "Reason": [
+                "A+ ready",
+                "Ready",
+                "Reclaim needed",
+                "Too early",
+                "R:R below 2.0",
+                "Needs stronger confirmation",
+                "Timing not actionable",
+                "Execution/liquidity veto",
+                "Late / extended",
+                "Core pass / unavailable",
+            ],
+            "Count": [
+                int(crypto_status.eq("🟢 A+ FUNDED READY").sum()),
+                int(crypto_status.eq("🟢 FUNDED READY").sum()),
+                int(crypto_status.str.contains("RECLAIM", regex=False).sum()),
+                int(crypto_status.str.contains("EARLY", regex=False).sum()),
+                int(crypto_status.str.contains("R:R", regex=False).sum()),
+                int(crypto_status.str.contains("NEEDS CONFIRMATION", regex=False).sum()),
+                int(crypto_status.str.contains("TIMING", regex=False).sum()),
+                int(crypto_status.str.contains("EXECUTION", regex=False).sum()),
+                int(crypto_status.str.contains("LATE", regex=False).sum()),
+                int(crypto_status.eq("🔴 FUNDED PASS").sum() + crypto_status.str.startswith("⚪").sum()),
+            ],
+        })
+        st.dataframe(breakdown, hide_index=True, use_container_width=True)
     st.caption(
-        "CL Signal remains the original Swing verdict. Funded status then applies the stricter challenge overlay: "
-        "at least 2.5R, valid execution, no late/extended entry and position sizing from the invalidation."
+        "A+ READY requires 2.5R+ and uses about $4 planned risk. READY requires at least 2.0R plus stronger confirmation and uses about $3 risk. "
+        "RECLAIM, EARLY, late/extended and execution failures remain non-actionable."
     )
