@@ -467,7 +467,12 @@ def funded_stock_status(row: pd.Series) -> str:
     macd = str(row.get("MACD progress") or "").upper()
     rsi = safe_number(row.get("RSI"))
 
-    # Hard funded vetoes always win.
+    # No actionable technical setup means no funded trade yet. Do this before
+    # checking Entry/Stop/R:R because those fields are expected to be blank.
+    if state not in {"WATCH", "ENTRY READY", "AWAITING NEXT OPEN"}:
+        return "⚪ NO CURRENT SETUP"
+
+    # Hard funded vetoes apply only once there is an actionable/developing setup.
     if not np.isfinite(liquidity) or liquidity < 0.5:
         return "🔴 FUNDED PASS · LIQUIDITY"
     if not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
@@ -475,9 +480,6 @@ def funded_stock_status(row: pd.Series) -> str:
     if not np.isfinite(rr) or rr < FUNDED_READY_MIN_RR:
         return "🟡 FUNDED WATCH · R:R"
 
-    # The underlying stock engine still controls whether structure is actionable.
-    # WATCH can upgrade only when confirmation is materially stronger, mirroring
-    # the crypto confirmed-retest route without weakening the hard risk gates.
     entry_ready = state in {"ENTRY READY", "AWAITING NEXT OPEN"}
     strong_watch = (
         state == "WATCH"
@@ -497,8 +499,6 @@ def funded_stock_status(row: pd.Series) -> str:
 
     if state == "WATCH":
         return "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
-    if state not in {"ENTRY READY", "AWAITING NEXT OPEN"}:
-        return "⚪ NO CURRENT SETUP"
     return "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
 
 
