@@ -375,20 +375,21 @@ def scan_funded_crypto_live() -> pd.DataFrame:
         rr = safe_number(row.get("Funded R:R"))
         entry = safe_number(row.get("Funded entry"))
         stop = safe_number(row.get("Funded stop"))
+        # Hard funded vetoes must override a softer underlying CL Signal WATCH.
         if core == "🔴 PASS":
             status = "🔴 FUNDED PASS"
-        elif core == "🟡 WATCH":
-            status = "🟡 FUNDED WATCH"
         elif core.startswith("⚪"):
             status = str(row.get("Funded status") or "⚪ DATA UNAVAILABLE")
         elif "EXTENDED" in timing or "TOO LATE" in timing:
             status = "🔴 FUNDED PASS · LATE"
+        elif execution == "❌":
+            status = "🔴 FUNDED PASS · EXECUTION"
         elif "RECLAIM" in timing:
             status = "🟡 FUNDED WATCH · RECLAIM"
         elif "EARLY" in timing:
             status = "🟡 FUNDED WATCH · EARLY"
-        elif execution == "❌":
-            status = "🔴 FUNDED PASS · EXECUTION"
+        elif core == "🟡 WATCH":
+            status = "🟡 FUNDED WATCH"
         elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
             status = "🟡 FUNDED WATCH · R:R"
         elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
@@ -722,20 +723,21 @@ def load_funded_crypto_rows() -> pd.DataFrame:
         entry = safe_number(row.get("Funded entry"))
         stop = safe_number(row.get("Funded stop"))
 
+        # Hard funded vetoes must override a softer underlying CL Signal WATCH.
         if core == "🔴 PASS":
             status = "🔴 FUNDED PASS"
         elif core == "⚪ NOT DEEP-SCORED":
             status = "⚪ NOT DEEP-SCORED"
-        elif core == "🟡 WATCH":
-            status = "🟡 FUNDED WATCH"
         elif "EXTENDED" in timing or "TOO LATE" in timing:
             status = "🔴 FUNDED PASS · LATE"
+        elif execution == "❌":
+            status = "🔴 FUNDED PASS · EXECUTION"
         elif "RECLAIM" in timing:
             status = "🟡 FUNDED WATCH · RECLAIM"
         elif "EARLY" in timing:
             status = "🟡 FUNDED WATCH · EARLY"
-        elif execution == "❌":
-            status = "🔴 FUNDED PASS · EXECUTION"
+        elif core == "🟡 WATCH":
+            status = "🟡 FUNDED WATCH"
         elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
             status = "🟡 FUNDED WATCH · R:R"
         elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
