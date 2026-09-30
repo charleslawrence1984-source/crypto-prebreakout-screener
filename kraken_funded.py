@@ -459,28 +459,46 @@ def funded_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD):
 
 
 def funded_stock_status(row: pd.Series) -> str:
-    state = str(row.get("Technical state") or "")
-    if state == "WATCH":
-        return "🟡 FUNDED WATCH"
-    if state not in {"ENTRY READY", "AWAITING NEXT OPEN"}:
-        return "⚪ NO CURRENT SETUP"
-
+    state = str(row.get("Technical state") or "").upper()
     rr = safe_number(row.get("R:R"))
     liquidity = safe_number(row.get("Median traded value GBPm"))
     entry = safe_number(row.get("Entry"))
     stop = safe_number(row.get("Stop"))
     macd = str(row.get("MACD progress") or "").upper()
+    rsi = safe_number(row.get("RSI"))
 
+    # Hard funded vetoes always win.
     if not np.isfinite(liquidity) or liquidity < 0.5:
         return "🔴 FUNDED PASS · LIQUIDITY"
     if not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
         return "🟡 FUNDED WATCH · RISK PLAN"
     if not np.isfinite(rr) or rr < FUNDED_READY_MIN_RR:
         return "🟡 FUNDED WATCH · R:R"
-    if rr >= FUNDED_A_PLUS_MIN_RR:
+
+    # The underlying stock engine still controls whether structure is actionable.
+    # WATCH can upgrade only when confirmation is materially stronger, mirroring
+    # the crypto confirmed-retest route without weakening the hard risk gates.
+    entry_ready = state in {"ENTRY READY", "AWAITING NEXT OPEN"}
+    strong_watch = (
+        state == "WATCH"
+        and macd == "CONFIRMED"
+        and np.isfinite(rsi)
+        and 45 <= rsi <= 70
+    )
+
+    if entry_ready and rr >= FUNDED_A_PLUS_MIN_RR:
         return "🟢 A+ FUNDED READY"
-    if macd == "CONFIRMED":
+    if entry_ready and macd == "CONFIRMED":
         return "🟢 FUNDED READY"
+    if strong_watch and rr >= FUNDED_A_PLUS_MIN_RR:
+        return "🟢 A+ FUNDED READY"
+    if strong_watch:
+        return "🟢 FUNDED READY"
+
+    if state == "WATCH":
+        return "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
+    if state not in {"ENTRY READY", "AWAITING NEXT OPEN"}:
+        return "⚪ NO CURRENT SETUP"
     return "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
 
 
@@ -845,6 +863,7 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - **A+ FUNDED READY:** at least **2.5R**, actionable timing and all funded gates passed. Planned loss: **$4**.
         - **FUNDED READY:** at least **2.0R** with stronger confirmation. Planned loss: **$3**.
         - For crypto, a high-quality confirmed **RETEST / READY / ENTRY** with score **60+** can qualify even if the original pre-breakout engine still says WATCH.
+        - For stocks, a **WATCH** can also upgrade when confirmation is materially stronger: **MACD confirmed**, RSI in a constructive **45–70** range, valid stop, sufficient liquidity and at least **2.0R**.
         - **RECLAIM NEEDED / EARLY** remains WATCH until confirmation actually arrives.
         - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
         - Position size is calculated from **entry → invalidation/stop**, capped at **35% of the $1,000 account**.
@@ -969,8 +988,8 @@ with stock_tab:
         })
         st.dataframe(breakdown, hide_index=True, use_container_width=True)
     st.caption(
-        "A+ READY uses about $4 planned risk at 2.5R+. READY uses about $3 risk at 2.0R+ only when confirmation is stronger. "
-        "WATCH/PASS states never receive live position sizing."
+        "A+ READY uses about $4 planned risk at 2.5R+. READY uses about $3 risk at 2.0R+ with stronger confirmation. "
+        "For stocks, a WATCH may upgrade only with confirmed MACD, constructive RSI, valid liquidity and risk plan. WATCH/PASS states never receive live sizing."
     )
 
 with crypto_tab:
