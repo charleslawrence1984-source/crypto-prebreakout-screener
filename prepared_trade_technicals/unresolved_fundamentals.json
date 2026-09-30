@@ -83,7 +83,7 @@
       "symbols": []
     },
     "six": {
-      "count": 70,
+      "count": 67,
       "label": "SIX Swiss Exchange",
       "symbols": [
         "AAPL-USD.SW",
@@ -96,7 +96,6 @@
         "APLD-USD.SW",
         "AVGO-USD.SW",
         "B-USD.SW",
-        "BA-USD.SW",
         "BAC-USD.SW",
         "BE-USD.SW",
         "BKNG-USD.SW",
@@ -106,7 +105,6 @@
         "COIN-USD.SW",
         "CRM-USD.SW",
         "CRWD-USD.SW",
-        "CVX-USD.SW",
         "EPH-EUR.SW",
         "FCX-USD.SW",
         "GE-USD.SW",
@@ -132,7 +130,6 @@
         "MRK-USD.SW",
         "MRNA-USD.SW",
         "MRVL-USD.SW",
-        "MS-USD.SW",
         "MSFT-USD.SW",
         "MU-USD.SW",
         "NDAQ-USD.SW",
@@ -263,8 +260,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-09-29T23:03:43+01:00",
+  "recorded_at": "2026-09-30T23:05:57+01:00",
   "rulebook_build": "2026.09.29.13",
-  "source_fundamentals_updated_at": "2026-09-29T22:31:02+01:00",
-  "total_unresolved": 181
+  "source_fundamentals_updated_at": "2026-09-30T22:32:35+01:00",
+  "total_unresolved": 178
 }
