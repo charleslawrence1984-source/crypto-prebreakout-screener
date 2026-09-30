@@ -383,14 +383,20 @@ def scan_funded_crypto_live() -> pd.DataFrame:
             status = str(row.get("Funded status") or "⚪ DATA UNAVAILABLE")
         elif "EXTENDED" in timing or "TOO LATE" in timing:
             status = "🔴 FUNDED PASS · LATE"
+        elif "RECLAIM" in timing:
+            status = "🟡 FUNDED WATCH · RECLAIM"
+        elif "EARLY" in timing:
+            status = "🟡 FUNDED WATCH · EARLY"
         elif execution == "❌":
             status = "🔴 FUNDED PASS · EXECUTION"
         elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
             status = "🟡 FUNDED WATCH · R:R"
         elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
             status = "🟡 FUNDED WATCH · RISK PLAN"
-        else:
+        elif "RETEST" in timing or "READY" in timing or "ENTRY" in timing:
             status = "🟢 FUNDED READY"
+        else:
+            status = "🟡 FUNDED WATCH · TIMING"
         # Only an actually executable FUNDED READY setup may expose live sizing.
         # WATCH/PASS states can retain reference levels, but must never look like a live order.
         if status == "🟢 FUNDED READY":
