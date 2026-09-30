@@ -257,7 +257,11 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Median traded value GBPm": liquidity_gbpm,
         }
         row["Funded status"] = funded_stock_status(pd.Series(row))
-        plan = funded_position_plan(row.get("Entry"), row.get("Stop"))
+        plan = (
+            funded_position_plan(row.get("Entry"), row.get("Stop"))
+            if row["Funded status"] == "🟢 FUNDED READY"
+            else (np.nan, np.nan, np.nan)
+        )
         row["Position $"] = round(plan[1], 2) if np.isfinite(plan[1]) else np.nan
         row["Risk $"] = round(plan[2], 2) if np.isfinite(plan[2]) else np.nan
         rows.append(row)
@@ -387,7 +391,20 @@ def scan_funded_crypto_live() -> pd.DataFrame:
             status = "🟡 FUNDED WATCH · RISK PLAN"
         else:
             status = "🟢 FUNDED READY"
-        plan = funded_position_plan(entry, stop)
+        # Only an actually executable FUNDED READY setup may expose live sizing.
+        # WATCH/PASS states can retain reference levels, but must never look like a live order.
+        if status == "🟢 FUNDED READY":
+            plan = funded_position_plan(entry, stop)
+        else:
+            plan = (np.nan, np.nan, np.nan)
+
+        # A funded PASS should not expose an actionable entry/risk plan at all.
+        if status.startswith("🔴 FUNDED PASS"):
+            raw.at[row.name, "Funded entry"] = np.nan
+            raw.at[row.name, "Funded stop"] = np.nan
+            raw.at[row.name, "Funded target"] = np.nan
+            raw.at[row.name, "Funded R:R"] = np.nan
+
         funded_status.append(status)
         positions.append(round(plan[1], 2) if np.isfinite(plan[1]) else np.nan)
         risks.append(round(plan[2], 2) if np.isfinite(plan[2]) else np.nan)
@@ -511,7 +528,11 @@ def load_funded_stock_rows() -> pd.DataFrame:
 
     output["Funded status"] = output.apply(funded_stock_status, axis=1)
     stock_plans = output.apply(
-        lambda row: funded_position_plan(row.get("Entry"), row.get("Stop")),
+        lambda row: (
+            funded_position_plan(row.get("Entry"), row.get("Stop"))
+            if row.get("Funded status") == "🟢 FUNDED READY"
+            else (np.nan, np.nan, np.nan)
+        ),
         axis=1,
     )
     output["Risk $"] = [round(plan[2], 2) if np.isfinite(plan[2]) else np.nan for plan in stock_plans]
@@ -703,16 +724,33 @@ def load_funded_crypto_rows() -> pd.DataFrame:
             status = "🟡 FUNDED WATCH"
         elif "EXTENDED" in timing or "TOO LATE" in timing:
             status = "🔴 FUNDED PASS · LATE"
+        elif "RECLAIM" in timing:
+            status = "🟡 FUNDED WATCH · RECLAIM"
+        elif "EARLY" in timing:
+            status = "🟡 FUNDED WATCH · EARLY"
         elif execution == "❌":
             status = "🔴 FUNDED PASS · EXECUTION"
         elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
             status = "🟡 FUNDED WATCH · R:R"
         elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
             status = "🟡 FUNDED WATCH · RISK PLAN"
-        else:
+        elif "RETEST" in timing or "READY" in timing or "ENTRY" in timing:
             status = "🟢 FUNDED READY"
+        else:
+            # Unknown/non-actionable timing states stay on watch rather than leaking into READY.
+            status = "🟡 FUNDED WATCH · TIMING"
 
-        plan = funded_position_plan(entry, stop)
+        if status == "🟢 FUNDED READY":
+            plan = funded_position_plan(entry, stop)
+        else:
+            plan = (np.nan, np.nan, np.nan)
+
+        if status.startswith("🔴 FUNDED PASS"):
+            output.at[row.name, "Funded entry"] = np.nan
+            output.at[row.name, "Funded stop"] = np.nan
+            output.at[row.name, "Funded target"] = np.nan
+            output.at[row.name, "Funded R:R"] = np.nan
+
         funded_status.append(status)
         positions.append(round(plan[1], 2) if np.isfinite(plan[1]) else np.nan)
         risks.append(round(plan[2], 2) if np.isfinite(plan[2]) else np.nan)
