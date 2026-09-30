@@ -31,9 +31,12 @@ FUNDED_START_BALANCE = 1_000.0
 FUNDED_TARGET_BALANCE = 1_120.0
 FUNDED_FAIL_BALANCE = 970.0
 FUNDED_STANDARD_RISK_USD = 4.0
+FUNDED_REDUCED_RISK_USD = 3.0
 FUNDED_MAX_RISK_USD = 5.0
 FUNDED_MAX_TOTAL_OPEN_RISK_USD = 10.0
-FUNDED_MIN_RR = 2.5
+FUNDED_A_PLUS_MIN_RR = 2.5
+FUNDED_READY_MIN_RR = 2.0
+FUNDED_CRYPTO_READY_SCORE = 60.0
 FUNDED_MAX_POSITION_PCT = 35.0
 
 KRAKEN_FUNDED_STOCKS = [
@@ -257,9 +260,14 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Median traded value GBPm": liquidity_gbpm,
         }
         row["Funded status"] = funded_stock_status(pd.Series(row))
+        risk_usd = (
+            FUNDED_STANDARD_RISK_USD if row["Funded status"] == "🟢 A+ FUNDED READY"
+            else FUNDED_REDUCED_RISK_USD if row["Funded status"] == "🟢 FUNDED READY"
+            else np.nan
+        )
         plan = (
-            funded_position_plan(row.get("Entry"), row.get("Stop"))
-            if row["Funded status"] == "🟢 FUNDED READY"
+            funded_position_plan(row.get("Entry"), row.get("Stop"), risk_usd=risk_usd)
+            if np.isfinite(risk_usd)
             else (np.nan, np.nan, np.nan)
         )
         row["Position $"] = round(plan[1], 2) if np.isfinite(plan[1]) else np.nan
@@ -375,7 +383,12 @@ def scan_funded_crypto_live() -> pd.DataFrame:
         rr = safe_number(row.get("Funded R:R"))
         entry = safe_number(row.get("Funded entry"))
         stop = safe_number(row.get("Funded stop"))
-        # Hard funded vetoes must override a softer underlying CL Signal WATCH.
+        score = safe_number(row.get("Score"))
+        actionable_timing = any(token in timing for token in ("RETEST", "READY", "ENTRY"))
+        strong_retest = core == "🟡 WATCH" and actionable_timing and np.isfinite(score) and score >= FUNDED_CRYPTO_READY_SCORE
+
+        # Hard funded vetoes always win. A confirmed high-score retest may qualify
+        # even while the original pre-breakout engine still labels the setup WATCH.
         if core == "🔴 PASS":
             status = "🔴 FUNDED PASS"
         elif core.startswith("⚪"):
@@ -388,22 +401,31 @@ def scan_funded_crypto_live() -> pd.DataFrame:
             status = "🟡 FUNDED WATCH · RECLAIM"
         elif "EARLY" in timing:
             status = "🟡 FUNDED WATCH · EARLY"
-        elif core == "🟡 WATCH":
-            status = "🟡 FUNDED WATCH"
-        elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
-            status = "🟡 FUNDED WATCH · R:R"
         elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
             status = "🟡 FUNDED WATCH · RISK PLAN"
-        elif "RETEST" in timing or "READY" in timing or "ENTRY" in timing:
+        elif not np.isfinite(rr) or rr < FUNDED_READY_MIN_RR:
+            status = "🟡 FUNDED WATCH · R:R"
+        elif not actionable_timing:
+            status = "🟡 FUNDED WATCH · TIMING"
+        elif core == "🟢 READY / BUY" and rr >= FUNDED_A_PLUS_MIN_RR:
+            status = "🟢 A+ FUNDED READY"
+        elif core == "🟢 READY / BUY":
+            status = "🟢 FUNDED READY"
+        elif strong_retest:
             status = "🟢 FUNDED READY"
         else:
-            status = "🟡 FUNDED WATCH · TIMING"
-        # Only an actually executable FUNDED READY setup may expose live sizing.
-        # WATCH/PASS states can retain reference levels, but must never look like a live order.
-        if status == "🟢 FUNDED READY":
-            plan = funded_position_plan(entry, stop)
-        else:
-            plan = (np.nan, np.nan, np.nan)
+            status = "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
+
+        risk_usd = (
+            FUNDED_STANDARD_RISK_USD if status == "🟢 A+ FUNDED READY"
+            else FUNDED_REDUCED_RISK_USD if status == "🟢 FUNDED READY"
+            else np.nan
+        )
+        plan = (
+            funded_position_plan(entry, stop, risk_usd=risk_usd)
+            if np.isfinite(risk_usd)
+            else (np.nan, np.nan, np.nan)
+        )
 
         # A funded PASS should not expose an actionable entry/risk plan at all.
         if status.startswith("🔴 FUNDED PASS"):
@@ -447,14 +469,19 @@ def funded_stock_status(row: pd.Series) -> str:
     liquidity = safe_number(row.get("Median traded value GBPm"))
     entry = safe_number(row.get("Entry"))
     stop = safe_number(row.get("Stop"))
+    macd = str(row.get("MACD progress") or "").upper()
 
-    if not np.isfinite(rr) or rr < FUNDED_MIN_RR:
-        return "🟡 FUNDED WATCH · R:R"
     if not np.isfinite(liquidity) or liquidity < 0.5:
         return "🔴 FUNDED PASS · LIQUIDITY"
     if not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
         return "🟡 FUNDED WATCH · RISK PLAN"
-    return "🟢 FUNDED READY"
+    if not np.isfinite(rr) or rr < FUNDED_READY_MIN_RR:
+        return "🟡 FUNDED WATCH · R:R"
+    if rr >= FUNDED_A_PLUS_MIN_RR:
+        return "🟢 A+ FUNDED READY"
+    if macd == "CONFIRMED":
+        return "🟢 FUNDED READY"
+    return "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -536,8 +563,16 @@ def load_funded_stock_rows() -> pd.DataFrame:
     output["Funded status"] = output.apply(funded_stock_status, axis=1)
     stock_plans = output.apply(
         lambda row: (
-            funded_position_plan(row.get("Entry"), row.get("Stop"))
-            if row.get("Funded status") == "🟢 FUNDED READY"
+            funded_position_plan(
+                row.get("Entry"),
+                row.get("Stop"),
+                risk_usd=(
+                    FUNDED_STANDARD_RISK_USD
+                    if row.get("Funded status") == "🟢 A+ FUNDED READY"
+                    else FUNDED_REDUCED_RISK_USD
+                ),
+            )
+            if row.get("Funded status") in {"🟢 A+ FUNDED READY", "🟢 FUNDED READY"}
             else (np.nan, np.nan, np.nan)
         ),
         axis=1,
@@ -723,7 +758,12 @@ def load_funded_crypto_rows() -> pd.DataFrame:
         entry = safe_number(row.get("Funded entry"))
         stop = safe_number(row.get("Funded stop"))
 
-        # Hard funded vetoes must override a softer underlying CL Signal WATCH.
+        score = safe_number(row.get("Score"))
+        actionable_timing = any(token in timing for token in ("RETEST", "READY", "ENTRY"))
+        strong_retest = core == "🟡 WATCH" and actionable_timing and np.isfinite(score) and score >= FUNDED_CRYPTO_READY_SCORE
+
+        # Hard funded vetoes always win. A confirmed high-score retest may qualify
+        # even while the original pre-breakout engine still labels the setup WATCH.
         if core == "🔴 PASS":
             status = "🔴 FUNDED PASS"
         elif core == "⚪ NOT DEEP-SCORED":
@@ -736,22 +776,31 @@ def load_funded_crypto_rows() -> pd.DataFrame:
             status = "🟡 FUNDED WATCH · RECLAIM"
         elif "EARLY" in timing:
             status = "🟡 FUNDED WATCH · EARLY"
-        elif core == "🟡 WATCH":
-            status = "🟡 FUNDED WATCH"
-        elif not np.isfinite(rr) or rr < FUNDED_MIN_RR:
-            status = "🟡 FUNDED WATCH · R:R"
         elif not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
             status = "🟡 FUNDED WATCH · RISK PLAN"
-        elif "RETEST" in timing or "READY" in timing or "ENTRY" in timing:
+        elif not np.isfinite(rr) or rr < FUNDED_READY_MIN_RR:
+            status = "🟡 FUNDED WATCH · R:R"
+        elif not actionable_timing:
+            status = "🟡 FUNDED WATCH · TIMING"
+        elif core == "🟢 READY / BUY" and rr >= FUNDED_A_PLUS_MIN_RR:
+            status = "🟢 A+ FUNDED READY"
+        elif core == "🟢 READY / BUY":
+            status = "🟢 FUNDED READY"
+        elif strong_retest:
             status = "🟢 FUNDED READY"
         else:
-            # Unknown/non-actionable timing states stay on watch rather than leaking into READY.
-            status = "🟡 FUNDED WATCH · TIMING"
+            status = "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
 
-        if status == "🟢 FUNDED READY":
-            plan = funded_position_plan(entry, stop)
-        else:
-            plan = (np.nan, np.nan, np.nan)
+        risk_usd = (
+            FUNDED_STANDARD_RISK_USD if status == "🟢 A+ FUNDED READY"
+            else FUNDED_REDUCED_RISK_USD if status == "🟢 FUNDED READY"
+            else np.nan
+        )
+        plan = (
+            funded_position_plan(entry, stop, risk_usd=risk_usd)
+            if np.isfinite(risk_usd)
+            else (np.nan, np.nan, np.nan)
+        )
 
         if status.startswith("🔴 FUNDED PASS"):
             output.at[row.name, "Funded entry"] = np.nan
