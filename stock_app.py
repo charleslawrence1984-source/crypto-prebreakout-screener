@@ -45,7 +45,7 @@ PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 PRIORITY_INVESTMENT_DIR = Path(__file__).resolve().parent / "prepared_priority_investments"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
 TRADE_TECHNICAL_DIR = Path(__file__).resolve().parent / "prepared_trade_technicals"
-TRADE_RULEBOOK_BUILD = "2026.10.01.02"
+TRADE_RULEBOOK_BUILD = "2026.10.01.03"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -1256,6 +1256,35 @@ TRADINGVIEW_UNIVERSES = {
     "euronext_lisbon": ("portugal", "EURONEXT", ".LS"),
 }
 
+TRADE_HOME_COUNTRY = {
+    "lse": "UK",
+    "lse_aim": "UK",
+    "xetra": "GERMANY",
+    "tsx": "CANADA",
+    "euronext_paris": "FRANCE",
+    "six": "SWITZERLAND",
+    "madrid": "SPAIN",
+    "euronext_brussels": "BELGIUM",
+    "vienna": "AUSTRIA",
+    "euronext_amsterdam": "NETHERLANDS",
+    "euronext_lisbon": "PORTUGAL",
+}
+
+
+def _is_home_market_row(kind: str, row: dict) -> bool:
+    """Keep the company's home-market line on non-US exchanges.
+
+    This removes foreign secondary/cross-listings such as US shares quoted on
+    SIX/Vienna/Xetra while leaving NASDAQ/NYSE untouched, where ADRs and foreign
+    issuers can legitimately use the US listing as their main liquid venue.
+    """
+    expected = TRADE_HOME_COUNTRY.get(kind)
+    if not expected:
+        return True
+    country = _normalise_country_name(row.get("country"))
+    return bool(country) and country == expected
+
+
 def yahoo_exchange_symbol(symbol: str, suffix: str) -> str:
     """Convert an exchange ticker into the format accepted by Yahoo Finance."""
     symbol = str(symbol).strip().upper()
@@ -1317,8 +1346,10 @@ def london_exchange_data() -> Dict[str, dict]:
     main, aim = [], []
     market_caps = {"lse": {}, "lse_aim": {}}
     for row in rows:
-        # Keep sterling London listings and discard the exchange's international
-        # quote lines, which are duplicate listings from other home markets.
+        # Keep UK home-market sterling listings and discard international/
+        # secondary quote lines from companies whose home market is elsewhere.
+        if not _is_home_market_row("lse", row):
+            continue
         if row.get("currency") not in {"GBX", "GBP"}:
             continue
         symbol = yahoo_exchange_symbol(row.get("name", ""), ".L")
@@ -1344,6 +1375,8 @@ def tradingview_exchange_data(kind: str) -> dict:
     symbols = []
     market_caps = {}
     for row in rows:
+        if not _is_home_market_row(kind, row):
+            continue
         symbol = yahoo_exchange_symbol(row.get("name", ""), suffix)
         if not symbol:
             continue
@@ -5781,9 +5814,9 @@ with tab3:
     with st.expander("Active hard gates and ranking model", expanded=False):
         st.markdown(
             """
-- **Universe:** primary/practical venues only by default (OTC and Gettex excluded); Financial Services and Real Estate excluded; market cap ≥ £500m; median 20-session traded value ≥ £500k; at least 252 daily sessions.
+- **Universe:** primary/home-market venues only by default (OTC, Gettex and identified foreign secondary listings excluded); Financial Services and Real Estate excluded; market cap ≥ £500m; median 20-session traded value ≥ £500k; at least 252 daily sessions.
 - **Fundamentals:** hard safety gates stay mandatory. Score **50–64 = B-quality tradeable**, **65+ = A-quality**; persistent FCF weakness, net debt/FCF >4×, dilution >5%, severe deterioration and extreme-risk gates still block.
-- **Setup:** rising SMA180 and SMA200, MA-zone contact, valid sub-30 RSI recovery, then either a confirmed MACD crossover or the stricter strong pre-cross confirmation route.
+- **Setup:** rising SMA180 and SMA200 plus MA-zone contact. Deep pullback = RSI <30 then recovery; controlled pullback = RSI ≤35 then recovery. Either route still needs confirmed MACD crossover or the stricter strong pre-cross confirmation route.
 - **Entry/risk:** following open within ±0.5 ATR, no more than 1 ATR above the MA zone, structural stop ≤10% away.
 - **Target:** nearest verified resistance or 52-week-high fallback, buffered by 0.25 ATR; at least 10% upside and 2:1 reward/risk.
 - **Ranking only:** support confluence, 10-session relative strength, MACD location, volume, candle structure and three-state market regime.
