@@ -221,9 +221,9 @@ def _pre_cross_ready_plan(
 
     This route is deliberately stricter than an ordinary WATCH: the histogram
     must improve for two completed sessions, the MACD gap must already be small,
-    RSI must have recovered from a recent sub-30 exhaustion event, and the same
-    structural stop / upside / 2R gates used by the confirmed-crossover route
-    must still pass.
+    RSI must have recovered from either a deep (<30) exhaustion event or a
+    controlled (<=35) pullback event. The same structural stop / upside / 2R
+    gates used by the confirmed-crossover route must still pass.
     """
     signal_index = len(data) - 1
     if signal_index < 220:
@@ -232,7 +232,18 @@ def _pre_cross_ready_plan(
     signal = data.iloc[signal_index]
     latest_rsi = float(signal["RSI14"])
     recent_rsi = data["RSI14"].iloc[-10:]
-    if not (30 < latest_rsi <= 50 and bool((recent_rsi < 30).any())):
+    deep_event = bool((recent_rsi < 30).any())
+    controlled_event = bool((recent_rsi <= 35).any())
+    if deep_event:
+        pullback_type = "DEEP"
+        rsi_recovered = 30 < latest_rsi <= 50
+    elif controlled_event:
+        pullback_type = "CONTROLLED"
+        rsi_recovered = 35 < latest_rsi <= 55
+    else:
+        pullback_type = ""
+        rsi_recovered = False
+    if not rsi_recovered:
         return None, "RSI RECOVERY NOT READY"
 
     macd_hist = data["MACD"] - data["MACD_SIGNAL"]
@@ -367,6 +378,7 @@ def _pre_cross_ready_plan(
         "market_state": market_state,
         "market_score": benchmark_score,
         "pre_cross_blocker": "NONE",
+        "pullback_type": pullback_type,
     }, "NONE"
 
 
@@ -420,9 +432,10 @@ def evaluate_price_setup(
     latest = data.iloc[-1]
     latest_rsi = float(latest["RSI14"])
     recent_rsi = data["RSI14"].iloc[-10:]
-    latest_sub30 = recent_rsi[recent_rsi < 30]
+    recent_sub30 = bool((recent_rsi < 30).any())
+    recent_sub35 = bool((recent_rsi <= 35).any())
     if signal_index is None:
-        if latest_rsi < 35 or len(latest_sub30):
+        if latest_rsi <= 35 or recent_sub35:
             # WATCH is a trend/pullback setup, not an unrestricted oversold list.
             slopes = [float(latest[column] / data[column].iloc[-21] - 1)
                       for column in ("SMA180", "SMA200")]
@@ -459,16 +472,22 @@ def evaluate_price_setup(
             if pre_cross is not None:
                 result.update(pre_cross)
             else:
+                watch_pullback_type = "DEEP" if recent_sub30 else "CONTROLLED"
                 result.update(
                     {
                         "technical_state": "WATCH",
-                        "technical_reason": "RSI EXHAUSTION ACTIVE — CONFIRMATION STILL DEVELOPING",
+                        "technical_reason": (
+                            "DEEP PULLBACK — CONFIRMATION STILL DEVELOPING"
+                            if watch_pullback_type == "DEEP"
+                            else "CONTROLLED PULLBACK — CONFIRMATION STILL DEVELOPING"
+                        ),
                         "rsi": round(latest_rsi, 2),
                         "price": close_value,
                         "macd_progress": macd_progress,
                         "macd_histogram": latest_hist,
                         "macd_gap_pct": normalized_gap * 100 if math.isfinite(normalized_gap) else np.nan,
                         "pre_cross_blocker": pre_cross_blocker,
+                        "pullback_type": watch_pullback_type,
                     }
                 )
         else:
@@ -487,18 +506,31 @@ def evaluate_price_setup(
 
     start = max(0, signal_index - 9)
     rsi_window = data["RSI14"].iloc[start : signal_index + 1]
-    sub30_positions = np.flatnonzero(rsi_window.to_numpy() < 30)
-    if not len(sub30_positions):
-        result["technical_reason"] = "NO SUB-30 RSI EVENT WITHIN 10 SESSIONS"
+    deep_positions = np.flatnonzero(rsi_window.to_numpy() < 30)
+    controlled_positions = np.flatnonzero(rsi_window.to_numpy() <= 35)
+    if len(deep_positions):
+        pullback_type = "DEEP"
+        reclaim_level = 30.0
+        exhaustion_index = start + int(deep_positions[-1])
+    elif len(controlled_positions):
+        pullback_type = "CONTROLLED"
+        reclaim_level = 35.0
+        exhaustion_index = start + int(controlled_positions[-1])
+    else:
+        result["technical_reason"] = "NO RSI <=35 PULLBACK EVENT WITHIN 10 SESSIONS"
         return result
-    exhaustion_index = start + int(sub30_positions[-1])
+
     reclaimed = False
     for index in range(exhaustion_index + 1, signal_index + 1):
-        if data["RSI14"].iloc[index - 1] <= 30 < data["RSI14"].iloc[index]:
+        if data["RSI14"].iloc[index - 1] <= reclaim_level < data["RSI14"].iloc[index]:
             reclaimed = True
             break
     if not reclaimed:
-        result["technical_reason"] = "RSI HAS NOT RECLAIMED 30"
+        result["technical_reason"] = (
+            "RSI HAS NOT RECLAIMED 30"
+            if pullback_type == "DEEP"
+            else "RSI HAS NOT RECLAIMED 35"
+        )
         return result
 
     contact = (
@@ -638,6 +670,7 @@ def evaluate_price_setup(
             "candle_score": candle_score,
             "market_state": market_state,
             "market_score": benchmark_score,
+            "pullback_type": pullback_type,
         }
     )
     return result
