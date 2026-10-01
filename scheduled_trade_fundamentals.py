@@ -89,7 +89,7 @@ def main() -> int:
     }
 
     labels_by_kind = {
-        kind: label for label, kind in stock_app.EXCHANGE_UNIVERSES.items()
+        kind: label for label, kind in stock_app.TRADE_UNIVERSES.items()
     }
     if args.exchange == "all":
         kinds = list(labels_by_kind)
@@ -102,7 +102,7 @@ def main() -> int:
     run_date = london_now.date().isoformat()
     hard_failures = 0
 
-    north_america = {"nasdaq", "nyse", "otc", "tsx"}
+    north_america = {"nasdaq", "nyse", "tsx"}
 
     for position, kind in enumerate(kinds, start=1):
         previous = manifest["exchanges"].get(kind, {})
