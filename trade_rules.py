@@ -216,7 +216,7 @@ def _pre_cross_ready_plan(
     benchmark: pd.DataFrame | None,
     latest_hist: float,
     normalized_gap: float,
-) -> dict[str, Any] | None:
+) -> tuple[dict[str, Any] | None, str]:
     """Build a conservative trade plan before the MACD signal-line cross.
 
     This route is deliberately stricter than an ordinary WATCH: the histogram
@@ -227,17 +227,17 @@ def _pre_cross_ready_plan(
     """
     signal_index = len(data) - 1
     if signal_index < 220:
-        return None
+        return None, "INSUFFICIENT HISTORY"
 
     signal = data.iloc[signal_index]
     latest_rsi = float(signal["RSI14"])
     recent_rsi = data["RSI14"].iloc[-10:]
     if not (30 < latest_rsi <= 50 and bool((recent_rsi < 30).any())):
-        return None
+        return None, "RSI RECOVERY NOT READY"
 
     macd_hist = data["MACD"] - data["MACD_SIGNAL"]
     if len(macd_hist) < 3:
-        return None
+        return None, "MACD HISTORY INCOMPLETE"
     previous_hist = float(macd_hist.iloc[-2])
     two_back_hist = float(macd_hist.iloc[-3])
     if not (
@@ -246,31 +246,31 @@ def _pre_cross_ready_plan(
         and math.isfinite(normalized_gap)
         and normalized_gap <= 0.0015
     ):
-        return None
+        return None, "MACD NOT CLOSE/IMPROVING FOR 2 SESSIONS"
 
     sma180_slope = float(signal["SMA180"] / data["SMA180"].iloc[signal_index - 20] - 1)
     sma200_slope = float(signal["SMA200"] / data["SMA200"].iloc[signal_index - 20] - 1)
     if sma180_slope < 0.005 or sma200_slope < 0.005:
-        return None
+        return None, "LONG-TERM TREND NOT STRONG ENOUGH"
 
     atr_value = float(signal["ATR20"])
     zone_low = float(signal["ZONE_LOW"])
     zone_high = float(signal["ZONE_HIGH"])
     entry = float(signal["Close"])
     if not math.isfinite(atr_value) or atr_value <= 0 or entry <= 0:
-        return None
+        return None, "ATR/PRICE DATA INVALID"
 
     history20 = data["Low"].iloc[max(0, signal_index - 19) : signal_index + 1]
     structural_low = min(zone_low, float(history20.min()))
     stop = structural_low - 0.5 * atr_value
     if entry <= stop:
-        return None
+        return None, "ENTRY AT/BELOW INVALIDATION"
 
     stop_distance = (entry - stop) / entry
     if stop_distance > 0.10:
-        return None
+        return None, "STRUCTURAL STOP TOO WIDE"
     if entry > zone_high + atr_value:
-        return None
+        return None, "ENTRY TOO FAR ABOVE MA SUPPORT"
 
     prior = data.iloc[: signal_index + 1]
     confirmed_prior = prior.iloc[:-2] if len(prior) > 4 else prior.iloc[0:0]
@@ -288,7 +288,7 @@ def _pre_cross_ready_plan(
     risk = entry - stop
     reward_risk = (target - entry) / risk if risk > 0 else np.nan
     if target_upside < 0.10 or not math.isfinite(reward_risk) or reward_risk < 2.0:
-        return None
+        return None, "UPSIDE OR R:R BELOW MINIMUM"
 
     support = _clusters(_pivot_values(confirmed_prior["Low"], "low"), atr_value)
     if support:
@@ -366,7 +366,8 @@ def _pre_cross_ready_plan(
         "candle_score": candle_score,
         "market_state": market_state,
         "market_score": benchmark_score,
-    }
+        "pre_cross_blocker": "NONE",
+    }, "NONE"
 
 
 def evaluate_price_setup(
@@ -449,7 +450,7 @@ def evaluate_price_setup(
             else:
                 macd_progress = "WEAK"
 
-            pre_cross = _pre_cross_ready_plan(
+            pre_cross, pre_cross_blocker = _pre_cross_ready_plan(
                 data,
                 benchmark,
                 latest_hist,
@@ -467,6 +468,7 @@ def evaluate_price_setup(
                         "macd_progress": macd_progress,
                         "macd_histogram": latest_hist,
                         "macd_gap_pct": normalized_gap * 100 if math.isfinite(normalized_gap) else np.nan,
+                        "pre_cross_blocker": pre_cross_blocker,
                     }
                 )
         else:
