@@ -175,12 +175,14 @@ def main() -> int:
 
         eligible: list[str] = []
         fundamental_score_by_symbol: dict[str, float] = {}
+        fundamental_tier_by_symbol: dict[str, str] = {}
         for snapshot in snapshots:
             rate = fx_rates.get(snapshot.currency, np.nan)
             result = fundamental_result(snapshot, snapshots, rate)
             if is_fundamentally_eligible(result):
                 eligible.append(snapshot.symbol)
                 fundamental_score_by_symbol[snapshot.symbol] = float(result["fundamental_score"])
+                fundamental_tier_by_symbol[snapshot.symbol] = str(result.get("fundamental_quality_tier") or "FAIL")
 
         eligible_set = set(eligible)
         target = output_dir / f"{kind}.csv.gz"
@@ -229,6 +231,7 @@ def main() -> int:
                     turnover_gbp = raw_turnover * context["price_scale"] * quote_to_gbp
                     row = technical_row(symbol, technical, turnover_gbp, source_timestamp)
                     row["Fundamental score"] = fundamental_score_by_symbol[symbol]
+                    row["Fundamental tier"] = fundamental_tier_by_symbol.get(symbol, "FAIL")
                     rows.append(row)
                 except Exception:
                     continue
