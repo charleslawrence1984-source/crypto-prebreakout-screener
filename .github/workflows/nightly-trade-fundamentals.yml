@@ -11,6 +11,9 @@ on:
         description: TradingView symbols per provider batch
         required: true
         default: "500"
+  push:
+    paths:
+      - ".github/trade-full-rebuild-kick.txt"
   schedule:
     # Mirror the existing Investment updater: 22:15 UK on market weekdays.
     # Both UTC times are triggered; the timezone guard keeps only 22:15 UK
