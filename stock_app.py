@@ -3337,7 +3337,7 @@ def apply_live_trade_overlay(
                     live_reason = "Current price is at or below the overnight structural invalidation level."
                 elif technical_state == "WATCH":
                     live_state = "WATCH"
-                    live_reason = "WATCH remains WATCH intraday; a completed daily MACD crossover is still required."
+                    live_reason = "WATCH remains WATCH intraday; completed daily momentum has not yet met either the strong pre-cross route or the confirmed-crossover route."
                 elif technical_state == "AWAITING NEXT OPEN":
                     needed = [session_open, stop, target, atr20, zone_high, confirmation]
                     if not all(math.isfinite(value) for value in needed) or atr20 <= 0:
@@ -3388,10 +3388,14 @@ def apply_live_trade_overlay(
                     elif math.isfinite(entry) and math.isfinite(atr20) and atr20 > 0:
                         if abs(live_price - entry) <= 0.5 * atr20:
                             live_state = "ENTRY ZONE"
-                            live_reason = "Current price remains within 0.5 ATR of the approved following-open entry."
+                            live_reason = (
+                                "Current price remains within 0.5 ATR of the approved pre-cross reference entry."
+                                if technical_state == "PRE-CROSS READY"
+                                else "Current price remains within 0.5 ATR of the approved following-open entry."
+                            )
                         elif live_price > entry + 0.5 * atr20:
                             live_state = "EXTENDED"
-                            live_reason = "Current price has moved more than 0.5 ATR above the approved entry."
+                            live_reason = "Current price has moved more than 0.5 ATR above the approved reference entry; do not chase."
                         else:
                             live_state = "READY TO VERIFY"
                             live_reason = "Price is below the planned entry but above invalidation; verify the setup before acting."
