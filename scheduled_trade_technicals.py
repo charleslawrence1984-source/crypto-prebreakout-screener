@@ -38,7 +38,7 @@ def fundamental_result(snapshot, peers, gbp_rate: float) -> dict:
 
 def is_fundamentally_eligible(result: dict) -> bool:
     failures = [str(value) for value in result.get("fundamental_failures", [])]
-    return not failures and float(result.get("fundamental_score", 0) or 0) >= 65
+    return not failures and float(result.get("fundamental_score", 0) or 0) >= 50
 
 
 def reconcile_cached(frame: pd.DataFrame, eligible_symbols: set[str]) -> pd.DataFrame:
@@ -110,7 +110,7 @@ def main() -> int:
     fundamentals_manifest_path = fundamentals_dir / "manifest.json"
     fundamentals_manifest = json.loads(fundamentals_manifest_path.read_text(encoding="utf-8"))
     source_timestamp = str(fundamentals_manifest.get("updated_at") or "UNAVAILABLE")
-    labels = {kind: label for label, kind in stock_app.EXCHANGE_UNIVERSES.items()}
+    labels = {kind: label for label, kind in stock_app.TRADE_UNIVERSES.items()}
     kinds = list(labels) if args.exchange == "all" else [args.exchange]
     if any(kind not in labels for kind in kinds):
         raise SystemExit(f"Unknown exchange key: {args.exchange}")
