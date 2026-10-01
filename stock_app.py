@@ -4047,7 +4047,7 @@ def load_investment_validation_coverage() -> Dict:
 def load_all_investment_opportunities() -> pd.DataFrame:
     """Combine prepared Investment results across exchanges into a simple opportunity feed."""
     frames = []
-    labels_by_kind = {kind: label for label, kind in EXCHANGE_UNIVERSES.items()}
+    labels_by_kind = {kind: label for label, kind in INVESTMENT_UNIVERSES.items()}
     for kind, label in labels_by_kind.items():
         path = PREPARED_SCAN_DIR / f"{kind}.csv.gz"
         if not path.exists():
@@ -5391,7 +5391,7 @@ with tab_opportunities:
             with i4:
                 with st.container(border=True):
                     st.caption("🌍 ACTIVE MARKETS")
-                    st.markdown(f"## {investment_market_count} / {len(EXCHANGE_UNIVERSES)}")
+                    st.markdown(f"## {investment_market_count} / {len(INVESTMENT_UNIVERSES)}")
                     st.caption("Markets with shortlisted Investment opportunities")
 
             validation = load_investment_validation_coverage()
@@ -5783,7 +5783,7 @@ with tab3:
             """
 - **Universe:** primary/practical venues only by default (OTC and Gettex excluded); Financial Services and Real Estate excluded; market cap ≥ £500m; median 20-session traded value ≥ £500k; at least 252 daily sessions.
 - **Fundamentals:** hard safety gates stay mandatory. Score **50–64 = B-quality tradeable**, **65+ = A-quality**; persistent FCF weakness, net debt/FCF >4×, dilution >5%, severe deterioration and extreme-risk gates still block.
-- **Setup:** rising SMA180 and SMA200, MA-zone contact, valid sub-30 RSI recovery, current-session confirmed MACD crossover.
+- **Setup:** rising SMA180 and SMA200, MA-zone contact, valid sub-30 RSI recovery, then either a confirmed MACD crossover or the stricter strong pre-cross confirmation route.
 - **Entry/risk:** following open within ±0.5 ATR, no more than 1 ATR above the MA zone, structural stop ≤10% away.
 - **Target:** nearest verified resistance or 52-week-high fallback, buffered by 0.25 ATR; at least 10% upside and 2:1 reward/risk.
 - **Ranking only:** support confluence, 10-session relative strength, MACD location, volume, candle structure and three-state market regime.
