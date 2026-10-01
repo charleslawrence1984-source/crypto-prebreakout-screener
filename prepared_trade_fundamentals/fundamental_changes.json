@@ -1,15 +1,19 @@
 {
   "exchanges": {
     "euronext_amsterdam": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 2,
+      "changed_symbols": [
+        "ALX.AS",
+        "OCI.AS"
+      ],
       "label": "Euronext Amsterdam",
       "new_count": 0,
       "new_symbols": []
     },
     "euronext_brussels": {
-      "changed_count": 2,
+      "changed_count": 3,
       "changed_symbols": [
+        "FLOB.BR",
         "KIN.BR",
         "LOTB.BR"
       ],
@@ -25,9 +29,22 @@
       "new_symbols": []
     },
     "euronext_paris": {
-      "changed_count": 4,
+      "changed_count": 17,
       "changed_symbols": [
+        "AKW.PA",
+        "ALICA.PA",
+        "ALKLH.PA",
+        "ALNMG.PA",
+        "ALSEC.PA",
+        "DKUPL.PA",
+        "DPAM.PA",
+        "EXPL.PA",
+        "IDIP.PA",
+        "LACR.PA",
         "LOUP.PA",
+        "MLLCB.PA",
+        "NAE.PA",
+        "PAT.PA",
         "QDT.PA",
         "SFCA.PA",
         "WAVE.PA"
@@ -37,19 +54,41 @@
       "new_symbols": []
     },
     "lse": {
-      "changed_count": 2,
+      "changed_count": 14,
       "changed_symbols": [
+        "AFP.L",
+        "AGI.L",
+        "AMG.L",
+        "ATN.L",
+        "CHSS.L",
+        "CIZ.L",
+        "DOTL.L",
         "EDV.L",
-        "JDW.L"
+        "JDW.L",
+        "LRES.L",
+        "MODE.L",
+        "PRD.L",
+        "SEEN.L",
+        "TNE.L"
       ],
       "label": "London Stock Exchange",
       "new_count": 0,
       "new_symbols": []
     },
     "lse_aim": {
-      "changed_count": 1,
+      "changed_count": 11,
       "changed_symbols": [
-        "GEM.L"
+        "AEG.L",
+        "BUCE.L",
+        "CHP.L",
+        "CORO.L",
+        "FOX.L",
+        "GEM.L",
+        "GRL.L",
+        "JAN.L",
+        "MTL.L",
+        "TFW.L",
+        "UFO.L"
       ],
       "label": "LSE AIM",
       "new_count": 0,
@@ -61,29 +100,39 @@
         "AMS.MC"
       ],
       "label": "Bolsa de Madrid",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "SCEOL.MC"
+      ]
     },
     "nasdaq": {
-      "changed_count": 23,
+      "changed_count": 31,
       "changed_symbols": [
+        "ADSE",
         "ASTL",
         "BFC",
+        "BSET",
         "CRON",
+        "DGXX",
         "DRVN",
         "FCFS",
         "FRHC",
+        "HAO",
         "INTR",
         "KRYS",
         "KTOS",
+        "KUST",
         "LGND",
         "MNST",
+        "MYPS",
         "NCNO",
         "OPK",
         "PIII",
+        "RCON",
         "RTAC",
         "RTACU",
         "SDGR",
+        "SFHG",
         "TCBK",
         "TOWN",
         "TSAT",
@@ -92,19 +141,17 @@
         "ZNTL"
       ],
       "label": "NASDAQ",
-      "new_count": 2,
-      "new_symbols": [
-        "CHWM",
-        "MMEDV"
-      ]
+      "new_count": 0,
+      "new_symbols": []
     },
     "nyse": {
-      "changed_count": 29,
+      "changed_count": 30,
       "changed_symbols": [
         "ARIS",
         "ATI",
         "AU",
         "AVY",
+        "CAG",
         "CARS",
         "CGAU",
         "CLS",
@@ -136,8 +183,12 @@
       "new_symbols": []
     },
     "six": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 3,
+      "changed_symbols": [
+        "INFO.SW",
+        "SANN.SW",
+        "WIHN.SW"
+      ],
       "label": "SIX Swiss Exchange",
       "new_count": 0,
       "new_symbols": []
@@ -156,23 +207,31 @@
       "new_symbols": []
     },
     "vienna": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 1,
+      "changed_symbols": [
+        "RAT.VI"
+      ],
       "label": "Wiener B\u00f6rse",
       "new_count": 0,
       "new_symbols": []
     },
     "xetra": {
-      "changed_count": 2,
+      "changed_count": 8,
       "changed_symbols": [
+        "7V0.DE",
+        "ABX.DE",
         "HBH.DE",
-        "HFG.DE"
+        "HFG.DE",
+        "HMU.DE",
+        "MAK.DE",
+        "NBG6.DE",
+        "VME.DE"
       ],
       "label": "Deutsche B\u00f6rse Xetra",
       "new_count": 0,
       "new_symbols": []
     }
   },
-  "generated_at": "2026-10-01T14:38:17+01:00",
+  "generated_at": "2026-10-01T22:31:13+01:00",
   "rulebook_build": "2026.10.01.03"
 }
