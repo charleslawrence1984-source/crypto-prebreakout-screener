@@ -139,7 +139,7 @@ def main() -> int:
         except Exception as exc:
             raise SystemExit(f"Cannot read --symbols-json {args.symbols_json}: {exc}")
 
-    labels_by_kind = {kind: label for label, kind in stock_app.EXCHANGE_UNIVERSES.items()}
+    labels_by_kind = {kind: label for label, kind in stock_app.INVESTMENT_UNIVERSES.items()}
     if args.exchange == "all":
         kinds = list(labels_by_kind)
     elif args.exchange in labels_by_kind:
