@@ -907,7 +907,7 @@ def score_fundamental_snapshot(
     elif market_cap_gbp < 500_000_000:
         failures.append("MARKET CAP BELOW £500M")
     if snapshot.missing_hard_inputs:
-        failures.append("FUNDAMENTAL DATA INCOMPLETE — " + ", ".join(snapshot.missing_hard_inputs))
+        warnings.append("FUNDAMENTAL DATA LIMITED — " + ", ".join(snapshot.missing_hard_inputs))
     fcf_values = snapshot.annual_fcf[:10]
     if math.isfinite(snapshot.trailing_fcf) and snapshot.trailing_fcf <= 0:
         failures.append("FCF HARD GATE FAILED")
@@ -978,8 +978,10 @@ def score_fundamental_snapshot(
     )
     if not math.isfinite(score):
         failures.append("FUNDAMENTAL DATA INCOMPLETE — QUALITY SCORE")
+    elif score < 50:
+        failures.append("FUNDAMENTAL QUALITY SCORE BELOW 50")
     elif score < 65:
-        failures.append("FUNDAMENTAL QUALITY SCORE BELOW 65")
+        warnings.append("B-QUALITY TRADE FUNDAMENTALS — SCORE 50–64")
     if apply_event_gate:
         if earnings_sessions is None or earnings_sessions < 0:
             failures.append("EARNINGS DATE UNVERIFIED")
@@ -990,6 +992,11 @@ def score_fundamental_snapshot(
 
     return {
         "fundamental_score": round(score, 2),
+        "fundamental_quality_tier": (
+            "A" if math.isfinite(score) and score >= 65
+            else "B" if math.isfinite(score) and score >= 50
+            else "FAIL"
+        ),
         "fundamental_failures": failures,
         "fundamental_warnings": warnings,
         "market_cap_gbp": market_cap_gbp,
