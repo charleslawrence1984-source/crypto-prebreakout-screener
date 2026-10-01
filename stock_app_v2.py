@@ -1,3 +1,4 @@
+# Deployment sync: Trade rulebook 2026.10.01.03
 import streamlit as st
 
 st.set_page_config(
