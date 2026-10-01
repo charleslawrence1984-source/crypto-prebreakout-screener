@@ -45,7 +45,7 @@ PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 PRIORITY_INVESTMENT_DIR = Path(__file__).resolve().parent / "prepared_priority_investments"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
 TRADE_TECHNICAL_DIR = Path(__file__).resolve().parent / "prepared_trade_technicals"
-TRADE_RULEBOOK_BUILD = "2026.10.01.01"
+TRADE_RULEBOOK_BUILD = "2026.10.01.02"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
@@ -65,15 +65,16 @@ EXCHANGE_UNIVERSES = {
     "Euronext Lisbon": "euronext_lisbon",
 }
 
-# Trade/public search can still inspect every supported venue. Long-term Investment
-# scanning excludes obvious secondary/proxy venues so OTC/Gettex lines cannot be
-# promoted to normal BUY candidates.
-PUBLIC_UNIVERSES = EXCHANGE_UNIVERSES.copy()
-INVESTMENT_UNIVERSES = {
+# Default Trade and Investment scans use primary/practical venues only.
+# OTC and Gettex remain defined above for optional/manual access but are excluded
+# from the normal opportunity pipeline to avoid duplicate/secondary listings.
+TRADE_UNIVERSES = {
     label: kind
     for label, kind in EXCHANGE_UNIVERSES.items()
     if kind not in {"otc", "gettex"}
 }
+PUBLIC_UNIVERSES = TRADE_UNIVERSES.copy()
+INVESTMENT_UNIVERSES = TRADE_UNIVERSES.copy()
 
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
 
@@ -2074,7 +2075,7 @@ def approved_trade_market_scan(
                 apply_event_gate=False,
             )
             failures = list(fundamental.get("fundamental_failures", []))
-            if not failures and float(fundamental.get("fundamental_score", 0) or 0) >= 65:
+            if not failures and float(fundamental.get("fundamental_score", 0) or 0) >= 50:
                 fundamentally_eligible.append(snapshot.symbol)
         scan_symbols = fundamentally_eligible
         fundamental_pass_count = len(fundamentally_eligible)
@@ -2298,6 +2299,7 @@ def approved_trade_market_scan(
             "Median traded value £m": technical["turnover_gbp"] / 1_000_000,
             "Market cap £m": fundamental["market_cap_gbp"] / 1_000_000 if math.isfinite(fundamental["market_cap_gbp"]) else np.nan,
             "Fundamental score": fundamental["fundamental_score"],
+            "Fundamental tier": fundamental.get("fundamental_quality_tier", "FAIL"),
             "Technical score": technical.get("technical_score"),
             "Tier": technical.get("technical_tier"),
             "Market regime": technical.get("market_state"),
@@ -3752,10 +3754,15 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
             "Overall": "🟢 READY" if ready else "🟡 WATCH",
             "Ticker": ticker,
             "Company": str(row.get("Company") or ""),
-            "Fundamentals ≥65": _criterion_mark(
-                None if np.isnan(fundamental_score) else fundamental_score >= 65,
+            "Fundamentals ≥50": _criterion_mark(
+                None if np.isnan(fundamental_score) else fundamental_score >= 50,
                 "—" if np.isnan(fundamental_score) else f"{fundamental_score:.0f}",
             ),
+            "Fundamental tier": (
+                "🟢 A" if fundamental_score >= 65
+                else "🟡 B" if fundamental_score >= 50
+                else "❌ FAIL"
+            ) if math.isfinite(fundamental_score) else "—",
             "RSI setup": _criterion_mark(
                 True if setup_preconditions_pass else False,
                 "—" if np.isnan(rsi_value) else f"{rsi_value:.1f}",
@@ -3853,7 +3860,7 @@ def build_investment_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
 def load_all_trade_opportunities() -> pd.DataFrame:
     """Combine prepared Trade technicals across exchanges for a simple user-facing opportunity feed."""
     frames = []
-    labels_by_kind = {kind: label for label, kind in EXCHANGE_UNIVERSES.items()}
+    labels_by_kind = {kind: label for label, kind in TRADE_UNIVERSES.items()}
     for kind, label in labels_by_kind.items():
         technical_path = TRADE_TECHNICAL_DIR / f"{kind}.csv.gz"
         fundamental_path = TRADE_PREPARED_DIR / f"{kind}.csv.gz"
@@ -5205,7 +5212,7 @@ with tab_opportunities:
             with t4:
                 with st.container(border=True):
                     st.caption("🌍 ACTIVE MARKETS")
-                    st.markdown(f"## {market_count} / {len(EXCHANGE_UNIVERSES)}")
+                    st.markdown(f"## {market_count} / {len(TRADE_UNIVERSES)}")
                     st.caption("Markets with shortlisted Trade opportunities")
 
             st.caption(
@@ -5774,8 +5781,8 @@ with tab3:
     with st.expander("Active hard gates and ranking model", expanded=False):
         st.markdown(
             """
-- **Universe:** excludes Financial Services and Real Estate; market cap ≥ £500m; median 20-session traded value ≥ £5m; at least 252 daily sessions.
-- **Fundamentals:** quality score ≥65, positive-FCF tests, net debt/FCF ≤4×, dilution ≤5%, deterioration and extreme-risk gates.
+- **Universe:** primary/practical venues only by default (OTC and Gettex excluded); Financial Services and Real Estate excluded; market cap ≥ £500m; median 20-session traded value ≥ £500k; at least 252 daily sessions.
+- **Fundamentals:** hard safety gates stay mandatory. Score **50–64 = B-quality tradeable**, **65+ = A-quality**; persistent FCF weakness, net debt/FCF >4×, dilution >5%, severe deterioration and extreme-risk gates still block.
 - **Setup:** rising SMA180 and SMA200, MA-zone contact, valid sub-30 RSI recovery, current-session confirmed MACD crossover.
 - **Entry/risk:** following open within ±0.5 ATR, no more than 1 ATR above the MA zone, structural stop ≤10% away.
 - **Target:** nearest verified resistance or 52-week-high fallback, buffered by 0.25 ATR; at least 10% upside and 2:1 reward/risk.
