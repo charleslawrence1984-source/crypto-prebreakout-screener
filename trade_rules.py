@@ -907,7 +907,27 @@ def score_fundamental_snapshot(
     elif market_cap_gbp < 500_000_000:
         failures.append("MARKET CAP BELOW £500M")
     if snapshot.missing_hard_inputs:
-        warnings.append("FUNDAMENTAL DATA LIMITED — " + ", ".join(snapshot.missing_hard_inputs))
+        critical_missing = {
+            "three annual FCF periods",
+            "trailing FCF",
+            "net debt and FCF",
+        }
+        missing_critical = [
+            value for value in snapshot.missing_hard_inputs
+            if value in critical_missing
+        ]
+        missing_noncritical = [
+            value for value in snapshot.missing_hard_inputs
+            if value not in critical_missing
+        ]
+        if missing_critical:
+            failures.append(
+                "FUNDAMENTAL SAFETY DATA INCOMPLETE — " + ", ".join(missing_critical)
+            )
+        if missing_noncritical:
+            warnings.append(
+                "FUNDAMENTAL DATA LIMITED — " + ", ".join(missing_noncritical)
+            )
     fcf_values = snapshot.annual_fcf[:10]
     if math.isfinite(snapshot.trailing_fcf) and snapshot.trailing_fcf <= 0:
         failures.append("FCF HARD GATE FAILED")
