@@ -3741,6 +3741,7 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         rsi_value = safe(row.get("RSI"))
         liquidity_gate = str(row.get("Liquidity gate") or "").upper()
         macd_progress = str(row.get("MACD progress") or "").upper()
+        pullback_type = str(row.get("Pullback type") or "").upper()
         liquidity_value_m = safe(row.get("Median traded value GBPm"))
         liquidity_tier = str(row.get("Liquidity tier") or "").upper()
         company_key = str(row.get("_company_key") or "")
@@ -3796,6 +3797,11 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
                 else "🟡 B" if fundamental_score >= 50
                 else "❌ FAIL"
             ) if math.isfinite(fundamental_score) else "—",
+            "Pullback": (
+                "🔴 Deep" if pullback_type == "DEEP"
+                else "🟠 Controlled" if pullback_type == "CONTROLLED"
+                else "—"
+            ),
             "RSI setup": _criterion_mark(
                 True if setup_preconditions_pass else False,
                 "—" if np.isnan(rsi_value) else f"{rsi_value:.1f}",
