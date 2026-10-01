@@ -2125,7 +2125,7 @@ def approved_trade_market_scan(
                 if technical.get("technical_state") == "WATCH":
                     technical["turnover_gbp"] = turnover_gbp
                     deep_candidates.append((symbol, technical))
-                elif technical.get("technical_state") in {"ENTRY READY", "AWAITING NEXT OPEN"}:
+                elif technical.get("technical_state") in {"ENTRY READY", "AWAITING NEXT OPEN", "PRE-CROSS READY"}:
                     exact_turnover_gbp = technical["turnover_median_20"] * context["price_scale"] * quote_to_gbp
                     if not math.isfinite(exact_turnover_gbp) or exact_turnover_gbp < 500_000:
                         continue
@@ -2265,6 +2265,9 @@ def approved_trade_market_scan(
         elif technical["technical_state"] == "AWAITING NEXT OPEN":
             status = "WATCH"
             reason = "VALID DAILY CLOSE — AWAITING NEXT OPEN"
+        elif technical["technical_state"] == "PRE-CROSS READY":
+            status = "PAPER CANDIDATE"
+            reason = "STRONG PRE-CROSS CONFIRMATION — ALL RISK / UPSIDE GATES PASS"
         else:
             status = "PAPER CANDIDATE"
             reason = "ALL APPROVED GATES PASS"
@@ -3272,7 +3275,7 @@ def _overnight_trade_state(row: pd.Series) -> str:
     technical_state = str(row.get("Technical state") or "").upper()
     if technical_state == "WATCH":
         return "WATCH"
-    if technical_state in {"AWAITING NEXT OPEN", "ENTRY READY"}:
+    if technical_state in {"AWAITING NEXT OPEN", "ENTRY READY", "PRE-CROSS READY"}:
         return "READY TO VERIFY"
     return str(row.get("Status") or "WATCH").upper()
 
@@ -3365,7 +3368,7 @@ def apply_live_trade_overlay(
                         else:
                             live_state = "READY TO VERIFY"
                             live_reason = "Opening-entry checks still pass; verify current event/news conditions before acting."
-                elif technical_state == "ENTRY READY":
+                elif technical_state in {"ENTRY READY", "PRE-CROSS READY"}:
                     if math.isfinite(target) and live_price > 0:
                         remaining_upside = (target - live_price) / live_price * 100
                     if math.isfinite(stop) and math.isfinite(target):
@@ -3843,7 +3846,7 @@ def load_all_trade_opportunities() -> pd.DataFrame:
             continue
 
         technical = technical[
-            technical["Technical state"].isin(["WATCH", "AWAITING NEXT OPEN", "ENTRY READY"])
+            technical["Technical state"].isin(["WATCH", "AWAITING NEXT OPEN", "ENTRY READY", "PRE-CROSS READY"])
         ].copy()
         if technical.empty:
             continue
@@ -3854,6 +3857,7 @@ def load_all_trade_opportunities() -> pd.DataFrame:
                 "WATCH": "WATCH",
                 "AWAITING NEXT OPEN": "READY TO VERIFY",
                 "ENTRY READY": "READY TO VERIFY",
+                "PRE-CROSS READY": "READY TO VERIFY",
             }
         ).fillna("WATCH")
 
@@ -3881,12 +3885,38 @@ def load_all_trade_opportunities() -> pd.DataFrame:
     output["Sector"] = output.get("Sector", pd.Series("—", index=output.index)).fillna("—")
     output["Technical score"] = pd.to_numeric(output.get("Technical score"), errors="coerce")
     output["Fundamental score"] = pd.to_numeric(output.get("Fundamental score"), errors="coerce")
+    output["Median traded value GBPm"] = pd.to_numeric(
+        output.get("Median traded value GBPm", output.get("Median traded value £m")),
+        errors="coerce",
+    )
+
+    # Keep one line per underlying company, preferring the most liquid practical
+    # listing. This removes thin OTC/Gettex/secondary duplicates from the user-facing
+    # Trade shortlist without reducing the underlying market scan coverage.
+    output["_company_key"] = output.apply(
+        lambda row: canonical_company_key(row.get("Company") or row.get("Ticker") or "")
+        or str(row.get("Ticker") or "").lower(),
+        axis=1,
+    )
+    output["_secondary_listing"] = (
+        output.get("Exchange", pd.Series("", index=output.index)).astype(str).str.upper().isin(
+            {"OTC MARKETS", "GETTEX"}
+        )
+        | output.get("Ticker", pd.Series("", index=output.index)).astype(str).str.upper().str.endswith(".MU")
+    )
+    output["_liquidity_order"] = output["Median traded value GBPm"].fillna(-1.0)
     output["_status_order"] = output["Status"].map({"READY TO VERIFY": 0, "WATCH": 1}).fillna(9)
+    output = output.sort_values(
+        ["_company_key", "_secondary_listing", "_liquidity_order", "_status_order", "Technical score", "Fundamental score"],
+        ascending=[True, True, False, True, False, False],
+        na_position="last",
+    )
+    output = output.drop_duplicates(subset=["_company_key"], keep="first")
     output = output.sort_values(
         ["_status_order", "Technical score", "Fundamental score"],
         ascending=[True, False, False],
         na_position="last",
-    ).drop(columns="_status_order")
+    ).drop(columns=["_status_order", "_company_key", "_secondary_listing", "_liquidity_order"])
     return output.reset_index(drop=True)
 
 
@@ -5268,8 +5298,9 @@ with tab_opportunities:
                 with st.expander("Why a WATCH can still have several green ticks", expanded=False):
                     st.caption(
                         "A WATCH has already passed the active RSI/pullback check, both long moving-average trend checks "
-                        "and MA-zone contact. It remains WATCH because there is no current confirmed MACD crossover. "
-                        "Entry, stop, target, upside and reward/risk are therefore deliberately shown as — until that confirmation exists."
+                        "and MA-zone contact. It remains WATCH while momentum confirmation is still developing. "
+                        "A stock can now become Ready before the literal MACD crossover only when the histogram improves for two completed sessions, "
+                        "the MACD gap is very small, RSI has recovered from a recent sub-30 exhaustion event, and the same stop, 10% upside and 2:1 reward/risk gates all pass."
                     )
 
 
