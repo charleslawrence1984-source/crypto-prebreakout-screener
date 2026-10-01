@@ -3896,7 +3896,8 @@ def build_investment_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def load_all_trade_opportunities() -> pd.DataFrame:
+def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> pd.DataFrame:
+    _ = cache_version
     """Combine prepared Trade technicals across exchanges for a simple user-facing opportunity feed."""
     frames = []
     labels_by_kind = {kind: label for label, kind in TRADE_UNIVERSES.items()}
@@ -5220,7 +5221,7 @@ with tab_opportunities:
     )
 
     with trade_feed_tab:
-        trade_opportunities = load_all_trade_opportunities()
+        trade_opportunities = load_all_trade_opportunities(TRADE_RULEBOOK_BUILD)
         if trade_opportunities.empty:
             st.info(
                 "No prepared Trade WATCH or ready-to-verify setups are available right now. "
@@ -5232,6 +5233,7 @@ with tab_opportunities:
             market_count = int(trade_opportunities["Exchange"].nunique())
 
             st.markdown("### Trade snapshot")
+            st.caption(f"Trade rulebook build: **{TRADE_RULEBOOK_BUILD}**")
             t1, t2, t3, t4 = st.columns(4)
             with t1:
                 with st.container(border=True):
