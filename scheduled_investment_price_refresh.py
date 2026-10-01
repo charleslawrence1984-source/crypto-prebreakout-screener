@@ -34,7 +34,7 @@ def main() -> int:
     refreshed_at = london_now.isoformat(timespec="seconds")
 
     for kind, label in {
-        kind: label for label, kind in stock_app.EXCHANGE_UNIVERSES.items()
+        kind: label for label, kind in stock_app.INVESTMENT_UNIVERSES.items()
     }.items():
         path = input_dir / f"{kind}.csv.gz"
         if not path.exists():
