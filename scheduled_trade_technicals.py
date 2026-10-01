@@ -72,6 +72,7 @@ def technical_row(symbol: str, technical: dict, turnover_gbp: float, source_time
         "MACD progress": technical.get("macd_progress"),
         "MACD histogram": technical.get("macd_histogram"),
         "MACD gap %": technical.get("macd_gap_pct"),
+        "Pre-cross blocker": technical.get("pre_cross_blocker", ""),
         "Median traded value GBPm": turnover_gbp / 1_000_000 if math.isfinite(turnover_gbp) else np.nan,
         "Liquidity gate": "PASS" if math.isfinite(turnover_gbp) and turnover_gbp >= 500_000 else "FAIL",
         "Liquidity tier": (
