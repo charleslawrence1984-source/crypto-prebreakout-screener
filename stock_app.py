@@ -2294,6 +2294,7 @@ def approved_trade_market_scan(
             "MACD progress": technical.get("macd_progress"),
             "MACD histogram": technical.get("macd_histogram"),
             "MACD gap %": technical.get("macd_gap_pct"),
+            "Pre-cross blocker": technical.get("pre_cross_blocker", ""),
             "Median traded value £m": technical["turnover_gbp"] / 1_000_000,
             "Market cap £m": fundamental["market_cap_gbp"] / 1_000_000 if math.isfinite(fundamental["market_cap_gbp"]) else np.nan,
             "Fundamental score": fundamental["fundamental_score"],
@@ -3748,12 +3749,14 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
             "MA trend": _criterion_mark(True if setup_preconditions_pass else False),
             "MA support": _criterion_mark(True if setup_preconditions_pass else False),
             "MACD progress": (
-                "✅ Confirmed" if ready or macd_progress == "CONFIRMED"
+                "✅ Strong pre-cross" if macd_progress == "STRONG PRE-CROSS"
+                else "✅ Confirmed" if ready or macd_progress == "CONFIRMED"
                 else "🟡 Near crossover" if macd_progress == "NEAR CROSSOVER"
                 else "🟠 Improving" if macd_progress == "IMPROVING"
                 else "❌ Weak" if macd_progress == "WEAK"
                 else "— Refresh needed"
             ),
+            "Pre-cross blocker": str(row.get("Pre-cross blocker") or "—"),
             "Liquidity": _criterion_mark(
                 (liquidity_value_m >= 0.5) if math.isfinite(liquidity_value_m) else None,
                 (
