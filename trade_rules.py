@@ -211,6 +211,164 @@ def market_regime_score(benchmark: pd.DataFrame | None) -> tuple[float, str]:
     return 7.5, "NEUTRAL"
 
 
+def _pre_cross_ready_plan(
+    data: pd.DataFrame,
+    benchmark: pd.DataFrame | None,
+    latest_hist: float,
+    normalized_gap: float,
+) -> dict[str, Any] | None:
+    """Build a conservative trade plan before the MACD signal-line cross.
+
+    This route is deliberately stricter than an ordinary WATCH: the histogram
+    must improve for two completed sessions, the MACD gap must already be small,
+    RSI must have recovered from a recent sub-30 exhaustion event, and the same
+    structural stop / upside / 2R gates used by the confirmed-crossover route
+    must still pass.
+    """
+    signal_index = len(data) - 1
+    if signal_index < 220:
+        return None
+
+    signal = data.iloc[signal_index]
+    latest_rsi = float(signal["RSI14"])
+    recent_rsi = data["RSI14"].iloc[-10:]
+    if not (30 < latest_rsi <= 50 and bool((recent_rsi < 30).any())):
+        return None
+
+    macd_hist = data["MACD"] - data["MACD_SIGNAL"]
+    if len(macd_hist) < 3:
+        return None
+    previous_hist = float(macd_hist.iloc[-2])
+    two_back_hist = float(macd_hist.iloc[-3])
+    if not (
+        latest_hist < 0
+        and latest_hist > previous_hist > two_back_hist
+        and math.isfinite(normalized_gap)
+        and normalized_gap <= 0.0015
+    ):
+        return None
+
+    sma180_slope = float(signal["SMA180"] / data["SMA180"].iloc[signal_index - 20] - 1)
+    sma200_slope = float(signal["SMA200"] / data["SMA200"].iloc[signal_index - 20] - 1)
+    if sma180_slope < 0.005 or sma200_slope < 0.005:
+        return None
+
+    atr_value = float(signal["ATR20"])
+    zone_low = float(signal["ZONE_LOW"])
+    zone_high = float(signal["ZONE_HIGH"])
+    entry = float(signal["Close"])
+    if not math.isfinite(atr_value) or atr_value <= 0 or entry <= 0:
+        return None
+
+    history20 = data["Low"].iloc[max(0, signal_index - 19) : signal_index + 1]
+    structural_low = min(zone_low, float(history20.min()))
+    stop = structural_low - 0.5 * atr_value
+    if entry <= stop:
+        return None
+
+    stop_distance = (entry - stop) / entry
+    if stop_distance > 0.10:
+        return None
+    if entry > zone_high + atr_value:
+        return None
+
+    prior = data.iloc[: signal_index + 1]
+    confirmed_prior = prior.iloc[:-2] if len(prior) > 4 else prior.iloc[0:0]
+    resistance = _clusters(_pivot_values(confirmed_prior["High"], "high"), atr_value)
+    overhead = [cluster for cluster in resistance if cluster["lower"] > entry]
+    if overhead:
+        chosen = min(overhead, key=lambda cluster: cluster["lower"])
+        target_source = "TWO-TOUCH RESISTANCE"
+        target = chosen["lower"] - 0.25 * atr_value
+    else:
+        target_source = "52-WEEK HIGH FALLBACK"
+        target = float(prior["High"].tail(252).max()) - 0.25 * atr_value
+
+    target_upside = (target - entry) / entry
+    risk = entry - stop
+    reward_risk = (target - entry) / risk if risk > 0 else np.nan
+    if target_upside < 0.10 or not math.isfinite(reward_risk) or reward_risk < 2.0:
+        return None
+
+    support = _clusters(_pivot_values(confirmed_prior["Low"], "low"), atr_value)
+    if support:
+        nearest = min(
+            support,
+            key=lambda cluster: 0.0
+            if cluster["upper"] >= zone_low and cluster["lower"] <= zone_high
+            else min(abs(cluster["upper"] - zone_low), abs(cluster["lower"] - zone_high)),
+        )
+        distance = 0.0 if nearest["upper"] >= zone_low and nearest["lower"] <= zone_high else min(
+            abs(nearest["upper"] - zone_low), abs(nearest["lower"] - zone_high)
+        )
+        support_score = 20.0 * _clip(1.0 - distance / (0.5 * atr_value), 0.0, 1.0)
+    else:
+        support_score = 0.0
+
+    benchmark_score, market_state = market_regime_score(benchmark)
+    relative_strength = np.nan
+    relative_score = 10.0
+    if benchmark is not None and len(benchmark):
+        stock_close = data["Close"]
+        benchmark_close = pd.to_numeric(benchmark["Close"], errors="coerce").dropna()
+        aligned = pd.concat([stock_close.rename("stock"), benchmark_close.rename("benchmark")], axis=1).dropna()
+        if len(aligned) >= 11:
+            stock_change = aligned["stock"].iloc[-1] / aligned["stock"].iloc[-11] - 1
+            benchmark_change = aligned["benchmark"].iloc[-1] / aligned["benchmark"].iloc[-11] - 1
+            relative_strength = float(stock_change - benchmark_change)
+            relative_score = 20.0 * _clip((relative_strength + 0.05) / 0.10, 0.0, 1.0)
+
+    # Give the pre-cross route partial MACD credit rather than the full confirmed-cross score.
+    macd_score = 10.0 * _clip(1.0 - normalized_gap / 0.0015, 0.0, 1.0)
+    prior_volume = data["Volume"].iloc[max(0, signal_index - 20) : signal_index]
+    median_volume = float(prior_volume.median()) if len(prior_volume) else np.nan
+    volume_ratio = float(signal["Volume"] / median_volume) if median_volume > 0 else np.nan
+    volume_score = 15.0 * _clip((volume_ratio - 0.5) / 1.5, 0.0, 1.0) if math.isfinite(volume_ratio) else 0.0
+    day_range = float(signal["High"] - signal["Low"])
+    close_location = (float(signal["Close"] - signal["Low"]) / day_range) if day_range > 0 else 0.5
+    body_direction = 1.0 if signal["Close"] > signal["Open"] else 0.0 if signal["Close"] < signal["Open"] else 0.5
+    candle_score = 15.0 * (0.5 * close_location + 0.5 * body_direction)
+    technical_score = support_score + relative_score + macd_score + volume_score + candle_score + benchmark_score
+    tier = "A" if technical_score >= 75 else "B" if technical_score >= 50 else "C"
+
+    return {
+        "technical_state": "PRE-CROSS READY",
+        "technical_reason": "STRONG PRE-CROSS CONFIRMATION — TRADE PLAN PASSES",
+        "signal_date": data.index[signal_index],
+        "entry_date": pd.NaT,
+        "price": entry,
+        "entry": entry,
+        "rsi": latest_rsi,
+        "atr20": atr_value,
+        "zone_low": zone_low,
+        "zone_high": zone_high,
+        "stop": stop,
+        "stop_distance_pct": stop_distance * 100,
+        "target": target,
+        "target_source": target_source,
+        "upside_pct": target_upside * 100,
+        "reward_risk": reward_risk,
+        "gap_atr": 0.0,
+        "turnover_median_20": float((data["Close"] * data["Volume"]).iloc[max(0, signal_index - 20) : signal_index].median()),
+        "sma180_slope_pct": sma180_slope * 100,
+        "sma200_slope_pct": sma200_slope * 100,
+        "technical_score": technical_score,
+        "technical_tier": tier,
+        "macd_progress": "STRONG PRE-CROSS",
+        "macd_histogram": latest_hist,
+        "macd_gap_pct": normalized_gap * 100,
+        "support_score": support_score,
+        "relative_strength_pct": relative_strength * 100 if math.isfinite(relative_strength) else np.nan,
+        "relative_strength_score": relative_score,
+        "macd_score": macd_score,
+        "volume_ratio": volume_ratio,
+        "volume_score": volume_score,
+        "candle_score": candle_score,
+        "market_state": market_state,
+        "market_score": benchmark_score,
+    }
+
+
 def evaluate_price_setup(
     frame: pd.DataFrame,
     benchmark: pd.DataFrame | None = None,
@@ -291,17 +449,26 @@ def evaluate_price_setup(
             else:
                 macd_progress = "WEAK"
 
-            result.update(
-                {
-                    "technical_state": "WATCH",
-                    "technical_reason": "RSI EXHAUSTION ACTIVE — NO CURRENT MACD CROSSOVER",
-                    "rsi": round(latest_rsi, 2),
-                    "price": close_value,
-                    "macd_progress": macd_progress,
-                    "macd_histogram": latest_hist,
-                    "macd_gap_pct": normalized_gap * 100 if math.isfinite(normalized_gap) else np.nan,
-                }
+            pre_cross = _pre_cross_ready_plan(
+                data,
+                benchmark,
+                latest_hist,
+                normalized_gap,
             )
+            if pre_cross is not None:
+                result.update(pre_cross)
+            else:
+                result.update(
+                    {
+                        "technical_state": "WATCH",
+                        "technical_reason": "RSI EXHAUSTION ACTIVE — CONFIRMATION STILL DEVELOPING",
+                        "rsi": round(latest_rsi, 2),
+                        "price": close_value,
+                        "macd_progress": macd_progress,
+                        "macd_histogram": latest_hist,
+                        "macd_gap_pct": normalized_gap * 100 if math.isfinite(normalized_gap) else np.nan,
+                    }
+                )
         else:
             result["technical_reason"] = "NO ACTIVE RSI EXHAUSTION OR CURRENT CROSSOVER"
         return result
