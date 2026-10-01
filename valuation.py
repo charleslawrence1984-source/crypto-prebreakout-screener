@@ -118,6 +118,11 @@ def _exchange_country(symbol: str, info: dict) -> str:
         ".PA": "France",
         ".AS": "Netherlands",
         ".MI": "Italy",
+        ".VI": "Austria",
+        ".SW": "Switzerland",
+        ".BR": "Belgium",
+        ".LS": "Portugal",
+        ".MU": "Germany",
         ".AX": "Australia",
         ".T": "Japan",
     }
@@ -351,5 +356,6 @@ def fundamental_analysis(symbol: str, price: float, ticker=None):
         "financial_currency": financial_currency,
         "exchange": exchange,
         "exchange_country": _exchange_country(symbol, {**info, "exchange": exchange}),
+        "company_country": info.get("country") or "",
         "metadata_complete": metadata_complete,
     }
