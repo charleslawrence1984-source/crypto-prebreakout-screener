@@ -3654,6 +3654,20 @@ def refresh_macd_progress_now(frame: pd.DataFrame) -> Dict[str, Dict]:
                     "RSI": technical.get("rsi"),
                     "Technical state": state,
                     "Technical reason": technical.get("technical_reason"),
+                    "Pre-cross blocker": technical.get("pre_cross_blocker", ""),
+                    "Price": technical.get("price"),
+                    "ATR20": technical.get("atr20"),
+                    "MA zone low": technical.get("zone_low"),
+                    "MA zone high": technical.get("zone_high"),
+                    "Entry": technical.get("entry"),
+                    "Stop": technical.get("stop"),
+                    "Target": technical.get("target"),
+                    "Target basis": technical.get("target_source"),
+                    "Stop distance %": technical.get("stop_distance_pct"),
+                    "Upside %": technical.get("upside_pct"),
+                    "R:R": technical.get("reward_risk"),
+                    "Technical score": technical.get("technical_score"),
+                    "Tier": technical.get("technical_tier"),
                 }
             except Exception:
                 continue
@@ -5292,6 +5306,28 @@ with tab_opportunities:
                         shown_trade.at[idx, "MACD progress"] = update.get("MACD progress")
                         if update.get("RSI") is not None:
                             shown_trade.at[idx, "RSI"] = update.get("RSI")
+
+                        state = str(update.get("Technical state") or "").upper()
+                        shown_trade.at[idx, "Technical state"] = state
+                        shown_trade.at[idx, "Technical reason"] = update.get("Technical reason")
+                        shown_trade.at[idx, "Pre-cross blocker"] = update.get("Pre-cross blocker", "")
+
+                        # A completed-candle refresh must be able to promote/demote the
+                        # visible row, not merely repaint MACD. This keeps the on-page
+                        # decision consistent with the same evaluator used overnight.
+                        if state in {"ENTRY READY", "AWAITING NEXT OPEN", "PRE-CROSS READY"}:
+                            shown_trade.at[idx, "Status"] = "READY TO VERIFY"
+                        elif state == "WATCH":
+                            shown_trade.at[idx, "Status"] = "WATCH"
+
+                        for column in (
+                            "Price", "ATR20", "MA zone low", "MA zone high",
+                            "Entry", "Stop", "Target", "Target basis",
+                            "Stop distance %", "Upside %", "R:R",
+                            "Technical score", "Tier",
+                        ):
+                            if column in update:
+                                shown_trade.at[idx, column] = update.get(column)
                     refresh_time = st.session_state.get("trade_macd_refresh_time")
                     if refresh_time:
                         st.caption(f"MACD manually refreshed: **{refresh_time}**")
