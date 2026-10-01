@@ -65,11 +65,69 @@ EXCHANGE_UNIVERSES = {
     "Euronext Lisbon": "euronext_lisbon",
 }
 
-# Both searches intentionally expose the same exact exchange list and order.
+# Trade/public search can still inspect every supported venue. Long-term Investment
+# scanning excludes obvious secondary/proxy venues so OTC/Gettex lines cannot be
+# promoted to normal BUY candidates.
 PUBLIC_UNIVERSES = EXCHANGE_UNIVERSES.copy()
-INVESTMENT_UNIVERSES = EXCHANGE_UNIVERSES.copy()
+INVESTMENT_UNIVERSES = {
+    label: kind
+    for label, kind in EXCHANGE_UNIVERSES.items()
+    if kind not in {"otc", "gettex"}
+}
 
 HEADERS = {"User-Agent": "Mozilla/5.0 StockOpportunityScreener/1.0"}
+
+_COUNTRY_ALIASES = {
+    "UNITED STATES": "US", "USA": "US", "U.S.": "US", "US": "US",
+    "UNITED KINGDOM": "UK", "GREAT BRITAIN": "UK", "UK": "UK",
+    "GERMANY": "GERMANY", "AUSTRIA": "AUSTRIA", "FRANCE": "FRANCE",
+    "NETHERLANDS": "NETHERLANDS", "BELGIUM": "BELGIUM", "PORTUGAL": "PORTUGAL",
+    "SPAIN": "SPAIN", "SWITZERLAND": "SWITZERLAND", "CANADA": "CANADA",
+    "ITALY": "ITALY",
+}
+
+_SECONDARY_INVESTMENT_EXCHANGE_WORDS = {
+    "OTC", "PINK", "GREY", "GETTEX", "MUNICH", "BOERSE MUENCHEN", "BÖRSE MÜNCHEN",
+}
+
+def _normalise_country_name(value: str) -> str:
+    text = str(value or "").strip().upper()
+    return _COUNTRY_ALIASES.get(text, text)
+
+def investment_listing_status(
+    symbol: str,
+    exchange_country: str = "",
+    company_country: str = "",
+    exchange_name: str = "",
+) -> tuple[str, str]:
+    """Classify whether a discovered line is suitable as a normal long-term holding."""
+    ticker = str(symbol or "").strip().upper()
+    venue = str(exchange_name or "").strip().upper()
+    venue_country = _normalise_country_name(exchange_country)
+    home_country = _normalise_country_name(company_country)
+
+    if ticker.endswith(".MU") or any(word in venue for word in _SECONDARY_INVESTMENT_EXCHANGE_WORDS):
+        return (
+            "⚠️ ALTERNATE LISTING NEEDED",
+            "secondary/proxy venue detected; use a primary or broker-investable ordinary-share/ADR listing",
+        )
+
+    # US ADRs can be perfectly investable, so do not reject them solely because
+    # the issuer is domiciled elsewhere. For non-US venues, a clear domicile /
+    # exchange-country mismatch is a strong sign that this is a secondary line.
+    if (
+        venue_country
+        and home_country
+        and venue_country not in {"US"}
+        and venue_country != home_country
+    ):
+        return (
+            "⚠️ ALTERNATE LISTING NEEDED",
+            f"company domicile ({company_country}) differs from listing venue ({exchange_country})",
+        )
+
+    return "✅ INVESTABLE", "standard/primary-style listing"
+
 
 PORTFOLIO_COOKIE_NAME = "cl_signal_stock_portfolio_v1"
 PORTFOLIO_LOCAL_STORAGE_KEY = "cl_signal_stock_portfolio_v2"
@@ -2419,10 +2477,23 @@ def _investment_company_result(
             merged = {**fund, **lt, "price": price}
             stage = "decision logic"
             decision = investment_decision(merged)
+
+            investability, investability_reason = investment_listing_status(
+                sym,
+                fund.get("exchange_country", ""),
+                fund.get("company_country", ""),
+                fund.get("exchange", ""),
+            )
+            action = decision["action"]
+            decision_reason = lt.get("action_reason", "")
+            if investability != "✅ INVESTABLE" and action == "BUY CANDIDATE":
+                action = "WAIT"
+                decision_reason = f"ALTERNATE LISTING NEEDED — {investability_reason}"
+
             row = {
                 "Ticker": sym,
                 "Company": fund.get("name") or sym,
-                "Action": decision["action"],
+                "Action": action,
                 "Price": price,
                 "Quality score": lt.get("investment_quality_score", lt.get("long_term_score", np.nan)),
                 "Moat score": lt.get("moat_score", np.nan),
@@ -2457,12 +2528,15 @@ def _investment_company_result(
                 "Evidence years": lt.get("evidence_years"),
                 "Sector model": lt.get("sector_model", "Generic"),
                 "Exchange Country": fund.get("exchange_country", "Other / Unknown"),
+                "Company Country": fund.get("company_country", ""),
+                "Investability": investability,
+                "Investability reason": investability_reason,
                 "Sector": fund.get("sector") or "—",
                 "Industry": fund.get("industry") or "—",
                 "Market cap": market_cap,
                 "Review flags": lt.get("hard_gate_warnings", ""),
                 "Manual review required": lt.get("qualitative_review_items", ""),
-                "Decision reason": lt.get("action_reason", ""),
+                "Decision reason": decision_reason,
             }
             return {"status": "row", "symbol": sym, "row": row}
         except Exception as exc:
@@ -3958,6 +4032,25 @@ def load_all_investment_opportunities() -> pd.DataFrame:
         return pd.DataFrame()
 
     output = pd.concat(frames, ignore_index=True)
+
+    if "Investability" not in output.columns:
+        output["Investability"] = "✅ INVESTABLE"
+    if "Investability reason" not in output.columns:
+        output["Investability reason"] = ""
+
+    secondary_venue = output.get("Exchange", pd.Series("", index=output.index)).astype(str).str.upper().isin(
+        {"OTC MARKETS", "GETTEX"}
+    )
+    output.loc[secondary_venue, "Investability"] = "⚠️ ALTERNATE LISTING NEEDED"
+    output.loc[secondary_venue, "Investability reason"] = (
+        "secondary/proxy venue detected; use a primary or broker-investable ordinary-share/ADR listing"
+    )
+    secondary_buy = secondary_venue & output["Action"].eq("BUY CANDIDATE")
+    output.loc[secondary_buy, "Action"] = "WAIT"
+    output.loc[secondary_buy, "Decision reason"] = (
+        "ALTERNATE LISTING NEEDED — secondary/proxy venue detected"
+    )
+
     output["Quality score"] = pd.to_numeric(output.get("Quality score"), errors="coerce")
     output["Moat score"] = pd.to_numeric(output.get("Moat score"), errors="coerce")
     output["Base margin of safety %"] = pd.to_numeric(
@@ -4539,7 +4632,7 @@ with tab_home:
         "Price", "Entry", "Stop", "Target", "R:R", "Upside %", "RSI",
     ]
     investment_focus_columns = [
-        "Action", "Ticker", "Company", "Exchange", "Sector",
+        "Action", "Investability", "Ticker", "Company", "Exchange", "Sector",
         "Price", "Quality score", "Moat score",
         "Base margin of safety %", "Required margin of safety %",
         "MOS gap %", "Valuation gate", "Valuation FX status", "Decision reason",
