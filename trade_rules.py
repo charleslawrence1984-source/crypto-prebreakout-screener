@@ -285,15 +285,7 @@ def _pre_cross_ready_plan(
 
     prior = data.iloc[: signal_index + 1]
     confirmed_prior = prior.iloc[:-2] if len(prior) > 4 else prior.iloc[0:0]
-    resistance = _clusters(_pivot_values(confirmed_prior["High"], "high"), atr_value)
-    overhead = [cluster for cluster in resistance if cluster["lower"] > entry]
-    if overhead:
-        chosen = min(overhead, key=lambda cluster: cluster["lower"])
-        target_source = "TWO-TOUCH RESISTANCE"
-        target = chosen["lower"] - 0.25 * atr_value
-    else:
-        target_source = "52-WEEK HIGH FALLBACK"
-        target = float(prior["High"].tail(252).max()) - 0.25 * atr_value
+    target, target_source = _select_trade_target(prior, entry, atr_value)
 
     target_upside = (target - entry) / entry
     risk = entry - stop
@@ -462,6 +454,54 @@ def _resistance_target_audit(data: pd.DataFrame, entry: float, atr_value: float)
     return out
 
 
+
+def _select_trade_target(data: pd.DataFrame, entry: float, atr_value: float) -> tuple[float, str]:
+    """Choose a realistic swing target from meaningful overhead resistance.
+
+    Priority:
+    1) nearest resistance supported by 3+ distinct pivot highs;
+    2) 52-week high fallback if no strong resistance exists.
+
+    Weak two-touch clusters remain useful context but do not automatically cap
+    the trade target.
+    """
+    confirmed_prior = data.iloc[:-2] if len(data) > 4 else data.iloc[0:0]
+    pivots = _pivot_values(confirmed_prior["High"], "high")
+    pair_clusters = _clusters(pivots, atr_value)
+
+    strong_candidates: list[tuple[float, float, int]] = []
+    seen: set[tuple[float, float]] = set()
+    for cluster in pair_clusters:
+        lo = float(cluster["lower"])
+        hi = float(cluster["upper"])
+        if lo <= entry:
+            continue
+        key = (round(lo / atr_value, 2), round(hi / atr_value, 2))
+        if key in seen:
+            continue
+        seen.add(key)
+
+        band_low = lo - 0.25 * atr_value
+        band_high = hi + 0.25 * atr_value
+        points = sorted(
+            [(idx, value) for idx, value in pivots if band_low <= value <= band_high],
+            key=lambda x: x[0],
+        )
+        distinct: list[tuple[int, float]] = []
+        for pivot in points:
+            if not distinct or pivot[0] - distinct[-1][0] >= 10:
+                distinct.append(pivot)
+        if len(distinct) >= 3:
+            strong_candidates.append((lo, hi, len(distinct)))
+
+    if strong_candidates:
+        strong_lo = min(strong_candidates, key=lambda x: x[0])[0]
+        return strong_lo - 0.25 * atr_value, "3+ TOUCH RESISTANCE"
+
+    high_52 = float(data["High"].tail(252).max())
+    return high_52 - 0.25 * atr_value, "52-WEEK HIGH FALLBACK"
+
+
 def _shadow_final_plan_diagnostics(data: pd.DataFrame) -> dict[str, Any]:
     """Evaluate final structural/risk gates on the latest completed bar.
 
@@ -508,14 +548,7 @@ def _shadow_final_plan_diagnostics(data: pd.DataFrame) -> dict[str, Any]:
             return out
 
         prior = data.iloc[: i + 1]
-        confirmed_prior = prior.iloc[:-2] if len(prior) > 4 else prior.iloc[0:0]
-        resistance = _clusters(_pivot_values(confirmed_prior["High"], "high"), atr_value)
-        overhead = [cluster for cluster in resistance if cluster["lower"] > entry]
-        if overhead:
-            chosen = min(overhead, key=lambda cluster: cluster["lower"])
-            target = chosen["lower"] - 0.25 * atr_value
-        else:
-            target = float(prior["High"].tail(252).max()) - 0.25 * atr_value
+        target, _shadow_target_source = _select_trade_target(prior, entry, atr_value)
 
         target_upside = (target - entry) / entry
         risk = entry - stop
@@ -725,16 +758,8 @@ def evaluate_price_setup(
 
     prior = data.iloc[: signal_index + 1]
     confirmed_prior = prior.iloc[:-2] if len(prior) > 4 else prior.iloc[0:0]
-    resistance = _clusters(_pivot_values(confirmed_prior["High"], "high"), atr_value)
     reference_entry = entry if math.isfinite(entry) else confirmation_close
-    overhead = [cluster for cluster in resistance if cluster["lower"] > reference_entry]
-    if overhead:
-        chosen = min(overhead, key=lambda cluster: cluster["lower"])
-        target_source = "TWO-TOUCH RESISTANCE"
-        target = chosen["lower"] - 0.25 * atr_value
-    else:
-        target_source = "52-WEEK HIGH FALLBACK"
-        target = float(prior["High"].tail(252).max()) - 0.25 * atr_value
+    target, target_source = _select_trade_target(prior, reference_entry, atr_value)
 
     target_upside = (target - reference_entry) / reference_entry
     risk = reference_entry - stop
