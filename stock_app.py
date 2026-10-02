@@ -5532,10 +5532,8 @@ with tab_opportunities:
                 "🟡 Developing = earlier-stage setup"
             )
 
-            # Decision-first shortlist using the same visual hierarchy as
-            # Quick Analysis: company -> decision -> trade plan -> supporting
-            # confirmation. Presentation only; classifications and ordering are
-            # inherited from the Trade engine.
+            # Decision-first shortlist in the same visual language as the
+            # large Quick Analysis decision card. Presentation only.
             priority_trade = trade_opportunities[
                 trade_opportunities.apply(trade_display_stage, axis=1).isin(
                     ["🟢 READY", "🟠 NEAR READY"]
@@ -5552,9 +5550,10 @@ with tab_opportunities:
                     exchange = str(priority_row.get("Exchange") or "").strip()
                     currency = str(priority_row.get("Currency") or "").strip()
 
+                    current_price = safe(priority_row.get("Price"))
                     entry = safe(priority_row.get("Entry"))
                     if np.isnan(entry):
-                        entry = safe(priority_row.get("Price"))
+                        entry = current_price
                     stop = safe(priority_row.get("Stop"))
                     target = safe(priority_row.get("Target"))
                     upside = safe(priority_row.get("Upside %"))
@@ -5567,48 +5566,56 @@ with tab_opportunities:
                     macd = str(priority_row.get("MACD progress") or "—").strip()
                     blocker = str(priority_row.get("Pre-cross blocker") or "").strip()
 
-                    with st.container(border=True):
-                        company_col, status_col = st.columns([4, 1])
-                        with company_col:
-                            st.markdown(f"### {company or ticker} ({ticker})")
-                            context_bits = [value for value in (exchange, currency) if value]
-                            if context_bits:
-                                st.caption(" · ".join(context_bits))
-                        with status_col:
-                            st.markdown(f"**{priority_stage}**")
+                    st.markdown(f"### {company or ticker} ({ticker})")
+                    price_text = "—" if np.isnan(current_price) else fmt_price_with_currency(current_price, currency)
+                    exchange_suffix = f" · {exchange}" if exchange else ""
+                    st.caption(f"Current price: {price_text}{exchange_suffix}")
 
-                        if priority_stage == "🟢 READY":
-                            st.success("TRADE DECISION · Ready to verify")
-                        else:
-                            next_step = macd if macd and macd != "—" else blocker
-                            st.warning(
-                                "TRADE DECISION · Near Ready — "
-                                f"waiting on {next_step or 'confirmation'}"
-                            )
-
-                        st.markdown("##### Trade plan")
-                        plan1, plan2, plan3 = st.columns(3)
-                        plan1.metric(
-                            "Entry",
-                            "—" if np.isnan(entry) else fmt_price_with_currency(entry, currency),
+                    if priority_stage == "🟢 READY":
+                        decision_action = "BUY"
+                        decision_reason = (
+                            "The completed-candle Trade setup has reached confirmation. "
+                            + ("The planned trade offers "
+                               f"{upside:.1f}% upside and {rr:.2f}:1 risk/reward."
+                               if not np.isnan(upside) and not np.isnan(rr)
+                               else "Verify the current price and event checks before acting.")
                         )
-                        plan2.metric(
-                            "Profit target",
-                            "—" if np.isnan(target) else fmt_price_with_currency(target, currency),
-                            None if np.isnan(upside) else f"{upside:.1f}% upside",
-                        )
-                        plan3.metric(
-                            "Downside / reassess",
-                            "—" if np.isnan(stop) else fmt_price_with_currency(stop, currency),
+                    else:
+                        decision_action = "WAIT"
+                        waiting_on = macd if macd and macd != "—" else blocker
+                        decision_reason = (
+                            "The trade plan already passes the stop, upside and risk/reward gates, "
+                            f"but {waiting_on or 'confirmation'} is still pending."
                         )
 
-                        support1, support2, support3 = st.columns(3)
-                        support1.metric("Risk / reward", "—" if np.isnan(rr) else f"{rr:.2f}:1")
-                        support2.metric("RSI", "—" if np.isnan(rsi) else f"{rsi:.1f}")
-                        support3.metric("MACD", macd or "—")
+                    render_decision_card(
+                        "TRADE DECISION",
+                        decision_action,
+                        decision_reason,
+                    )
+
+                    plan1, plan2, plan3 = st.columns(3)
+                    plan1.metric(
+                        "Entry",
+                        "—" if np.isnan(entry) else fmt_price_with_currency(entry, currency),
+                    )
+                    plan2.metric(
+                        "Profit target",
+                        "—" if np.isnan(target) else fmt_price_with_currency(target, currency),
+                        None if np.isnan(upside) else f"{upside:.1f}% upside",
+                    )
+                    plan3.metric(
+                        "Downside / reassess",
+                        "—" if np.isnan(stop) else fmt_price_with_currency(stop, currency),
+                    )
+
+                    support1, support2, support3 = st.columns(3)
+                    support1.metric("Risk / reward", "—" if np.isnan(rr) else f"{rr:.2f}:1")
+                    support2.metric("RSI", "—" if np.isnan(rsi) else f"{rsi:.1f}")
+                    support3.metric("MACD", macd or "—")
 
                     if shortlist_index < len(priority_trade):
-                        st.write("")
+                        st.divider()
 
             st.markdown("### Filter opportunities")
 
