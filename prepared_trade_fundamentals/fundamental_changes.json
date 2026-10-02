@@ -8,46 +8,27 @@
       "new_symbols": []
     },
     "euronext_brussels": {
-      "changed_count": 5,
+      "changed_count": 2,
       "changed_symbols": [
-        "FOU.BR",
         "KIN.BR",
-        "LOTB.BR",
-        "NYR.BR",
-        "OXUR.BR"
+        "LOTB.BR"
       ],
       "label": "Euronext Brussels",
       "new_count": 0,
       "new_symbols": []
     },
     "euronext_lisbon": {
-      "changed_count": 6,
-      "changed_symbols": [
-        "COR.LS",
-        "ESON.LS",
-        "IPR.LS",
-        "NVG.LS",
-        "RAM.LS",
-        "SEM.LS"
-      ],
+      "changed_count": 0,
+      "changed_symbols": [],
       "label": "Euronext Lisbon",
       "new_count": 0,
       "new_symbols": []
     },
     "euronext_paris": {
-      "changed_count": 13,
+      "changed_count": 4,
       "changed_symbols": [
-        "ABLD.PA",
-        "ALHYP.PA",
-        "ALNOV.PA",
-        "ALWTR.PA",
-        "AUGR.PA",
-        "CFI.PA",
-        "CVX.PA",
         "LOUP.PA",
-        "MLWEA.PA",
         "QDT.PA",
-        "RBO.PA",
         "SFCA.PA",
         "WAVE.PA"
       ],
@@ -56,20 +37,18 @@
       "new_symbols": []
     },
     "lse": {
-      "changed_count": 3,
+      "changed_count": 2,
       "changed_symbols": [
         "EDV.L",
-        "JDW.L",
-        "TNE.L"
+        "JDW.L"
       ],
       "label": "London Stock Exchange",
       "new_count": 0,
       "new_symbols": []
     },
     "lse_aim": {
-      "changed_count": 2,
+      "changed_count": 1,
       "changed_symbols": [
-        "CODE.L",
         "GEM.L"
       ],
       "label": "LSE AIM",
@@ -77,38 +56,28 @@
       "new_symbols": []
     },
     "madrid": {
-      "changed_count": 2,
+      "changed_count": 1,
       "changed_symbols": [
-        "AMS.MC",
-        "SOL.MC"
+        "AMS.MC"
       ],
       "label": "Bolsa de Madrid",
       "new_count": 0,
       "new_symbols": []
     },
     "nasdaq": {
-      "changed_count": 34,
+      "changed_count": 23,
       "changed_symbols": [
-        "AKAN",
         "ASTL",
-        "BDMD",
         "BFC",
-        "CHWM",
         "CRON",
-        "DGXX",
-        "DOGZ",
         "DRVN",
         "FCFS",
         "FRHC",
-        "HAO",
         "INTR",
         "KRYS",
         "KTOS",
-        "KUST",
         "LGND",
-        "LICN",
         "MNST",
-        "MYPS",
         "NCNO",
         "OPK",
         "PIII",
@@ -120,8 +89,6 @@
         "TSAT",
         "UBSI",
         "VRSN",
-        "VSME",
-        "YDDL",
         "ZNTL"
       ],
       "label": "NASDAQ",
@@ -129,14 +96,12 @@
       "new_symbols": []
     },
     "nyse": {
-      "changed_count": 35,
+      "changed_count": 29,
       "changed_symbols": [
-        "ACN",
         "ARIS",
         "ATI",
         "AU",
         "AVY",
-        "AYI",
         "CARS",
         "CGAU",
         "CLS",
@@ -150,16 +115,12 @@
         "KRG",
         "LSPD",
         "MGA",
-        "MKC",
-        "MKC-V",
         "MKL",
-        "NKE",
         "NWN",
         "ORA",
         "P",
         "PFGC",
         "RLI",
-        "SNX",
         "SSB",
         "TFPM",
         "TTE",
@@ -172,10 +133,8 @@
       "new_symbols": []
     },
     "six": {
-      "changed_count": 1,
-      "changed_symbols": [
-        "INFO.SW"
-      ],
+      "changed_count": 0,
+      "changed_symbols": [],
       "label": "SIX Swiss Exchange",
       "new_count": 0,
       "new_symbols": []
@@ -201,9 +160,8 @@
       "new_symbols": []
     },
     "xetra": {
-      "changed_count": 3,
+      "changed_count": 2,
       "changed_symbols": [
-        "BRNK.DE",
         "HBH.DE",
         "HFG.DE"
       ],
@@ -212,6 +170,6 @@
       "new_symbols": []
     }
   },
-  "generated_at": "2026-10-02T10:18:24+01:00",
-  "rulebook_build": "2026.10.02.01"
+  "generated_at": "2026-10-02T10:32:06+01:00",
+  "rulebook_build": "2026.10.02.02"
 }
