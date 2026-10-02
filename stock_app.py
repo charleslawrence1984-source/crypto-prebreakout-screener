@@ -4068,11 +4068,32 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
         na_position="last",
     )
     output = output.drop_duplicates(subset=["_company_key"], keep="first")
+
+    # Within WATCH, surface the setups whose structural trade plan already
+    # passes the final stop/upside/R:R gates. Momentum may still be developing,
+    # so these remain WATCH; this is ranking only, never a promotion rule.
+    shadow_gate = output.get(
+        "Shadow final gate", output.get("Shadow plan gate", pd.Series("", index=output.index))
+    ).astype(str).str.upper()
+    output["_watch_plan_order"] = np.where(
+        output["Status"].eq("READY TO VERIFY"),
+        0,
+        np.where(output["Status"].eq("WATCH") & shadow_gate.eq("PASS"), 1, 2),
+    )
+    output["_shadow_rr_order"] = pd.to_numeric(
+        output.get("Shadow R:R", pd.Series(np.nan, index=output.index)), errors="coerce"
+    ).fillna(-1.0)
+    output["_shadow_upside_order"] = pd.to_numeric(
+        output.get("Shadow upside %", pd.Series(np.nan, index=output.index)), errors="coerce"
+    ).fillna(-1.0)
     output = output.sort_values(
-        ["_status_order", "Technical score", "Fundamental score"],
-        ascending=[True, False, False],
+        ["_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
+        ascending=[True, False, False, False, False],
         na_position="last",
-    ).drop(columns=["_status_order", "_company_key", "_secondary_listing", "_liquidity_order"])
+    ).drop(columns=[
+        "_status_order", "_company_key", "_secondary_listing", "_liquidity_order",
+        "_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order",
+    ])
 
     return output.reset_index(drop=True)
 
@@ -4107,14 +4128,25 @@ def apply_trade_refresh_overlay(frame: pd.DataFrame) -> pd.DataFrame:
             if column in update:
                 output.at[idx, column] = update.get(column)
 
-    output["_status_order"] = output["Status"].map(
-        {"READY TO VERIFY": 0, "WATCH": 1}
-    ).fillna(9)
+    shadow_gate = output.get(
+        "Shadow final gate", output.get("Shadow plan gate", pd.Series("", index=output.index))
+    ).astype(str).str.upper()
+    output["_watch_plan_order"] = np.where(
+        output["Status"].eq("READY TO VERIFY"),
+        0,
+        np.where(output["Status"].eq("WATCH") & shadow_gate.eq("PASS"), 1, 2),
+    )
+    output["_shadow_rr_order"] = pd.to_numeric(
+        output.get("Shadow R:R", pd.Series(np.nan, index=output.index)), errors="coerce"
+    ).fillna(-1.0)
+    output["_shadow_upside_order"] = pd.to_numeric(
+        output.get("Shadow upside %", pd.Series(np.nan, index=output.index)), errors="coerce"
+    ).fillna(-1.0)
     output = output.sort_values(
-        ["_status_order", "Technical score", "Fundamental score"],
-        ascending=[True, False, False],
+        ["_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
+        ascending=[True, False, False, False, False],
         na_position="last",
-    ).drop(columns=["_status_order"])
+    ).drop(columns=["_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order"])
     return output.reset_index(drop=True)
 
 
