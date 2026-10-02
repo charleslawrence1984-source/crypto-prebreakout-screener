@@ -4073,6 +4073,43 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
         ascending=[True, False, False],
         na_position="last",
     ).drop(columns=["_status_order", "_company_key", "_secondary_listing", "_liquidity_order"])
+
+    # A manual completed-candle refresh is session-wide evidence. Overlay it on
+    # the shared shortlist so Home/Overview and Opportunities cannot disagree
+    # about WATCH vs READY during the same Streamlit session.
+    refreshed = st.session_state.get("trade_macd_refresh", {})
+    if refreshed:
+        output = output.copy()
+        for idx, row in output.iterrows():
+            symbol = str(row.get("Ticker") or "").strip().upper()
+            update = refreshed.get(symbol)
+            if not update:
+                continue
+            state = str(update.get("Technical state") or "").upper()
+            if state in {"ENTRY READY", "AWAITING NEXT OPEN", "PRE-CROSS READY"}:
+                output.at[idx, "Status"] = "READY TO VERIFY"
+            elif state == "WATCH":
+                output.at[idx, "Status"] = "WATCH"
+            for column in (
+                "MACD progress", "RSI", "Technical state", "Technical reason",
+                "Pre-cross blocker", "Price", "ATR20", "MA zone low", "MA zone high",
+                "Entry", "Stop", "Target", "Target basis", "Stop distance %",
+                "Upside %", "R:R", "Technical score", "Tier",
+                "Shadow plan gate", "Shadow stop distance %",
+                "Shadow entry MA distance ATR", "Shadow upside %", "Shadow R:R",
+            ):
+                if column in update:
+                    output.at[idx, column] = update.get(column)
+
+        output["_status_order"] = output["Status"].map(
+            {"READY TO VERIFY": 0, "WATCH": 1}
+        ).fillna(9)
+        output = output.sort_values(
+            ["_status_order", "Technical score", "Fundamental score"],
+            ascending=[True, False, False],
+            na_position="last",
+        ).drop(columns=["_status_order"])
+
     return output.reset_index(drop=True)
 
 
