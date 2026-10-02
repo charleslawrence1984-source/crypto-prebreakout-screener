@@ -4121,13 +4121,26 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
     output["_shadow_upside_order"] = pd.to_numeric(
         output.get("Shadow upside %", pd.Series(np.nan, index=output.index)), errors="coerce"
     ).fillna(-1.0)
+    output["_shadow_stop_order"] = pd.to_numeric(
+        output.get("Shadow stop distance %", pd.Series(np.nan, index=output.index)), errors="coerce"
+    ).fillna(99.0)
+
+    # Developing setups are ranked by distance from the hard trade-plan
+    # economics, not by raw R:R alone.  A value of 0 means the relevant gate
+    # already passes.  This only prioritises the watchlist; it cannot promote
+    # a row to Near Ready or READY.
+    output["_economic_gap_order"] = (
+        np.maximum(0.0, 10.0 - output["_shadow_upside_order"]) / 10.0
+        + np.maximum(0.0, 2.0 - output["_shadow_rr_order"]) / 2.0
+        + np.maximum(0.0, output["_shadow_stop_order"] - 10.0) / 10.0
+    )
     output = output.sort_values(
-        ["_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
-        ascending=[True, True, False, False, False, False],
+        ["_watch_plan_order", "_economic_gap_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
+        ascending=[True, True, True, False, False, False, False],
         na_position="last",
     ).drop(columns=[
         "_status_order", "_company_key", "_secondary_listing", "_liquidity_order",
-        "_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order",
+        "_watch_plan_order", "_economic_gap_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "_shadow_stop_order",
     ])
 
     return output.reset_index(drop=True)
@@ -4199,11 +4212,24 @@ def apply_trade_refresh_overlay(frame: pd.DataFrame) -> pd.DataFrame:
     output["_shadow_upside_order"] = pd.to_numeric(
         output.get("Shadow upside %", pd.Series(np.nan, index=output.index)), errors="coerce"
     ).fillna(-1.0)
+    output["_shadow_stop_order"] = pd.to_numeric(
+        output.get("Shadow stop distance %", pd.Series(np.nan, index=output.index)), errors="coerce"
+    ).fillna(99.0)
+
+    # Developing setups are ranked by distance from the hard trade-plan
+    # economics, not by raw R:R alone.  A value of 0 means the relevant gate
+    # already passes.  This only prioritises the watchlist; it cannot promote
+    # a row to Near Ready or READY.
+    output["_economic_gap_order"] = (
+        np.maximum(0.0, 10.0 - output["_shadow_upside_order"]) / 10.0
+        + np.maximum(0.0, 2.0 - output["_shadow_rr_order"]) / 2.0
+        + np.maximum(0.0, output["_shadow_stop_order"] - 10.0) / 10.0
+    )
     output = output.sort_values(
-        ["_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
-        ascending=[True, True, False, False, False, False],
+        ["_watch_plan_order", "_economic_gap_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
+        ascending=[True, True, True, False, False, False, False],
         na_position="last",
-    ).drop(columns=["_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order"])
+    ).drop(columns=["_watch_plan_order", "_economic_gap_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "_shadow_stop_order"])
     return output.reset_index(drop=True)
 
 
