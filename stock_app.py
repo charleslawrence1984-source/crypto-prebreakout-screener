@@ -3714,6 +3714,19 @@ def refresh_macd_progress_now(frame: pd.DataFrame) -> Dict[str, Dict]:
     return refreshed
 
 
+def trade_display_stage(row: pd.Series) -> str:
+    """User-facing opportunity stage; never changes the underlying Trade state."""
+    status = str(row.get("Status") or "").upper()
+    if status == "READY TO VERIFY":
+        return "🟢 READY"
+    shadow_gate = str(row.get("Shadow final gate") or row.get("Shadow plan gate") or "").upper()
+    if status == "WATCH" and shadow_gate == "PASS":
+        return "🟠 NEAR READY"
+    if status == "WATCH":
+        return "🟡 DEVELOPING"
+    return status or "—"
+
+
 def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
     """Turn prepared Trade rows into an at-a-glance gate matrix."""
     if frame is None or frame.empty:
@@ -3817,7 +3830,7 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         setup_preconditions_pass = ready or watch
 
         rows.append({
-            "Overall": "🟢 READY" if ready else "🟡 WATCH",
+            "Overall": trade_display_stage(row),
             "Ticker": ticker,
             "Company": str(row.get("Company") or ""),
             "Fundamentals ≥50": _criterion_mark(
@@ -5435,7 +5448,9 @@ with tab_opportunities:
             )
         else:
             ready_count = int((trade_opportunities["Status"] == "READY TO VERIFY").sum())
-            watch_count = int((trade_opportunities["Status"] == "WATCH").sum())
+            display_stage = trade_opportunities.apply(trade_display_stage, axis=1)
+            near_ready_count = int(display_stage.eq("🟠 NEAR READY").sum())
+            developing_count = int(display_stage.eq("🟡 DEVELOPING").sum())
             market_count = int(trade_opportunities["Exchange"].nunique())
 
             st.markdown("### Trade snapshot")
@@ -5448,14 +5463,14 @@ with tab_opportunities:
                     st.caption("Ready to verify now")
             with t2:
                 with st.container(border=True):
-                    st.caption("🟡 TRADES TO WATCH")
-                    st.markdown(f"## {watch_count}")
-                    st.caption("Developing setups")
+                    st.caption("🟠 NEAR READY")
+                    st.markdown(f"## {near_ready_count}")
+                    st.caption("Trade plan passes; confirmation pending")
             with t3:
                 with st.container(border=True):
-                    st.caption("📋 TOTAL SHORTLIST")
-                    st.markdown(f"## {len(trade_opportunities)}")
-                    st.caption("Buy + watch")
+                    st.caption("🟡 DEVELOPING")
+                    st.markdown(f"## {developing_count}")
+                    st.caption("Earlier-stage setups")
             with t4:
                 with st.container(border=True):
                     st.caption("🌍 ACTIVE MARKETS")
@@ -5463,8 +5478,9 @@ with tab_opportunities:
                     st.caption("Markets with shortlisted Trade opportunities")
 
             st.caption(
-                "🟢 **Ready to verify** = the prepared technical setup has reached the confirmation stage. "
-                "🟡 **Watch** = constructive, but not ready yet. "
+                "🟢 **Ready** = confirmation stage reached. "
+                "🟠 **Near Ready** = stop, upside and R:R already pass; confirmation is still pending. "
+                "🟡 **Developing** = constructive earlier-stage WATCH setup. "
                 "Run Quick Analysis or Advanced Trade Search before acting so current price and event gates are checked."
             )
 
@@ -5473,7 +5489,7 @@ with tab_opportunities:
             with f1:
                 trade_status_filter = st.radio(
                     "Status",
-                    ["Best opportunities", "Trades to Buy", "Trades to Watch", "All"],
+                    ["Best opportunities", "Trades to Buy", "Near Ready", "Developing", "All"],
                     horizontal=True,
                     key="opportunity_trade_filter",
                     label_visibility="collapsed",
@@ -5508,8 +5524,14 @@ with tab_opportunities:
             shown_trade = trade_opportunities.copy()
             if trade_status_filter == "Trades to Buy":
                 shown_trade = shown_trade[shown_trade["Status"] == "READY TO VERIFY"]
-            elif trade_status_filter == "Trades to Watch":
-                shown_trade = shown_trade[shown_trade["Status"] == "WATCH"]
+            elif trade_status_filter == "Near Ready":
+                shown_trade = shown_trade[
+                    shown_trade.apply(trade_display_stage, axis=1).eq("🟠 NEAR READY")
+                ]
+            elif trade_status_filter == "Developing":
+                shown_trade = shown_trade[
+                    shown_trade.apply(trade_display_stage, axis=1).eq("🟡 DEVELOPING")
+                ]
             elif trade_status_filter == "Best opportunities":
                 shown_trade = shown_trade.head(25)
 
@@ -5594,9 +5616,9 @@ with tab_opportunities:
                     key=f"trade_matrix_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
                 )
 
-                with st.expander("Why a WATCH can still have several green ticks", expanded=False):
+                with st.expander("Why Near Ready is not yet a buy", expanded=False):
                     st.caption(
-                        "A WATCH has already passed the active RSI/pullback check, both long moving-average trend checks "
+                        "A Near Ready or Developing setup has already passed the active RSI/pullback check, both long moving-average trend checks "
                         "and MA-zone contact. It remains WATCH while momentum confirmation is still developing. "
                         "A stock can now become Ready before the literal MACD crossover only when the histogram improves for two completed sessions, "
                         "the MACD gap is very small, RSI has recovered from a recent sub-30 exhaustion event, and the same stop, 10% upside and 2:1 reward/risk gates all pass."
