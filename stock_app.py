@@ -5532,70 +5532,18 @@ with tab_opportunities:
                 "🟡 Developing = earlier-stage setup"
             )
 
-            st.markdown("### Filter opportunities")
-
-            f1, f2, f3 = st.columns([2, 1, 1])
-            with f1:
-                trade_status_filter = st.radio(
-                    "Status",
-                    ["Best opportunities", "Trades to Buy", "Near Ready", "Developing", "All"],
-                    horizontal=True,
-                    key="opportunity_trade_filter",
-                    label_visibility="collapsed",
-                )
-            with f2:
-                trade_sector_options = ["All sectors"] + sorted(
-                    {
-                        str(value)
-                        for value in trade_opportunities.get("Sector", pd.Series(dtype=str)).dropna()
-                        if str(value).strip()
-                    }
-                )
-                trade_sector = st.selectbox(
-                    "Sector",
-                    trade_sector_options,
-                    key="opportunity_trade_sector",
-                )
-            with f3:
-                trade_market_options = ["All markets"] + sorted(
-                    {
-                        str(value)
-                        for value in trade_opportunities.get("Exchange", pd.Series(dtype=str)).dropna()
-                        if str(value).strip()
-                    }
-                )
-                trade_market = st.selectbox(
-                    "Market",
-                    trade_market_options,
-                    key="opportunity_trade_market",
-                )
-
+            # The Trade engine already ranks the shortlist by decision stage and
+            # proximity to the approved gates, so the criteria view can stay
+            # simple and show the complete ranked shortlist directly.
             shown_trade = trade_opportunities.copy()
-            if trade_status_filter == "Trades to Buy":
-                shown_trade = shown_trade[shown_trade["Status"] == "READY TO VERIFY"]
-            elif trade_status_filter == "Near Ready":
-                shown_trade = shown_trade[
-                    shown_trade.apply(trade_display_stage, axis=1).eq("🟠 NEAR READY")
-                ]
-            elif trade_status_filter == "Developing":
-                shown_trade = shown_trade[
-                    shown_trade.apply(trade_display_stage, axis=1).eq("🟡 DEVELOPING")
-                ]
-            elif trade_status_filter == "Best opportunities":
-                shown_trade = shown_trade.head(25)
-
-            if trade_sector != "All sectors" and "Sector" in shown_trade.columns:
-                shown_trade = shown_trade[shown_trade["Sector"].astype(str) == trade_sector]
-            if trade_market != "All markets" and "Exchange" in shown_trade.columns:
-                shown_trade = shown_trade[shown_trade["Exchange"].astype(str) == trade_market]
 
             if shown_trade.empty:
-                st.info("No Trade opportunities match those filters.")
+                st.info("No Trade opportunities are available right now.")
             else:
                 matrix_title_col, matrix_refresh_col = st.columns([3, 1])
                 with matrix_title_col:
                     st.markdown("### Full criteria")
-                    st.caption("Detailed gate-by-gate view for the filtered shortlist.")
+                    st.caption("Detailed gate-by-gate view of the ranked Trade shortlist.")
                 with matrix_refresh_col:
                     st.caption("COMPLETED DAILY CANDLES")
 
@@ -5605,7 +5553,7 @@ with tab_opportunities:
                         "↻ Refresh MACD now",
                         key="refresh_trade_macd_now",
                         use_container_width=True,
-                        help="Recalculate MACD progress for the currently displayed Trade shortlist using the latest completed daily candles.",
+                        help="Recalculate MACD progress for the Trade shortlist using the latest completed daily candles.",
                     )
                 with refresh_note_col:
                     st.caption("Refresh confirmation data using completed daily candles only.")
@@ -5665,7 +5613,7 @@ with tab_opportunities:
                 trade_matrix = build_trade_criteria_matrix(shown_trade)
                 render_watchlist_selector(
                     trade_matrix,
-                    key=f"trade_matrix_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
+                    key=f"trade_matrix_watch_all_{_query_param_text('wl')[:8]}",
                 )
 
             # Decision-first shortlist in the same visual language as the
