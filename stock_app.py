@@ -5479,19 +5479,24 @@ with tab_opportunities:
             developing_count = int(display_stage.eq("🟡 DEVELOPING").sum())
             market_count = int(trade_opportunities["Exchange"].nunique())
 
-            st.markdown("### Trade snapshot")
-            st.caption(f"Trade rulebook build: **{TRADE_RULEBOOK_BUILD}**")
+            title_col, build_col = st.columns([3, 1])
+            with title_col:
+                st.markdown("## Trade Opportunities")
+                st.caption("Your current shortlist, ordered from actionable setups to earlier-stage opportunities.")
+            with build_col:
+                st.caption(f"RULEBOOK · {TRADE_RULEBOOK_BUILD}")
+
             t1, t2, t3, t4 = st.columns(4)
             with t1:
                 with st.container(border=True):
-                    st.caption("🟢 TRADES TO BUY")
+                    st.caption("🟢 READY NOW")
                     st.markdown(f"## {ready_count}")
-                    st.caption("Ready to verify now")
+                    st.caption("Confirmation reached")
             with t2:
                 with st.container(border=True):
                     st.caption("🟠 NEAR READY")
                     st.markdown(f"## {near_ready_count}")
-                    st.caption("Trade plan passes; confirmation pending")
+                    st.caption("Economics pass · confirmation pending")
             with t3:
                 with st.container(border=True):
                     st.caption("🟡 DEVELOPING")
@@ -5499,18 +5504,62 @@ with tab_opportunities:
                     st.caption("Earlier-stage setups")
             with t4:
                 with st.container(border=True):
-                    st.caption("🌍 ACTIVE MARKETS")
+                    st.caption("🌍 MARKETS")
                     st.markdown(f"## {market_count} / {len(TRADE_UNIVERSES)}")
-                    st.caption("Markets with shortlisted Trade opportunities")
+                    st.caption("Active shortlisted markets")
 
             st.caption(
-                "🟢 **Ready** = confirmation stage reached. "
-                "🟠 **Near Ready** = stop, upside and R:R already pass; confirmation is still pending. "
-                "🟡 **Developing** = constructive earlier-stage WATCH setup. "
-                "Run Quick Analysis or Advanced Trade Search before acting so current price and event gates are checked."
+                "🟢 Ready = confirmation reached  ·  🟠 Near Ready = trade economics pass  ·  "
+                "🟡 Developing = earlier-stage setup"
             )
 
-            st.markdown("#### Find what matters")
+            # Decision-first layer: surface the few names that deserve attention
+            # before the full diagnostic matrix. Presentation only; the source
+            # ordering and all Trade classifications remain unchanged.
+            priority_trade = trade_opportunities[
+                trade_opportunities.apply(trade_display_stage, axis=1).isin(
+                    ["🟢 READY", "🟠 NEAR READY"]
+                )
+            ].head(4)
+            if not priority_trade.empty:
+                st.markdown("### Top opportunities")
+                st.caption("The setups closest to action right now.")
+                priority_cols = st.columns(len(priority_trade))
+                for priority_col, (_, priority_row) in zip(priority_cols, priority_trade.iterrows()):
+                    with priority_col:
+                        with st.container(border=True):
+                            priority_stage = trade_display_stage(priority_row)
+                            ticker = str(priority_row.get("Ticker") or "—")
+                            company = str(priority_row.get("Company") or "").strip()
+                            upside = safe(priority_row.get("Upside %"))
+                            if np.isnan(upside):
+                                upside = safe(priority_row.get("Shadow upside %"))
+                            rr = safe(priority_row.get("R:R"))
+                            if np.isnan(rr):
+                                rr = safe(priority_row.get("Shadow R:R"))
+                            blocker = str(priority_row.get("Pre-cross blocker") or "").strip()
+                            macd = str(priority_row.get("MACD progress") or "—").strip()
+
+                            st.caption(priority_stage)
+                            st.markdown(f"### {ticker}")
+                            if company:
+                                st.caption(company)
+                            metric_left, metric_right = st.columns(2)
+                            metric_left.metric(
+                                "Upside",
+                                "—" if np.isnan(upside) else f"{upside:.1f}%",
+                            )
+                            metric_right.metric(
+                                "R:R",
+                                "—" if np.isnan(rr) else f"{rr:.2f}:1",
+                            )
+                            if priority_stage == "🟢 READY":
+                                st.success("Ready to verify")
+                            else:
+                                next_step = macd if macd and macd != "—" else blocker
+                                st.caption(f"Waiting on: **{next_step or 'confirmation'}**")
+
+            st.markdown("### Filter opportunities")
             f1, f2, f3 = st.columns([2, 1, 1])
             with f1:
                 trade_status_filter = st.radio(
@@ -5569,12 +5618,12 @@ with tab_opportunities:
             if shown_trade.empty:
                 st.info("No Trade opportunities match those filters.")
             else:
-                st.markdown("#### Trade criteria matrix")
-                st.caption(
-                    "✅ = criterion currently passes · ❌ = criterion currently fails · "
-                    "— = that criterion cannot be tested until a later signal stage. "
-                    "Liquidity below £0.01m is shown as <£0.01m."
-                )
+                matrix_title_col, matrix_refresh_col = st.columns([3, 1])
+                with matrix_title_col:
+                    st.markdown("### Full criteria")
+                    st.caption("Detailed gate-by-gate view for the filtered shortlist.")
+                with matrix_refresh_col:
+                    st.caption("COMPLETED DAILY CANDLES")
 
                 refresh_col, refresh_note_col = st.columns([1, 3])
                 with refresh_col:
@@ -5585,7 +5634,7 @@ with tab_opportunities:
                         help="Recalculate MACD progress for the currently displayed Trade shortlist using the latest completed daily candles.",
                     )
                 with refresh_note_col:
-                    st.caption("Uses completed daily candles only; it will not confirm from an unfinished intraday candle.")
+                    st.caption("Refresh confirmation data using completed daily candles only.")
 
                 if refresh_macd_clicked:
                     with st.spinner("Refreshing MACD progress…"):
@@ -5653,7 +5702,7 @@ with tab_opportunities:
 
 
             st.caption(
-                "For a specific company, use Quick Analysis for the clearest current explanation and live decision check."
+                "Need the full story on one company? Open Quick Analysis for the current decision and live checks."
             )
 
     with investment_feed_tab:
