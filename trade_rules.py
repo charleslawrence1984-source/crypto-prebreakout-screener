@@ -382,6 +382,79 @@ def _pre_cross_ready_plan(
     }, "NONE"
 
 
+
+def _shadow_final_plan_diagnostics(data: pd.DataFrame) -> dict[str, Any]:
+    """Evaluate final structural/risk gates on the latest completed bar.
+
+    Diagnostic only: this deliberately ignores RSI/MACD promotion so WATCH rows
+    can show what would happen at the final trade-plan stage if momentum confirms.
+    """
+    out: dict[str, Any] = {
+        "shadow_plan_gate": "UNAVAILABLE",
+        "shadow_stop_distance_pct": np.nan,
+        "shadow_entry_ma_distance_atr": np.nan,
+        "shadow_upside_pct": np.nan,
+        "shadow_reward_risk": np.nan,
+    }
+    if data is None or len(data) < 221:
+        return out
+
+    i = len(data) - 1
+    signal = data.iloc[i]
+    try:
+        atr_value = float(signal["ATR20"])
+        zone_low = float(signal["ZONE_LOW"])
+        zone_high = float(signal["ZONE_HIGH"])
+        entry = float(signal["Close"])
+        if not all(math.isfinite(v) for v in (atr_value, zone_low, zone_high, entry)) or atr_value <= 0 or entry <= 0:
+            return out
+
+        history20 = data["Low"].iloc[max(0, i - 19): i + 1]
+        structural_low = min(zone_low, float(history20.min()))
+        stop = structural_low - 0.5 * atr_value
+        if entry <= stop:
+            out["shadow_plan_gate"] = "ENTRY AT/BELOW INVALIDATION"
+            return out
+
+        stop_distance = (entry - stop) / entry
+        ma_distance_atr = max(0.0, (entry - zone_high) / atr_value)
+        out["shadow_stop_distance_pct"] = stop_distance * 100
+        out["shadow_entry_ma_distance_atr"] = ma_distance_atr
+
+        if stop_distance > 0.10:
+            out["shadow_plan_gate"] = "STRUCTURAL STOP TOO WIDE"
+            return out
+        if entry > zone_high + atr_value:
+            out["shadow_plan_gate"] = "ENTRY TOO FAR ABOVE MA SUPPORT"
+            return out
+
+        prior = data.iloc[: i + 1]
+        confirmed_prior = prior.iloc[:-2] if len(prior) > 4 else prior.iloc[0:0]
+        resistance = _clusters(_pivot_values(confirmed_prior["High"], "high"), atr_value)
+        overhead = [cluster for cluster in resistance if cluster["lower"] > entry]
+        if overhead:
+            chosen = min(overhead, key=lambda cluster: cluster["lower"])
+            target = chosen["lower"] - 0.25 * atr_value
+        else:
+            target = float(prior["High"].tail(252).max()) - 0.25 * atr_value
+
+        target_upside = (target - entry) / entry
+        risk = entry - stop
+        rr = (target - entry) / risk if risk > 0 else np.nan
+        out["shadow_upside_pct"] = target_upside * 100
+        out["shadow_reward_risk"] = rr
+
+        if target_upside < 0.10:
+            out["shadow_plan_gate"] = "UPSIDE BELOW 10%"
+        elif not math.isfinite(rr) or rr < 2.0:
+            out["shadow_plan_gate"] = "R:R BELOW 2:1"
+        else:
+            out["shadow_plan_gate"] = "PASS"
+        return out
+    except Exception:
+        return out
+
+
 def evaluate_price_setup(
     frame: pd.DataFrame,
     benchmark: pd.DataFrame | None = None,
@@ -417,6 +490,7 @@ def evaluate_price_setup(
     data["MACD_SIGNAL"] = data["MACD"].ewm(span=9, adjust=False).mean()
     data["ZONE_HIGH"] = data[["SMA180", "SMA200"]].max(axis=1) + 0.5 * data["ATR20"]
     data["ZONE_LOW"] = data[["SMA180", "SMA200"]].min(axis=1) - 0.5 * data["ATR20"]
+    result.update(_shadow_final_plan_diagnostics(data))
 
     cross = (data["MACD"] > data["MACD_SIGNAL"]) & (
         data["MACD"].shift(1) <= data["MACD_SIGNAL"].shift(1)
