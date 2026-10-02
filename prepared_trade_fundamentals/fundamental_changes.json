@@ -1,50 +1,186 @@
 {
   "exchanges": {
-    "lse": {
+    "euronext_amsterdam": {
+      "changed_count": 1,
+      "changed_symbols": [
+        "EARTH.AS"
+      ],
+      "label": "Euronext Amsterdam",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "euronext_brussels": {
+      "changed_count": 2,
+      "changed_symbols": [
+        "KIN.BR",
+        "LOTB.BR"
+      ],
+      "label": "Euronext Brussels",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "euronext_lisbon": {
       "changed_count": 0,
       "changed_symbols": [],
+      "label": "Euronext Lisbon",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "euronext_paris": {
+      "changed_count": 4,
+      "changed_symbols": [
+        "LOUP.PA",
+        "QDT.PA",
+        "SFCA.PA",
+        "WAVE.PA"
+      ],
+      "label": "Euronext Paris",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "lse": {
+      "changed_count": 2,
+      "changed_symbols": [
+        "EDV.L",
+        "JDW.L"
+      ],
       "label": "London Stock Exchange",
       "new_count": 0,
       "new_symbols": []
     },
     "lse_aim": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 1,
+      "changed_symbols": [
+        "GEM.L"
+      ],
       "label": "LSE AIM",
       "new_count": 0,
       "new_symbols": []
     },
     "madrid": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 1,
+      "changed_symbols": [
+        "AMS.MC"
+      ],
       "label": "Bolsa de Madrid",
       "new_count": 0,
       "new_symbols": []
     },
     "nasdaq": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 26,
+      "changed_symbols": [
+        "ASTL",
+        "BFC",
+        "CRON",
+        "DRVN",
+        "FCFS",
+        "FRHC",
+        "HCAI",
+        "INTR",
+        "KRYS",
+        "KTOS",
+        "KUST",
+        "LGND",
+        "MNST",
+        "NCNO",
+        "OPK",
+        "PIII",
+        "RTAC",
+        "RTACU",
+        "SDGR",
+        "TCBK",
+        "TOWN",
+        "TSAT",
+        "UBSI",
+        "VRSN",
+        "XTER",
+        "ZNTL"
+      ],
       "label": "NASDAQ",
-      "new_count": 1,
-      "new_symbols": [
-        "SAIQ"
-      ]
+      "new_count": 0,
+      "new_symbols": []
     },
     "nyse": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 29,
+      "changed_symbols": [
+        "ARIS",
+        "ATI",
+        "AU",
+        "AVY",
+        "CARS",
+        "CGAU",
+        "CLS",
+        "CNX",
+        "FNV",
+        "GIL",
+        "HAFN",
+        "HBM",
+        "HOG",
+        "KB",
+        "KRG",
+        "LSPD",
+        "MGA",
+        "MKL",
+        "NWN",
+        "ORA",
+        "P",
+        "PFGC",
+        "RLI",
+        "SSB",
+        "TFPM",
+        "TTE",
+        "VVX",
+        "WD",
+        "WFG"
+      ],
       "label": "NYSE",
       "new_count": 0,
       "new_symbols": []
     },
-    "tsx": {
+    "six": {
       "changed_count": 0,
       "changed_symbols": [],
+      "label": "SIX Swiss Exchange",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "tsx": {
+      "changed_count": 5,
+      "changed_symbols": [
+        "ATRL.TO",
+        "DBM.TO",
+        "DOO.TO",
+        "LNR.TO",
+        "NWC.TO"
+      ],
       "label": "Toronto Stock Exchange",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "vienna": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Wiener B\u00f6rse",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "xetra": {
+      "changed_count": 8,
+      "changed_symbols": [
+        "AMM.DE",
+        "CYR.DE",
+        "DTD2.DE",
+        "GTY.DE",
+        "HBH.DE",
+        "HFG.DE",
+        "PTHH.DE",
+        "RTV.DE"
+      ],
+      "label": "Deutsche B\u00f6rse Xetra",
       "new_count": 0,
       "new_symbols": []
     }
   },
-  "generated_at": "2026-10-02T21:25:28+01:00",
+  "generated_at": "2026-10-02T22:31:31+01:00",
   "rulebook_build": "2026.10.02.03"
 }
