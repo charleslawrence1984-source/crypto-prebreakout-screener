@@ -4080,6 +4080,28 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
         0,
         np.where(output["Status"].eq("WATCH") & shadow_gate.eq("PASS"), 1, 2),
     )
+
+    # Among economically valid WATCH setups, rank by how close momentum is to
+    # confirmation before using economics. This is ranking only; it never
+    # promotes a WATCH or bypasses RSI/MACD gates.
+    macd_progress = output.get(
+        "MACD progress", pd.Series("", index=output.index)
+    ).astype(str).str.upper()
+    blocker = output.get(
+        "Pre-cross blocker", pd.Series("", index=output.index)
+    ).astype(str).str.upper()
+    output["_confirmation_order"] = np.select(
+        [
+            output["Status"].eq("READY TO VERIFY"),
+            macd_progress.eq("STRONG PRE-CROSS"),
+            macd_progress.eq("CONFIRMED"),
+            macd_progress.eq("IMPROVING"),
+            blocker.eq("RSI RECOVERY NOT READY"),
+            macd_progress.eq("WEAK"),
+        ],
+        [0, 1, 1, 2, 3, 4],
+        default=5,
+    )
     output["_shadow_rr_order"] = pd.to_numeric(
         output.get("Shadow R:R", pd.Series(np.nan, index=output.index)), errors="coerce"
     ).fillna(-1.0)
@@ -4087,12 +4109,12 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
         output.get("Shadow upside %", pd.Series(np.nan, index=output.index)), errors="coerce"
     ).fillna(-1.0)
     output = output.sort_values(
-        ["_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
-        ascending=[True, False, False, False, False],
+        ["_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
+        ascending=[True, True, False, False, False, False],
         na_position="last",
     ).drop(columns=[
         "_status_order", "_company_key", "_secondary_listing", "_liquidity_order",
-        "_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order",
+        "_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order",
     ])
 
     return output.reset_index(drop=True)
@@ -4136,6 +4158,28 @@ def apply_trade_refresh_overlay(frame: pd.DataFrame) -> pd.DataFrame:
         0,
         np.where(output["Status"].eq("WATCH") & shadow_gate.eq("PASS"), 1, 2),
     )
+
+    # Among economically valid WATCH setups, rank by how close momentum is to
+    # confirmation before using economics. This is ranking only; it never
+    # promotes a WATCH or bypasses RSI/MACD gates.
+    macd_progress = output.get(
+        "MACD progress", pd.Series("", index=output.index)
+    ).astype(str).str.upper()
+    blocker = output.get(
+        "Pre-cross blocker", pd.Series("", index=output.index)
+    ).astype(str).str.upper()
+    output["_confirmation_order"] = np.select(
+        [
+            output["Status"].eq("READY TO VERIFY"),
+            macd_progress.eq("STRONG PRE-CROSS"),
+            macd_progress.eq("CONFIRMED"),
+            macd_progress.eq("IMPROVING"),
+            blocker.eq("RSI RECOVERY NOT READY"),
+            macd_progress.eq("WEAK"),
+        ],
+        [0, 1, 1, 2, 3, 4],
+        default=5,
+    )
     output["_shadow_rr_order"] = pd.to_numeric(
         output.get("Shadow R:R", pd.Series(np.nan, index=output.index)), errors="coerce"
     ).fillna(-1.0)
@@ -4143,10 +4187,10 @@ def apply_trade_refresh_overlay(frame: pd.DataFrame) -> pd.DataFrame:
         output.get("Shadow upside %", pd.Series(np.nan, index=output.index)), errors="coerce"
     ).fillna(-1.0)
     output = output.sort_values(
-        ["_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
-        ascending=[True, False, False, False, False],
+        ["_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order", "Technical score", "Fundamental score"],
+        ascending=[True, True, False, False, False, False],
         na_position="last",
-    ).drop(columns=["_watch_plan_order", "_shadow_rr_order", "_shadow_upside_order"])
+    ).drop(columns=["_watch_plan_order", "_confirmation_order", "_shadow_rr_order", "_shadow_upside_order"])
     return output.reset_index(drop=True)
 
 
