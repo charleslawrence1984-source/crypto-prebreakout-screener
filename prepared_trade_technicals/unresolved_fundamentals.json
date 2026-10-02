@@ -57,9 +57,11 @@
       ]
     },
     "nasdaq": {
-      "count": 0,
+      "count": 1,
       "label": "NASDAQ",
-      "symbols": []
+      "symbols": [
+        "SAIQ"
+      ]
     },
     "nyse": {
       "count": 5,
@@ -172,8 +174,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-02T12:20:57+01:00",
+  "recorded_at": "2026-10-02T14:23:41+01:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-02T11:26:48+01:00",
-  "total_unresolved": 101
+  "source_fundamentals_updated_at": "2026-10-02T13:32:46+01:00",
+  "total_unresolved": 102
 }
