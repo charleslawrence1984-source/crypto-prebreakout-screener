@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-02T06:54:34+01:00",
+      "completed_at": "2026-10-02T07:58:25+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -49,7 +49,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-02T06:54:34+01:00",
+      "completed_at": "2026-10-02T07:58:25+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -100,7 +100,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-02T06:54:34+01:00",
+      "completed_at": "2026-10-02T07:58:25+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 14,
       "coverage_target_symbols": 14,
@@ -144,8 +144,8 @@
     "euronext_paris": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 4,
-      "completed_at": "2026-10-02T06:54:33+01:00",
+      "chunk_symbols": 1,
+      "completed_at": "2026-10-02T07:58:24+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 161,
       "coverage_target_symbols": 161,
@@ -156,42 +156,28 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 4,
-        "returned": 4,
+        "requested": 1,
+        "returned": 1,
         "symbol_outcomes": {
-          "EXPL.PA": {
-            "status": "row"
-          },
-          "LOUP.PA": {
-            "status": "row"
-          },
-          "NAE.PA": {
-            "status": "row"
-          },
-          "WAVE.PA": {
+          "ALSEM.PA": {
             "status": "row"
           }
         }
       },
       "eligible_symbols": 161,
       "gap_fill_dispatch_counts": {},
-      "gap_fill_last_dispatched_at": "2026-09-25T01:57:20+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-02T07:58:23+01:00",
       "label": "Euronext Paris",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 12,
-      "price_refreshed_at": "2026-10-01T22:32:27+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
-      "refresh_mode": "changed_fundamentals",
+      "refresh_mode": "gap_fill",
       "remaining_symbols": 0,
-      "requested_this_run": 4,
+      "requested_this_run": 1,
       "result_rows": 161,
-      "returned_this_run": 4,
-      "started_at": "2026-10-01T22:31:34+01:00",
+      "returned_this_run": 1,
+      "started_at": "2026-10-02T07:58:23+01:00",
       "status": "complete",
       "universe_symbols": 545
     },
@@ -10373,34 +10359,34 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-02T06:54:33+01:00",
+      "completed_at": "2026-10-02T07:58:21+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 235,
-      "coverage_target_symbols": 235,
+      "coverage_symbols": 236,
+      "coverage_target_symbols": 236,
       "diagnostics": {
-        "below_min_market_cap": 1,
+        "below_min_market_cap": 0,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
         "requested": 2,
-        "returned": 1,
+        "returned": 2,
         "symbol_outcomes": {
-          "YNGA.L": {
+          "ENQ.L": {
             "status": "row"
           },
-          "YNGN.L": {
-            "status": "below_market_cap"
+          "FSG.L": {
+            "status": "row"
           }
         }
       },
-      "eligible_symbols": 237,
+      "eligible_symbols": 238,
       "gap_fill_dispatch_counts": {
         "TBTG.L": 1,
         "YNGN.L": 1
       },
-      "gap_fill_last_dispatched_at": "2026-10-02T01:57:54+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-02T07:58:20+01:00",
       "label": "London Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -10422,20 +10408,20 @@
       "refresh_mode": "gap_fill",
       "remaining_symbols": 0,
       "requested_this_run": 2,
-      "result_rows": 235,
-      "returned_this_run": 1,
-      "started_at": "2026-10-02T01:57:54+01:00",
+      "result_rows": 236,
+      "returned_this_run": 2,
+      "started_at": "2026-10-02T07:58:20+01:00",
       "status": "complete",
-      "universe_symbols": 473
+      "universe_symbols": 472
     },
     "lse_aim": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-02T06:54:33+01:00",
+      "completed_at": "2026-10-02T07:58:23+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 20,
-      "coverage_target_symbols": 20,
+      "coverage_symbols": 21,
+      "coverage_target_symbols": 21,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10446,30 +10432,25 @@
         "requested": 1,
         "returned": 1,
         "symbol_outcomes": {
-          "MTL.L": {
+          "RWS.L": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 20,
+      "eligible_symbols": 21,
       "gap_fill_dispatch_counts": {},
-      "gap_fill_last_dispatched_at": "2026-09-25T07:56:49+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-02T07:58:21+01:00",
       "label": "LSE AIM",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 3,
-      "price_refreshed_at": "2026-10-01T22:32:27+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
-      "refresh_mode": "changed_fundamentals",
+      "refresh_mode": "gap_fill",
       "remaining_symbols": 0,
       "requested_this_run": 1,
-      "result_rows": 20,
+      "result_rows": 21,
       "returned_this_run": 1,
-      "started_at": "2026-10-01T22:31:31+01:00",
+      "started_at": "2026-10-02T07:58:21+01:00",
       "status": "complete",
       "universe_symbols": 450
     },
@@ -10477,10 +10458,10 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-02T06:54:33+01:00",
+      "completed_at": "2026-10-02T07:58:25+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 73,
-      "coverage_target_symbols": 73,
+      "coverage_symbols": 72,
+      "coverage_target_symbols": 72,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10496,7 +10477,7 @@
           }
         }
       },
-      "eligible_symbols": 75,
+      "eligible_symbols": 73,
       "gap_fill_dispatch_counts": {
         "SCHST.MC": 77
       },
@@ -10523,7 +10504,7 @@
           "until": "2026-10-08T12:39:41+01:00"
         }
       },
-      "provider_deferred_symbols": 2,
+      "provider_deferred_symbols": 1,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
       "requested_this_run": 1,
@@ -11577,7 +11558,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 13,
-      "completed_at": "2026-10-02T06:54:33+01:00",
+      "completed_at": "2026-10-02T07:58:25+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 146,
       "coverage_target_symbols": 146,
@@ -11934,7 +11915,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 90,
-      "completed_at": "2026-10-02T06:54:34+01:00",
+      "completed_at": "2026-10-02T07:58:25+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 38,
       "coverage_target_symbols": 38,
@@ -12267,10 +12248,10 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-02T06:54:33+01:00",
+      "completed_at": "2026-10-02T07:58:21+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 161,
-      "coverage_target_symbols": 161,
+      "coverage_symbols": 160,
+      "coverage_target_symbols": 160,
       "diagnostics": {
         "below_min_market_cap": 1,
         "error_samples": [],
@@ -12289,7 +12270,7 @@
           }
         }
       },
-      "eligible_symbols": 164,
+      "eligible_symbols": 161,
       "gap_fill_dispatch_counts": {
         "BYW6.DE": 20,
         "GLJ.DE": 1,
@@ -12331,7 +12312,7 @@
           "until": "2026-10-03T10:50:35+01:00"
         }
       },
-      "provider_deferred_symbols": 3,
+      "provider_deferred_symbols": 1,
       "refresh_mode": "gap_fill",
       "remaining_symbols": 0,
       "requested_this_run": 2,
@@ -12342,9 +12323,9 @@
       "universe_symbols": 393
     }
   },
-  "last_completed_exchange": "xetra",
+  "last_completed_exchange": "euronext_paris",
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-10-01T22:32:27+01:00",
   "schema_version": 1,
-  "updated_at": "2026-10-02T06:54:34+01:00"
+  "updated_at": "2026-10-02T07:58:25+01:00"
 }
