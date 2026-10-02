@@ -20,8 +20,17 @@
       "label": "Bolsa de Madrid",
       "new_count": 0,
       "new_symbols": []
+    },
+    "six": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "SIX Swiss Exchange",
+      "new_count": 1,
+      "new_symbols": [
+        "CALNE.SW"
+      ]
     }
   },
-  "generated_at": "2026-10-02T07:32:05+01:00",
+  "generated_at": "2026-10-02T09:29:11+01:00",
   "rulebook_build": "2026.10.01.03"
 }
