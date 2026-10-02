@@ -3703,6 +3703,11 @@ def refresh_macd_progress_now(frame: pd.DataFrame) -> Dict[str, Dict]:
                     "R:R": technical.get("reward_risk"),
                     "Technical score": technical.get("technical_score"),
                     "Tier": technical.get("technical_tier"),
+                    "Shadow plan gate": technical.get("shadow_plan_gate"),
+                    "Shadow stop distance %": technical.get("shadow_stop_distance_pct"),
+                    "Shadow entry MA distance ATR": technical.get("shadow_entry_ma_distance_atr"),
+                    "Shadow upside %": technical.get("shadow_upside_pct"),
+                    "Shadow R:R": technical.get("shadow_reward_risk"),
                 }
             except Exception:
                 continue
@@ -3780,6 +3785,33 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
         upside = safe(row.get("Upside %"))
         reward_risk = safe(row.get("R:R"))
 
+        # WATCH rows already have a diagnostic final-plan calculation from
+        # evaluate_price_setup(). Surface it instead of hiding stop/upside/R:R
+        # until momentum confirmation. These are previews only; they do not
+        # promote a WATCH to READY.
+        shadow_gate = str(
+            row.get("Shadow plan gate")
+            or row.get("shadow_plan_gate")
+            or ""
+        ).strip().upper()
+        shadow_stop_pct = safe(
+            row.get("Shadow stop distance %", row.get("shadow_stop_distance_pct"))
+        )
+        shadow_ma_distance_atr = safe(
+            row.get("Shadow entry MA distance ATR", row.get("shadow_entry_ma_distance_atr"))
+        )
+        shadow_upside = safe(
+            row.get("Shadow upside %", row.get("shadow_upside_pct"))
+        )
+        shadow_rr = safe(
+            row.get("Shadow R:R", row.get("shadow_reward_risk"))
+        )
+        if watch:
+            if np.isnan(upside) and math.isfinite(shadow_upside):
+                upside = shadow_upside
+            if np.isnan(reward_risk) and math.isfinite(shadow_rr):
+                reward_risk = shadow_rr
+
         # A row only reaches WATCH after the RSI exhaustion, rising MA trend,
         # and MA-zone-contact checks pass in evaluate_price_setup().
         setup_preconditions_pass = ready or watch
@@ -3816,7 +3848,11 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
                 else "❌ Weak" if macd_progress == "WEAK"
                 else "— Refresh needed"
             ),
-            "Pre-cross blocker": str(row.get("Pre-cross blocker") or "—"),
+            "Pre-cross blocker": (
+                str(row.get("Pre-cross blocker")).strip()
+                if str(row.get("Pre-cross blocker") or "").strip()
+                else ("REFRESH NEEDED — PRE-CROSS DIAGNOSTIC MISSING" if watch else "—")
+            ),
             "Liquidity": _criterion_mark(
                 (liquidity_value_m >= 0.5) if math.isfinite(liquidity_value_m) else None,
                 (
@@ -3825,20 +3861,44 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
                 ),
             ),
             "Entry quality": _criterion_mark(
-                True if ready and math.isfinite(entry) else None,
-                "" if not math.isfinite(entry) else f"{entry:.2f}",
+                True if ready and math.isfinite(entry)
+                else (
+                    shadow_ma_distance_atr <= 1.0
+                    if watch and math.isfinite(shadow_ma_distance_atr)
+                    else None
+                ),
+                (
+                    f"{entry:.2f}" if math.isfinite(entry)
+                    else (
+                        f"preview {shadow_ma_distance_atr:.2f} ATR above MA"
+                        if watch and math.isfinite(shadow_ma_distance_atr)
+                        else ""
+                    )
+                ),
             ),
             "Stop risk": _criterion_mark(
-                True if ready and math.isfinite(stop) else None,
-                "" if not math.isfinite(stop) else f"{stop:.2f}",
+                True if ready and math.isfinite(stop)
+                else (
+                    shadow_stop_pct <= 10.0
+                    if watch and math.isfinite(shadow_stop_pct)
+                    else None
+                ),
+                (
+                    f"{stop:.2f}" if math.isfinite(stop)
+                    else (
+                        f"preview {shadow_stop_pct:.1f}%"
+                        if watch and math.isfinite(shadow_stop_pct)
+                        else ""
+                    )
+                ),
             ),
             "Upside ≥10%": _criterion_mark(
-                (upside >= 10) if ready and math.isfinite(upside) else None,
-                "" if not math.isfinite(upside) else f"{upside:.1f}%",
+                (upside >= 10) if math.isfinite(upside) else None,
+                "" if not math.isfinite(upside) else f"{upside:.1f}% preview" if watch and not ready else f"{upside:.1f}%",
             ),
             "R:R ≥2:1": _criterion_mark(
-                (reward_risk >= 2) if ready and math.isfinite(reward_risk) else None,
-                "" if not math.isfinite(reward_risk) else f"{reward_risk:.2f}",
+                (reward_risk >= 2) if math.isfinite(reward_risk) else None,
+                "" if not math.isfinite(reward_risk) else f"{reward_risk:.2f} preview" if watch and not ready else f"{reward_risk:.2f}",
             ),
         })
     return pd.DataFrame(rows)
