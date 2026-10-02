@@ -5532,53 +5532,86 @@ with tab_opportunities:
                 "🟡 Developing = earlier-stage setup"
             )
 
-            # Decision-first layer: surface the few names that deserve attention
-            # before the full diagnostic matrix. Presentation only; the source
-            # ordering and all Trade classifications remain unchanged.
+            # Decision-first shortlist using the same visual hierarchy as
+            # Quick Analysis: company -> decision -> trade plan -> supporting
+            # confirmation. Presentation only; classifications and ordering are
+            # inherited from the Trade engine.
             priority_trade = trade_opportunities[
                 trade_opportunities.apply(trade_display_stage, axis=1).isin(
                     ["🟢 READY", "🟠 NEAR READY"]
                 )
             ].head(4)
             if not priority_trade.empty:
-                st.markdown("### Top opportunities")
-                st.caption("The setups closest to action right now.")
-                priority_cols = st.columns(len(priority_trade))
-                for priority_col, (_, priority_row) in zip(priority_cols, priority_trade.iterrows()):
-                    with priority_col:
-                        with st.container(border=True):
-                            priority_stage = trade_display_stage(priority_row)
-                            ticker = str(priority_row.get("Ticker") or "—")
-                            company = str(priority_row.get("Company") or "").strip()
-                            upside = safe(priority_row.get("Upside %"))
-                            if np.isnan(upside):
-                                upside = safe(priority_row.get("Shadow upside %"))
-                            rr = safe(priority_row.get("R:R"))
-                            if np.isnan(rr):
-                                rr = safe(priority_row.get("Shadow R:R"))
-                            blocker = str(priority_row.get("Pre-cross blocker") or "").strip()
-                            macd = str(priority_row.get("MACD progress") or "—").strip()
+                st.markdown("### Shortlist")
+                st.caption("The companies closest to an actionable Trade setup, shown in priority order.")
 
-                            st.caption(priority_stage)
-                            st.markdown(f"### {ticker}")
-                            if company:
-                                st.caption(company)
-                            metric_left, metric_right = st.columns(2)
-                            metric_left.metric(
-                                "Upside",
-                                "—" if np.isnan(upside) else f"{upside:.1f}%",
+                for shortlist_index, (_, priority_row) in enumerate(priority_trade.iterrows(), start=1):
+                    priority_stage = trade_display_stage(priority_row)
+                    ticker = str(priority_row.get("Ticker") or "—")
+                    company = str(priority_row.get("Company") or "").strip()
+                    exchange = str(priority_row.get("Exchange") or "").strip()
+                    currency = str(priority_row.get("Currency") or "").strip()
+
+                    entry = safe(priority_row.get("Entry"))
+                    if np.isnan(entry):
+                        entry = safe(priority_row.get("Price"))
+                    stop = safe(priority_row.get("Stop"))
+                    target = safe(priority_row.get("Target"))
+                    upside = safe(priority_row.get("Upside %"))
+                    if np.isnan(upside):
+                        upside = safe(priority_row.get("Shadow upside %"))
+                    rr = safe(priority_row.get("R:R"))
+                    if np.isnan(rr):
+                        rr = safe(priority_row.get("Shadow R:R"))
+                    rsi = safe(priority_row.get("RSI"))
+                    macd = str(priority_row.get("MACD progress") or "—").strip()
+                    blocker = str(priority_row.get("Pre-cross blocker") or "").strip()
+
+                    with st.container(border=True):
+                        company_col, status_col = st.columns([4, 1])
+                        with company_col:
+                            st.markdown(f"### {company or ticker} ({ticker})")
+                            context_bits = [value for value in (exchange, currency) if value]
+                            if context_bits:
+                                st.caption(" · ".join(context_bits))
+                        with status_col:
+                            st.markdown(f"**{priority_stage}**")
+
+                        if priority_stage == "🟢 READY":
+                            st.success("TRADE DECISION · Ready to verify")
+                        else:
+                            next_step = macd if macd and macd != "—" else blocker
+                            st.warning(
+                                "TRADE DECISION · Near Ready — "
+                                f"waiting on {next_step or 'confirmation'}"
                             )
-                            metric_right.metric(
-                                "R:R",
-                                "—" if np.isnan(rr) else f"{rr:.2f}:1",
-                            )
-                            if priority_stage == "🟢 READY":
-                                st.success("Ready to verify")
-                            else:
-                                next_step = macd if macd and macd != "—" else blocker
-                                st.caption(f"Waiting on: **{next_step or 'confirmation'}**")
+
+                        st.markdown("##### Trade plan")
+                        plan1, plan2, plan3 = st.columns(3)
+                        plan1.metric(
+                            "Entry",
+                            "—" if np.isnan(entry) else fmt_price_with_currency(entry, currency),
+                        )
+                        plan2.metric(
+                            "Profit target",
+                            "—" if np.isnan(target) else fmt_price_with_currency(target, currency),
+                            None if np.isnan(upside) else f"{upside:.1f}% upside",
+                        )
+                        plan3.metric(
+                            "Downside / reassess",
+                            "—" if np.isnan(stop) else fmt_price_with_currency(stop, currency),
+                        )
+
+                        support1, support2, support3 = st.columns(3)
+                        support1.metric("Risk / reward", "—" if np.isnan(rr) else f"{rr:.2f}:1")
+                        support2.metric("RSI", "—" if np.isnan(rsi) else f"{rsi:.1f}")
+                        support3.metric("MACD", macd or "—")
+
+                    if shortlist_index < len(priority_trade):
+                        st.write("")
 
             st.markdown("### Filter opportunities")
+
             f1, f2, f3 = st.columns([2, 1, 1])
             with f1:
                 trade_status_filter = st.radio(
