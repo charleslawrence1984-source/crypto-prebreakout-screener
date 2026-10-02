@@ -8,7 +8,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:34+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:25+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -20,7 +20,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:34+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:25+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -32,19 +32,19 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:34+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:25+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "euronext_paris": {
-      "coverage_symbols": 1,
+      "coverage_symbols": 2,
       "dispatch_counts": {},
-      "eligible_symbols": 1,
+      "eligible_symbols": 2,
       "errors": [],
       "remaining_symbols": 0,
-      "requested_this_run": 0,
-      "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:33+01:00",
+      "requested_this_run": 1,
+      "returned_this_run": 1,
+      "source_fundamentals_updated_at": "2026-10-02T07:58:24+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -681,6 +681,7 @@
         "FAN.L": 0,
         "FCH.L": 0,
         "FOUR.L": 0,
+        "FSG.L": 0,
         "GAMA.L": 0,
         "GAW.L": 0,
         "GPE.L": 0,
@@ -722,7 +723,6 @@
         "ROSE.L": 0,
         "SCT.L": 0,
         "SDLF.L": 0,
-        "SDR.L": 0,
         "SGE.L": 0,
         "SGRO.L": 0,
         "SHAW.L": 0,
@@ -743,7 +743,7 @@
       "remaining_symbols": 87,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:33+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:21+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -755,7 +755,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:33+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:23+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -781,7 +781,7 @@
       "remaining_symbols": 13,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:33+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:25+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -2093,7 +2093,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:33+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:25+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -2194,14 +2194,13 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:34+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:25+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "xetra": {
       "coverage_symbols": 0,
       "dispatch_counts": {
-        "1INN.DE": 0,
         "1SXP.DE": 0,
         "ALV.DE": 0,
         "AOF.DE": 0,
@@ -2241,17 +2240,17 @@
         "WUW.DE": 0,
         "YSN.DE": 0
       },
-      "eligible_symbols": 39,
+      "eligible_symbols": 38,
       "errors": [],
-      "remaining_symbols": 39,
+      "remaining_symbols": 38,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T06:54:33+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T07:58:21+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-02T06:45:47.539078+00:00"
+  "updated_at": "2026-10-02T06:59:07.475190+00:00"
 }
