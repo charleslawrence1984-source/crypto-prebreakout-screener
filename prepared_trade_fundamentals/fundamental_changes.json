@@ -33,23 +33,31 @@
         "WAVE.PA"
       ],
       "label": "Euronext Paris",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 2,
+      "new_symbols": [
+        "BUI.PA",
+        "MLCHE.PA"
+      ]
     },
     "lse": {
-      "changed_count": 2,
+      "changed_count": 5,
       "changed_symbols": [
         "EDV.L",
-        "JDW.L"
+        "JDW.L",
+        "SEEN.L",
+        "SUPR.L",
+        "TNE.L"
       ],
       "label": "London Stock Exchange",
       "new_count": 0,
       "new_symbols": []
     },
     "lse_aim": {
-      "changed_count": 1,
+      "changed_count": 3,
       "changed_symbols": [
-        "GEM.L"
+        "ALU.L",
+        "GEM.L",
+        "MTL.L"
       ],
       "label": "LSE AIM",
       "new_count": 0,
@@ -170,6 +178,6 @@
       "new_symbols": []
     }
   },
-  "generated_at": "2026-10-02T10:32:06+01:00",
-  "rulebook_build": "2026.10.02.02"
+  "generated_at": "2026-10-02T10:59:30+01:00",
+  "rulebook_build": "2026.10.02.03"
 }
