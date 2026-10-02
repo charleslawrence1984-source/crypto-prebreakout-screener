@@ -45,7 +45,7 @@ PREPARED_SCAN_DIR = Path(__file__).resolve().parent / "prepared_scans"
 PRIORITY_INVESTMENT_DIR = Path(__file__).resolve().parent / "prepared_priority_investments"
 TRADE_PREPARED_DIR = Path(__file__).resolve().parent / "prepared_trade_fundamentals"
 TRADE_TECHNICAL_DIR = Path(__file__).resolve().parent / "prepared_trade_technicals"
-TRADE_RULEBOOK_BUILD = "2026.10.01.03"
+TRADE_RULEBOOK_BUILD = "2026.10.02.01"
 
 EXCHANGE_UNIVERSES = {
     "NASDAQ": "nasdaq",
