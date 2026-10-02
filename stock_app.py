@@ -3916,6 +3916,23 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
         technical = technical[
             technical["Technical state"].isin(["WATCH", "AWAITING NEXT OPEN", "ENTRY READY", "PRE-CROSS READY"])
         ].copy()
+
+        # User-facing Trade opportunities must never include illiquid names.
+        # The prepared technical cache may contain them for diagnostics, but
+        # WATCH/READY requires at least £500k median 20-session traded value.
+        if "Liquidity gate" in technical.columns:
+            technical = technical[
+                technical["Liquidity gate"].astype(str).str.upper().eq("PASS")
+            ].copy()
+        elif "Median traded value GBPm" in technical.columns:
+            liquidity_m = pd.to_numeric(technical["Median traded value GBPm"], errors="coerce")
+            technical = technical[liquidity_m >= 0.5].copy()
+        elif "Median traded value £m" in technical.columns:
+            liquidity_m = pd.to_numeric(technical["Median traded value £m"], errors="coerce")
+            technical = technical[liquidity_m >= 0.5].copy()
+        else:
+            technical = technical.iloc[0:0].copy()
+
         if technical.empty:
             continue
 
