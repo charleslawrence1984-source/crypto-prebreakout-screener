@@ -4074,42 +4074,47 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
         na_position="last",
     ).drop(columns=["_status_order", "_company_key", "_secondary_listing", "_liquidity_order"])
 
-    # A manual completed-candle refresh is session-wide evidence. Overlay it on
-    # the shared shortlist so Home/Overview and Opportunities cannot disagree
-    # about WATCH vs READY during the same Streamlit session.
+    return output.reset_index(drop=True)
+
+
+def apply_trade_refresh_overlay(frame: pd.DataFrame) -> pd.DataFrame:
+    """Apply this session's completed-candle refresh outside cached data loaders."""
+    if frame is None or frame.empty:
+        return frame
     refreshed = st.session_state.get("trade_macd_refresh", {})
-    if refreshed:
-        output = output.copy()
-        for idx, row in output.iterrows():
-            symbol = str(row.get("Ticker") or "").strip().upper()
-            update = refreshed.get(symbol)
-            if not update:
-                continue
-            state = str(update.get("Technical state") or "").upper()
-            if state in {"ENTRY READY", "AWAITING NEXT OPEN", "PRE-CROSS READY"}:
-                output.at[idx, "Status"] = "READY TO VERIFY"
-            elif state == "WATCH":
-                output.at[idx, "Status"] = "WATCH"
-            for column in (
-                "MACD progress", "RSI", "Technical state", "Technical reason",
-                "Pre-cross blocker", "Price", "ATR20", "MA zone low", "MA zone high",
-                "Entry", "Stop", "Target", "Target basis", "Stop distance %",
-                "Upside %", "R:R", "Technical score", "Tier",
-                "Shadow plan gate", "Shadow stop distance %",
-                "Shadow entry MA distance ATR", "Shadow upside %", "Shadow R:R",
-            ):
-                if column in update:
-                    output.at[idx, column] = update.get(column)
+    if not refreshed:
+        return frame
 
-        output["_status_order"] = output["Status"].map(
-            {"READY TO VERIFY": 0, "WATCH": 1}
-        ).fillna(9)
-        output = output.sort_values(
-            ["_status_order", "Technical score", "Fundamental score"],
-            ascending=[True, False, False],
-            na_position="last",
-        ).drop(columns=["_status_order"])
+    output = frame.copy()
+    for idx, row in output.iterrows():
+        symbol = str(row.get("Ticker") or "").strip().upper()
+        update = refreshed.get(symbol)
+        if not update:
+            continue
+        state = str(update.get("Technical state") or "").upper()
+        if state in {"ENTRY READY", "AWAITING NEXT OPEN", "PRE-CROSS READY"}:
+            output.at[idx, "Status"] = "READY TO VERIFY"
+        elif state == "WATCH":
+            output.at[idx, "Status"] = "WATCH"
+        for column in (
+            "MACD progress", "RSI", "Technical state", "Technical reason",
+            "Pre-cross blocker", "Price", "ATR20", "MA zone low", "MA zone high",
+            "Entry", "Stop", "Target", "Target basis", "Stop distance %",
+            "Upside %", "R:R", "Technical score", "Tier",
+            "Shadow plan gate", "Shadow stop distance %",
+            "Shadow entry MA distance ATR", "Shadow upside %", "Shadow R:R",
+        ):
+            if column in update:
+                output.at[idx, column] = update.get(column)
 
+    output["_status_order"] = output["Status"].map(
+        {"READY TO VERIFY": 0, "WATCH": 1}
+    ).fillna(9)
+    output = output.sort_values(
+        ["_status_order", "Technical score", "Fundamental score"],
+        ascending=[True, False, False],
+        na_position="last",
+    ).drop(columns=["_status_order"])
     return output.reset_index(drop=True)
 
 
@@ -4722,7 +4727,7 @@ tab_home, tab1, tab_opportunities, tab2, tab5, tab3, tab4 = st.tabs(
 )
 
 with tab_home:
-    home_trade = load_all_trade_opportunities()
+    home_trade = apply_trade_refresh_overlay(load_all_trade_opportunities())
     home_investment = load_all_investment_opportunities()
     home_watchlist = load_browser_watchlist()
     home_events = load_browser_watch_events()
@@ -5346,7 +5351,7 @@ with tab_opportunities:
     )
 
     with trade_feed_tab:
-        trade_opportunities = load_all_trade_opportunities(TRADE_RULEBOOK_BUILD)
+        trade_opportunities = apply_trade_refresh_overlay(load_all_trade_opportunities(TRADE_RULEBOOK_BUILD))
         if trade_opportunities.empty:
             st.info(
                 "No prepared Trade WATCH or ready-to-verify setups are available right now. "
@@ -5464,7 +5469,9 @@ with tab_opportunities:
                     st.session_state["trade_macd_refresh"] = refreshed_macd
                     st.session_state["trade_macd_refresh_time"] = datetime.datetime.now().strftime("%d %b %Y %H:%M")
                     if refreshed_macd:
-                        st.success(f"Refreshed MACD for {len(refreshed_macd)} displayed companies.")
+                        # Home is rendered earlier in the script. Rerun once so
+                        # every tab consumes the same refreshed session overlay.
+                        st.rerun()
                     else:
                         st.warning("No MACD rows could be refreshed from the price feed.")
 
