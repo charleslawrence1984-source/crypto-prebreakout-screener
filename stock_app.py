@@ -5466,7 +5466,26 @@ with tab_opportunities:
     )
 
     with trade_feed_tab:
-        trade_opportunities = apply_trade_refresh_overlay(load_all_trade_opportunities(TRADE_RULEBOOK_BUILD))
+        # First-load freshness: prepared files are the broad overnight shortlist,
+        # but confirmation can advance on the latest completed daily candle before
+        # the next rebuild. Refresh that confirmation layer once per browser
+        # session before any snapshot counts are calculated. The refresh function
+        # uses an exclusive end date, so an unfinished intraday candle cannot
+        # promote a setup.
+        prepared_trade_opportunities = load_all_trade_opportunities(TRADE_RULEBOOK_BUILD)
+        if (
+            prepared_trade_opportunities is not None
+            and not prepared_trade_opportunities.empty
+            and not st.session_state.get("trade_macd_auto_refreshed", False)
+        ):
+            auto_refreshed_macd = refresh_macd_progress_now(prepared_trade_opportunities)
+            if auto_refreshed_macd:
+                st.session_state["trade_macd_refresh"] = auto_refreshed_macd
+                st.session_state["trade_macd_refresh_time"] = datetime.datetime.now().strftime("%d %b %Y %H:%M")
+                st.session_state["trade_macd_refresh_source"] = "automatic"
+            st.session_state["trade_macd_auto_refreshed"] = True
+
+        trade_opportunities = apply_trade_refresh_overlay(prepared_trade_opportunities)
         if trade_opportunities.empty:
             st.info(
                 "No prepared Trade WATCH or ready-to-verify setups are available right now. "
@@ -5641,6 +5660,7 @@ with tab_opportunities:
                         refreshed_macd = refresh_macd_progress_now(shown_trade)
                     st.session_state["trade_macd_refresh"] = refreshed_macd
                     st.session_state["trade_macd_refresh_time"] = datetime.datetime.now().strftime("%d %b %Y %H:%M")
+                    st.session_state["trade_macd_refresh_source"] = "manual"
                     if refreshed_macd:
                         # Home is rendered earlier in the script. Rerun once so
                         # every tab consumes the same refreshed session overlay.
@@ -5683,7 +5703,9 @@ with tab_opportunities:
                                 shown_trade.at[idx, column] = update.get(column)
                     refresh_time = st.session_state.get("trade_macd_refresh_time")
                     if refresh_time:
-                        st.caption(f"MACD manually refreshed: **{refresh_time}**")
+                        refresh_source = st.session_state.get("trade_macd_refresh_source", "manual")
+                        label = "Confirmation automatically checked" if refresh_source == "automatic" else "MACD manually refreshed"
+                        st.caption(f"{label}: **{refresh_time}**")
 
                 trade_matrix = build_trade_criteria_matrix(shown_trade)
                 render_watchlist_selector(
