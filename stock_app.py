@@ -5532,91 +5532,6 @@ with tab_opportunities:
                 "🟡 Developing = earlier-stage setup"
             )
 
-            # Decision-first shortlist in the same visual language as the
-            # large Quick Analysis decision card. Presentation only.
-            priority_trade = trade_opportunities[
-                trade_opportunities.apply(trade_display_stage, axis=1).isin(
-                    ["🟢 READY", "🟠 NEAR READY"]
-                )
-            ].head(4)
-            if not priority_trade.empty:
-                st.markdown("### Shortlist")
-                st.caption("The companies closest to an actionable Trade setup, shown in priority order.")
-
-                for shortlist_index, (_, priority_row) in enumerate(priority_trade.iterrows(), start=1):
-                    priority_stage = trade_display_stage(priority_row)
-                    ticker = str(priority_row.get("Ticker") or "—")
-                    company = str(priority_row.get("Company") or "").strip()
-                    exchange = str(priority_row.get("Exchange") or "").strip()
-                    currency = str(priority_row.get("Currency") or "").strip()
-
-                    current_price = safe(priority_row.get("Price"))
-                    entry = safe(priority_row.get("Entry"))
-                    if np.isnan(entry):
-                        entry = current_price
-                    stop = safe(priority_row.get("Stop"))
-                    target = safe(priority_row.get("Target"))
-                    upside = safe(priority_row.get("Upside %"))
-                    if np.isnan(upside):
-                        upside = safe(priority_row.get("Shadow upside %"))
-                    rr = safe(priority_row.get("R:R"))
-                    if np.isnan(rr):
-                        rr = safe(priority_row.get("Shadow R:R"))
-                    rsi = safe(priority_row.get("RSI"))
-                    macd = str(priority_row.get("MACD progress") or "—").strip()
-                    blocker = str(priority_row.get("Pre-cross blocker") or "").strip()
-
-                    st.markdown(f"### {company or ticker} ({ticker})")
-                    price_text = "—" if np.isnan(current_price) else fmt_price_with_currency(current_price, currency)
-                    exchange_suffix = f" · {exchange}" if exchange else ""
-                    st.caption(f"Current price: {price_text}{exchange_suffix}")
-
-                    if priority_stage == "🟢 READY":
-                        decision_action = "BUY"
-                        decision_reason = (
-                            "The completed-candle Trade setup has reached confirmation. "
-                            + ("The planned trade offers "
-                               f"{upside:.1f}% upside and {rr:.2f}:1 risk/reward."
-                               if not np.isnan(upside) and not np.isnan(rr)
-                               else "Verify the current price and event checks before acting.")
-                        )
-                    else:
-                        decision_action = "WAIT"
-                        waiting_on = macd if macd and macd != "—" else blocker
-                        decision_reason = (
-                            "The trade plan already passes the stop, upside and risk/reward gates, "
-                            f"but {waiting_on or 'confirmation'} is still pending."
-                        )
-
-                    render_decision_card(
-                        "TRADE DECISION",
-                        decision_action,
-                        decision_reason,
-                    )
-
-                    plan1, plan2, plan3 = st.columns(3)
-                    plan1.metric(
-                        "Entry",
-                        "—" if np.isnan(entry) else fmt_price_with_currency(entry, currency),
-                    )
-                    plan2.metric(
-                        "Profit target",
-                        "—" if np.isnan(target) else fmt_price_with_currency(target, currency),
-                        None if np.isnan(upside) else f"{upside:.1f}% upside",
-                    )
-                    plan3.metric(
-                        "Downside / reassess",
-                        "—" if np.isnan(stop) else fmt_price_with_currency(stop, currency),
-                    )
-
-                    support1, support2, support3 = st.columns(3)
-                    support1.metric("Risk / reward", "—" if np.isnan(rr) else f"{rr:.2f}:1")
-                    support2.metric("RSI", "—" if np.isnan(rsi) else f"{rsi:.1f}")
-                    support3.metric("MACD", macd or "—")
-
-                    if shortlist_index < len(priority_trade):
-                        st.divider()
-
             st.markdown("### Filter opportunities")
 
             f1, f2, f3 = st.columns([2, 1, 1])
@@ -5752,6 +5667,92 @@ with tab_opportunities:
                     trade_matrix,
                     key=f"trade_matrix_watch_{trade_status_filter}_{trade_sector}_{trade_market}_{_query_param_text('wl')[:8]}",
                 )
+
+            # Decision-first shortlist in the same visual language as the
+            # large Quick Analysis decision card. Presentation only.
+            priority_trade = trade_opportunities[
+                trade_opportunities.apply(trade_display_stage, axis=1).isin(
+                    ["🟢 READY", "🟠 NEAR READY"]
+                )
+            ].head(4)
+            if not priority_trade.empty:
+                st.markdown("### Shortlist")
+                st.caption("The companies closest to an actionable Trade setup, shown in priority order.")
+
+                for shortlist_index, (_, priority_row) in enumerate(priority_trade.iterrows(), start=1):
+                    priority_stage = trade_display_stage(priority_row)
+                    ticker = str(priority_row.get("Ticker") or "—")
+                    company = str(priority_row.get("Company") or "").strip()
+                    exchange = str(priority_row.get("Exchange") or "").strip()
+                    currency = str(priority_row.get("Currency") or "").strip()
+
+                    current_price = safe(priority_row.get("Price"))
+                    entry = safe(priority_row.get("Entry"))
+                    if np.isnan(entry):
+                        entry = current_price
+                    stop = safe(priority_row.get("Stop"))
+                    target = safe(priority_row.get("Target"))
+                    upside = safe(priority_row.get("Upside %"))
+                    if np.isnan(upside):
+                        upside = safe(priority_row.get("Shadow upside %"))
+                    rr = safe(priority_row.get("R:R"))
+                    if np.isnan(rr):
+                        rr = safe(priority_row.get("Shadow R:R"))
+                    rsi = safe(priority_row.get("RSI"))
+                    macd = str(priority_row.get("MACD progress") or "—").strip()
+                    blocker = str(priority_row.get("Pre-cross blocker") or "").strip()
+
+                    st.markdown(f"### {company or ticker} ({ticker})")
+                    price_text = "—" if np.isnan(current_price) else fmt_price_with_currency(current_price, currency)
+                    exchange_suffix = f" · {exchange}" if exchange else ""
+                    st.caption(f"Current price: {price_text}{exchange_suffix}")
+
+                    if priority_stage == "🟢 READY":
+                        decision_action = "BUY"
+                        decision_reason = (
+                            "The completed-candle Trade setup has reached confirmation. "
+                            + ("The planned trade offers "
+                               f"{upside:.1f}% upside and {rr:.2f}:1 risk/reward."
+                               if not np.isnan(upside) and not np.isnan(rr)
+                               else "Verify the current price and event checks before acting.")
+                        )
+                    else:
+                        decision_action = "WAIT"
+                        waiting_on = macd if macd and macd != "—" else blocker
+                        decision_reason = (
+                            "The trade plan already passes the stop, upside and risk/reward gates, "
+                            f"but {waiting_on or 'confirmation'} is still pending."
+                        )
+
+                    render_decision_card(
+                        "TRADE DECISION",
+                        decision_action,
+                        decision_reason,
+                    )
+
+                    plan1, plan2, plan3 = st.columns(3)
+                    plan1.metric(
+                        "Entry",
+                        "—" if np.isnan(entry) else fmt_price_with_currency(entry, currency),
+                    )
+                    plan2.metric(
+                        "Profit target",
+                        "—" if np.isnan(target) else fmt_price_with_currency(target, currency),
+                        None if np.isnan(upside) else f"{upside:.1f}% upside",
+                    )
+                    plan3.metric(
+                        "Downside / reassess",
+                        "—" if np.isnan(stop) else fmt_price_with_currency(stop, currency),
+                    )
+
+                    support1, support2, support3 = st.columns(3)
+                    support1.metric("Risk / reward", "—" if np.isnan(rr) else f"{rr:.2f}:1")
+                    support2.metric("RSI", "—" if np.isnan(rsi) else f"{rsi:.1f}")
+                    support3.metric("MACD", macd or "—")
+
+                    if shortlist_index < len(priority_trade):
+                        st.divider()
+
 
                 with st.expander("Why Near Ready is not yet a buy", expanded=False):
                     st.caption(
