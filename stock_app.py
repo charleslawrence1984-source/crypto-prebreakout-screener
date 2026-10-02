@@ -3851,7 +3851,18 @@ def build_trade_criteria_matrix(frame: pd.DataFrame) -> pd.DataFrame:
             "Pre-cross blocker": (
                 str(row.get("Pre-cross blocker")).strip()
                 if str(row.get("Pre-cross blocker") or "").strip()
-                else ("REFRESH NEEDED — PRE-CROSS DIAGNOSTIC MISSING" if watch else "—")
+                else (
+                    # Fail-safe for prepared WATCH rows generated before the
+                    # explicit blocker field was populated. The shadow plan is
+                    # calculated from the same latest-bar structural gates, so
+                    # expose a known hard failure instead of a vague refresh
+                    # warning. Never use PASS as a promotion signal here.
+                    shadow_gate
+                    if watch and shadow_gate not in {"", "UNAVAILABLE", "PASS"}
+                    else "REFRESH NEEDED — PRE-CROSS DIAGNOSTIC MISSING"
+                    if watch
+                    else "—"
+                )
             ),
             "Liquidity": _criterion_mark(
                 (liquidity_value_m >= 0.5) if math.isfinite(liquidity_value_m) else None,
