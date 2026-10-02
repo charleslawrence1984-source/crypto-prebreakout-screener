@@ -580,6 +580,9 @@ def evaluate_price_setup(
     result: dict[str, Any] = {
         "technical_state": "BLOCKED",
         "technical_reason": "PRICE DATA INCOMPLETE",
+        # Stable diagnostic schema: every evaluation returns this key. WATCH
+        # rows overwrite it with the exact reason pre-cross promotion failed.
+        "pre_cross_blocker": "",
     }
     if frame is None or frame.empty:
         return result
@@ -660,6 +663,12 @@ def evaluate_price_setup(
                 result.update(pre_cross)
             else:
                 watch_pullback_type = "DEEP" if recent_sub30 else "CONTROLLED"
+                blocker = str(pre_cross_blocker or "").strip()
+                if not blocker:
+                    # A WATCH row must never lose the reason it failed to
+                    # promote. Treat an empty diagnostic as an engine fault,
+                    # not as "no blocker".
+                    blocker = "PRE-CROSS DIAGNOSTIC UNAVAILABLE"
                 result.update(
                     {
                         "technical_state": "WATCH",
@@ -673,7 +682,7 @@ def evaluate_price_setup(
                         "macd_progress": macd_progress,
                         "macd_histogram": latest_hist,
                         "macd_gap_pct": normalized_gap * 100 if math.isfinite(normalized_gap) else np.nan,
-                        "pre_cross_blocker": pre_cross_blocker,
+                        "pre_cross_blocker": blocker,
                         "pullback_type": watch_pullback_type,
                     }
                 )
