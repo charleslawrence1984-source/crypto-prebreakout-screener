@@ -20,7 +20,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:28+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T22:32:01+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -37,15 +37,27 @@
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "euronext_paris": {
-      "coverage_symbols": 2,
-      "dispatch_counts": {},
+      "coverage_symbols": 0,
+      "dispatch_counts": {
+        "ALSEM.PA": 1,
+        "PEUG.PA": 1
+      },
       "eligible_symbols": 2,
-      "errors": [],
-      "remaining_symbols": 0,
-      "requested_this_run": 0,
+      "errors": [
+        {
+          "error": "'float' object is not callable",
+          "symbol": "ALSEM.PA"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "PEUG.PA"
+        }
+      ],
+      "remaining_symbols": 2,
+      "requested_this_run": 2,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:28+01:00",
-      "status": "complete",
+      "source_fundamentals_updated_at": "2026-10-02T22:31:59+01:00",
+      "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "gettex": {
@@ -743,20 +755,27 @@
       "remaining_symbols": 87,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:27+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T22:31:54+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "lse_aim": {
-      "coverage_symbols": 1,
-      "dispatch_counts": {},
+      "coverage_symbols": 0,
+      "dispatch_counts": {
+        "JHD.L": 1
+      },
       "eligible_symbols": 1,
-      "errors": [],
-      "remaining_symbols": 0,
-      "requested_this_run": 0,
+      "errors": [
+        {
+          "error": "'float' object is not callable",
+          "symbol": "JHD.L"
+        }
+      ],
+      "remaining_symbols": 1,
+      "requested_this_run": 1,
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-10-02T21:55:27+01:00",
-      "status": "complete",
+      "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "madrid": {
@@ -781,7 +800,7 @@
       "remaining_symbols": 13,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:28+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T22:32:00+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -1164,7 +1183,7 @@
       "remaining_symbols": 370,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:23+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T22:31:43+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -1660,7 +1679,7 @@
       "remaining_symbols": 483,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:26+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T22:31:52+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -2090,15 +2109,182 @@
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "six": {
-      "coverage_symbols": 51,
-      "dispatch_counts": {},
+      "coverage_symbols": 18,
+      "dispatch_counts": {
+        "ABBNE.SW": 1,
+        "ACLN.SW": 1,
+        "ALSN.SW": 1,
+        "BAER.SW": 1,
+        "BCHN.SW": 1,
+        "BCVN.SW": 1,
+        "BEAN.SW": 1,
+        "BEKN.SW": 1,
+        "BRKN.SW": 1,
+        "BUCN.SW": 1,
+        "CFR.SW": 1,
+        "CFTE.SW": 1,
+        "EFGN.SW": 1,
+        "EMSN.SW": 1,
+        "GALE.SW": 1,
+        "GEBN.SW": 1,
+        "GEBNE.SW": 1,
+        "GIVN.SW": 1,
+        "HBAN.SW": 1,
+        "INRN.SW": 1,
+        "KARN.SW": 1,
+        "LOGN.SW": 1,
+        "LOGNE.SW": 1,
+        "LUKN.SW": 1,
+        "MOZN.SW": 1,
+        "NOVN.SW": 1,
+        "NOVNEE.SW": 1,
+        "PGHN.SW": 1,
+        "RO.SW": 1,
+        "ROP.SW": 1,
+        "UBSG.SW": 1,
+        "UBSGE.SW": 1,
+        "WKBN.SW": 1
+      },
       "eligible_symbols": 51,
-      "errors": [],
-      "remaining_symbols": 0,
-      "requested_this_run": 0,
+      "errors": [
+        {
+          "error": "'float' object is not callable",
+          "symbol": "ABBNE.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "ACLN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "ALSN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "BAER.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "BCHN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "BCVN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "BEAN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "BEKN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "BRKN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "BUCN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "CFR.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "CFTE.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "EFGN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "EMSN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "GALE.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "GEBN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "GEBNE.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "GIVN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "HBAN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "INRN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "KARN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "LOGN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "LOGNE.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "LUKN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "MOZN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "NOVN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "NOVNEE.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "PGHN.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "RO.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "ROP.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "UBSG.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "UBSGE.SW"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "WKBN.SW"
+        }
+      ],
+      "remaining_symbols": 33,
+      "requested_this_run": 33,
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-10-02T21:55:28+01:00",
-      "status": "complete",
+      "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "tsx": {
@@ -2186,20 +2372,37 @@
       "remaining_symbols": 76,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:28+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T22:31:57+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "vienna": {
-      "coverage_symbols": 5,
-      "dispatch_counts": {},
+      "coverage_symbols": 2,
+      "dispatch_counts": {
+        "DOC.VI": 1,
+        "EBS.VI": 1,
+        "RBI.VI": 1
+      },
       "eligible_symbols": 5,
-      "errors": [],
-      "remaining_symbols": 0,
-      "requested_this_run": 0,
+      "errors": [
+        {
+          "error": "'float' object is not callable",
+          "symbol": "DOC.VI"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "EBS.VI"
+        },
+        {
+          "error": "'float' object is not callable",
+          "symbol": "RBI.VI"
+        }
+      ],
+      "remaining_symbols": 3,
+      "requested_this_run": 3,
       "returned_this_run": 0,
       "source_fundamentals_updated_at": "2026-10-02T21:55:28+01:00",
-      "status": "complete",
+      "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "xetra": {
@@ -2249,12 +2452,12 @@
       "remaining_symbols": 38,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-02T21:55:27+01:00",
+      "source_fundamentals_updated_at": "2026-10-02T22:31:55+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-02T20:56:23.120805+00:00"
+  "updated_at": "2026-10-02T21:37:11.425907+00:00"
 }
