@@ -383,6 +383,85 @@ def _pre_cross_ready_plan(
 
 
 
+
+def _resistance_target_audit(data: pd.DataFrame, entry: float, atr_value: float) -> dict[str, Any]:
+    """Diagnostic comparison of current pairwise resistance versus stronger clusters.
+
+    This does not change the live target rule. It measures whether the nearest
+    current two-pivot cluster is supported by 3+ distinct pivot highs and how
+    alternative stronger/fallback targets would affect upside.
+    """
+    out: dict[str, Any] = {
+        "audit_resistance_touch_count": 0,
+        "audit_resistance_distance_atr": np.nan,
+        "audit_current_target_upside_pct": np.nan,
+        "audit_strong_target_upside_pct": np.nan,
+        "audit_52w_target_upside_pct": np.nan,
+        "audit_target_class": "UNAVAILABLE",
+    }
+    if data is None or len(data) < 20 or not math.isfinite(entry) or entry <= 0 or not math.isfinite(atr_value) or atr_value <= 0:
+        return out
+
+    prior = data.copy()
+    confirmed_prior = prior.iloc[:-2] if len(prior) > 4 else prior.iloc[0:0]
+    pivots = _pivot_values(confirmed_prior["High"], "high")
+    pair_clusters = _clusters(pivots, atr_value)
+    overhead = [cluster for cluster in pair_clusters if cluster["lower"] > entry]
+
+    if overhead:
+        chosen = min(overhead, key=lambda cluster: cluster["lower"])
+        lower = float(chosen["lower"])
+        upper = float(chosen["upper"])
+        target = lower - 0.25 * atr_value
+        out["audit_resistance_distance_atr"] = (lower - entry) / atr_value
+        out["audit_current_target_upside_pct"] = (target - entry) / entry * 100
+
+        # Count distinct pivot highs that genuinely support the selected band.
+        # Expand by 0.25 ATR so small pairwise band differences do not split one level.
+        support_low = lower - 0.25 * atr_value
+        support_high = upper + 0.25 * atr_value
+        supporting = [(idx, value) for idx, value in pivots if support_low <= value <= support_high]
+        supporting = sorted(supporting, key=lambda x: x[0])
+        distinct: list[tuple[int, float]] = []
+        for pivot in supporting:
+            if not distinct or pivot[0] - distinct[-1][0] >= 10:
+                distinct.append(pivot)
+        touches = len(distinct)
+        out["audit_resistance_touch_count"] = touches
+        out["audit_target_class"] = "STRONG 3+ TOUCH" if touches >= 3 else "WEAK 2-TOUCH"
+
+        # Stronger target: nearest overhead level backed by at least 3 distinct touches.
+        strong_candidates = []
+        seen = set()
+        for cluster in overhead:
+            lo, hi = float(cluster["lower"]), float(cluster["upper"])
+            key = (round(lo / atr_value, 2), round(hi / atr_value, 2))
+            if key in seen:
+                continue
+            seen.add(key)
+            band_low = lo - 0.25 * atr_value
+            band_high = hi + 0.25 * atr_value
+            pts = sorted(
+                [(idx, value) for idx, value in pivots if band_low <= value <= band_high],
+                key=lambda x: x[0],
+            )
+            distinct_pts: list[tuple[int, float]] = []
+            for pivot in pts:
+                if not distinct_pts or pivot[0] - distinct_pts[-1][0] >= 10:
+                    distinct_pts.append(pivot)
+            if len(distinct_pts) >= 3:
+                strong_candidates.append((lo, hi, len(distinct_pts)))
+        if strong_candidates:
+            strong_lo = min(strong_candidates, key=lambda x: x[0])[0]
+            strong_target = strong_lo - 0.25 * atr_value
+            out["audit_strong_target_upside_pct"] = (strong_target - entry) / entry * 100
+
+    high_52 = float(prior["High"].tail(252).max())
+    target_52 = high_52 - 0.25 * atr_value
+    out["audit_52w_target_upside_pct"] = (target_52 - entry) / entry * 100
+    return out
+
+
 def _shadow_final_plan_diagnostics(data: pd.DataFrame) -> dict[str, Any]:
     """Evaluate final structural/risk gates on the latest completed bar.
 
@@ -441,6 +520,7 @@ def _shadow_final_plan_diagnostics(data: pd.DataFrame) -> dict[str, Any]:
         target_upside = (target - entry) / entry
         risk = entry - stop
         rr = (target - entry) / risk if risk > 0 else np.nan
+        out.update(_resistance_target_audit(data, entry, atr_value))
         out["shadow_upside_pct"] = target_upside * 100
         out["shadow_reward_risk"] = rr
 
