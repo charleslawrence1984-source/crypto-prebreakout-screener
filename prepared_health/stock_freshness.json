@@ -1,57 +1,57 @@
 {
   "datasets": {
     "investment_fundamentals": {
-      "complete_exchanges": 7,
-      "coverage_symbols": 11800,
+      "complete_exchanges": 13,
+      "coverage_symbols": 9663,
       "duplicate_tickers": 0,
-      "eligible_symbols": 12477,
+      "eligible_symbols": 10289,
       "exchange_count": 15,
-      "files_checked": 15,
-      "manifest_age_hours": 11.1,
-      "manifest_updated_at": "2026-09-30T23:04:18+01:00",
-      "partial_or_failed_exchanges": 8
+      "files_checked": 0,
+      "manifest_age_hours": 4.9,
+      "manifest_updated_at": "2026-10-04T11:55:28+01:00",
+      "partial_or_failed_exchanges": 2
     },
     "investment_technicals": {
-      "complete_exchanges": 4,
-      "coverage_symbols": 18,
+      "complete_exchanges": 3,
+      "coverage_symbols": 21,
       "duplicate_tickers": 0,
-      "eligible_symbols": 2372,
+      "eligible_symbols": 2125,
       "exchange_count": 15,
-      "files_checked": 2,
-      "manifest_age_hours": 0.5,
-      "manifest_updated_at": "2026-10-01T08:42:07.256644+00:00",
-      "partial_or_failed_exchanges": 11
+      "files_checked": 0,
+      "manifest_age_hours": 4.7,
+      "manifest_updated_at": "2026-10-04T11:08:02.538553+00:00",
+      "partial_or_failed_exchanges": 12
     },
     "trade_fundamentals": {
-      "complete_exchanges": 9,
-      "coverage_symbols": 24312,
+      "complete_exchanges": 10,
+      "coverage_symbols": 21872,
       "duplicate_tickers": 0,
       "eligible_symbols": 0,
       "exchange_count": 15,
-      "files_checked": 15,
-      "manifest_age_hours": 11.7,
-      "manifest_updated_at": "2026-09-30T22:32:35+01:00",
-      "partial_or_failed_exchanges": 6
+      "files_checked": 0,
+      "manifest_age_hours": 3.4,
+      "manifest_updated_at": "2026-10-04T13:26:49+01:00",
+      "partial_or_failed_exchanges": 5
     },
     "trade_technicals": {
       "complete_exchanges": 14,
-      "coverage_symbols": 1173,
+      "coverage_symbols": 1304,
       "duplicate_tickers": 0,
-      "eligible_symbols": 1293,
+      "eligible_symbols": 1424,
       "exchange_count": 15,
-      "files_checked": 14,
-      "manifest_age_hours": 11.1,
-      "manifest_updated_at": "2026-09-30T23:05:57+01:00",
+      "files_checked": 0,
+      "manifest_age_hours": 0.8,
+      "manifest_updated_at": "2026-10-04T16:03:37+01:00",
       "partial_or_failed_exchanges": 1
     }
   },
   "fundamental_change_detector": {
-    "age_hours": 11.7,
-    "changed_companies": 1426,
-    "generated_at": "2026-09-30T22:32:35+01:00",
-    "new_companies": 194
+    "age_hours": 3.4,
+    "changed_companies": 0,
+    "generated_at": "2026-10-04T13:26:49+01:00",
+    "new_companies": 0
   },
-  "generated_at": "2026-10-01T09:12:43.807007+00:00",
+  "generated_at": "2026-10-04T15:49:08.958551+00:00",
   "issues": [],
-  "mode": "deep"
+  "mode": "weekly"
 }
