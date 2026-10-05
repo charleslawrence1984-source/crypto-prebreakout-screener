@@ -38,6 +38,14 @@ EXECUTION_EXCHANGES = {
 }
 EXECUTION_USD_QUOTES = {"USD", "USDT", "USDC"}
 
+# Network/stage guards: a slow venue should degrade one refresh, never hold the
+# whole scheduled pipeline until GitHub cancels the job.
+REQUEST_TIMEOUT_MS = 20_000
+DISCOVERY_EXCHANGE_TIMEOUT_SECONDS = 150
+DEEP_SCORE_EXCHANGE_TIMEOUT_SECONDS = 180
+ENRICHMENT_TIMEOUT_SECONDS = 60
+EXCHANGE_CLOSE_TIMEOUT_SECONDS = 5
+
 
 def safe(value, default=np.nan) -> float:
     try:
@@ -55,6 +63,7 @@ def make_exchange(exchange_id: str):
     cls = getattr(ccxt, exchange_id)
     config = {
         "enableRateLimit": True,
+        "timeout": REQUEST_TIMEOUT_MS,
         "options": {
             "defaultType": "spot",
             "fetchMarkets": {"types": ["spot"]},
@@ -75,6 +84,14 @@ def make_exchange(exchange_id: str):
             api_urls["public"] = "https://data-api.binance.vision/api/v3"
             api_urls["v1"] = "https://data-api.binance.vision/api/v1"
     return exchange
+
+
+async def close_exchange(exchange) -> None:
+    """Best-effort close so cleanup cannot stall a cancelled/slow stage."""
+    try:
+        await asyncio.wait_for(exchange.close(), timeout=EXCHANGE_CLOSE_TIMEOUT_SECONDS)
+    except Exception:
+        pass
 
 
 def quote_volume(ticker: dict) -> float:
@@ -205,7 +222,7 @@ async def load_exchange_snapshot(
         }
         return frame, counts, execution_meta
     finally:
-        await exchange.close()
+        await close_exchange(exchange)
 
 
 async def load_all_universes(
@@ -545,16 +562,28 @@ async def discovery_batch(universe: pd.DataFrame, symbols: List[str], concurrenc
             tasks = [asyncio.create_task(one(item)) for item in items]
             local.extend(await asyncio.gather(*tasks))
         finally:
-            await exchange.close()
+            await close_exchange(exchange)
         return local
 
     results = await asyncio.gather(
-        *(scan_exchange(exchange_id, items) for exchange_id, items in grouped.items()),
+        *(
+            asyncio.wait_for(
+                scan_exchange(exchange_id, items),
+                timeout=DISCOVERY_EXCHANGE_TIMEOUT_SECONDS,
+            )
+            for exchange_id, items in grouped.items()
+        ),
         return_exceptions=True,
     )
     for exchange_id, result in zip(grouped, results):
         if isinstance(result, Exception):
-            errors.append(f"{exchange_id}: {type(result).__name__}: {result}")
+            if isinstance(result, asyncio.TimeoutError):
+                errors.append(
+                    f"{exchange_id}: discovery stage timed out after "
+                    f"{DISCOVERY_EXCHANGE_TIMEOUT_SECONDS}s; retained previous data"
+                )
+            else:
+                errors.append(f"{exchange_id}: {type(result).__name__}: {result}")
         else:
             rows.extend(result)
     return rows, errors
@@ -989,16 +1018,28 @@ async def deep_score_batch(
             scored = await asyncio.gather(*(one(item) for item in items))
             local.extend([row for row in scored if row])
         finally:
-            await exchange.close()
+            await close_exchange(exchange)
         return local
 
     results = await asyncio.gather(
-        *(score_exchange(exchange_id, items) for exchange_id, items in grouped.items()),
+        *(
+            asyncio.wait_for(
+                score_exchange(exchange_id, items),
+                timeout=DEEP_SCORE_EXCHANGE_TIMEOUT_SECONDS,
+            )
+            for exchange_id, items in grouped.items()
+        ),
         return_exceptions=True,
     )
     for exchange_id, result in zip(grouped, results):
         if isinstance(result, Exception):
-            errors.append(f"deep/{exchange_id}: {type(result).__name__}: {result}")
+            if isinstance(result, asyncio.TimeoutError):
+                errors.append(
+                    f"deep/{exchange_id}: deep-score stage timed out after "
+                    f"{DEEP_SCORE_EXCHANGE_TIMEOUT_SECONDS}s; retained previous score"
+                )
+            else:
+                errors.append(f"deep/{exchange_id}: {type(result).__name__}: {result}")
         else:
             rows.extend(result)
     return rows, errors
@@ -1319,10 +1360,18 @@ async def run(args) -> int:
 
     tokenomics_task = asyncio.to_thread(fetch_coingecko_tokenomics)
     categories_task = asyncio.to_thread(fetch_coingecko_category_leaders)
-    tokenomics_snapshot, category_leaders = await asyncio.gather(
-        tokenomics_task,
-        categories_task,
-    )
+    enrichment_errors = []
+    try:
+        tokenomics_snapshot, category_leaders = await asyncio.wait_for(
+            asyncio.gather(tokenomics_task, categories_task),
+            timeout=ENRICHMENT_TIMEOUT_SECONDS,
+        )
+    except asyncio.TimeoutError:
+        tokenomics_snapshot, category_leaders = {}, {}
+        enrichment_errors.append(
+            f"CoinGecko enrichment timed out after {ENRICHMENT_TIMEOUT_SECONDS}s; "
+            "continuing without fresh enrichment"
+        )
 
     deep_rows, deep_errors = await deep_score_batch(
         universe,
@@ -1368,6 +1417,8 @@ async def run(args) -> int:
     runs_per_sweep = math.ceil(total_unique / args.batch_size) if total_unique else 0
     nominal_minutes = runs_per_sweep * 5
 
+    pipeline_errors = universe_errors + discovery_errors + enrichment_errors + deep_errors
+
     audit = {
         "generated_at": now_iso(),
         "quote": args.quote,
@@ -1391,13 +1442,13 @@ async def run(args) -> int:
         "estimated_full_sweep_minutes_at_5m_cadence": nominal_minutes,
         "macro_updated_at": macro_snapshot.get("generated_at"),
         "macro_available": bool(macro_snapshot.get("available")),
-        "errors": universe_errors + discovery_errors[:30] + deep_errors[:30],
+        "errors": pipeline_errors[:60],
     }
     save_json(audit, output / "audit.json")
 
     manifest = {
         "updated_at": now_iso(),
-        "status": "CURRENT" if not universe_errors else "PARTIAL",
+        "status": "CURRENT" if not pipeline_errors else "PARTIAL",
         "quote": args.quote,
         "market_data_min_quote_volume": args.market_data_min_quote_volume,
         "discovery_min_combined_volume": args.discovery_min_combined_volume,
@@ -1417,7 +1468,7 @@ async def run(args) -> int:
         "estimated_full_sweep_minutes": nominal_minutes,
         "macro_updated_at": macro_snapshot.get("generated_at"),
         "macro_available": bool(macro_snapshot.get("available")),
-        "errors": universe_errors + discovery_errors[:15] + deep_errors[:15],
+        "errors": pipeline_errors[:30],
     }
     save_json(manifest, manifest_path)
 
