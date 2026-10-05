@@ -39,8 +39,8 @@
     "euronext_paris": {
       "coverage_symbols": 0,
       "dispatch_counts": {
-        "ALSEM.PA": 71,
-        "PEUG.PA": 71
+        "ALSEM.PA": 72,
+        "PEUG.PA": 72
       },
       "eligible_symbols": 2,
       "errors": [
@@ -762,7 +762,7 @@
     "lse_aim": {
       "coverage_symbols": 0,
       "dispatch_counts": {
-        "JHD.L": 71
+        "JHD.L": 72
       },
       "eligible_symbols": 1,
       "errors": [
@@ -2108,41 +2108,41 @@
     "six": {
       "coverage_symbols": 16,
       "dispatch_counts": {
-        "ABBNE.SW": 71,
-        "ACLN.SW": 71,
-        "ALSN.SW": 71,
-        "BAER.SW": 71,
-        "BCGE.SW": 2,
-        "BCHN.SW": 71,
-        "BCVN.SW": 71,
-        "BEAN.SW": 71,
-        "BEKN.SW": 71,
-        "BRKN.SW": 71,
-        "BUCN.SW": 71,
-        "CFR.SW": 71,
-        "CFTE.SW": 71,
-        "EFGN.SW": 71,
-        "EMSN.SW": 71,
-        "GALE.SW": 71,
-        "GEBN.SW": 71,
-        "GEBNE.SW": 71,
-        "GIVN.SW": 71,
-        "HBAN.SW": 71,
-        "IFCN.SW": 2,
-        "INRN.SW": 71,
-        "KARN.SW": 71,
-        "LOGN.SW": 71,
-        "LOGNE.SW": 71,
-        "LUKN.SW": 71,
-        "MOZN.SW": 71,
-        "NOVN.SW": 71,
-        "NOVNEE.SW": 71,
-        "PGHN.SW": 71,
-        "RO.SW": 71,
-        "ROP.SW": 71,
-        "UBSG.SW": 71,
-        "UBSGE.SW": 71,
-        "WKBN.SW": 71
+        "ABBNE.SW": 72,
+        "ACLN.SW": 72,
+        "ALSN.SW": 72,
+        "BAER.SW": 72,
+        "BCGE.SW": 3,
+        "BCHN.SW": 72,
+        "BCVN.SW": 72,
+        "BEAN.SW": 72,
+        "BEKN.SW": 72,
+        "BRKN.SW": 72,
+        "BUCN.SW": 72,
+        "CFR.SW": 72,
+        "CFTE.SW": 72,
+        "EFGN.SW": 72,
+        "EMSN.SW": 72,
+        "GALE.SW": 72,
+        "GEBN.SW": 72,
+        "GEBNE.SW": 72,
+        "GIVN.SW": 72,
+        "HBAN.SW": 72,
+        "IFCN.SW": 3,
+        "INRN.SW": 72,
+        "KARN.SW": 72,
+        "LOGN.SW": 72,
+        "LOGNE.SW": 72,
+        "LUKN.SW": 72,
+        "MOZN.SW": 72,
+        "NOVN.SW": 72,
+        "NOVNEE.SW": 72,
+        "PGHN.SW": 72,
+        "RO.SW": 72,
+        "ROP.SW": 72,
+        "UBSG.SW": 72,
+        "UBSGE.SW": 72,
+        "WKBN.SW": 72
       },
       "eligible_symbols": 51,
       "errors": [
@@ -2387,9 +2387,9 @@
     "vienna": {
       "coverage_symbols": 2,
       "dispatch_counts": {
-        "DOC.VI": 71,
-        "EBS.VI": 71,
-        "RBI.VI": 71
+        "DOC.VI": 72,
+        "EBS.VI": 72,
+        "RBI.VI": 72
       },
       "eligible_symbols": 5,
       "errors": [
@@ -2467,5 +2467,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-05T21:41:28.122698+00:00"
+  "updated_at": "2026-10-05T22:29:00.339430+00:00"
 }
