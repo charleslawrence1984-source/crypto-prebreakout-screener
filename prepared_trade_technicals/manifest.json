@@ -10,10 +10,10 @@
       "requested_this_run": 9,
       "returned_this_run": 9,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:35:39+01:00"
+      "updated_at": "2026-10-06T22:33:14+01:00"
     },
     "euronext_brussels": {
       "coverage_pct": 100.0,
@@ -25,10 +25,10 @@
       "requested_this_run": 6,
       "returned_this_run": 6,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:35:36+01:00"
+      "updated_at": "2026-10-06T22:33:12+01:00"
     },
     "euronext_lisbon": {
       "coverage_pct": 100.0,
@@ -40,10 +40,10 @@
       "requested_this_run": 4,
       "returned_this_run": 4,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:35:40+01:00"
+      "updated_at": "2026-10-06T22:33:15+01:00"
     },
     "euronext_paris": {
       "coverage_pct": 100.0,
@@ -55,10 +55,10 @@
       "requested_this_run": 34,
       "returned_this_run": 34,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:35:29+01:00"
+      "updated_at": "2026-10-06T22:33:05+01:00"
     },
     "gettex": {
       "coverage_pct": 73.8,
@@ -77,18 +77,18 @@
     },
     "lse": {
       "coverage_pct": 100.0,
-      "coverage_symbols": 62,
-      "eligible_symbols": 62,
+      "coverage_symbols": 61,
+      "eligible_symbols": 61,
       "label": "London Stock Exchange",
       "refresh_mode": "all_eligible",
       "remaining_symbols": 0,
-      "requested_this_run": 62,
-      "returned_this_run": 62,
+      "requested_this_run": 61,
+      "returned_this_run": 61,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 16,
-      "updated_at": "2026-10-05T22:35:14+01:00"
+      "updated_at": "2026-10-06T22:32:54+01:00"
     },
     "lse_aim": {
       "coverage_pct": 100.0,
@@ -100,10 +100,10 @@
       "requested_this_run": 5,
       "returned_this_run": 5,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 1,
-      "updated_at": "2026-10-05T22:35:19+01:00"
+      "updated_at": "2026-10-06T22:32:57+01:00"
     },
     "madrid": {
       "coverage_pct": 100.0,
@@ -115,40 +115,40 @@
       "requested_this_run": 9,
       "returned_this_run": 9,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 1,
-      "updated_at": "2026-10-05T22:35:35+01:00"
+      "updated_at": "2026-10-06T22:33:11+01:00"
     },
     "nasdaq": {
       "coverage_pct": 100.0,
-      "coverage_symbols": 244,
-      "eligible_symbols": 244,
+      "coverage_symbols": 243,
+      "eligible_symbols": 243,
       "label": "NASDAQ",
       "refresh_mode": "all_eligible",
       "remaining_symbols": 0,
-      "requested_this_run": 244,
-      "returned_this_run": 244,
+      "requested_this_run": 243,
+      "returned_this_run": 243,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:34:37+01:00"
+      "updated_at": "2026-10-06T22:32:23+01:00"
     },
     "nyse": {
       "coverage_pct": 100.0,
-      "coverage_symbols": 277,
-      "eligible_symbols": 277,
+      "coverage_symbols": 278,
+      "eligible_symbols": 278,
       "label": "NYSE",
       "refresh_mode": "all_eligible",
       "remaining_symbols": 0,
-      "requested_this_run": 277,
-      "returned_this_run": 277,
+      "requested_this_run": 278,
+      "returned_this_run": 278,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 5,
-      "updated_at": "2026-10-05T22:35:07+01:00"
+      "updated_at": "2026-10-06T22:32:48+01:00"
     },
     "otc": {
       "coverage_pct": 100.0,
@@ -175,10 +175,10 @@
       "requested_this_run": 41,
       "returned_this_run": 41,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:35:34+01:00"
+      "updated_at": "2026-10-06T22:33:09+01:00"
     },
     "tsx": {
       "coverage_pct": 100.0,
@@ -190,10 +190,10 @@
       "requested_this_run": 48,
       "returned_this_run": 48,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 78,
-      "updated_at": "2026-10-05T22:35:24+01:00"
+      "updated_at": "2026-10-06T22:33:02+01:00"
     },
     "vienna": {
       "coverage_pct": 100.0,
@@ -205,10 +205,10 @@
       "requested_this_run": 3,
       "returned_this_run": 3,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:35:38+01:00"
+      "updated_at": "2026-10-06T22:33:13+01:00"
     },
     "xetra": {
       "coverage_pct": 100.0,
@@ -220,15 +220,15 @@
       "requested_this_run": 29,
       "returned_this_run": 29,
       "rulebook_build": "2026.10.02.03",
-      "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
+      "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
       "status": "complete",
       "unresolved_fundamental_symbols": 0,
-      "updated_at": "2026-10-05T22:35:18+01:00"
+      "updated_at": "2026-10-06T22:32:57+01:00"
     }
   },
   "fundamental_coverage_mode": "practical-complete-with-explicit-provider-gaps",
   "rulebook_build": "2026.10.02.03",
   "schema_version": 1,
-  "source_fundamentals_updated_at": "2026-10-05T22:33:30+01:00",
-  "updated_at": "2026-10-05T22:35:40+01:00"
+  "source_fundamentals_updated_at": "2026-10-06T22:31:21+01:00",
+  "updated_at": "2026-10-06T22:33:15+01:00"
 }
