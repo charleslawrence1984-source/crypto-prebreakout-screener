@@ -33,7 +33,7 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 1,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -49,7 +49,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-07T22:33:54+01:00",
+      "completed_at": "2026-10-08T22:34:20+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -81,7 +81,7 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 4,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -89,7 +89,7 @@
       "requested_this_run": 2,
       "result_rows": 49,
       "returned_this_run": 2,
-      "started_at": "2026-10-07T22:33:52+01:00",
+      "started_at": "2026-10-08T22:34:18+01:00",
       "status": "complete",
       "universe_symbols": 103
     },
@@ -132,7 +132,7 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 3,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -147,8 +147,8 @@
     "euronext_paris": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 2,
-      "completed_at": "2026-10-07T22:33:50+01:00",
+      "chunk_symbols": 3,
+      "completed_at": "2026-10-08T22:34:17+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 160,
       "coverage_target_symbols": 160,
@@ -159,10 +159,13 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 2,
-        "returned": 2,
+        "requested": 3,
+        "returned": 3,
         "symbol_outcomes": {
           "LOUP.PA": {
+            "status": "row"
+          },
+          "QDT.PA": {
             "status": "row"
           },
           "WAVE.PA": {
@@ -180,17 +183,17 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 13,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 2,
+      "requested_this_run": 3,
       "result_rows": 160,
-      "returned_this_run": 2,
-      "started_at": "2026-10-07T22:33:49+01:00",
+      "returned_this_run": 3,
+      "started_at": "2026-10-08T22:34:15+01:00",
       "status": "complete",
-      "universe_symbols": 541
+      "universe_symbols": 543
     },
     "gettex": {
       "analysed_limit": 0,
@@ -10369,11 +10372,11 @@
     "lse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 3,
-      "completed_at": "2026-10-07T22:33:44+01:00",
+      "chunk_symbols": 2,
+      "completed_at": "2026-10-08T22:34:09+01:00",
       "coverage_pct": 99.6,
-      "coverage_symbols": 234,
-      "coverage_target_symbols": 235,
+      "coverage_symbols": 233,
+      "coverage_target_symbols": 234,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10381,23 +10384,19 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 3,
-        "returned": 3,
+        "requested": 2,
+        "returned": 2,
         "symbol_outcomes": {
-          "BTRW.L": {
-            "status": "row"
-          },
           "EDV.L": {
             "status": "row"
           },
-          "ICGT.L": {
+          "FAN.L": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 237,
+      "eligible_symbols": 235,
       "gap_fill_dispatch_counts": {
-        "TBTG.L": 2,
         "YNGN.L": 1
       },
       "gap_fill_last_dispatched_at": "2026-10-03T10:53:21+01:00",
@@ -10407,8 +10406,8 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 233,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refresh_updated": 232,
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {
         "TBTG.L": {
           "attempts": 2,
@@ -10423,13 +10422,13 @@
           "until": "2026-10-09T01:57:54+01:00"
         }
       },
-      "provider_deferred_symbols": 2,
+      "provider_deferred_symbols": 1,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 1,
-      "requested_this_run": 3,
-      "result_rows": 234,
-      "returned_this_run": 3,
-      "started_at": "2026-10-07T22:33:42+01:00",
+      "requested_this_run": 2,
+      "result_rows": 233,
+      "returned_this_run": 2,
+      "started_at": "2026-10-08T22:34:08+01:00",
       "status": "partial",
       "universe_symbols": 474
     },
@@ -10466,7 +10465,7 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 4,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -10481,11 +10480,11 @@
     "madrid": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 2,
-      "completed_at": "2026-10-07T22:33:52+01:00",
-      "coverage_pct": 96.0,
+      "chunk_symbols": 1,
+      "completed_at": "2026-10-08T22:34:18+01:00",
+      "coverage_pct": 97.3,
       "coverage_symbols": 72,
-      "coverage_target_symbols": 75,
+      "coverage_target_symbols": 74,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10493,18 +10492,15 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 2,
-        "returned": 2,
+        "requested": 1,
+        "returned": 1,
         "symbol_outcomes": {
           "AMS.MC": {
-            "status": "row"
-          },
-          "MRL.MC": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 76,
+      "eligible_symbols": 74,
       "gap_fill_dispatch_counts": {
         "SCHST.MC": 77
       },
@@ -10516,39 +10512,26 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 22,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
-      "provider_backoff": {
-        "EBROM.MC": {
-          "attempts": 0,
-          "deferred_at": "2026-10-01T12:39:41+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-08T12:39:41+01:00"
-        },
-        "SCHST.MC": {
-          "attempts": 77,
-          "deferred_at": "2026-10-01T12:39:41+01:00",
-          "reason": "price_failure",
-          "until": "2026-10-08T12:39:41+01:00"
-        }
-      },
-      "provider_deferred_symbols": 1,
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
+      "provider_backoff": {},
+      "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 3,
-      "requested_this_run": 2,
+      "remaining_symbols": 2,
+      "requested_this_run": 1,
       "result_rows": 72,
-      "returned_this_run": 2,
-      "started_at": "2026-10-07T22:33:51+01:00",
+      "returned_this_run": 1,
+      "started_at": "2026-10-08T22:34:17+01:00",
       "status": "partial",
-      "universe_symbols": 275
+      "universe_symbols": 272
     },
     "nasdaq": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 22,
-      "completed_at": "2026-10-07T22:33:29+01:00",
-      "coverage_pct": 99.2,
-      "coverage_symbols": 1265,
-      "coverage_target_symbols": 1275,
+      "chunk_symbols": 28,
+      "completed_at": "2026-10-08T22:33:56+01:00",
+      "coverage_pct": 99.0,
+      "coverage_symbols": 1260,
+      "coverage_target_symbols": 1273,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10556,16 +10539,25 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 22,
-        "returned": 22,
+        "requested": 28,
+        "returned": 28,
         "symbol_outcomes": {
-          "APOG": {
+          "APLD": {
             "status": "row"
           },
           "BFC": {
             "status": "row"
           },
+          "CNXC": {
+            "status": "row"
+          },
+          "COST": {
+            "status": "row"
+          },
           "CRON": {
+            "status": "row"
+          },
+          "CTAS": {
             "status": "row"
           },
           "DRVN": {
@@ -10575,6 +10567,9 @@
             "status": "row"
           },
           "FRHC": {
+            "status": "row"
+          },
+          "HELE": {
             "status": "row"
           },
           "INTR": {
@@ -10601,13 +10596,22 @@
           "OPK": {
             "status": "row"
           },
-          "PENG": {
+          "PAX": {
+            "status": "row"
+          },
+          "PEP": {
+            "status": "row"
+          },
+          "RGC": {
             "status": "row"
           },
           "SDGR": {
             "status": "row"
           },
           "TCBK": {
+            "status": "row"
+          },
+          "TLRY": {
             "status": "row"
           },
           "TOWN": {
@@ -10619,15 +10623,12 @@
           "UBSI": {
             "status": "row"
           },
-          "VLGEA": {
-            "status": "row"
-          },
           "VRSN": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 1282,
+      "eligible_symbols": 1278,
       "gap_fill_dispatch_counts": {
         "AGCC": 51,
         "FBYD": 51,
@@ -10641,18 +10642,12 @@
       "label": "NASDAQ",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 1,
+      "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "partial",
-      "price_refresh_updated": 1260,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 1256,
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {
-        "AGCC": {
-          "attempts": 51,
-          "deferred_at": "2026-10-01T12:39:41+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-08T12:39:41+01:00"
-        },
         "FBYD": {
           "attempts": 51,
           "deferred_at": "2026-10-02T21:55:16+01:00",
@@ -10664,12 +10659,6 @@
           "deferred_at": "2026-10-02T21:55:16+01:00",
           "reason": "repeated_unresolved",
           "until": "2026-10-09T21:55:16+01:00"
-        },
-        "NNNN": {
-          "attempts": 51,
-          "deferred_at": "2026-10-01T12:39:41+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-08T12:39:41+01:00"
         },
         "REAX": {
           "attempts": 2,
@@ -10690,23 +10679,23 @@
           "until": "2026-10-09T21:55:16+01:00"
         }
       },
-      "provider_deferred_symbols": 7,
+      "provider_deferred_symbols": 5,
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 10,
-      "requested_this_run": 22,
-      "result_rows": 1265,
-      "returned_this_run": 22,
-      "started_at": "2026-10-07T22:33:21+01:00",
+      "remaining_symbols": 13,
+      "requested_this_run": 28,
+      "result_rows": 1260,
+      "returned_this_run": 28,
+      "started_at": "2026-10-08T22:33:47+01:00",
       "status": "partial",
       "universe_symbols": 3323
     },
     "nyse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 34,
-      "completed_at": "2026-10-07T22:33:42+01:00",
-      "coverage_pct": 99.9,
-      "coverage_symbols": 1444,
+      "chunk_symbols": 32,
+      "completed_at": "2026-10-08T22:34:08+01:00",
+      "coverage_pct": 99.8,
+      "coverage_symbols": 1443,
       "coverage_target_symbols": 1446,
       "diagnostics": {
         "below_min_market_cap": 0,
@@ -10715,8 +10704,8 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 34,
-        "returned": 34,
+        "requested": 32,
+        "returned": 32,
         "symbol_outcomes": {
           "ALH": {
             "status": "row"
@@ -10763,10 +10752,10 @@
           "KRG": {
             "status": "row"
           },
-          "LSPD": {
+          "LEVI": {
             "status": "row"
           },
-          "LW": {
+          "LSPD": {
             "status": "row"
           },
           "MGA": {
@@ -10790,13 +10779,13 @@
           "RLI": {
             "status": "row"
           },
-          "RPM": {
-            "status": "row"
-          },
           "SSB": {
             "status": "row"
           },
           "STZ": {
+            "status": "row"
+          },
+          "SUNB": {
             "status": "row"
           },
           "TFPM": {
@@ -10808,16 +10797,10 @@
           "VVX": {
             "status": "row"
           },
-          "VYLR": {
-            "status": "row"
-          },
           "WD": {
             "status": "row"
           },
           "WFG": {
-            "status": "row"
-          },
-          "WS": {
             "status": "row"
           }
         }
@@ -10833,11 +10816,11 @@
       "label": "NYSE",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 2,
+      "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "partial",
-      "price_refresh_updated": 1436,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 1437,
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {
         "CWH": {
           "attempts": 50,
@@ -10872,11 +10855,11 @@
       },
       "provider_deferred_symbols": 4,
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 2,
-      "requested_this_run": 34,
-      "result_rows": 1444,
-      "returned_this_run": 34,
-      "started_at": "2026-10-07T22:33:29+01:00",
+      "remaining_symbols": 3,
+      "requested_this_run": 32,
+      "result_rows": 1443,
+      "returned_this_run": 32,
+      "started_at": "2026-10-08T22:33:56+01:00",
       "status": "partial",
       "universe_symbols": 1866
     },
@@ -11601,11 +11584,11 @@
       "label": "SIX Swiss Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 1,
+      "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "partial",
-      "price_refresh_updated": 89,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 90,
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -11620,8 +11603,8 @@
     "tsx": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 6,
-      "completed_at": "2026-10-07T22:33:49+01:00",
+      "chunk_symbols": 9,
+      "completed_at": "2026-10-08T22:34:15+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 362,
       "coverage_target_symbols": 362,
@@ -11632,8 +11615,8 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 6,
-        "returned": 6,
+        "requested": 9,
+        "returned": 9,
         "symbol_outcomes": {
           "ATRL.TO": {
             "status": "row"
@@ -11644,13 +11627,22 @@
           "DOO.TO": {
             "status": "row"
           },
-          "HSTR.TO": {
+          "FTG.TO": {
             "status": "row"
           },
           "LNR.TO": {
             "status": "row"
           },
           "NWC.TO": {
+            "status": "row"
+          },
+          "RCH.TO": {
+            "status": "row"
+          },
+          "SXGC.TO": {
+            "status": "row"
+          },
+          "TLRY.TO": {
             "status": "row"
           }
         }
@@ -11664,11 +11656,11 @@
       "label": "Toronto Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 1,
+      "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
-      "price_refresh_status": "partial",
-      "price_refresh_updated": 359,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 360,
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {
         "BAMI.TO": {
           "attempts": 2,
@@ -11686,10 +11678,10 @@
       "provider_deferred_symbols": 2,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 6,
+      "requested_this_run": 9,
       "result_rows": 362,
-      "returned_this_run": 6,
-      "started_at": "2026-10-07T22:33:46+01:00",
+      "returned_this_run": 9,
+      "started_at": "2026-10-08T22:34:11+01:00",
       "status": "complete",
       "universe_symbols": 601
     },
@@ -11697,7 +11689,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-05T22:34:07+01:00",
+      "completed_at": "2026-10-08T22:34:21+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 38,
       "coverage_target_symbols": 38,
@@ -11711,7 +11703,7 @@
         "requested": 1,
         "returned": 1,
         "symbol_outcomes": {
-          "LNZ.VI": {
+          "AGR.VI": {
             "status": "row"
           }
         }
@@ -11725,8 +11717,8 @@
       "price_refresh_missing": 0,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 11,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refresh_updated": 12,
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -11734,18 +11726,18 @@
       "requested_this_run": 1,
       "result_rows": 38,
       "returned_this_run": 1,
-      "started_at": "2026-10-05T22:34:05+01:00",
+      "started_at": "2026-10-08T22:34:20+01:00",
       "status": "complete",
-      "universe_symbols": 66
+      "universe_symbols": 65
     },
     "xetra": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 1,
-      "completed_at": "2026-10-07T22:33:46+01:00",
+      "chunk_symbols": 2,
+      "completed_at": "2026-10-08T22:34:11+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 160,
-      "coverage_target_symbols": 160,
+      "coverage_symbols": 161,
+      "coverage_target_symbols": 161,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -11753,15 +11745,18 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 1,
-        "returned": 1,
+        "requested": 2,
+        "returned": 2,
         "symbol_outcomes": {
           "HBH.DE": {
+            "status": "row"
+          },
+          "PFS0.DE": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 161,
+      "eligible_symbols": 162,
       "gap_fill_dispatch_counts": {
         "BYW6.DE": 20
       },
@@ -11773,7 +11768,7 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 145,
-      "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+      "price_refreshed_at": "2026-10-08T22:35:59+01:00",
       "provider_backoff": {
         "BYW6.DE": {
           "attempts": 20,
@@ -11791,17 +11786,17 @@
       "provider_deferred_symbols": 1,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 1,
-      "result_rows": 160,
-      "returned_this_run": 1,
-      "started_at": "2026-10-07T22:33:44+01:00",
+      "requested_this_run": 2,
+      "result_rows": 161,
+      "returned_this_run": 2,
+      "started_at": "2026-10-08T22:34:09+01:00",
       "status": "complete",
-      "universe_symbols": 393
+      "universe_symbols": 395
     }
   },
-  "last_completed_exchange": "euronext_brussels",
+  "last_completed_exchange": "vienna",
   "price_refresh_timezone": "Europe/London",
-  "price_refreshed_at": "2026-10-07T22:35:17+01:00",
+  "price_refreshed_at": "2026-10-08T22:35:59+01:00",
   "schema_version": 1,
-  "updated_at": "2026-10-07T22:33:54+01:00"
+  "updated_at": "2026-10-08T22:34:21+01:00"
 }
