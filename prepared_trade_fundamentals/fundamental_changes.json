@@ -20,8 +20,34 @@
       "label": "Bolsa de Madrid",
       "new_count": 0,
       "new_symbols": []
+    },
+    "nasdaq": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "NASDAQ",
+      "new_count": 4,
+      "new_symbols": [
+        "AIOK",
+        "BDAI",
+        "RTSN",
+        "TRXB"
+      ]
+    },
+    "nyse": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "NYSE",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "tsx": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Toronto Stock Exchange",
+      "new_count": 0,
+      "new_symbols": []
     }
   },
-  "generated_at": "2026-10-09T19:30:01+01:00",
+  "generated_at": "2026-10-09T21:26:20+01:00",
   "rulebook_build": "2026.10.02.03"
 }
