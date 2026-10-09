@@ -4,8 +4,10 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "London Stock Exchange",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "CHA.L"
+      ]
     },
     "lse_aim": {
       "changed_count": 0,
@@ -18,12 +20,10 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "Bolsa de Madrid",
-      "new_count": 1,
-      "new_symbols": [
-        "YIRG.MC"
-      ]
+      "new_count": 0,
+      "new_symbols": []
     }
   },
-  "generated_at": "2026-10-09T15:32:36+01:00",
+  "generated_at": "2026-10-09T17:28:42+01:00",
   "rulebook_build": "2026.10.02.03"
 }
