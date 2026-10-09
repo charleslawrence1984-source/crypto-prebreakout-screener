@@ -1,211 +1,41 @@
 {
   "exchanges": {
-    "euronext_amsterdam": {
-      "changed_count": 1,
-      "changed_symbols": [
-        "EXO.AS"
-      ],
-      "label": "Euronext Amsterdam",
-      "new_count": 0,
-      "new_symbols": []
-    },
-    "euronext_brussels": {
-      "changed_count": 3,
-      "changed_symbols": [
-        "KIN.BR",
-        "LOTB.BR",
-        "MOUR.BR"
-      ],
-      "label": "Euronext Brussels",
-      "new_count": 0,
-      "new_symbols": []
-    },
-    "euronext_lisbon": {
+    "lse": {
       "changed_count": 0,
       "changed_symbols": [],
-      "label": "Euronext Lisbon",
-      "new_count": 0,
-      "new_symbols": []
-    },
-    "euronext_paris": {
-      "changed_count": 12,
-      "changed_symbols": [
-        "ALAQU.PA",
-        "ALBLD.PA",
-        "ALLIX.PA",
-        "ALMKT.PA",
-        "ALNMG.PA",
-        "ALROC.PA",
-        "ALWF.PA",
-        "ALWTR.PA",
-        "LOUP.PA",
-        "QDT.PA",
-        "SFCA.PA",
-        "WAVE.PA"
-      ],
-      "label": "Euronext Paris",
-      "new_count": 0,
-      "new_symbols": []
-    },
-    "lse": {
-      "changed_count": 5,
-      "changed_symbols": [
-        "EDV.L",
-        "FSJ.L",
-        "SMIN.L",
-        "TRAF.L",
-        "TSCO.L"
-      ],
       "label": "London Stock Exchange",
       "new_count": 0,
       "new_symbols": []
     },
     "lse_aim": {
-      "changed_count": 3,
-      "changed_symbols": [
-        "GEM.L",
-        "MTEC.L",
-        "SCLP.L"
-      ],
+      "changed_count": 0,
+      "changed_symbols": [],
       "label": "LSE AIM",
       "new_count": 0,
       "new_symbols": []
     },
     "madrid": {
-      "changed_count": 3,
-      "changed_symbols": [
-        "AMS.MC",
-        "MCM.MC",
-        "SCSOL.MC"
-      ],
+      "changed_count": 0,
+      "changed_symbols": [],
       "label": "Bolsa de Madrid",
       "new_count": 0,
       "new_symbols": []
     },
-    "nasdaq": {
-      "changed_count": 33,
-      "changed_symbols": [
-        "ANGO",
-        "ASTL",
-        "BFC",
-        "BYRN",
-        "CRON",
-        "DRVN",
-        "ENLV",
-        "FCFS",
-        "FRHC",
-        "INTR",
-        "ITOC",
-        "KRYS",
-        "KTOS",
-        "LGND",
-        "LNKS",
-        "MATH",
-        "MNST",
-        "NCNO",
-        "OPK",
-        "PIII",
-        "RTAC",
-        "RTACU",
-        "RUBI",
-        "SCAT",
-        "SDGR",
-        "SEGG",
-        "SWVL",
-        "TCBK",
-        "TOWN",
-        "TSAT",
-        "UBSI",
-        "VRSN",
-        "ZNTL"
-      ],
-      "label": "NASDAQ",
-      "new_count": 0,
-      "new_symbols": []
-    },
     "nyse": {
-      "changed_count": 32,
-      "changed_symbols": [
-        "ARIS",
-        "ATI",
-        "AU",
-        "AVY",
-        "CARS",
-        "CGAU",
-        "CLS",
-        "CNX",
-        "FNV",
-        "GIL",
-        "HAFN",
-        "HBM",
-        "HOG",
-        "KB",
-        "KBH",
-        "KRG",
-        "LSPD",
-        "MGA",
-        "MKL",
-        "NWN",
-        "ODC",
-        "ORA",
-        "P",
-        "PFGC",
-        "PKE",
-        "RLI",
-        "SSB",
-        "TFPM",
-        "TTE",
-        "VVX",
-        "WD",
-        "WFG"
-      ],
+      "changed_count": 0,
+      "changed_symbols": [],
       "label": "NYSE",
       "new_count": 0,
       "new_symbols": []
     },
-    "six": {
-      "changed_count": 0,
-      "changed_symbols": [],
-      "label": "SIX Swiss Exchange",
-      "new_count": 0,
-      "new_symbols": []
-    },
     "tsx": {
-      "changed_count": 7,
-      "changed_symbols": [
-        "ATRL.TO",
-        "ATZ.TO",
-        "DBM.TO",
-        "DOO.TO",
-        "LNR.TO",
-        "NWC.TO",
-        "RCH.TO"
-      ],
-      "label": "Toronto Stock Exchange",
-      "new_count": 0,
-      "new_symbols": []
-    },
-    "vienna": {
       "changed_count": 0,
       "changed_symbols": [],
-      "label": "Wiener B\u00f6rse",
-      "new_count": 0,
-      "new_symbols": []
-    },
-    "xetra": {
-      "changed_count": 5,
-      "changed_symbols": [
-        "ERW.DE",
-        "HBH.DE",
-        "HFG.DE",
-        "PFS0.DE",
-        "SZU.DE"
-      ],
-      "label": "Deutsche B\u00f6rse Xetra",
+      "label": "Toronto Stock Exchange",
       "new_count": 0,
       "new_symbols": []
     }
   },
-  "generated_at": "2026-10-09T22:33:01+01:00",
+  "generated_at": "2026-10-09T23:27:29+01:00",
   "rulebook_build": "2026.10.02.03"
 }
