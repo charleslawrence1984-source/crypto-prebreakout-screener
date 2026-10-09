@@ -57,14 +57,9 @@
       ]
     },
     "nasdaq": {
-      "count": 4,
+      "count": 0,
       "label": "NASDAQ",
-      "symbols": [
-        "AIOK",
-        "BDAI",
-        "RTSN",
-        "TRXB"
-      ]
+      "symbols": []
     },
     "nyse": {
       "count": 5,
@@ -177,8 +172,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-09T20:20:48+01:00",
+  "recorded_at": "2026-10-09T22:21:39+01:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-09T19:30:01+01:00",
-  "total_unresolved": 105
+  "source_fundamentals_updated_at": "2026-10-09T21:26:20+01:00",
+  "total_unresolved": 101
 }
