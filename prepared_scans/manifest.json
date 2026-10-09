@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-09T08:02:49+01:00",
+      "completed_at": "2026-10-09T08:57:04+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -49,7 +49,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-09T08:02:49+01:00",
+      "completed_at": "2026-10-09T08:57:04+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -97,7 +97,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-09T08:02:49+01:00",
+      "completed_at": "2026-10-09T08:57:04+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 14,
       "coverage_target_symbols": 14,
@@ -148,7 +148,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-09T08:02:48+01:00",
+      "completed_at": "2026-10-09T08:57:03+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 159,
       "coverage_target_symbols": 159,
@@ -193,7 +193,7 @@
       "returned_this_run": 3,
       "started_at": "2026-10-08T22:34:15+01:00",
       "status": "complete",
-      "universe_symbols": 544
+      "universe_symbols": 543
     },
     "gettex": {
       "analysed_limit": 0,
@@ -10373,7 +10373,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-09T08:02:48+01:00",
+      "completed_at": "2026-10-09T08:57:03+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 233,
       "coverage_target_symbols": 233,
@@ -10431,7 +10431,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-09T08:02:48+01:00",
+      "completed_at": "2026-10-09T08:57:03+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 21,
       "coverage_target_symbols": 21,
@@ -10470,13 +10470,13 @@
       "returned_this_run": 1,
       "started_at": "2026-10-02T10:59:49+01:00",
       "status": "complete",
-      "universe_symbols": 449
+      "universe_symbols": 447
     },
     "madrid": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-09T08:02:49+01:00",
+      "completed_at": "2026-10-09T08:57:04+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 72,
       "coverage_target_symbols": 72,
@@ -11639,7 +11639,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-09T08:02:48+01:00",
+      "completed_at": "2026-10-09T08:57:04+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 147,
       "coverage_target_symbols": 147,
@@ -11769,7 +11769,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-09T08:02:49+01:00",
+      "completed_at": "2026-10-09T08:57:04+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 38,
       "coverage_target_symbols": 38,
@@ -11808,13 +11808,13 @@
       "returned_this_run": 1,
       "started_at": "2026-10-08T22:34:20+01:00",
       "status": "complete",
-      "universe_symbols": 65
+      "universe_symbols": 64
     },
     "xetra": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-09T08:02:48+01:00",
+      "completed_at": "2026-10-09T08:57:03+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 159,
       "coverage_target_symbols": 159,
@@ -11872,5 +11872,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-10-08T22:35:59+01:00",
   "schema_version": 1,
-  "updated_at": "2026-10-09T08:02:49+01:00"
+  "updated_at": "2026-10-09T08:57:04+01:00"
 }
