@@ -16,11 +16,9 @@
       "symbols": []
     },
     "euronext_paris": {
-      "count": 1,
+      "count": 0,
       "label": "Euronext Paris",
-      "symbols": [
-        "ALDVI.PA"
-      ]
+      "symbols": []
     },
     "lse": {
       "count": 16,
@@ -176,8 +174,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-09T08:23:43+01:00",
+  "recorded_at": "2026-10-09T10:24:15+01:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-09T07:34:30+01:00",
-  "total_unresolved": 103
+  "source_fundamentals_updated_at": "2026-10-09T09:31:01+01:00",
+  "total_unresolved": 102
 }
