@@ -1,5 +1,14 @@
 {
   "exchanges": {
+    "euronext_paris": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Euronext Paris",
+      "new_count": 1,
+      "new_symbols": [
+        "ALDVI.PA"
+      ]
+    },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
@@ -22,6 +31,6 @@
       "new_symbols": []
     }
   },
-  "generated_at": "2026-10-09T07:34:30+01:00",
+  "generated_at": "2026-10-09T09:31:01+01:00",
   "rulebook_build": "2026.10.02.03"
 }
