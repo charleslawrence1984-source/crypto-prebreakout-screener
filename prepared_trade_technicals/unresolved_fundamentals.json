@@ -16,9 +16,11 @@
       "symbols": []
     },
     "euronext_paris": {
-      "count": 0,
+      "count": 1,
       "label": "Euronext Paris",
-      "symbols": []
+      "symbols": [
+        "ALDVI.PA"
+      ]
     },
     "lse": {
       "count": 16,
@@ -57,9 +59,11 @@
       ]
     },
     "nasdaq": {
-      "count": 0,
+      "count": 1,
       "label": "NASDAQ",
-      "symbols": []
+      "symbols": [
+        "BDAI"
+      ]
     },
     "nyse": {
       "count": 5,
@@ -172,8 +176,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-09T06:22:48+01:00",
+  "recorded_at": "2026-10-09T08:23:43+01:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-09T05:29:17+01:00",
-  "total_unresolved": 101
+  "source_fundamentals_updated_at": "2026-10-09T07:34:30+01:00",
+  "total_unresolved": 103
 }
