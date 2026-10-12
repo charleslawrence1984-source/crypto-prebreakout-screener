@@ -157,8 +157,9 @@ class FundedStockBacktestTests(unittest.TestCase):
     def test_zero_trade_summary_names_exact_skipped_candidate(self):
         dates = make_prices().index
         prices = make_prices()
-        # Massive next-day opening gap must be skipped.
-        prices.loc[dates[1], "Open"] = 130
+        # A realistic +5% gap is within the broad target, but beyond
+        # our explicit anti-chasing 1% opening-price rule.
+        prices.loc[dates[1], ["Open", "High", "Low", "Close"]] = [105, 106, 104, 105]
         result = simulate_portfolio(
             {"AAPL": prices}, [signal(dates)], roundtrip_cost_pct=0.5,
         )
