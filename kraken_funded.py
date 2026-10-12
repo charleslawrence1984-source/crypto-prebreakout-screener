@@ -39,6 +39,7 @@ FUNDED_A_PLUS_MIN_RR = 2.5
 FUNDED_READY_MIN_RR = 2.0
 FUNDED_CRYPTO_READY_SCORE = 80.0
 FUNDED_MAX_POSITION_PCT = 35.0
+FUNDED_STOCK_MAX_SPREAD_PCT = 0.60
 
 KRAKEN_FUNDED_STOCKS = [
     "NVDA", "NFLX", "SPCX", "GOOGL", "CRCL", "AAPL", "TSLA", "MSTR", "HOOD",
@@ -61,6 +62,16 @@ def safe_number(value):
         return number if np.isfinite(number) else np.nan
     except Exception:
         return np.nan
+
+
+def funded_stock_spread_gate(buy, sell) -> tuple[bool, float, str]:
+    buy, sell = safe_number(buy), safe_number(sell)
+    if not all(np.isfinite(v) for v in (buy, sell)) or buy <= 0 or sell <= 0 or sell > buy:
+        return False, np.nan, "MISSING OR INVALID BUY/SELL QUOTES"
+    spread_pct = (buy - sell) / ((buy + sell) / 2) * 100
+    if spread_pct > FUNDED_STOCK_MAX_SPREAD_PCT:
+        return False, spread_pct, "SPREAD EXCEEDS 0.60%"
+    return True, spread_pct, "PASS"
 
 
 def first_existing(frame: pd.DataFrame, names: list[str]) -> str | None:
@@ -590,7 +601,6 @@ def _apply_verified_stock_quote(frame: pd.DataFrame) -> pd.DataFrame:
     symbol = str(record.get("ticker") or "")
     verified_at = pd.to_datetime(record.get("verified_at"), errors="coerce", utc=True)
     if (not symbol or symbol not in result["Ticker"].values or pd.isna(verified_at)
-            or not _us_regular_session()
             or (pd.Timestamp.now(tz="UTC") - verified_at).total_seconds() > 600
             or (pd.Timestamp.now(tz="UTC") - verified_at).total_seconds() < -10):
         return result
@@ -602,7 +612,9 @@ def _apply_verified_stock_quote(frame: pd.DataFrame) -> pd.DataFrame:
     if pd.isna(scanned_at) or (pd.Timestamp.now(tz="UTC") - scanned_at).total_seconds() > 24 * 3600:
         return result
     quote = safe_number(record.get("price"))
-    if not np.isfinite(quote) or quote <= 0:
+    spread_ok, spread_pct, reason = funded_stock_spread_gate(quote, record.get("sell_price"))
+    if not spread_ok:
+        result.at[i, "Gate"] = "LIVE QUOTE REJECTED — " + reason
         return result
 
     state = str(row.get("Technical state") or "")
@@ -648,6 +660,7 @@ def _apply_verified_stock_quote(frame: pd.DataFrame) -> pd.DataFrame:
         float(plan["target"]) - float(plan["entry"])
     ) / (float(plan["entry"]) - float(plan["stop"]))
     result.at[i, "Verified quote time"] = verified_at.isoformat()
+    result.at[i, "Verified spread %"] = round(spread_pct, 3)
     return result
 
 
@@ -687,8 +700,9 @@ def funded_stock_status(row: pd.Series) -> str:
         return "🟡 FUNDED WATCH · RECONFIRM LIVE PRICE"
     if state in {"FUNDED BREAKOUT ENTRY CHECK", "FUNDED CORE ENTRY CHECK"}:
         verified_at = pd.to_datetime(row.get("Verified quote time"), errors="coerce", utc=True)
-        if pd.isna(verified_at) or not _us_regular_session():
-            return "🟡 FUNDED WATCH · VERIFY LIVE ENTRY"
+        spread = safe_number(row.get("Verified spread %"))
+        if pd.isna(verified_at) or not np.isfinite(spread) or spread > FUNDED_STOCK_MAX_SPREAD_PCT:
+            return "🟡 FUNDED WATCH · VERIFY SPREAD"
         if not 0 <= (pd.Timestamp.now(tz="UTC") - verified_at).total_seconds() <= 600:
             return "🟡 FUNDED WATCH · REFRESH QUOTE"
     if (not all(np.isfinite(v) for v in (entry, stop, target, rr))
@@ -1040,7 +1054,7 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - **A+ FUNDED READY:** at least **2.5R**, actionable timing and all funded gates passed. Planned loss: **$4**.
         - **FUNDED READY:** at least **2.0R** with stronger confirmation. Planned loss: **$3**.
         - For crypto, the original engine must confirm **BUY**, eligibility, timing, relative strength and execution; the score must be **80+**. WATCH never bypasses those gates.
-        - For stocks, higher-low **COMPRESSION**, **PRE-CROSS READY**, **AWAITING NEXT OPEN** and newly confirmed daily breakouts remain WATCH until a regular-session broker quote is manually verified. This is not automated order execution.
+        - For stocks, higher-low **COMPRESSION**, **PRE-CROSS READY**, **AWAITING NEXT OPEN** and daily breakouts remain WATCH until a current Kraken Funded buy/sell quote is manually verified. Stocks trade 24/7 on Kraken Funded.
         - Funded breakout confirmation requires resistance tests, a constructive base, >=1.35x volume, rising 180/200-day averages, RSI 50–75, positive relative strength, and a credible projected 2R+ plan. The target is a **projection**, not an assured resistance exit.
         - **RECLAIM NEEDED / EARLY** remains WATCH until confirmation actually arrives.
         - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
@@ -1148,39 +1162,57 @@ with st.expander("📈 Stocks — verify a live entry before BUY", expanded=Fals
             if str(item.get("Technical state")) in {"ENTRY READY", "FUNDED BREAKOUT PENDING OPEN"}:
                 pending.append(str(item.get("Ticker")))
     st.caption(
-        "A historical candle or opening price is NOT a fill. During the US regular session, "
-        "check the current quote in Kraken Funded, then confirm it here. The quote expires "
-        "after 10 minutes. Never use after-hours or stale pricing to trigger BUY."
+        "Kraken Funded stocks can trade 24/7. Enter current BUY and SELL quotes "
+        "from the Kraken Funded app. Spread must not exceed 0.60%. "
+        "Quote confirmation expires after ten minutes; this is not an order."
     )
     chosen = st.selectbox(
         "Candidate", options=["— select candidate —"] + sorted(set(pending)),
         key="funded_stock_quote_ticker",
     )
     quote = st.number_input(
-        "Current executable stock price shown in Kraken Funded ($)",
+        "Current Kraken Funded BUY price ($)",
         min_value=0.0, step=0.10, format="%.4f", key="funded_stock_quote_input",
+    )
+    sell_quote = st.number_input(
+        "Current Kraken Funded SELL price ($)",
+        min_value=0.0, step=0.10, format="%.4f",
+        key="funded_stock_sell_quote_input",
+    )
+    spread_ok, spread_pct, reason = funded_stock_spread_gate(quote, sell_quote)
+    st.caption(
+        f"Current quoted spread: {spread_pct:.3f}%"
+        if np.isfinite(spread_pct) else "Current quoted spread: —"
     )
     confirmed = st.checkbox(
         "I checked this quote just now in the funded trading platform",
         key="funded_stock_quote_confirmed",
     )
     if st.button("Validate stock entry", key="funded_stock_quote_button"):
-        if not _us_regular_session():
-            st.warning("US regular stock session is not open. No executable BUY can be verified now.")
-        elif chosen == "— select candidate —" or quote <= 0 or not confirmed:
-            st.warning("Select a candidate, enter a positive live price and confirm its source.")
+        if chosen == "— select candidate —" or not confirmed:
+            st.warning("Select a candidate and confirm both prices are current.")
+        elif not spread_ok:
+            st.warning(reason)
         else:
             st.session_state["funded_stock_confirmed_quote"] = {
                 "ticker": chosen, "price": float(quote),
+                "sell_price": float(sell_quote),
                 "verified_at": pd.Timestamp.now(tz="UTC").isoformat(),
             }
-            st.success("Quote recorded for risk/entry checks; not an order or fill.")
+            st.success("Quote accepted for entry checks; no order has been placed.")
     record = st.session_state.get("funded_stock_confirmed_quote") or {}
     if record.get("ticker"):
         st.caption(
-            f"Last checked: {record.get('ticker')} at ${float(record.get('price')):.4f}. "
-            "Recheck the quote before placing any order."
+            f"Last checked: {record.get('ticker')} BUY ${float(record.get('price')):.4f}, "
+            f"SELL ${float(record.get('sell_price', 0)):.4f}. "
+            "Recheck both prices before trading."
         )
+
+st.warning(
+    "Kraken Funded supports 24/7 stock trading and no advanced order types. "
+    "Stops are manual invalidation/exit levels, NOT guaranteed stop-loss orders. "
+    "Sharp moves and wide spreads can exceed $3/$4 planned risk."
+)
 
 stock_tab, crypto_tab = st.tabs(["📈 Stocks", "⚡ Crypto"])
 
@@ -1249,7 +1281,7 @@ with stock_tab:
         "Earnings check", "Gate", "Pre-cross blocker", "Technical score",
         "To resistance %", "Resistance", "Breakout volume ×", "Breakout tests",
         "Breakout date", "Reference entry", "Reference stop", "Reference target",
-        "Reference R:R", "Target basis", "Verified quote time", "MACD",
+        "Reference R:R", "Target basis", "Verified quote time", "Verified spread %", "MACD",
         "RSI", "Liquidity", "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
     ]
     st.dataframe(
