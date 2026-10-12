@@ -17,7 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
-from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates
+from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1671,6 +1671,40 @@ with stock_tab:
                     file_name="funded_stock_backtest_rule_rejections.csv",
                     mime="text/csv", key="funded_stock_backtest_gate_export",
                 )
+            plan_details = breakout_plan_research(history_result["diagnostics"])
+            st.markdown("**Why breakout plans fail — reward/risk versus structural stops**")
+            st.caption(
+                "This is a diagnostic study using completed signal-date candles, "
+                "not an alternative BUY strategy. It distinguishes reward/risk "
+                "as the ONLY veto from reward/risk failures that overlap with "
+                "weak volume, untested resistance or other quality rules. "
+                "No historical live Kraken quotes or earnings-event gates are modelled."
+            )
+            if plan_details.empty:
+                st.caption("No breakout plans were evaluated.")
+            else:
+                plan_summary = summarize_breakout_plan_research(plan_details)
+                st.dataframe(
+                    plan_summary, hide_index=True, use_container_width=True,
+                )
+                st.download_button(
+                    "Download breakout trade-plan summary CSV",
+                    data=plan_summary.to_csv(index=False),
+                    file_name="funded_stock_backtest_breakout_plan_summary.csv",
+                    mime="text/csv",
+                    key="funded_stock_backtest_plan_summary_export",
+                )
+                with st.expander("Inspect historical breakout plan observations"):
+                    st.dataframe(
+                        plan_details, hide_index=True, use_container_width=True,
+                    )
+                    st.download_button(
+                        "Download all historical breakout plan observations CSV",
+                        data=plan_details.to_csv(index=False),
+                        file_name="funded_stock_backtest_breakout_plan_details.csv",
+                        mime="text/csv",
+                        key="funded_stock_backtest_plan_details_export",
+                    )
             st.markdown("**Historical signal funnel and data coverage**")
             st.caption(
                 "Trigger sessions show the raw RSI/MACD or resistance-cross events. "
