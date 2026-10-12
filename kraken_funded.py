@@ -14,7 +14,7 @@ import streamlit as st
 import yfinance as yf
 
 from cl_signal_ui import render_module_header
-from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot
+from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
 
@@ -338,6 +338,8 @@ def scan_funded_stocks_live() -> pd.DataFrame:
         if last_bar_date == ny_now.date() and (ny_now.hour < 16 or (ny_now.hour == 16 and ny_now.minute < 15)):
             frame = frame.iloc[:-1]
         technical = evaluate_price_setup(frame, benchmark)
+        # Same Wilder RSI as the core engine, available even for WATCH/BLOCKED.
+        current_rsi = safe_number(_wilder_rsi(pd.to_numeric(frame["Close"], errors="coerce"), 14).iloc[-1])
         if technical.get("technical_state") == "BLOCKED":
             developing = funded_trend_watch(frame, benchmark)
             if developing:
@@ -349,7 +351,8 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "CL Signal": technical.get("technical_state", "—"),
             "Gate": technical.get("technical_reason"),
             "MACD progress": technical.get("macd_progress"),
-            "RSI": technical.get("rsi"), "Entry": technical.get("entry"),
+            "RSI": round(current_rsi, 1) if np.isfinite(current_rsi) else np.nan,
+            "Entry": technical.get("entry"),
             "Stop": technical.get("stop"), "Target": technical.get("target"),
             "R:R": technical.get("reward_risk"),
             "Median traded value GBPm": turnover_usd * 0.75 / 1_000_000,
@@ -565,6 +568,8 @@ def funded_stock_status(row: pd.Series) -> str:
     entry, stop, target = (safe_number(row.get(key)) for key in ("Entry", "Stop", "Target"))
     macd = str(row.get("MACD progress") or "").upper()
     rsi = safe_number(row.get("RSI"))
+    if state == "DATA UNAVAILABLE":
+        return "⚪ DATA UNAVAILABLE"
     if state not in {"WATCH", "FUNDED TREND WATCH", "PRE-CROSS READY", "ENTRY READY", "AWAITING NEXT OPEN"}:
         return "⚪ NO CURRENT SETUP"
     if not np.isfinite(liquidity) or liquidity < 0.5:
@@ -1039,20 +1044,31 @@ with stock_tab:
     ready_count = int(stocks["Funded status"].eq("🟢 FUNDED READY").sum())
     watch_count = int(stocks["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
     no_setup_count = int(stocks["Funded status"].eq("⚪ NO CURRENT SETUP").sum())
+    unavailable_count = int(stocks["Funded status"].eq("⚪ DATA UNAVAILABLE").sum())
 
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4, c5, c6 = st.columns(6)
     c1.metric("Funded stocks", len(KRAKEN_FUNDED_STOCKS))
     c2.metric("A+ Ready", aplus_count)
     c3.metric("Ready", ready_count)
     c4.metric("Watch", watch_count)
     c5.metric("No current setup", no_setup_count)
+    c6.metric("Data unavailable", unavailable_count)
 
     stock_filter = st.segmented_control(
         "Show",
-        ["All", "A+ Ready", "Ready", "Watch", "No current setup"],
+        ["All", "A+ Ready", "Ready", "Watch", "No current setup", "Data unavailable"],
         default="All",
         key="funded_stock_filter",
     )
+    # Build display diagnostics before filtering/copying to avoid dropping
+    # MACD and liquidity from the table and exported CSV.
+    if "MACD" not in stocks.columns and "MACD progress" in stocks.columns:
+        stocks["MACD"] = stocks["MACD progress"].fillna("—").astype(str)
+    if "Liquidity" not in stocks.columns and "Median traded value GBPm" in stocks.columns:
+        stock_liq = pd.to_numeric(stocks["Median traded value GBPm"], errors="coerce")
+        stocks["Liquidity"] = stock_liq.apply(
+            lambda value: "—" if not np.isfinite(value) else f"{'✅' if value >= 0.5 else '❌'} £{value:.2f}m"
+        )
     shown = stocks.copy()
     if stock_filter == "A+ Ready":
         shown = shown[shown["Funded status"] == "🟢 A+ FUNDED READY"]
@@ -1062,14 +1078,9 @@ with stock_tab:
         shown = shown[shown["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH")]
     elif stock_filter == "No current setup":
         shown = shown[shown["Funded status"] == "⚪ NO CURRENT SETUP"]
+    elif stock_filter == "Data unavailable":
+        shown = shown[shown["Funded status"] == "⚪ DATA UNAVAILABLE"]
 
-    if "MACD" not in stocks.columns and "MACD progress" in stocks.columns:
-        stocks["MACD"] = stocks["MACD progress"].fillna("—").astype(str)
-    if "Liquidity" not in stocks.columns and "Median traded value GBPm" in stocks.columns:
-        stock_liq = pd.to_numeric(stocks["Median traded value GBPm"], errors="coerce")
-        stocks["Liquidity"] = stock_liq.apply(
-            lambda value: "—" if not np.isfinite(value) else f"{'✅' if value >= 0.5 else '❌'} £{value:.2f}m"
-        )
     stock_cols = [
         "Funded status", "CL Signal", "Ticker", "Fundamentals", "Fundamental note",
         "Earnings check", "Gate", "Pre-cross blocker", "Technical score", "To resistance %", "MACD",
@@ -1091,17 +1102,19 @@ with stock_tab:
                 "Needs stronger confirmation",
                 "Liquidity veto",
                 "Risk-plan issue",
-                "No current setup / unavailable",
+                "No current setup",
+                "Data unavailable",
             ],
             "Count": [
                 int(stock_status.eq("🟢 A+ FUNDED READY").sum()),
                 int(stock_status.eq("🟢 FUNDED READY").sum()),
-                int(stock_status.eq("🟡 FUNDED WATCH").sum()),
+                int(stock_status.str.startswith("🟡 FUNDED WATCH").sum()),
                 int(stock_status.str.contains("R:R", regex=False).sum()),
                 int(stock_status.str.contains("NEEDS CONFIRMATION", regex=False).sum()),
                 int(stock_status.str.contains("LIQUIDITY", regex=False).sum()),
                 int(stock_status.str.contains("RISK PLAN", regex=False).sum()),
-                int(stock_status.str.startswith("⚪").sum()),
+                int(stock_status.eq("⚪ NO CURRENT SETUP").sum()),
+                int(stock_status.eq("⚪ DATA UNAVAILABLE").sum()),
             ],
         })
         st.dataframe(breakdown, hide_index=True, use_container_width=True)
