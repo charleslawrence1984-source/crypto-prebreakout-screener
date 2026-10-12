@@ -129,6 +129,10 @@ class FundedRulesTests(unittest.TestCase):
         self.assertEqual(self.stock(**{"Technical state": "FUNDED TREND WATCH"}),
                          "🟡 FUNDED WATCH · COMPRESSION")
 
+    def test_insufficient_price_history_is_reported_as_unavailable(self):
+        self.assertEqual(self.stock(**{"Technical state": "DATA UNAVAILABLE"}),
+                         "⚪ DATA UNAVAILABLE")
+
     def test_daily_stock_earnings_window_veto(self):
         self.assertEqual(self.stock(**{"Earnings check": "WITHIN 5 SESSIONS"}),
                          "🔴 FUNDED PASS · EARNINGS WINDOW")
