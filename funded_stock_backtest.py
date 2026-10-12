@@ -367,13 +367,15 @@ def simulate_shadow_breakout_stops(histories, details, holding_sessions=20,
         if prices is None or prices.empty:
             continue
         prices = prices.sort_index()
-        try:
-            location = prices.index.get_loc(signal_date)
-        except KeyError:
+        # YFinance daily indexes can be NY-localized or timezone-naive.
+        # Match the US-session calendar DATE, not incompatible timestamps.
+        locations = [
+            i for i, date_value in enumerate(prices.index)
+            if pd.Timestamp(date_value).date() == signal_date.date()
+        ]
+        if len(locations) != 1 or locations[0]+1 >= len(prices):
             continue
-        if not isinstance(location, (int, np.integer)) or location+1>=len(prices):
-            continue
-        start = int(location) + 1
+        start = locations[0] + 1
         entry_date = pd.Timestamp(prices.index[start])
         raw_open = _finite(prices.iloc[start]["Open"])
         for name, stop_key in variants:
