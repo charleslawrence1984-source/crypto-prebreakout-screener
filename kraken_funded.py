@@ -259,6 +259,7 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Fundamental note": fundamental.get("reason", "NOT PREPARED"),
             "Earnings check": _earnings_window(fundamental.get("earnings_date")),
             "Scan source": "LIVE",
+            "scanned_at": pd.Timestamp.now(tz="UTC").isoformat(),
         }
         frame = _extract_yahoo_frame(prices, symbol)
         if frame is None or len(frame.dropna(subset=["Close", "Volume"])) < 252:
@@ -396,7 +397,7 @@ def funded_crypto_status(row: pd.Series) -> str:
     rs = safe_number(row.get("RS vs BTC %"))
     if coin != "BTC" and (not np.isfinite(rs) or rs <= 0):
         return "🟡 FUNDED WATCH · RELATIVE STRENGTH"
-    if not np.isfinite(score) or score < 80:
+    if not np.isfinite(score) or score < FUNDED_CRYPTO_READY_SCORE:
         return "🟡 FUNDED WATCH · QUALITY SCORE"
     if core != "🟢 READY / BUY":
         # The original BUY engine also checks candle safety. A retest marked
@@ -512,6 +513,9 @@ def funded_stock_status(row: pd.Series) -> str:
         return "🔴 FUNDED PASS · EARNINGS WINDOW"
     if str(row.get("Scan source") or "") != "LIVE":
         return "🟡 FUNDED WATCH · RUN LIVE SCAN"
+    scanned_at = pd.to_datetime(row.get("scanned_at"), errors="coerce", utc=True)
+    if pd.isna(scanned_at) or (pd.Timestamp.now(tz="UTC") - scanned_at).total_seconds() > 24 * 3600:
+        return "🟡 FUNDED WATCH · REFRESH SIGNAL"
     if str(row.get("Ticker") or "") not in st.session_state.get("funded_verified_earnings", []):
         return "🟡 FUNDED WATCH · VERIFY EARNINGS"
     if np.isfinite(rsi) and rsi > 80:
@@ -523,7 +527,6 @@ def funded_stock_status(row: pd.Series) -> str:
     return account_gate or tier
 
 
-@st.cache_data(ttl=300, show_spinner=False)
 def load_funded_stock_rows() -> pd.DataFrame:
     frames = []
     if TRADE_TECHNICAL_DIR.exists():
@@ -686,7 +689,6 @@ def normalise_crypto_base(frame: pd.DataFrame) -> pd.DataFrame:
     return output
 
 
-@st.cache_data(ttl=60, show_spinner=False)
 def load_funded_crypto_rows() -> pd.DataFrame:
     pipeline = load_crypto_pipeline()
     frames = []
@@ -840,10 +842,56 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - For stocks, **PRE-CROSS READY** and **AWAITING NEXT OPEN** remain WATCH until there is a completed, executable entry. A live technical setup requires at least **2.0R**, liquidity and a manual earnings check.
         - **RECLAIM NEEDED / EARLY** remains WATCH until confirmation actually arrives.
         - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
-        - Position size is calculated from **entry → invalidation/stop**, capped at **35% of the $1,000 account**.
+        - Position size is calculated from **entry → invalidation/stop**, capped at **35% of current entered equity**.
         - Crypto marked **EXTENDED / TOO LATE** or failing execution/liquidity is still an automatic PASS.
+        - READY requires confirmation of manual equity/open risk; this screener is **not linked to broker positions**. Stops are not guaranteed in gaps or slippage.
         - There is **no need to force trades** because the challenge has no time limit.
         """
+    )
+
+today_str = pd.Timestamp.now(tz="Europe/London").strftime("%Y-%m-%d")
+if st.session_state.get("funded_validation_day") != today_str:
+    st.session_state["funded_validation_day"] = today_str
+    st.session_state["funded_risk_verified"] = False
+    st.session_state["funded_verified_earnings"] = []
+
+def _clear_account_confirmation():
+    st.session_state["funded_risk_verified"] = False
+
+with st.expander("✅ Confirm funded account and stock earnings before READY", expanded=True):
+    st.caption(
+        "Manual safety check, NOT synced to Kraken Funded. Enter current account equity "
+        "and total planned stop-loss risk on all other open trades. Reconfirm after any change."
+    )
+    x1, x2 = st.columns(2)
+    with x1:
+        st.number_input(
+            "Current funded equity ($)", min_value=0.0, value=FUNDED_START_BALANCE,
+            step=10.0, key="funded_account_equity", on_change=_clear_account_confirmation,
+        )
+    with x2:
+        st.number_input(
+            "Other open positions' combined stop-risk ($)",
+            min_value=0.0, value=0.0, step=1.0,
+            key="funded_other_open_risk", on_change=_clear_account_confirmation,
+        )
+    st.checkbox(
+        "I have checked today's account equity and all open-position risk",
+        key="funded_risk_verified",
+    )
+    remaining = min(
+        FUNDED_MAX_TOTAL_OPEN_RISK_USD - float(st.session_state["funded_other_open_risk"]),
+        float(st.session_state["funded_account_equity"]) - FUNDED_FAIL_BALANCE - 10,
+    )
+    st.caption(
+        f"Remaining planned risk allowance: ${max(0.0, remaining):.2f}. "
+        "This keeps a $10 buffer above the $970 failure level before slippage."
+    )
+    st.multiselect(
+        "Stock tickers whose next earnings date I verified from an official company source",
+        options=KRAKEN_FUNDED_STOCKS,
+        key="funded_verified_earnings",
+        help="Only select a ticker after verifying there is no earnings event within the next 5 trading sessions.",
     )
 
 if "funded_stock_live_scan" not in st.session_state:
@@ -881,7 +929,11 @@ if run_funded_scan:
             st.session_state["funded_crypto_live_scan"] = pd.DataFrame()
             st.error(f"Crypto scan failed: {type(exc).__name__}")
     st.session_state["funded_scan_time"] = pd.Timestamp.now(tz="Europe/London").strftime("%d %b %Y %H:%M")
-    st.success("Kraken Funded universe scan complete.")
+    if (not st.session_state["funded_stock_live_scan"].empty
+            and not st.session_state["funded_crypto_live_scan"].empty):
+        st.success("Funded stock and crypto scans completed. Check unavailable rows before trading.")
+    else:
+        st.warning("At least one scan failed or returned no data; the page may show prepared, older results.")
 
 if st.session_state.get("funded_scan_time"):
     st.caption(f"Last full funded scan: **{st.session_state['funded_scan_time']}**")
@@ -891,6 +943,20 @@ stock_tab, crypto_tab = st.tabs(["📈 Stocks", "⚡ Crypto"])
 with stock_tab:
     live_stocks = st.session_state.get("funded_stock_live_scan", pd.DataFrame())
     stocks = live_stocks.copy() if isinstance(live_stocks, pd.DataFrame) and not live_stocks.empty else load_funded_stock_rows()
+    # Re-evaluate manual risk and earnings inputs on EVERY rerun, without new network calls.
+    if isinstance(live_stocks, pd.DataFrame) and not live_stocks.empty:
+        stocks["Funded status"] = stocks.apply(funded_stock_status, axis=1)
+        risk_plans = [
+            funded_position_plan(
+                row.get("Entry"), row.get("Stop"),
+                FUNDED_STANDARD_RISK_USD if row["Funded status"] == "🟢 A+ FUNDED READY"
+                else FUNDED_REDUCED_RISK_USD,
+            ) if row["Funded status"] in {"🟢 A+ FUNDED READY", "🟢 FUNDED READY"}
+            else (np.nan, np.nan, np.nan)
+            for _, row in stocks.iterrows()
+        ]
+        stocks["Position $"] = [round(v[1], 2) if np.isfinite(v[1]) else np.nan for v in risk_plans]
+        stocks["Risk $"] = [round(v[2], 2) if np.isfinite(v[2]) else np.nan for v in risk_plans]
 
     aplus_count = int(stocks["Funded status"].eq("🟢 A+ FUNDED READY").sum())
     ready_count = int(stocks["Funded status"].eq("🟢 FUNDED READY").sum())
@@ -928,8 +994,9 @@ with stock_tab:
             lambda value: "—" if not np.isfinite(value) else f"{'✅' if value >= 0.5 else '❌'} £{value:.2f}m"
         )
     stock_cols = [
-        "Funded status", "CL Signal", "Ticker", "Fundamentals", "Gate", "MACD", "RSI", "Liquidity",
-        "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
+        "Funded status", "CL Signal", "Ticker", "Fundamentals", "Fundamental note",
+        "Earnings check", "Gate", "Pre-cross blocker", "Technical score", "MACD",
+        "RSI", "Liquidity", "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
     ]
     st.dataframe(
         shown[[column for column in stock_cols if column in shown.columns]],
@@ -969,6 +1036,19 @@ with stock_tab:
 with crypto_tab:
     live_crypto = st.session_state.get("funded_crypto_live_scan", pd.DataFrame())
     crypto = live_crypto.copy() if isinstance(live_crypto, pd.DataFrame) and not live_crypto.empty else load_funded_crypto_rows()
+    if isinstance(live_crypto, pd.DataFrame) and not live_crypto.empty:
+        crypto["Funded status"] = crypto.apply(funded_crypto_status, axis=1)
+        risk_plans = [
+            funded_position_plan(
+                row.get("Funded entry"), row.get("Funded stop"),
+                FUNDED_STANDARD_RISK_USD if row["Funded status"] == "🟢 A+ FUNDED READY"
+                else FUNDED_REDUCED_RISK_USD,
+            ) if row["Funded status"] in {"🟢 A+ FUNDED READY", "🟢 FUNDED READY"}
+            else (np.nan, np.nan, np.nan)
+            for _, row in crypto.iterrows()
+        ]
+        crypto["Position $"] = [round(v[1], 2) if np.isfinite(v[1]) else np.nan for v in risk_plans]
+        crypto["Risk $"] = [round(v[2], 2) if np.isfinite(v[2]) else np.nan for v in risk_plans]
 
     aplus_count = int(crypto["Funded status"].eq("🟢 A+ FUNDED READY").sum())
     ready_count = int(crypto["Funded status"].eq("🟢 FUNDED READY").sum())
