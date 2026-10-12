@@ -17,6 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
+from funded_stock_backtest import signal_candidates, simulate_portfolio
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1513,6 +1514,157 @@ with stock_tab:
         "A+ = $4 modeled loss at 2.5R+; READY = $3 modeled loss at 2R+. "
         "These are not guaranteed stop losses: Kraken Funded exits are manual."
     )
+
+    with st.expander("📊 Stocks only — historical backtest (research)", expanded=False):
+        st.warning(
+            "RESEARCH ONLY — NOT a Kraken Funded trading-performance record. "
+            "Historical Yahoo US-session daily candles are proxies for 24/7 Kraken quotes. "
+            "Historical earnings blackouts, real spreads, fill availability and past changes "
+            "to Kraken's permitted stock universe are NOT reconstructed. "
+            "Results cannot demonstrate fully deployable funded challenge performance."
+        )
+        back_col1, back_col2 = st.columns(2)
+        with back_col1:
+            period = st.selectbox(
+                "Download history", ["3y", "5y"], index=1,
+                key="funded_stock_backtest_period",
+            )
+        with back_col2:
+            holding = st.selectbox(
+                "Maximum holding period (trading sessions)",
+                [10, 20, 30], index=1, key="funded_stock_backtest_hold",
+            )
+        st.caption(
+            "Signals are calculated using only completed bars through each signal date. "
+            "Entry is estimated at the NEXT US session open, with 0.50% baseline "
+            "or 1.00% stress-model roundtrip friction. Stop and target crossing "
+            "on the same daily candle is treated as a stop. Open trades at the "
+            "historical endpoint are censored."
+        )
+        if st.button(
+            "Run stock historical backtest", key="funded_stock_backtest_run",
+            use_container_width=True,
+        ):
+            with st.spinner("Downloading price history and evaluating historical stock signals…"):
+                try:
+                    now_ny = pd.Timestamp.now(tz="America/New_York")
+                    market_raw = yf.download(
+                        "^GSPC", period=period, interval="1d",
+                        auto_adjust=False, progress=False,
+                    )
+                    benchmark_hist = _extract_yahoo_frame(market_raw, "^GSPC")
+                    if benchmark_hist is None or len(benchmark_hist) < 253:
+                        raise ValueError("S&P 500 benchmark history unavailable")
+                    price_batch = yf.download(
+                        KRAKEN_FUNDED_STOCKS, period=period, interval="1d",
+                        group_by="ticker", auto_adjust=False,
+                        threads=True, progress=False,
+                    )
+                    histories, data_problems = {}, []
+                    for stock in KRAKEN_FUNDED_STOCKS:
+                        frame, source, why = get_validated_stock_history(
+                            price_batch, stock,
+                            lambda ticker: yf.download(
+                                ticker, period=period, interval="1d",
+                                auto_adjust=False, progress=False, threads=False,
+                            ),
+                            now_ny,
+                        )
+                        if frame is None:
+                            data_problems.append({
+                                "Ticker": stock, "Problem": why,
+                            })
+                        else:
+                            histories[stock] = frame
+                    if not histories:
+                        raise ValueError("No historical stocks met the OHLCV checks")
+                    start_year = now_ny.tz_localize(None).normalize() - pd.DateOffset(years=int(period[0]))
+                    signals, diagnostics = signal_candidates(
+                        histories, benchmark_hist, first_date=start_year,
+                    )
+                    baseline = simulate_portfolio(
+                        histories, signals, roundtrip_cost_pct=0.5,
+                        max_hold_sessions=holding,
+                    )
+                    stressed = simulate_portfolio(
+                        histories, signals, roundtrip_cost_pct=1.0,
+                        max_hold_sessions=holding,
+                    )
+                    st.session_state["funded_stock_backtest_result"] = {
+                        "base": baseline, "stress": stressed,
+                        "diagnostics": diagnostics,
+                        "unavailable": pd.DataFrame(data_problems),
+                        "signals": len(signals), "period": period,
+                        "hold": holding,
+                        "calculated_at": pd.Timestamp.now(tz="UTC").isoformat(),
+                    }
+                except Exception as exc:
+                    st.session_state.pop("funded_stock_backtest_result", None)
+                    st.error(f"Stock backtest failed: {type(exc).__name__}: {exc}")
+        history_result = st.session_state.get("funded_stock_backtest_result")
+        if history_result:
+            st.caption(
+                "Last simulation: " + history_result["calculated_at"]
+                + " | Historical range: " + history_result["period"]
+                + " | Signal count: " + str(history_result["signals"])
+            )
+            comparison = pd.DataFrame([
+                {"Scenario": label, **history_result[name]["metrics"]}
+                for label, name in [
+                    ("0.50% roundtrip friction", "base"),
+                    ("1.00% stress friction", "stress"),
+                ]
+            ])
+            st.dataframe(comparison, hide_index=True, use_container_width=True)
+            st.download_button(
+                "Download backtest scenario summary CSV",
+                data=comparison.to_csv(index=False),
+                file_name="funded_stock_backtest_summary.csv",
+                mime="text/csv",
+                key="funded_stock_backtest_summary_export",
+            )
+            base_case = history_result["base"]
+            if not base_case["equity_curve"].empty:
+                points = base_case["equity_curve"].copy()
+                points["Date"] = pd.to_datetime(points["Date"])
+                st.line_chart(points.set_index("Date")[["Equity $"]])
+            for title, key, filename in [
+                ("Completed trades (base case)", "trades", "funded_stock_backtest_trades.csv"),
+                ("Signals rejected or skipped (base case)", "skipped", "funded_stock_backtest_skipped.csv"),
+                ("Open / censored outcomes", "unclosed", "funded_stock_backtest_open.csv"),
+            ]:
+                data = base_case[key]
+                st.markdown("**" + title + "**")
+                if data.empty:
+                    st.caption("No rows recorded")
+                else:
+                    st.dataframe(data, hide_index=True, use_container_width=True)
+                    st.download_button(
+                        "Export " + title.lower(),
+                        data=data.to_csv(index=False), file_name=filename,
+                        mime="text/csv", key="funded_export_" + key,
+                    )
+            st.markdown("**Historical data coverage**")
+            st.dataframe(
+                history_result["diagnostics"], hide_index=True,
+                use_container_width=True,
+            )
+            if not history_result["unavailable"].empty:
+                st.warning("Some stocks were excluded because historical OHLCV was inadequate.")
+                st.dataframe(
+                    history_result["unavailable"], hide_index=True,
+                    use_container_width=True,
+                )
+            if history_result["base"]["metrics"]["Completed trades"] < 30:
+                st.warning(
+                    "Fewer than 30 completed trades: this sample is too small to "
+                    "reliably estimate a strategy win rate or expectancy."
+                )
+            st.info(
+                "No future information is used to generate signals. However "
+                "US daily OHLC cannot prove 24/7 Kraken fills or reconstruct "
+                "historical earnings; treat results as a technical proxy only."
+            )
 
 with crypto_tab:
     live_crypto = st.session_state.get("funded_crypto_live_scan", pd.DataFrame())
