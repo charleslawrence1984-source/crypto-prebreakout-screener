@@ -108,8 +108,10 @@ def fetch_fmp_earnings_calendar(api_key, symbols, today, http_get=None):
         )
         response.raise_for_status()
         payload = response.json()
-        rows = (payload.get("data") or payload.get("results"))
-        if isinstance(payload, dict) else payload
+        rows = (
+            (payload.get("data") or payload.get("results"))
+            if isinstance(payload, dict) else payload
+        )
         if not isinstance(rows, list):
             return {}, "FMP RESPONSE NOT A CALENDAR LIST"
         universe = {str(symbol).upper() for symbol in symbols}
