@@ -137,10 +137,18 @@ def signal_candidates(histories, benchmark, first_date=None):
                         "Ticker": symbol,
                         "Signal date": str(date.date()),
                         "Technical state": str(brk.get("technical_state") or ""),
-                        "Projected R:R": _finite(brk.get("reference_reward_risk")),
+                        "Projected R:R": (
+                            _finite(brk.get("reference_reward_risk"))
+                            if math.isfinite(_finite(brk.get("reference_reward_risk")))
+                            else None
+                        ),
                         "Projected stop %": round(stop_pct, 3) if math.isfinite(stop_pct) else None,
                         "Projected upside %": round(upside_pct, 3) if math.isfinite(upside_pct) else None,
-                        "Technical score": _finite(brk.get("technical_score")),
+                        "Technical score": (
+                            _finite(brk.get("technical_score"))
+                            if math.isfinite(_finite(brk.get("technical_score")))
+                            else None
+                        ),
                         "Other gates failed": len(brk_reasons - {
                             "PROJECTED R:R BELOW 2",
                             "STRUCTURAL STOP OUTSIDE 0.4–8%",
