@@ -17,7 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
-from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research
+from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1590,8 +1590,13 @@ with stock_tab:
                         histories, signals, roundtrip_cost_pct=1.0,
                         max_hold_sessions=holding,
                     )
+                    shadow = simulate_shadow_breakout_stops(
+                        histories, breakout_plan_research(diagnostics),
+                        holding_sessions=holding, friction_pct=0.5,
+                    )
                     st.session_state["funded_stock_backtest_result"] = {
                         "base": baseline, "stress": stressed,
+                        "shadow_outcomes": shadow,
                         "diagnostics": diagnostics,
                         "unavailable": pd.DataFrame(data_problems),
                         "signals": len(signals), "period": period,
@@ -1705,6 +1710,51 @@ with stock_tab:
                         mime="text/csv",
                         key="funded_stock_backtest_plan_details_export",
                     )
+            st.markdown("**Research only — observed outcomes for three fixed stop methods**")
+            st.caption(
+                "A separate historical experiment on plan-only breakout rejections. "
+                "It compares our original conservative stop with two PREDECLARED "
+                "signal-day levels: recent support minus 0.2 ATR, and resistance "
+                "minus 0.7 ATR. Every option must still pass 2R after 0.50% "
+                "modelled costs, the 0.4–8% stop limit and anti-chasing opening "
+                "price checks. A rejected option counts as no trade. Stop-before-"
+                "target is assumed for ambiguous intraday bars; incomplete "
+                "forward price histories are censored. These are independent "
+                "hypothetical entries, NOT a funded portfolio performance result."
+            )
+            historical_shadow = history_result.get("shadow_outcomes", pd.DataFrame())
+            if historical_shadow.empty:
+                st.caption(
+                    "No qualifying research observations; run the historical "
+                    "backtest using the latest version."
+                )
+            else:
+                shadow_summary = summarize_shadow_breakout_stops(historical_shadow)
+                st.dataframe(
+                    shadow_summary, hide_index=True, use_container_width=True,
+                )
+                st.download_button(
+                    "Download shadow stop outcome summary CSV",
+                    data=shadow_summary.to_csv(index=False),
+                    file_name="funded_stock_backtest_shadow_stops_summary.csv",
+                    mime="text/csv", key="funded_shadow_stop_summary_export",
+                )
+                with st.expander("Inspect every hypothetical stop outcome"):
+                    st.dataframe(
+                        historical_shadow, hide_index=True, use_container_width=True,
+                    )
+                    st.download_button(
+                        "Download shadow stop outcomes CSV",
+                        data=historical_shadow.to_csv(index=False),
+                        file_name="funded_stock_backtest_shadow_stop_outcomes.csv",
+                        mime="text/csv", key="funded_shadow_stop_outcomes_export",
+                    )
+                st.warning(
+                    "Even a positive shadow result is NOT evidence that these "
+                    "stops are structurally sound. Historical earnings dates, "
+                    "actual Kraken Funded 24/7 quotes, and real executable "
+                    "stops are not reconstructed. Do not use shadow levels to trade."
+                )
             st.markdown("**Historical signal funnel and data coverage**")
             st.caption(
                 "Trigger sessions show the raw RSI/MACD or resistance-cross events. "
