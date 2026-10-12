@@ -1,12 +1,13 @@
 """Funded stock-only backtest: no-lookahead and adverse-execution contracts."""
 import unittest
+import json
 
 import numpy as np
 import pandas as pd
 
 from funded_stock_backtest import (
     _entry_plan, _exit_on_bar, signal_candidates, simulate_portfolio,
-    summarize_backtest_funnel,
+    summarize_backtest_funnel, summarize_individual_rule_gates,
 )
 from test_funded_stock_breakout import sample_bars
 
@@ -182,6 +183,68 @@ class FundedStockBacktestTests(unittest.TestCase):
         self.assertIn("AAPL", summary["Skipped candidate detail"])
         self.assertIn("TOO LATE", summary["Most common skipped entry reason"])
         self.assertFalse(summary["Statistically evaluable"])
+
+    def test_individual_gate_counts_are_not_confused_with_stock_modal_labels(self):
+        diagnostic = pd.DataFrame([
+            {
+                "Ticker": "AAPL", "Candidate sessions": 12,
+                "Individual gate hits JSON": json.dumps({
+                    "BREAKOUT: RESISTANCE NOT TESTED TWICE": 8,
+                    "BREAKOUT: PROJECTED R:R BELOW 2": 7,
+                    "CORE: MOVING AVERAGES NOT RISING": 4,
+                }),
+            },
+            {
+                "Ticker": "MSFT", "Candidate sessions": 8,
+                "Individual gate hits JSON": json.dumps({
+                    "BREAKOUT: PROJECTED R:R BELOW 2": 6,
+                    "CORE: MOVING AVERAGES NOT RISING": 3,
+                }),
+            },
+        ])
+        summary = summarize_individual_rule_gates(diagnostic)
+        self.assertEqual(
+            summary.iloc[0]["Failed condition"],
+            "PROJECTED R:R BELOW 2",
+        )
+        self.assertEqual(int(summary.iloc[0]["Signal sessions affected"]), 13)
+        self.assertEqual(summary.iloc[0]["% of all candidate sessions"], 65)
+        self.assertEqual(int(summary.iloc[0]["Stocks affected"]), 2)
+        # Multiple vetoes on the SAME breakout may coexist.
+        self.assertGreater(summary["Signal sessions affected"].sum(), 20)
+
+    def test_invalid_and_missing_gate_json_does_not_fabricate_counts(self):
+        diagnostics = pd.DataFrame([
+            {"Ticker": "AAPL", "Candidate sessions": 7,
+             "Individual gate hits JSON": "not JSON"},
+            {"Ticker": "NVDA", "Candidate sessions": 9,
+             "Individual gate hits JSON": "{}"},
+        ])
+        self.assertTrue(summarize_individual_rule_gates(diagnostics).empty)
+        self.assertTrue(summarize_individual_rule_gates(pd.DataFrame()).empty)
+
+    def test_breakout_rejection_records_each_individual_gate(self):
+        prices, benchmark = sample_bars()
+        prices = prices.copy()
+        prices.loc[prices.index[-1], "Volume"] = 1.0
+        future = prices.iloc[-1:].copy()
+        future.index = [prices.index[-1] + pd.offsets.BDay(1)]
+        future["Close"] = future["Open"]
+        extended = pd.concat([prices, future])
+        new_benchmark = pd.concat([
+            benchmark, pd.DataFrame(
+                {"Close": [benchmark["Close"].iloc[-1]]},
+                index=future.index,
+            ),
+        ])
+        _, diagnostics = signal_candidates(
+            {"AAPL": extended}, new_benchmark,
+            first_date=prices.index[-1],
+        )
+        row = diagnostics.iloc[0]
+        gates = json.loads(row["Individual gate hits JSON"])
+        self.assertGreater(int(row["Full-rule rejections"]), 0)
+        self.assertIn("BREAKOUT: BREAKOUT VOLUME BELOW 1.35X", gates)
 
     def test_zero_candidates_summary_stays_honest(self):
         result = simulate_portfolio({"AAPL": make_prices()}, [])
