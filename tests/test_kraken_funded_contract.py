@@ -1,6 +1,7 @@
 """Regression tests for Kraken Funded safety decisions, without importing Streamlit."""
 import ast
 from datetime import datetime, timezone, timedelta
+from funded_stock_events import earnings_trade_gate
 import math
 from pathlib import Path
 from types import SimpleNamespace
@@ -38,11 +39,21 @@ def load_rules():
     assert {node.name for node in functions} == names
     fake_st = SimpleNamespace(session_state={
         "funded_risk_verified": True, "funded_account_equity": 1000.0,
-        "funded_other_open_risk": 0.0, "funded_verified_earnings": ["NVDA"],
+        "funded_other_open_risk": 0.0,
+        "funded_earnings_verifications": {
+            "NVDA": {
+                "ticker": "NVDA",
+                "next_date": (datetime.now(timezone.utc) + timedelta(days=45)).date().isoformat(),
+                "source_url": "https://investor.nvidia.com/events",
+                "checked_at": datetime.now(timezone.utc).isoformat(),
+                "user_confirmed": True,
+            }
+        },
     })
     ns = {
         "np": SimpleNamespace(isfinite=math.isfinite, bool_=bool, nan=math.nan),
         "pd": FakePandas, "st": fake_st,
+        "earnings_trade_gate": earnings_trade_gate,
         "FUNDED_START_BALANCE": 1000.0, "FUNDED_FAIL_BALANCE": 970.0,
         "FUNDED_MAX_TOTAL_OPEN_RISK_USD": 10.0,
         "FUNDED_MAX_POSITION_PCT": 35.0,
@@ -89,6 +100,7 @@ class FundedRulesTests(unittest.TestCase):
             "Verified spread %": 0.08,
             "Median traded value GBPm": 5,
             "Earnings check": "OUTSIDE 5 SESSIONS (UNVERIFIED)",
+            "Next earnings estimate": (datetime.now(timezone.utc) + timedelta(days=45)).date().isoformat(),
             "Scan source": "LIVE",
             "scanned_at": datetime.now(timezone.utc).isoformat(),
         }
@@ -152,11 +164,14 @@ class FundedRulesTests(unittest.TestCase):
                          "⚪ DATA UNAVAILABLE")
 
     def test_daily_stock_earnings_window_veto(self):
-        self.assertEqual(self.stock(**{"Earnings check": "WITHIN 5 SESSIONS"}),
-                         "🔴 FUNDED PASS · EARNINGS WINDOW")
+        self.assertEqual(
+            self.stock(**{"Next earnings estimate":
+                (datetime.now(timezone.utc) + timedelta(days=2)).date().isoformat()}),
+            "🔴 FUNDED PASS · EARNINGS WINDOW",
+        )
 
     def test_stock_requires_official_earnings_confirmation(self):
-        self.ns["st"].session_state["funded_verified_earnings"] = []
+        self.ns["st"].session_state["funded_earnings_verifications"] = {}
         self.assertEqual(self.stock(), "🟡 FUNDED WATCH · VERIFY EARNINGS")
 
     def test_stock_requires_live_fresh_scan(self):

@@ -16,6 +16,7 @@ import yfinance as yf
 from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
+from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -117,6 +118,26 @@ def _earnings_window(raw) -> str:
         return "DATE EXPIRED"
     sessions = len(pd.bdate_range(today, date)) - 1
     return "WITHIN 5 SESSIONS" if sessions <= 5 else "OUTSIDE 5 SESSIONS (UNVERIFIED)"
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def funded_earnings_estimates() -> dict:
+    """Cache Yahoo *estimates* for one hour; not corporate source confirmation."""
+    today = pd.Timestamp.now(tz="Europe/London").date()
+    collected = {}
+    def fetch(symbol):
+        try:
+            return lookup_estimated_earnings(yf.Ticker(symbol), today)
+        except Exception as exc:
+            return {"estimated_date": "", "source": "Yahoo (UNAVAILABLE)",
+                    "quality": f"FETCH ERROR: {type(exc).__name__}"}
+    # Bound concurrent public provider requests to limit rate limiting.
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        futures = {pool.submit(fetch, symbol): symbol for symbol in KRAKEN_FUNDED_STOCKS}
+        for future in as_completed(futures):
+            symbol = futures[future]
+            collected[symbol] = future.result()
+    return collected
 
 
 def _account_guard(risk_usd: float) -> str:
@@ -318,6 +339,7 @@ def funded_trend_watch(frame: pd.DataFrame, benchmark: pd.DataFrame | None = Non
 def scan_funded_stocks_live() -> pd.DataFrame:
     """Funded trading: check technical setups before advisory company quality."""
     fundamentals = funded_fundamental_results()
+    event_estimates = funded_earnings_estimates()
     benchmark_raw = yf.download("^GSPC", period="3y", interval="1d", auto_adjust=False, progress=False)
     benchmark = _extract_yahoo_frame(benchmark_raw, "^GSPC")
     if benchmark is None:
@@ -343,10 +365,18 @@ def scan_funded_stocks_live() -> pd.DataFrame:
         fscore = safe_number(fundamental.get("score"))
         quality = ("— unavailable" if not np.isfinite(fscore)
                    else f"{'✅' if fundamental.get('pass') else '⚠️'} {fscore:.0f}")
+        estimate = event_estimates.get(symbol, {})
+        estimated_date = estimate.get("estimated_date") or ""
         basic = {
             "Ticker": symbol, "Fundamentals": quality, "Fundamental score": fscore,
             "Fundamental note": fundamental.get("reason", "NOT PREPARED"),
-            "Earnings check": _earnings_window(fundamental.get("earnings_date")),
+            "Next earnings estimate": estimated_date,
+            "Earnings source": estimate.get("source", "ESTIMATE UNAVAILABLE"),
+            "Earnings data quality": estimate.get("quality", "NO DATE RETURNED"),
+            "Prepared earnings date (historic)": fundamental.get("earnings_date") or "",
+            "Earnings check": earnings_window(
+                estimated_date, pd.Timestamp.now(tz="Europe/London").date()
+            ),
             "Scan source": "LIVE",
             "scanned_at": pd.Timestamp.now(tz="UTC").isoformat(),
         }
@@ -749,16 +779,19 @@ def funded_stock_status(row: pd.Series) -> str:
         not np.isfinite(technical_score) or technical_score < 75
     ):
         return "🟡 FUNDED WATCH · QUALITY SCORE"
-    earnings = str(row.get("Earnings check") or "")
-    if earnings == "WITHIN 5 SESSIONS":
-        return "🔴 FUNDED PASS · EARNINGS WINDOW"
+    earnings_gate = earnings_trade_gate(
+        row,
+        st.session_state.get("funded_earnings_verifications", {}),
+        pd.Timestamp.now(tz="Europe/London").date(),
+        pd.Timestamp.now(tz="UTC"),
+    )
+    if earnings_gate:
+        return earnings_gate
     if str(row.get("Scan source") or "") != "LIVE":
         return "🟡 FUNDED WATCH · RUN LIVE SCAN"
     scanned_at = pd.to_datetime(row.get("scanned_at"), errors="coerce", utc=True)
     if pd.isna(scanned_at) or (pd.Timestamp.now(tz="UTC") - scanned_at).total_seconds() > 24 * 3600:
         return "🟡 FUNDED WATCH · REFRESH SIGNAL"
-    if str(row.get("Ticker") or "") not in st.session_state.get("funded_verified_earnings", []):
-        return "🟡 FUNDED WATCH · VERIFY EARNINGS"
     if np.isfinite(rsi) and rsi > 80:
         return "🔴 FUNDED PASS · EXTENDED RSI"
     tier = (
@@ -802,9 +835,13 @@ def load_funded_stock_rows() -> pd.DataFrame:
 
     output["Scan source"] = "PREPARED"
     fundamentals = funded_fundamental_results()
-    output["Earnings check"] = output["Ticker"].map(
-        lambda ticker: _earnings_window(fundamentals.get(ticker, {}).get("earnings_date"))
+    output["Prepared earnings date (historic)"] = output["Ticker"].map(
+        lambda ticker: fundamentals.get(ticker, {}).get("earnings_date") or ""
     )
+    output["Next earnings estimate"] = ""
+    output["Earnings source"] = "PREPARED DATA ONLY — RUN LIVE STOCK SCAN"
+    output["Earnings data quality"] = "NOT REFRESHED"
+    output["Earnings check"] = "DATE UNKNOWN"
     state = output.get("Technical state", pd.Series("", index=output.index)).fillna("").astype(str)
     output["CL Signal"] = np.select(
         [
@@ -1091,7 +1128,8 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
         - Position size is calculated from **entry → invalidation/stop**, capped at **35% of current entered equity**.
         - Crypto marked **EXTENDED / TOO LATE** or failing execution/liquidity is still an automatic PASS.
-        - READY requires confirmation of manual equity/open risk; this screener is **not linked to broker positions**. Stops are not guaranteed in gaps or slippage.
+        - READY requires confirmation of equity/open risk and dated manual company earnings evidence. Yahoo earnings dates are only unverified estimates; dates within 5 weekday sessions cause an automatic veto.
+        - This screener is **not linked to broker positions**. Stops are not guaranteed in gaps or slippage.
         - There is **no need to force trades** because the challenge has no time limit.
         """
     )
@@ -1100,7 +1138,7 @@ today_str = pd.Timestamp.now(tz="Europe/London").strftime("%Y-%m-%d")
 if st.session_state.get("funded_validation_day") != today_str:
     st.session_state["funded_validation_day"] = today_str
     st.session_state["funded_risk_verified"] = False
-    st.session_state["funded_verified_earnings"] = []
+    st.session_state["funded_earnings_verifications"] = {}
 
 def _clear_account_confirmation():
     st.session_state["funded_risk_verified"] = False
@@ -1134,12 +1172,57 @@ with st.expander("✅ Confirm funded account and stock earnings before READY", e
         f"Remaining planned risk allowance: ${max(0.0, remaining):.2f}. "
         "This keeps a $10 buffer above the $970 failure level before slippage."
     )
-    st.multiselect(
-        "Stock tickers whose next earnings date I verified from an official company source",
-        options=KRAKEN_FUNDED_STOCKS,
-        key="funded_verified_earnings",
-        help="Only select a ticker after verifying there is no earnings event within the next 5 trading sessions.",
+    st.divider()
+    st.markdown("**Manually confirm company earnings announcements**")
+    st.caption(
+        "Yahoo earnings dates are estimates, not official company confirmations. "
+        "Check the actual investor-relations announcement and enter its URL and "
+        "next confirmed earnings date. Your verification expires at midnight UK time. "
+        "These source details are user-entered; they are not authenticated by the app."
     )
+    ev_ticker = st.selectbox(
+        "Stock to verify", options=KRAKEN_FUNDED_STOCKS,
+        key="funded_earnings_verify_ticker",
+    )
+    ev_date = st.text_input(
+        "Next company-confirmed earnings date (YYYY-MM-DD)",
+        value="", placeholder="2026-11-05", key="funded_earnings_verify_date",
+    )
+    ev_url = st.text_input(
+        "Company investor-relations announcement URL",
+        value="", placeholder="https://investor.company.com/...",
+        key="funded_earnings_verify_source",
+    )
+    ev_confirm = st.checkbox(
+        "I checked this date against the company's own announcement today",
+        key="funded_earnings_verify_attestation",
+    )
+    if st.button("Record earnings verification", key="funded_earnings_verify_button"):
+        tentative = {
+            "ticker": ev_ticker, "next_date": ev_date.strip(),
+            "source_url": ev_url.strip(),
+            "user_confirmed": bool(ev_confirm),
+            "checked_at": pd.Timestamp.now(tz="UTC").isoformat(),
+        }
+        checked, problem = validate_official_event_verification(
+            tentative, ev_ticker, pd.Timestamp.now(tz="Europe/London").date(),
+            pd.Timestamp.now(tz="UTC"),
+        )
+        if checked is None or checked < pd.Timestamp.now(tz="Europe/London").date():
+            st.warning(
+                "Not accepted: " + (problem if checked is None else "Next event date is in the past")
+            )
+        else:
+            st.session_state.setdefault("funded_earnings_verifications", {})[ev_ticker] = tentative
+            st.success(
+                f"User-confirmed {ev_ticker} earnings date recorded as {checked}; "
+                "this is NOT an independent verification by the screener."
+            )
+    verified_now = st.session_state.get("funded_earnings_verifications", {})
+    if verified_now:
+        st.caption(
+            "Manually confirmed today: " + ", ".join(sorted(verified_now))
+        )
 
 if "funded_stock_live_scan" not in st.session_state:
     st.session_state["funded_stock_live_scan"] = pd.DataFrame()
@@ -1346,7 +1429,9 @@ with stock_tab:
 
     stock_cols = [
         "Funded status", "CL Signal", "Ticker", "Fundamentals", "Fundamental note",
-        "Earnings check", "Price source", "Last completed bar",
+        "Next earnings estimate", "Earnings source",
+        "Earnings data quality", "Earnings check",
+        "Prepared earnings date (historic)", "Price source", "Last completed bar",
         "Gate", "Pre-cross blocker", "Technical score",
         "To resistance %", "Resistance", "Breakout volume ×", "Breakout tests",
         "Breakout date", "Reference entry", "Reference stop", "Reference target",
