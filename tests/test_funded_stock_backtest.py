@@ -8,6 +8,7 @@ import pandas as pd
 from funded_stock_backtest import (
     _entry_plan, _exit_on_bar, signal_candidates, simulate_portfolio,
     summarize_backtest_funnel, summarize_individual_rule_gates,
+    breakout_plan_research, summarize_breakout_plan_research,
 )
 from test_funded_stock_breakout import sample_bars
 
@@ -245,6 +246,80 @@ class FundedStockBacktestTests(unittest.TestCase):
         gates = json.loads(row["Individual gate hits JSON"])
         self.assertGreater(int(row["Full-rule rejections"]), 0)
         self.assertIn("BREAKOUT: BREAKOUT VOLUME BELOW 1.35X", gates)
+
+    def test_breakout_plan_diagnostics_separate_only_vetoes_from_overlap(self):
+        details = pd.DataFrame([
+            {"R:R failed": True, "Stop-distance failed": False,
+             "Other gates failed": 0, "Projected stop %": 4.0,
+             "Projected R:R": 1.8, "Projected upside %": 6.0},
+            {"R:R failed": False, "Stop-distance failed": True,
+             "Other gates failed": 0, "Projected stop %": 12.0,
+             "Projected R:R": 2.6, "Projected upside %": 20.0},
+            {"R:R failed": True, "Stop-distance failed": True,
+             "Other gates failed": 0, "Projected stop %": 14.0,
+             "Projected R:R": 0.9, "Projected upside %": 8.0},
+            {"R:R failed": True, "Stop-distance failed": True,
+             "Other gates failed": 3, "Projected stop %": 16.0,
+             "Projected R:R": 0.6, "Projected upside %": 9.0},
+            {"R:R failed": False, "Stop-distance failed": True,
+             "Other gates failed": 2, "Projected stop %": 0.2,
+             "Projected R:R": 2.5, "Projected upside %": 4.0},
+        ])
+        result = summarize_breakout_plan_research(details)
+        lookup = dict(zip(result["Measure"], result["Value"]))
+        self.assertEqual(lookup["Breakout plans evaluated"], 5)
+        self.assertEqual(lookup["R:R failed with no other gates failing"], 1)
+        self.assertEqual(lookup["Stop-distance failed with no other gates failing"], 1)
+        self.assertEqual(lookup["Only R:R and/or stop-distance failed"], 3)
+        self.assertEqual(lookup["R:R failed alongside additional non-plan gates"], 1)
+        self.assertEqual(lookup["Stop wider than 8%"], 3)
+        self.assertEqual(lookup["Stop tighter than 0.4%"], 1)
+
+    def test_json_breakout_plan_export_parses_without_future_data(self):
+        prices, benchmark = sample_bars()
+        extended = prices.copy()
+        next_session = prices.index[-1] + pd.offsets.BDay(1)
+        future = prices.iloc[-1:].copy()
+        future.index = [next_session]
+        future["Close"] = future["Open"]
+        extended = pd.concat([extended, future])
+        extended_benchmark = pd.concat([
+            benchmark,
+            pd.DataFrame({"Close": [benchmark["Close"].iloc[-1]]}, index=[next_session]),
+        ])
+        _, diagnostics = signal_candidates(
+            {"AAPL": extended}, extended_benchmark,
+            first_date=prices.index[-1],
+        )
+        detail = breakout_plan_research(diagnostics)
+        self.assertFalse(detail.empty)
+        self.assertEqual(detail.iloc[0]["Signal date"], str(prices.index[-1].date()))
+        self.assertIn(detail.iloc[0]["Technical state"], {
+            "FUNDED BREAKOUT PENDING OPEN", "FUNDED BREAKOUT REVIEW",
+        })
+        self.assertTrue(
+            pd.notna(detail.iloc[0]["Projected stop %"])
+        )
+        # Forward bar changes cannot alter a completed signal's plan.
+        modified = extended.copy()
+        modified.loc[next_session, ["Open", "High", "Low", "Close"]] = [
+            999.0, 1000.0, 998.0, 999.0,
+        ]
+        _, changed = signal_candidates(
+            {"AAPL": modified}, extended_benchmark,
+            first_date=prices.index[-1],
+        )
+        self.assertEqual(
+            breakout_plan_research(changed).to_dict("records"),
+            detail.to_dict("records"),
+        )
+
+    def test_missing_breakout_plan_json_is_fail_closed(self):
+        data = pd.DataFrame([
+            {"Ticker": "NVDA", "Breakout plan observations JSON": "not valid JSON"},
+        ])
+        self.assertTrue(breakout_plan_research(data).empty)
+        self.assertTrue(summarize_breakout_plan_research(pd.DataFrame()).empty)
 
     def test_zero_candidates_summary_stays_honest(self):
         result = simulate_portfolio({"AAPL": make_prices()}, [])
