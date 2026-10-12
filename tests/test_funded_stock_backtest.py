@@ -394,6 +394,20 @@ class FundedStockBacktestTests(unittest.TestCase):
             summarize_shadow_breakout_stops(output)["Completed outcomes"].sum(), 0,
         )
 
+    def test_shadow_matches_timezone_aware_daily_prices(self):
+        hist, details, dates = self._shadow_case()
+        hist["AAPL"].index = hist["AAPL"].index.tz_localize("America/New_York")
+        hist["AAPL"].loc[
+            hist["AAPL"].index[2], ["High", "Low", "Close"]
+        ] = [121, 99, 120]
+        output = simulate_shadow_breakout_stops(
+            hist, details, holding_sessions=4,
+        )
+        self.assertEqual(len(output), 3)
+        self.assertEqual(
+            int(output["Status"].eq("COMPLETED").sum()), 2,
+        )
+
     def test_shadow_rejects_nonplan_gate_failures_and_bad_assumptions(self):
         hist, details, dates = self._shadow_case()
         details.loc[0, "Other gates failed"] = 1
