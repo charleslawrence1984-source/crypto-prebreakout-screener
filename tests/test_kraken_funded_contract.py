@@ -50,6 +50,7 @@ def load_rules():
         "FUNDED_CRYPTO_READY_SCORE": 80.0,
         "FUNDED_READY_MIN_RR": 2.0,
         "FUNDED_A_PLUS_MIN_RR": 2.5,
+        "_us_regular_session": lambda: True,
     }
     module = ast.Module(
         body=[ast.ImportFrom(module="__future__", names=[ast.alias(name="annotations")], level=0)] + functions,
@@ -78,9 +79,10 @@ class FundedRulesTests(unittest.TestCase):
 
     def stock(self, **changes):
         row = {
-            "Ticker": "NVDA", "Technical state": "ENTRY READY",
+            "Ticker": "NVDA", "Technical state": "FUNDED CORE ENTRY CHECK",
             "Entry": 100, "Stop": 95, "Target": 115, "R:R": 3,
             "MACD progress": "CONFIRMED", "RSI": 55,
+            "Technical score": 85, "Verified quote time": datetime.now(timezone.utc).isoformat(),
             "Median traded value GBPm": 5,
             "Earnings check": "OUTSIDE 5 SESSIONS (UNVERIFIED)",
             "Scan source": "LIVE",
@@ -124,6 +126,18 @@ class FundedRulesTests(unittest.TestCase):
     def test_pre_cross_is_visible_not_trade_ready(self):
         self.assertEqual(self.stock(**{"Technical state": "PRE-CROSS READY"}),
                          "🟡 FUNDED WATCH · PRE-CROSS")
+
+    def test_historic_open_is_never_auto_buy(self):
+        self.assertEqual(
+            self.stock(**{"Technical state": "ENTRY READY"}),
+            "🟡 FUNDED WATCH · RECONFIRM LIVE PRICE",
+        )
+
+    def test_breakout_pending_open_is_watch(self):
+        self.assertEqual(
+            self.stock(**{"Technical state": "FUNDED BREAKOUT PENDING OPEN"}),
+            "🟡 FUNDED WATCH · VERIFY LIVE ENTRY",
+        )
 
     def test_compression_discovery_is_watch_only(self):
         self.assertEqual(self.stock(**{"Technical state": "FUNDED TREND WATCH"}),
