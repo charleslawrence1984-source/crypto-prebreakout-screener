@@ -17,7 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
-from funded_stock_backtest import signal_candidates, simulate_portfolio
+from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1609,7 +1609,12 @@ with stock_tab:
                 + " | Signal count: " + str(history_result["signals"])
             )
             comparison = pd.DataFrame([
-                {"Scenario": label, **history_result[name]["metrics"]}
+                {
+                    "Scenario": label,
+                    **summarize_backtest_funnel(
+                        history_result["diagnostics"], history_result[name]
+                    ),
+                }
                 for label, name in [
                     ("0.50% roundtrip friction", "base"),
                     ("1.00% stress friction", "stress"),
@@ -1644,10 +1649,22 @@ with stock_tab:
                         data=data.to_csv(index=False), file_name=filename,
                         mime="text/csv", key="funded_export_" + key,
                     )
-            st.markdown("**Historical data coverage**")
+            st.markdown("**Historical signal funnel and data coverage**")
+            st.caption(
+                "Trigger sessions show the raw RSI/MACD or resistance-cross events. "
+                "Full-rule rejections show how many did not pass all established "
+                "technical conditions; qualified signals still need a valid next-open "
+                "entry. The backtest does not relax our BUY criteria."
+            )
             st.dataframe(
                 history_result["diagnostics"], hide_index=True,
                 use_container_width=True,
+            )
+            st.download_button(
+                "Download signal funnel and coverage CSV",
+                data=history_result["diagnostics"].to_csv(index=False),
+                file_name="funded_stock_backtest_funnel.csv",
+                mime="text/csv", key="funded_stock_backtest_funnel_export",
             )
             if not history_result["unavailable"].empty:
                 st.warning("Some stocks were excluded because historical OHLCV was inadequate.")
@@ -1655,7 +1672,19 @@ with stock_tab:
                     history_result["unavailable"], hide_index=True,
                     use_container_width=True,
                 )
-            if history_result["base"]["metrics"]["Completed trades"] < 30:
+            if history_result["base"]["metrics"]["Completed trades"] == 0:
+                reason_rows = base_case["skipped"]
+                explanation = (
+                    "; ".join(
+                        f"{row['Ticker']}: {row['Reason']}"
+                        for _, row in reason_rows.head(3).iterrows()
+                    ) if not reason_rows.empty else "No candidates reached a next-open entry."
+                )
+                st.error(
+                    "ZERO completed trades: no strategy profitability conclusion "
+                    "is possible. First skipped or rejected entries: " + explanation
+                )
+            elif history_result["base"]["metrics"]["Completed trades"] < 30:
                 st.warning(
                     "Fewer than 30 completed trades: this sample is too small to "
                     "reliably estimate a strategy win rate or expectancy."

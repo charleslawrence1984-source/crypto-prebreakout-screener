@@ -6,6 +6,7 @@ import pandas as pd
 
 from funded_stock_backtest import (
     _entry_plan, _exit_on_bar, signal_candidates, simulate_portfolio,
+    summarize_backtest_funnel,
 )
 from test_funded_stock_breakout import sample_bars
 
@@ -152,6 +153,42 @@ class FundedStockBacktestTests(unittest.TestCase):
         low = simulate_portfolio({"AAPL": prices}, [signal(dates)], roundtrip_cost_pct=0.5)
         high = simulate_portfolio({"AAPL": prices}, [signal(dates)], roundtrip_cost_pct=1.0)
         self.assertLessEqual(high["metrics"]["Realized P&L $"], low["metrics"]["Realized P&L $"])
+
+    def test_zero_trade_summary_names_exact_skipped_candidate(self):
+        dates = make_prices().index
+        prices = make_prices()
+        # A realistic +5% gap is within the broad target, but beyond
+        # our explicit anti-chasing 1% opening-price rule.
+        prices.loc[dates[1], ["Open", "High", "Low", "Close"]] = [105, 106, 104, 105]
+        result = simulate_portfolio(
+            {"AAPL": prices}, [signal(dates)], roundtrip_cost_pct=0.5,
+        )
+        diagnostics = pd.DataFrame([{
+            "Ticker": "AAPL", "Status": "SCANNED",
+            "Candidate sessions": 12, "Core trigger sessions": 8,
+            "Breakout trigger sessions": 4,
+            "Full-rule rejections": 11,
+            "Liquidity rejections": 0,
+            "Qualified core signals": 0,
+            "Qualified breakout signals": 1,
+            "Top rule blocker": "BREAKOUT: LOW VOLUME",
+        }])
+        summary = summarize_backtest_funnel(diagnostics, result)
+        self.assertEqual(summary["Completed trades"], 0)
+        self.assertEqual(summary["Core trigger sessions"], 8)
+        self.assertEqual(summary["Breakout trigger sessions"], 4)
+        self.assertEqual(summary["Full-rule rejections"], 11)
+        self.assertEqual(summary["Qualified breakout signals"], 1)
+        self.assertIn("AAPL", summary["Skipped candidate detail"])
+        self.assertIn("TOO LATE", summary["Most common skipped entry reason"])
+        self.assertFalse(summary["Statistically evaluable"])
+
+    def test_zero_candidates_summary_stays_honest(self):
+        result = simulate_portfolio({"AAPL": make_prices()}, [])
+        funnel = summarize_backtest_funnel(pd.DataFrame(), result)
+        self.assertEqual(funnel["Completed trades"], 0)
+        self.assertEqual(funnel["Skipped candidate detail"], "")
+        self.assertFalse(funnel["Statistically evaluable"])
 
     def test_no_invented_result_when_no_signals(self):
         prices = make_prices()
