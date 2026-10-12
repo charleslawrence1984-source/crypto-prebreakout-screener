@@ -89,6 +89,36 @@ def _text(value, default=""):
     return text or default
 
 
+def _as_bool(value) -> bool:
+    return bool(value) if isinstance(value, (bool, np.bool_)) else str(value).strip().lower() in {"true", "1", "yes", "pass"}
+
+
+def _earnings_window(raw) -> str:
+    date = pd.to_datetime(raw, errors="coerce")
+    if pd.isna(date):
+        return "DATE UNKNOWN"
+    date = pd.Timestamp(date).date()
+    today = pd.Timestamp.now(tz="Europe/London").date()
+    if date < today:
+        return "DATE EXPIRED"
+    sessions = len(pd.bdate_range(today, date)) - 1
+    return "WITHIN 5 SESSIONS" if sessions <= 5 else "OUTSIDE 5 SESSIONS (UNVERIFIED)"
+
+
+def _account_guard(risk_usd: float) -> str:
+    # User-entered manual information; NOT connected to the funded broker.
+    if not st.session_state.get("funded_risk_verified", False):
+        return "🟡 FUNDED WATCH · VERIFY ACCOUNT"
+    equity = safe_number(st.session_state.get("funded_account_equity"))
+    other_risk = safe_number(st.session_state.get("funded_other_open_risk"))
+    if (not np.isfinite(equity) or not np.isfinite(other_risk) or other_risk < 0
+            or equity <= FUNDED_FAIL_BALANCE + 10
+            or equity - FUNDED_FAIL_BALANCE - 10 < risk_usd
+            or other_risk + risk_usd > FUNDED_MAX_TOTAL_OPEN_RISK_USD):
+        return "🔴 FUNDED PASS · ACCOUNT RISK LIMIT"
+    return ""
+
+
 def snapshot_from_record(row: dict) -> FundamentalSnapshot:
     earnings_date = None
     try:
@@ -180,7 +210,8 @@ def funded_fundamental_results() -> dict:
             output[snapshot.symbol] = {
                 "score": score,
                 "pass": not failures and score >= 65,
-                "reason": "; ".join(failures) if failures else "PASS",
+                "reason": "; ".join(failures) if failures else ("QUALITY SCORE BELOW 65" if score < 65 else "PASS"),
+                "earnings_date": str(snapshot.earnings_date) if snapshot.earnings_date is not None else "",
             }
         except Exception as exc:
             output[snapshot.symbol] = {"score": np.nan, "pass": False, "reason": f"FUNDAMENTAL ERROR: {type(exc).__name__}"}
@@ -207,6 +238,7 @@ def _extract_yahoo_frame(batch: pd.DataFrame, symbol: str):
 
 
 def scan_funded_stocks_live() -> pd.DataFrame:
+    """Funded trading: check technical setups before advisory company quality."""
     fundamentals = funded_fundamental_results()
     benchmark_raw = yf.download("^GSPC", period="3y", interval="1d", auto_adjust=False, progress=False)
     benchmark = _extract_yahoo_frame(benchmark_raw, "^GSPC")
@@ -216,48 +248,38 @@ def scan_funded_stocks_live() -> pd.DataFrame:
         KRAKEN_FUNDED_STOCKS, period="3y", interval="1d", group_by="ticker",
         auto_adjust=False, threads=True, progress=False,
     )
-
     rows = []
     for symbol in KRAKEN_FUNDED_STOCKS:
         fundamental = fundamentals.get(symbol, {})
         fscore = safe_number(fundamental.get("score"))
-        if not fundamental:
-            rows.append({
-                "Ticker": symbol, "Fundamentals": "— unavailable", "Technical state": "DATA UNAVAILABLE",
-                "Gate": "FUNDAMENTALS NOT PREPARED", "Fundamental score": np.nan,
-            })
-            continue
-        if not fundamental.get("pass"):
-            rows.append({
-                "Ticker": symbol, "Fundamentals": f"❌ {fscore:.0f}" if np.isfinite(fscore) else "❌",
-                "Technical state": "BLOCKED", "Gate": fundamental.get("reason", "FUNDAMENTAL FAIL"),
-                "Fundamental score": fscore,
-            })
-            continue
+        quality = ("— unavailable" if not np.isfinite(fscore)
+                   else f"{'✅' if fundamental.get('pass') else '⚠️'} {fscore:.0f}")
+        basic = {
+            "Ticker": symbol, "Fundamentals": quality, "Fundamental score": fscore,
+            "Fundamental note": fundamental.get("reason", "NOT PREPARED"),
+            "Earnings check": _earnings_window(fundamental.get("earnings_date")),
+            "Scan source": "LIVE",
+        }
         frame = _extract_yahoo_frame(prices, symbol)
         if frame is None or len(frame.dropna(subset=["Close", "Volume"])) < 252:
-            rows.append({
-                "Ticker": symbol, "Fundamentals": f"✅ {fscore:.0f}", "Technical state": "DATA UNAVAILABLE",
-                "Gate": "INSUFFICIENT PRICE HISTORY", "Fundamental score": fscore,
-            })
+            rows.append({**basic, "Technical state": "DATA UNAVAILABLE",
+                         "Gate": "INSUFFICIENT PRICE HISTORY",
+                         "Funded status": "⚪ DATA UNAVAILABLE"})
             continue
         technical = evaluate_price_setup(frame, benchmark)
         clean = frame.dropna(subset=["Close", "Volume"])
         turnover_usd = float((clean["Close"] * clean["Volume"]).tail(20).median())
-        liquidity_gbpm = turnover_usd * 0.75 / 1_000_000
         row = {
-            "Ticker": symbol,
-            "Fundamentals": f"✅ {fscore:.0f}",
-            "Fundamental score": fscore,
-            "Technical state": technical.get("technical_state"),
+            **basic, "Technical state": technical.get("technical_state"),
+            "CL Signal": technical.get("technical_state", "—"),
             "Gate": technical.get("technical_reason"),
             "MACD progress": technical.get("macd_progress"),
-            "RSI": technical.get("rsi"),
-            "Entry": technical.get("entry"),
-            "Stop": technical.get("stop"),
-            "Target": technical.get("target"),
+            "RSI": technical.get("rsi"), "Entry": technical.get("entry"),
+            "Stop": technical.get("stop"), "Target": technical.get("target"),
             "R:R": technical.get("reward_risk"),
-            "Median traded value GBPm": liquidity_gbpm,
+            "Median traded value GBPm": turnover_usd * 0.75 / 1_000_000,
+            "Pre-cross blocker": technical.get("pre_cross_blocker"),
+            "Technical score": technical.get("technical_score"),
         }
         row["Funded status"] = funded_stock_status(pd.Series(row))
         risk_usd = (
@@ -265,19 +287,12 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             else FUNDED_REDUCED_RISK_USD if row["Funded status"] == "🟢 FUNDED READY"
             else np.nan
         )
-        plan = (
-            funded_position_plan(row.get("Entry"), row.get("Stop"), risk_usd=risk_usd)
-            if np.isfinite(risk_usd)
-            else (np.nan, np.nan, np.nan)
-        )
+        plan = (funded_position_plan(row.get("Entry"), row.get("Stop"), risk_usd)
+                if np.isfinite(risk_usd) else (np.nan, np.nan, np.nan))
         row["Position $"] = round(plan[1], 2) if np.isfinite(plan[1]) else np.nan
         row["Risk $"] = round(plan[2], 2) if np.isfinite(plan[2]) else np.nan
         rows.append(row)
-
-    output = pd.DataFrame(rows)
-    if "Funded status" not in output.columns:
-        output["Funded status"] = output.apply(funded_stock_status, axis=1)
-    return output
+    return pd.DataFrame(rows)
 
 
 async def scan_funded_crypto_live_async() -> pd.DataFrame:
@@ -444,62 +459,57 @@ def scan_funded_crypto_live() -> pd.DataFrame:
 
 
 def funded_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD):
-    entry = safe_number(entry)
-    stop = safe_number(stop)
-    if not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop or entry <= 0:
+    entry, stop, risk_usd = safe_number(entry), safe_number(stop), safe_number(risk_usd)
+    if (not all(np.isfinite(v) for v in (entry, stop, risk_usd))
+            or entry <= stop or entry <= 0 or risk_usd <= 0 or _account_guard(risk_usd)):
         return np.nan, np.nan, np.nan
-
-    per_unit_risk = entry - stop
-    risk_units = risk_usd / per_unit_risk
-    max_notional = FUNDED_START_BALANCE * FUNDED_MAX_POSITION_PCT / 100
+    equity = float(st.session_state["funded_account_equity"])
+    risk_units = risk_usd / (entry - stop)
+    max_notional = equity * FUNDED_MAX_POSITION_PCT / 100
     notional = min(risk_units * entry, max_notional)
     units = notional / entry
-    actual_risk = units * per_unit_risk
-    return units, notional, actual_risk
+    return units, notional, units * (entry - stop)
 
 
 def funded_stock_status(row: pd.Series) -> str:
     state = str(row.get("Technical state") or "").upper()
     rr = safe_number(row.get("R:R"))
     liquidity = safe_number(row.get("Median traded value GBPm"))
-    entry = safe_number(row.get("Entry"))
-    stop = safe_number(row.get("Stop"))
+    entry, stop, target = (safe_number(row.get(key)) for key in ("Entry", "Stop", "Target"))
     macd = str(row.get("MACD progress") or "").upper()
     rsi = safe_number(row.get("RSI"))
-
-    # No actionable technical setup means no funded trade yet. Do this before
-    # checking Entry/Stop/R:R because those fields are expected to be blank.
-    if state not in {"WATCH", "ENTRY READY", "AWAITING NEXT OPEN"}:
+    if state not in {"WATCH", "PRE-CROSS READY", "ENTRY READY", "AWAITING NEXT OPEN"}:
         return "⚪ NO CURRENT SETUP"
-
-    # Hard funded vetoes apply only once there is an actionable/developing setup.
     if not np.isfinite(liquidity) or liquidity < 0.5:
         return "🔴 FUNDED PASS · LIQUIDITY"
-    if not np.isfinite(entry) or not np.isfinite(stop) or entry <= stop:
-        return "🟡 FUNDED WATCH · RISK PLAN"
-    if not np.isfinite(rr) or rr < FUNDED_READY_MIN_RR:
-        return "🟡 FUNDED WATCH · R:R"
-
-    entry_ready = state in {"ENTRY READY", "AWAITING NEXT OPEN"}
-    strong_watch = (
-        state == "WATCH"
-        and macd == "CONFIRMED"
-        and np.isfinite(rsi)
-        and 45 <= rsi <= 70
-    )
-
-    if entry_ready and rr >= FUNDED_A_PLUS_MIN_RR:
-        return "🟢 A+ FUNDED READY"
-    if entry_ready and macd == "CONFIRMED":
-        return "🟢 FUNDED READY"
-    if strong_watch and rr >= FUNDED_A_PLUS_MIN_RR:
-        return "🟢 A+ FUNDED READY"
-    if strong_watch:
-        return "🟢 FUNDED READY"
-
     if state == "WATCH":
-        return "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
-    return "🟡 FUNDED WATCH · NEEDS CONFIRMATION"
+        return "🟡 FUNDED WATCH · DEVELOPING"
+    if state == "PRE-CROSS READY":
+        return "🟡 FUNDED WATCH · PRE-CROSS"
+    if state == "AWAITING NEXT OPEN":
+        return "🟡 FUNDED WATCH · NEXT OPEN"
+    if (not all(np.isfinite(v) for v in (entry, stop, target, rr))
+            or entry <= stop or target <= entry):
+        return "🟡 FUNDED WATCH · RISK PLAN"
+    actual_rr = (target - entry) / (entry - stop)
+    if min(rr, actual_rr) < FUNDED_READY_MIN_RR:
+        return "🟡 FUNDED WATCH · R:R"
+    if macd != "CONFIRMED":
+        return "🟡 FUNDED WATCH · CONFIRMATION"
+    earnings = str(row.get("Earnings check") or "")
+    if earnings == "WITHIN 5 SESSIONS":
+        return "🔴 FUNDED PASS · EARNINGS WINDOW"
+    if str(row.get("Scan source") or "") != "LIVE":
+        return "🟡 FUNDED WATCH · RUN LIVE SCAN"
+    if str(row.get("Ticker") or "") not in st.session_state.get("funded_verified_earnings", []):
+        return "🟡 FUNDED WATCH · VERIFY EARNINGS"
+    if np.isfinite(rsi) and rsi > 80:
+        return "🔴 FUNDED PASS · EXTENDED RSI"
+    tier = "🟢 A+ FUNDED READY" if min(rr, actual_rr) >= FUNDED_A_PLUS_MIN_RR else "🟢 FUNDED READY"
+    account_gate = _account_guard(
+        FUNDED_STANDARD_RISK_USD if tier == "🟢 A+ FUNDED READY" else FUNDED_REDUCED_RISK_USD
+    )
+    return account_gate or tier
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -530,6 +540,11 @@ def load_funded_stock_rows() -> pd.DataFrame:
     universe = pd.DataFrame({"Ticker": KRAKEN_FUNDED_STOCKS})
     output = universe.merge(technical, on="Ticker", how="left")
 
+    output["Scan source"] = "PREPARED"
+    fundamentals = funded_fundamental_results()
+    output["Earnings check"] = output["Ticker"].map(
+        lambda ticker: _earnings_window(fundamentals.get(ticker, {}).get("earnings_date"))
+    )
     state = output.get("Technical state", pd.Series("", index=output.index)).fillna("").astype(str)
     output["CL Signal"] = np.select(
         [
