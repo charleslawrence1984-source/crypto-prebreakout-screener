@@ -237,6 +237,70 @@ def _extract_yahoo_frame(batch: pd.DataFrame, symbol: str):
     return frame if needed.issubset(frame.columns) else None
 
 
+def funded_trend_watch(frame: pd.DataFrame, benchmark: pd.DataFrame | None = None) -> dict | None:
+    """Early discovery only: rising higher-low bases near resistance; NEVER a buy."""
+    data = frame.dropna(subset=["Open", "High", "Low", "Close", "Volume"]).sort_index().copy()
+    if len(data) < 252:
+        return None
+    close = pd.to_numeric(data["Close"], errors="coerce")
+    high = pd.to_numeric(data["High"], errors="coerce")
+    low = pd.to_numeric(data["Low"], errors="coerce")
+    volume = pd.to_numeric(data["Volume"], errors="coerce")
+    ma180, ma200 = close.rolling(180).mean(), close.rolling(200).mean()
+    price = float(close.iloc[-1])
+    above_mas = price > max(float(ma180.iloc[-1]), float(ma200.iloc[-1]))
+    rising_mas = (
+        ma180.iloc[-1] > ma180.iloc[-21] * 1.005
+        and ma200.iloc[-1] > ma200.iloc[-21] * 1.005
+    )
+    # Compare finished ten-session windows; avoid single candle pivot noise.
+    higher_lows = float(low.iloc[-10:].min()) > float(low.iloc[-30:-10].min()) * 1.005
+    prev_close = close.shift(1)
+    true_range = pd.concat(
+        [(high - low), (high - prev_close).abs(), (low - prev_close).abs()],
+        axis=1,
+    ).max(axis=1)
+    range_recent = float(true_range.iloc[-10:].mean())
+    range_prior = float(true_range.iloc[-30:-10].mean())
+    contraction = range_prior > 0 and range_recent <= range_prior * 0.9
+    declining_volume = float(volume.iloc[-10:].median()) <= float(volume.iloc[-30:-10].median()) * 1.05
+    resistance = float(high.iloc[-61:-1].max())
+    to_resistance_pct = (resistance - price) / resistance * 100 if resistance > 0 else np.nan
+    near_resistance = np.isfinite(to_resistance_pct) and 0 <= to_resistance_pct <= 8
+    macd = close.ewm(span=12, adjust=False).mean() - close.ewm(span=26, adjust=False).mean()
+    signal = macd.ewm(span=9, adjust=False).mean()
+    histogram = macd - signal
+    momentum_improving = bool(histogram.iloc[-1] > histogram.iloc[-2] > histogram.iloc[-3])
+    relative_positive = False
+    try:
+        if benchmark is not None and "Close" in benchmark:
+            reference = pd.to_numeric(benchmark["Close"], errors="coerce")
+            pair = pd.concat([close.rename("stock"), reference.rename("benchmark")], axis=1).dropna()
+            if len(pair) >= 21:
+                relative_positive = bool(
+                    pair["stock"].iloc[-1] / pair["stock"].iloc[-21]
+                    > pair["benchmark"].iloc[-1] / pair["benchmark"].iloc[-21]
+                )
+    except (ValueError, TypeError, KeyError):
+        pass
+    score = (
+        20 * above_mas + 15 * rising_mas + 20 * higher_lows
+        + 10 * contraction + 5 * declining_volume + 10 * near_resistance
+        + 15 * momentum_improving + 5 * relative_positive
+    )
+    if not (above_mas and rising_mas and near_resistance
+            and (higher_lows or contraction) and score >= 65):
+        return None
+    return {
+        "technical_state": "FUNDED TREND WATCH",
+        "technical_reason": "HIGHER-LOW / COMPRESSION BASE; WAIT FOR BREAKOUT CONFIRMATION",
+        "macd_progress": "IMPROVING" if momentum_improving else "DEVELOPING",
+        "technical_score": float(score),
+        "distance_to_resistance_pct": round(to_resistance_pct, 2),
+        "pre_cross_blocker": "NO CONFIRMED ENTRY; EARLY DISCOVERY ONLY",
+    }
+
+
 def scan_funded_stocks_live() -> pd.DataFrame:
     """Funded trading: check technical setups before advisory company quality."""
     fundamentals = funded_fundamental_results()
@@ -267,7 +331,17 @@ def scan_funded_stocks_live() -> pd.DataFrame:
                          "Gate": "INSUFFICIENT PRICE HISTORY",
                          "Funded status": "⚪ DATA UNAVAILABLE"})
             continue
+        # Yahoo daily bars may include today's unfinished US session. Never
+        # promote an incomplete daily crossover to an executable trade.
+        ny_now = pd.Timestamp.now(tz="America/New_York")
+        last_bar_date = pd.Timestamp(frame.index[-1]).date()
+        if last_bar_date == ny_now.date() and (ny_now.hour < 16 or (ny_now.hour == 16 and ny_now.minute < 15)):
+            frame = frame.iloc[:-1]
         technical = evaluate_price_setup(frame, benchmark)
+        if technical.get("technical_state") == "BLOCKED":
+            developing = funded_trend_watch(frame, benchmark)
+            if developing:
+                technical.update(developing)
         clean = frame.dropna(subset=["Close", "Volume"])
         turnover_usd = float((clean["Close"] * clean["Volume"]).tail(20).median())
         row = {
@@ -281,6 +355,7 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Median traded value GBPm": turnover_usd * 0.75 / 1_000_000,
             "Pre-cross blocker": technical.get("pre_cross_blocker"),
             "Technical score": technical.get("technical_score"),
+            "To resistance %": technical.get("distance_to_resistance_pct"),
         }
         row["Funded status"] = funded_stock_status(pd.Series(row))
         risk_usd = (
@@ -490,10 +565,12 @@ def funded_stock_status(row: pd.Series) -> str:
     entry, stop, target = (safe_number(row.get(key)) for key in ("Entry", "Stop", "Target"))
     macd = str(row.get("MACD progress") or "").upper()
     rsi = safe_number(row.get("RSI"))
-    if state not in {"WATCH", "PRE-CROSS READY", "ENTRY READY", "AWAITING NEXT OPEN"}:
+    if state not in {"WATCH", "FUNDED TREND WATCH", "PRE-CROSS READY", "ENTRY READY", "AWAITING NEXT OPEN"}:
         return "⚪ NO CURRENT SETUP"
     if not np.isfinite(liquidity) or liquidity < 0.5:
         return "🔴 FUNDED PASS · LIQUIDITY"
+    if state == "FUNDED TREND WATCH":
+        return "🟡 FUNDED WATCH · COMPRESSION"
     if state == "WATCH":
         return "🟡 FUNDED WATCH · DEVELOPING"
     if state == "PRE-CROSS READY":
@@ -839,7 +916,7 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - **A+ FUNDED READY:** at least **2.5R**, actionable timing and all funded gates passed. Planned loss: **$4**.
         - **FUNDED READY:** at least **2.0R** with stronger confirmation. Planned loss: **$3**.
         - For crypto, the original engine must confirm **BUY**, eligibility, timing, relative strength and execution; the score must be **80+**. WATCH never bypasses those gates.
-        - For stocks, **PRE-CROSS READY** and **AWAITING NEXT OPEN** remain WATCH until there is a completed, executable entry. A live technical setup requires at least **2.0R**, liquidity and a manual earnings check.
+        - For stocks, higher-low **COMPRESSION**, **PRE-CROSS READY** and **AWAITING NEXT OPEN** remain WATCH until there is a completed, executable entry. A live technical setup requires at least **2.0R**, liquidity and a manual earnings check.
         - **RECLAIM NEEDED / EARLY** remains WATCH until confirmation actually arrives.
         - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
         - Position size is calculated from **entry → invalidation/stop**, capped at **35% of current entered equity**.
@@ -995,7 +1072,7 @@ with stock_tab:
         )
     stock_cols = [
         "Funded status", "CL Signal", "Ticker", "Fundamentals", "Fundamental note",
-        "Earnings check", "Gate", "Pre-cross blocker", "Technical score", "MACD",
+        "Earnings check", "Gate", "Pre-cross blocker", "Technical score", "To resistance %", "MACD",
         "RSI", "Liquidity", "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
     ]
     st.dataframe(
