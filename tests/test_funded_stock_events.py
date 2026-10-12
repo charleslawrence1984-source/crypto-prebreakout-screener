@@ -8,6 +8,7 @@ from funded_stock_events import (
     earnings_window,
     validate_official_event_verification,
     earnings_trade_gate,
+    fetch_fmp_earnings_calendar,
 )
 
 
@@ -121,6 +122,69 @@ class FundedEarningsTests(unittest.TestCase):
         self.assertEqual(earnings_window("2026-10-13", TODAY), "WITHIN 5 SESSIONS")
         self.assertEqual(earnings_window("2026-11-13", TODAY),
                          "OUTSIDE 5 SESSIONS (UNVERIFIED)")
+
+
+    def test_single_call_calendar_fills_requested_tickers_only(self):
+        calls = []
+        class Response:
+            def raise_for_status(self):
+                pass
+            def json(self):
+                return [
+                    {"symbol": "AAPL", "date": "2026-10-27"},
+                    {"symbol": "MSFT", "date": "2026-11-02"},
+                    {"symbol": "AAPL", "date": "2026-11-20"},
+                    {"symbol": "AAPL", "date": "2026-01-02"},
+                    {"symbol": "SPY", "date": "2026-11-04"},
+                ]
+        def fetch(url, params, timeout):
+            calls.append((url, params, timeout))
+            return Response()
+        estimates, diagnostic = fetch_fmp_earnings_calendar(
+            "fake-test-key", ["AAPL", "MSFT"], TODAY, http_get=fetch
+        )
+        self.assertEqual(diagnostic, "FMP CALENDAR RETURNED")
+        self.assertEqual(estimates["AAPL"]["estimated_date"], "2026-10-27")
+        self.assertEqual(estimates["MSFT"]["estimated_date"], "2026-11-02")
+        self.assertNotIn("SPY", estimates)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(calls[0][1]["from"], TODAY.isoformat())
+        self.assertIn("UNVERIFIED", estimates["AAPL"]["source"])
+
+    def test_provider_requires_key(self):
+        def should_not_call(**_):
+            raise AssertionError("Provider should not be called")
+        estimates, note = fetch_fmp_earnings_calendar(
+            "", ["AAPL"], TODAY, http_get=should_not_call
+        )
+        self.assertEqual(estimates, {})
+        self.assertEqual(note, "FMP API KEY NOT CONFIGURED")
+
+    def test_provider_failure_does_not_create_estimates_or_leak_key(self):
+        class Unavailable:
+            def raise_for_status(self):
+                raise RuntimeError("401: provider unavailable")
+        def fetch(*args, **kwargs):
+            return Unavailable()
+        estimates, note = fetch_fmp_earnings_calendar(
+            "SECRET-TEST-KEY", ["AAPL"], TODAY, http_get=fetch
+        )
+        self.assertEqual(estimates, {})
+        self.assertIn("RuntimeError", note)
+        self.assertNotIn("SECRET-TEST-KEY", note)
+
+    def test_invalid_provider_response_is_not_treated_as_no_earnings(self):
+        class Invalid:
+            def raise_for_status(self):
+                pass
+            def json(self):
+                return {"Error Message": "Please subscribe to this plan"}
+        estimates, diagnostic = fetch_fmp_earnings_calendar(
+            "fake-key", ["AAPL"], TODAY,
+            http_get=lambda *a, **kw: Invalid()
+        )
+        self.assertEqual(estimates, {})
+        self.assertEqual(diagnostic, "FMP RESPONSE NOT A CALENDAR LIST")
 
     def test_failed_provider_cannot_fabricate_date(self):
         class Broken:

@@ -16,7 +16,7 @@ import yfinance as yf
 from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
-from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification
+from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -122,18 +122,36 @@ def _earnings_window(raw) -> str:
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def funded_earnings_estimates() -> dict:
-    """Cache Yahoo *estimates* for one hour; not corporate source confirmation."""
+    """Estimated events only. User-entered official checks are mandatory.
+
+    Prefer one keyed provider request when configured, then a throttled Yahoo
+    fallback for missing tickers. Failure never becomes a positive safety check.
+    """
     today = pd.Timestamp.now(tz="Europe/London").date()
-    collected = {}
+    try:
+        fmp_key = st.secrets.get("FMP_API_KEY", "")
+    except Exception:
+        fmp_key = ""
+    collected, provider_note = fetch_fmp_earnings_calendar(
+        fmp_key, KRAKEN_FUNDED_STOCKS, today
+    )
+    remaining = [s for s in KRAKEN_FUNDED_STOCKS if s not in collected]
     def fetch(symbol):
         try:
-            return lookup_estimated_earnings(yf.Ticker(symbol), today)
+            result = lookup_estimated_earnings(yf.Ticker(symbol), today)
         except Exception as exc:
-            return {"estimated_date": "", "source": "Yahoo (UNAVAILABLE)",
-                    "quality": f"FETCH ERROR: {type(exc).__name__}"}
-    # Bound concurrent public provider requests to limit rate limiting.
-    with ThreadPoolExecutor(max_workers=4) as pool:
-        futures = {pool.submit(fetch, symbol): symbol for symbol in KRAKEN_FUNDED_STOCKS}
+            result = {"estimated_date": "", "source": "Yahoo (UNAVAILABLE)",
+                      "quality": f"FETCH ERROR: {type(exc).__name__}"}
+        if not result.get("estimated_date"):
+            result["quality"] = (
+                result.get("quality", "NO UPCOMING DATE")
+                + "; " + provider_note
+            )
+        return result
+    # Yahoo can rate-limit simultaneous calls: minimize concurrency, cache
+    # results for an hour, and never guess a date if both providers fail.
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = {pool.submit(fetch, symbol): symbol for symbol in remaining}
         for future in as_completed(futures):
             symbol = futures[future]
             collected[symbol] = future.result()
@@ -1363,6 +1381,24 @@ with stock_tab:
         stocks["Position $"] = [round(v[1], 2) if np.isfinite(v[1]) else np.nan for v in risk_plans]
         stocks["Risk $"] = [round(v[2], 2) if np.isfinite(v[2]) else np.nan for v in risk_plans]
 
+    # Distinguish provider data failure from 'no upcoming earnings' so that
+    # a broken calendar is visible to the user, not silently omitted.
+    if "Next earnings estimate" in stocks.columns:
+        date_count = int(
+            pd.to_datetime(stocks["Next earnings estimate"], errors="coerce").notna().sum()
+        )
+        if date_count == 0:
+            st.warning(
+                "Earnings-calendar provider returned ZERO upcoming dates for this stock scan. "
+                "Date risk remains unknown. Company event checks are mandatory before "
+                "any funded stock READY; optional FMP_API_KEY in Streamlit secrets "
+                "enables an independent estimated-calendar provider."
+            )
+        else:
+            st.caption(
+                f"Upcoming estimated earnings dates: {date_count}/{len(stocks)}. "
+                "Unverified estimates do not replace company announcements."
+            )
     aplus_count = int(stocks["Funded status"].eq("🟢 A+ FUNDED READY").sum())
     ready_count = int(stocks["Funded status"].eq("🟢 FUNDED READY").sum())
     watch_count = int(stocks["Funded status"].astype(str).str.startswith("🟡 FUNDED WATCH").sum())
