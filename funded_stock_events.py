@@ -101,7 +101,7 @@ def fetch_fmp_earnings_calendar(api_key, symbols, today, http_get=None):
         response = http_get(
             "https://financialmodelingprep.com/stable/earnings-calendar",
             params={
-                "from": today.isoformat(), "to": end.date().isoformat(),
+                "from": today.isoformat(), "to": end.isoformat(),
                 "apikey": str(api_key).strip(),
             },
             timeout=20,
