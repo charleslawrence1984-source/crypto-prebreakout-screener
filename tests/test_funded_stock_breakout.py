@@ -46,7 +46,7 @@ class FundedStockBreakoutTests(unittest.TestCase):
         bars, bench = sample_bars()
         result = evaluate_funded_breakout(bars, bench)
         self.assertIsNotNone(result)
-        self.assertTrue(result["technical_state"].startswith("FUNDED BREAKOUT"))
+        self.assertEqual(result["technical_state"], "FUNDED BREAKOUT PENDING OPEN", result["technical_reason"])
         self.assertNotIn("entry", result)
         self.assertEqual(result["reference_target_basis"],
                          "0.8x 30-day base height; capped at 5x ATR (projection)")
