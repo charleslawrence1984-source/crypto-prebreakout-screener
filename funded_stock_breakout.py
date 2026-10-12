@@ -148,6 +148,10 @@ def evaluate_funded_breakout(frame: pd.DataFrame, benchmark: pd.DataFrame | None
         "volume_ratio": round(vol_ratio, 2) if math.isfinite(vol_ratio) else math.nan,
         "reference_entry": round(price, 4),
         "reference_stop": round(stop, 4),
+        # Research-only structural references. They are NOT used by the
+        # live approved stop/target plan or quote validation.
+        "research_stop_support": round(recent_support - 0.2 * atr, 4),
+        "research_stop_retest": round(resistance - 0.7 * atr, 4),
         "reference_target": round(target, 4),
         "reference_reward_risk": round(rr, 2) if math.isfinite(rr) else math.nan,
         "reference_target_basis": "0.8x 30-day base height; capped at 5x ATR (projection)",
