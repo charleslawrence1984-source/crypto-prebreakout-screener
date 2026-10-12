@@ -73,6 +73,12 @@ def signal_candidates(histories, benchmark, first_date=None):
         )
         plausible = core_prefilter | breakout_prefilter
         candidates_checked = 0
+        core_trigger_count = 0
+        breakout_trigger_count = 0
+        qualified_core = 0
+        qualified_breakout = 0
+        liquidity_rejections = 0
+        full_rule_rejections = Counter()
         for i in np.flatnonzero(plausible.to_numpy()):
             if i < MIN_HISTORY or i >= len(data) - 1:
                 continue
@@ -83,6 +89,8 @@ def signal_candidates(histories, benchmark, first_date=None):
             if len(benchmark.loc[:date]) < 252:
                 continue
             candidates_checked += 1
+            core_trigger_count += int(bool(core_prefilter.iloc[i]))
+            breakout_trigger_count += int(bool(breakout_prefilter.iloc[i]))
             past = data.iloc[:i+1]
             past_benchmark = benchmark.loc[:date]
             core = evaluate_price_setup(past, past_benchmark)
@@ -96,6 +104,7 @@ def signal_candidates(histories, benchmark, first_date=None):
                 atr = _finite(core.get("atr20"))
                 zone_top = _finite(core.get("zone_high"))
                 if not all(math.isfinite(v) for v in (stop, target, ref, atr, zone_top)):
+                    full_rule_rejections["CORE PLAN NOT FINITE"] += 1
                     continue
                 plan = {"reference_entry": ref, "reference_stop": stop,
                         "reference_target": target, "atr": atr,
@@ -103,9 +112,14 @@ def signal_candidates(histories, benchmark, first_date=None):
             elif core.get("technical_state") == "BLOCKED" and bool(breakout_prefilter.iloc[i]):
                 brk = evaluate_funded_breakout(past, past_benchmark)
                 if brk is None or brk.get("technical_state") != "FUNDED BREAKOUT PENDING OPEN":
+                    full_rule_rejections[
+                        ("BREAKOUT: " + str(brk.get("technical_reason", "NOT DETECTED")))
+                        if brk else "BREAKOUT: NOT DETECTED"
+                    ] += 1
                     continue
                 score = _finite(brk.get("technical_score"))
                 if not math.isfinite(score) or score < 75:
+                    full_rule_rejections["BREAKOUT QUALITY SCORE BELOW 75"] += 1
                     continue
                 route = "FUNDED BREAKOUT"
                 plan = {
@@ -116,11 +130,19 @@ def signal_candidates(histories, benchmark, first_date=None):
                     "signal_date": date,
                 }
             else:
+                full_rule_rejections[
+                    "CORE: " + str(core.get("technical_reason", "NO CONFIRMED SETUP"))
+                ] += 1
                 continue
 
             turnover = float((past["Close"] * past["Volume"]).tail(20).median())
             if not math.isfinite(turnover) or turnover * 0.75 / 1e6 < MIN_LIQUIDITY_GBPM:
+                liquidity_rejections += 1
                 continue
+            if route == "CORE RSI/MACD":
+                qualified_core += 1
+            elif route == "FUNDED BREAKOUT":
+                qualified_breakout += 1
             next_date = pd.Timestamp(data.index[i+1])
             found.append({
                 "Ticker": symbol, "Route": route,
@@ -131,12 +153,55 @@ def signal_candidates(histories, benchmark, first_date=None):
             "Ticker": symbol,
             "Status": "SCANNED",
             "Candidate sessions": candidates_checked,
+            "Core trigger sessions": core_trigger_count,
+            "Breakout trigger sessions": breakout_trigger_count,
+            "Full-rule rejections": sum(full_rule_rejections.values()),
+            "Top rule blocker": full_rule_rejections.most_common(1)[0][0] if full_rule_rejections else "",
+            "Liquidity rejections": liquidity_rejections,
+            "Qualified core signals": qualified_core,
+            "Qualified breakout signals": qualified_breakout,
             "Completed bars": len(data),
             "First bar": str(data.index[0].date()),
             "Last bar": str(data.index[-1].date()),
         })
     found.sort(key=lambda x: (x["Entry date"], -x["Score"], x["Ticker"]))
     return found, pd.DataFrame(diagnostics)
+
+
+def summarize_backtest_funnel(diagnostics, result):
+    """Make a one-row scenario summary self-explanatory when trades are zero."""
+    metrics = dict(result["metrics"])
+    if isinstance(diagnostics, pd.DataFrame) and not diagnostics.empty:
+        metric_fields = (
+            "Candidate sessions", "Core trigger sessions", "Breakout trigger sessions",
+            "Full-rule rejections", "Liquidity rejections",
+            "Qualified core signals", "Qualified breakout signals",
+        )
+        for name in metric_fields:
+            metrics[name] = int(
+                pd.to_numeric(diagnostics.get(name, pd.Series(dtype=float)), errors="coerce").fillna(0).sum()
+            )
+        statuses = diagnostics.get("Status", pd.Series(dtype=str))
+        metrics["Stocks with usable history"] = int(statuses.eq("SCANNED").sum())
+        blockers = diagnostics.get("Top rule blocker", pd.Series(dtype=str))
+        blockers = blockers.fillna("").astype(str)
+        blocker_counts = Counter(blockers[blockers.ne("")])
+        metrics["Example full-rule blocker"] = (
+            blocker_counts.most_common(1)[0][0] if blocker_counts else ""
+        )
+    skips = result["skipped"]
+    if not skips.empty:
+        reasons = Counter(skips["Reason"].dropna().astype(str))
+        metrics["Most common skipped entry reason"] = reasons.most_common(1)[0][0]
+        metrics["Skipped candidate detail"] = "; ".join(
+            f"{row['Ticker']} {row['Date']} ({row['Route']}): {row['Reason']}"
+            for _, row in skips.head(3).iterrows()
+        )
+    else:
+        metrics["Most common skipped entry reason"] = ""
+        metrics["Skipped candidate detail"] = ""
+    metrics["Statistically evaluable"] = bool(metrics["Completed trades"] >= 30)
+    return metrics
 
 
 def _entry_plan(candidate, raw_open, roundtrip_cost_pct):
