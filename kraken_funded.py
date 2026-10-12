@@ -368,6 +368,7 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Breakout volume ×": technical.get("volume_ratio"),
             "Breakout tests": technical.get("breakout_tests"),
             "Breakout date": technical.get("breakout_signal_date"),
+            "Core signal date": technical.get("signal_date"),
             "Reference entry": technical.get("reference_entry"),
             "Reference stop": technical.get("reference_stop"),
             "Reference target": technical.get("reference_target"),
@@ -623,6 +624,11 @@ def _apply_verified_stock_quote(frame: pd.DataFrame) -> pd.DataFrame:
         result.at[i, "Technical state"] = "FUNDED BREAKOUT ENTRY CHECK"
         result.at[i, "MACD progress"] = "BREAKOUT CONFIRMED"
     elif state == "ENTRY READY":
+        signal_date = pd.to_datetime(row.get("Core signal date"), errors="coerce")
+        if pd.isna(signal_date) or not 0 <= (
+            pd.Timestamp.now(tz="America/New_York").date() - signal_date.date()
+        ).days <= 4:
+            return result
         old_entry = safe_number(row.get("Entry"))
         stop, target = safe_number(row.get("Stop")), safe_number(row.get("Target"))
         if not all(np.isfinite(v) for v in (old_entry, stop, target)):
@@ -1034,7 +1040,8 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - **A+ FUNDED READY:** at least **2.5R**, actionable timing and all funded gates passed. Planned loss: **$4**.
         - **FUNDED READY:** at least **2.0R** with stronger confirmation. Planned loss: **$3**.
         - For crypto, the original engine must confirm **BUY**, eligibility, timing, relative strength and execution; the score must be **80+**. WATCH never bypasses those gates.
-        - For stocks, higher-low **COMPRESSION**, **PRE-CROSS READY** and **AWAITING NEXT OPEN** remain WATCH until there is a completed, executable entry. A live technical setup requires at least **2.0R**, liquidity and a manual earnings check.
+        - For stocks, higher-low **COMPRESSION**, **PRE-CROSS READY**, **AWAITING NEXT OPEN** and newly confirmed daily breakouts remain WATCH until a regular-session broker quote is manually verified. This is not automated order execution.
+        - Funded breakout confirmation requires resistance tests, a constructive base, >=1.35x volume, rising 180/200-day averages, RSI 50–75, positive relative strength, and a credible projected 2R+ plan. The target is a **projection**, not an assured resistance exit.
         - **RECLAIM NEEDED / EARLY** remains WATCH until confirmation actually arrives.
         - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
         - Position size is calculated from **entry → invalidation/stop**, capped at **35% of current entered equity**.
@@ -1132,6 +1139,48 @@ if run_funded_scan:
 
 if st.session_state.get("funded_scan_time"):
     st.caption(f"Last full funded scan: **{st.session_state['funded_scan_time']}**")
+
+with st.expander("📈 Stocks — verify a live entry before BUY", expanded=False):
+    live_for_quote = st.session_state.get("funded_stock_live_scan", pd.DataFrame())
+    pending = []
+    if isinstance(live_for_quote, pd.DataFrame) and not live_for_quote.empty:
+        for _, item in live_for_quote.iterrows():
+            if str(item.get("Technical state")) in {"ENTRY READY", "FUNDED BREAKOUT PENDING OPEN"}:
+                pending.append(str(item.get("Ticker")))
+    st.caption(
+        "A historical candle or opening price is NOT a fill. During the US regular session, "
+        "check the current quote in Kraken Funded, then confirm it here. The quote expires "
+        "after 10 minutes. Never use after-hours or stale pricing to trigger BUY."
+    )
+    chosen = st.selectbox(
+        "Candidate", options=["— select candidate —"] + sorted(set(pending)),
+        key="funded_stock_quote_ticker",
+    )
+    quote = st.number_input(
+        "Current executable stock price shown in Kraken Funded ($)",
+        min_value=0.0, step=0.10, format="%.4f", key="funded_stock_quote_input",
+    )
+    confirmed = st.checkbox(
+        "I checked this quote just now in the funded trading platform",
+        key="funded_stock_quote_confirmed",
+    )
+    if st.button("Validate stock entry", key="funded_stock_quote_button"):
+        if not _us_regular_session():
+            st.warning("US regular stock session is not open. No executable BUY can be verified now.")
+        elif chosen == "— select candidate —" or quote <= 0 or not confirmed:
+            st.warning("Select a candidate, enter a positive live price and confirm its source.")
+        else:
+            st.session_state["funded_stock_confirmed_quote"] = {
+                "ticker": chosen, "price": float(quote),
+                "verified_at": pd.Timestamp.now(tz="UTC").isoformat(),
+            }
+            st.success("Quote recorded for risk/entry checks; not an order or fill.")
+    record = st.session_state.get("funded_stock_confirmed_quote") or {}
+    if record.get("ticker"):
+        st.caption(
+            f"Last checked: {record.get('ticker')} at ${float(record.get('price')):.4f}. "
+            "Recheck the quote before placing any order."
+        )
 
 stock_tab, crypto_tab = st.tabs(["📈 Stocks", "⚡ Crypto"])
 
