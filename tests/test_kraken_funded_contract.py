@@ -30,7 +30,8 @@ def load_rules():
     source = Path(__file__).resolve().parents[1] / "kraken_funded.py"
     tree = ast.parse(source.read_text(encoding="utf-8"))
     names = {"safe_number", "_as_bool", "_account_guard",
-             "funded_crypto_status", "funded_stock_status", "funded_position_plan"}
+             "funded_crypto_status", "funded_stock_status", "funded_position_plan",
+             "funded_stock_spread_gate", "funded_stock_position_plan"}
     functions = [node for node in tree.body
                  if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
                  and node.name in names]
@@ -45,11 +46,14 @@ def load_rules():
         "FUNDED_START_BALANCE": 1000.0, "FUNDED_FAIL_BALANCE": 970.0,
         "FUNDED_MAX_TOTAL_OPEN_RISK_USD": 10.0,
         "FUNDED_MAX_POSITION_PCT": 35.0,
+        "FUNDED_STOCK_MAX_SPREAD_PCT": 0.60,
+        "FUNDED_STOCK_COST_BUFFER_PCT": 0.50,
         "FUNDED_STANDARD_RISK_USD": 4.0,
         "FUNDED_REDUCED_RISK_USD": 3.0,
         "FUNDED_CRYPTO_READY_SCORE": 80.0,
         "FUNDED_READY_MIN_RR": 2.0,
         "FUNDED_A_PLUS_MIN_RR": 2.5,
+        "_us_regular_session": lambda: True,
     }
     module = ast.Module(
         body=[ast.ImportFrom(module="__future__", names=[ast.alias(name="annotations")], level=0)] + functions,
@@ -78,9 +82,11 @@ class FundedRulesTests(unittest.TestCase):
 
     def stock(self, **changes):
         row = {
-            "Ticker": "NVDA", "Technical state": "ENTRY READY",
+            "Ticker": "NVDA", "Technical state": "FUNDED CORE ENTRY CHECK",
             "Entry": 100, "Stop": 95, "Target": 115, "R:R": 3,
             "MACD progress": "CONFIRMED", "RSI": 55,
+            "Technical score": 85, "Verified quote time": datetime.now(timezone.utc).isoformat(),
+            "Verified spread %": 0.08,
             "Median traded value GBPm": 5,
             "Earnings check": "OUTSIDE 5 SESSIONS (UNVERIFIED)",
             "Scan source": "LIVE",
@@ -125,6 +131,18 @@ class FundedRulesTests(unittest.TestCase):
         self.assertEqual(self.stock(**{"Technical state": "PRE-CROSS READY"}),
                          "🟡 FUNDED WATCH · PRE-CROSS")
 
+    def test_historic_open_is_never_auto_buy(self):
+        self.assertEqual(
+            self.stock(**{"Technical state": "ENTRY READY"}),
+            "🟡 FUNDED WATCH · RECONFIRM LIVE PRICE",
+        )
+
+    def test_breakout_pending_open_is_watch(self):
+        self.assertEqual(
+            self.stock(**{"Technical state": "FUNDED BREAKOUT PENDING OPEN"}),
+            "🟡 FUNDED WATCH · VERIFY LIVE ENTRY",
+        )
+
     def test_compression_discovery_is_watch_only(self):
         self.assertEqual(self.stock(**{"Technical state": "FUNDED TREND WATCH"}),
                          "🟡 FUNDED WATCH · COMPRESSION")
@@ -158,6 +176,25 @@ class FundedRulesTests(unittest.TestCase):
     def test_drawdown_buffer_is_enforced(self):
         self.ns["st"].session_state["funded_account_equity"] = 981.0
         self.assertEqual(self.stock(), "🔴 FUNDED PASS · ACCOUNT RISK LIMIT")
+
+    def test_spread_gate_rejects_wide_or_invalid_quotes(self):
+        gate = self.ns["funded_stock_spread_gate"]
+        self.assertTrue(gate(100.04, 99.96)[0])
+        self.assertFalse(gate(101, 99)[0])
+        self.assertFalse(gate(99, 101)[0])
+        self.assertFalse(gate(float("nan"), 99)[0])
+
+    def test_stock_cost_buffer_respects_risk_budget(self):
+        _, notional, modeled_loss = self.ns["funded_stock_position_plan"](
+            100, 98, 4, 0.08
+        )
+        self.assertLessEqual(notional, 350.0)
+        self.assertLessEqual(modeled_loss, 4.0)
+        self.assertGreater(modeled_loss / notional, 0.02)
+
+    def test_stock_quote_requires_spread_confirmation(self):
+        self.assertEqual(self.stock(**{"Verified spread %": math.nan}),
+                         "🟡 FUNDED WATCH · VERIFY SPREAD")
 
     def test_position_notional_is_capped(self):
         _, notional, risk = self.ns["funded_position_plan"](100, 99.5, 4)

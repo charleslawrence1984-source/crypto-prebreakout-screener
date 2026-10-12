@@ -14,6 +14,7 @@ import streamlit as st
 import yfinance as yf
 
 from cl_signal_ui import render_module_header
+from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -38,6 +39,8 @@ FUNDED_A_PLUS_MIN_RR = 2.5
 FUNDED_READY_MIN_RR = 2.0
 FUNDED_CRYPTO_READY_SCORE = 80.0
 FUNDED_MAX_POSITION_PCT = 35.0
+FUNDED_STOCK_MAX_SPREAD_PCT = 0.60
+FUNDED_STOCK_COST_BUFFER_PCT = 0.50
 
 KRAKEN_FUNDED_STOCKS = [
     "NVDA", "NFLX", "SPCX", "GOOGL", "CRCL", "AAPL", "TSLA", "MSTR", "HOOD",
@@ -60,6 +63,16 @@ def safe_number(value):
         return number if np.isfinite(number) else np.nan
     except Exception:
         return np.nan
+
+
+def funded_stock_spread_gate(buy, sell) -> tuple[bool, float, str]:
+    buy, sell = safe_number(buy), safe_number(sell)
+    if not all(np.isfinite(v) for v in (buy, sell)) or buy <= 0 or sell <= 0 or sell > buy:
+        return False, np.nan, "MISSING OR INVALID BUY/SELL QUOTES"
+    spread_pct = (buy - sell) / ((buy + sell) / 2) * 100
+    if spread_pct > FUNDED_STOCK_MAX_SPREAD_PCT:
+        return False, spread_pct, "SPREAD EXCEEDS 0.60%"
+    return True, spread_pct, "PASS"
 
 
 def first_existing(frame: pd.DataFrame, names: list[str]) -> str | None:
@@ -341,9 +354,13 @@ def scan_funded_stocks_live() -> pd.DataFrame:
         # Same Wilder RSI as the core engine, available even for WATCH/BLOCKED.
         current_rsi = safe_number(_wilder_rsi(pd.to_numeric(frame["Close"], errors="coerce"), 14).iloc[-1])
         if technical.get("technical_state") == "BLOCKED":
-            developing = funded_trend_watch(frame, benchmark)
-            if developing:
-                technical.update(developing)
+            breakout = evaluate_funded_breakout(frame, benchmark)
+            if breakout is not None:
+                technical.update(breakout)
+            else:
+                developing = funded_trend_watch(frame, benchmark)
+                if developing:
+                    technical.update(developing)
         clean = frame.dropna(subset=["Close", "Volume"])
         turnover_usd = float((clean["Close"] * clean["Volume"]).tail(20).median())
         row = {
@@ -359,6 +376,16 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Pre-cross blocker": technical.get("pre_cross_blocker"),
             "Technical score": technical.get("technical_score"),
             "To resistance %": technical.get("distance_to_resistance_pct"),
+            "Resistance": technical.get("resistance"),
+            "Breakout volume ×": technical.get("volume_ratio"),
+            "Breakout tests": technical.get("breakout_tests"),
+            "Breakout date": technical.get("breakout_signal_date"),
+            "Core signal date": technical.get("signal_date"),
+            "Reference entry": technical.get("reference_entry"),
+            "Reference stop": technical.get("reference_stop"),
+            "Reference target": technical.get("reference_target"),
+            "Reference R:R": technical.get("reference_reward_risk"),
+            "Target basis": technical.get("reference_target_basis"),
         }
         row["Funded status"] = funded_stock_status(pd.Series(row))
         risk_usd = (
@@ -366,7 +393,7 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             else FUNDED_REDUCED_RISK_USD if row["Funded status"] == "🟢 FUNDED READY"
             else np.nan
         )
-        plan = (funded_position_plan(row.get("Entry"), row.get("Stop"), risk_usd)
+        plan = (funded_stock_position_plan(row.get("Entry"), row.get("Stop"), risk_usd, row.get("Verified spread %"))
                 if np.isfinite(risk_usd) else (np.nan, np.nan, np.nan))
         row["Position $"] = round(plan[1], 2) if np.isfinite(plan[1]) else np.nan
         row["Risk $"] = round(plan[2], 2) if np.isfinite(plan[2]) else np.nan
@@ -561,6 +588,100 @@ def funded_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD):
     return units, notional, units * (entry - stop)
 
 
+def _apply_verified_stock_quote(frame: pd.DataFrame) -> pd.DataFrame:
+    """Only the verified quote can populate an actionable funded stock entry."""
+    result = frame.copy()
+    record = st.session_state.get("funded_stock_confirmed_quote") or {}
+    symbol = str(record.get("ticker") or "")
+    verified_at = pd.to_datetime(record.get("verified_at"), errors="coerce", utc=True)
+    if (not symbol or symbol not in result["Ticker"].values or pd.isna(verified_at)
+            or (pd.Timestamp.now(tz="UTC") - verified_at).total_seconds() > 600
+            or (pd.Timestamp.now(tz="UTC") - verified_at).total_seconds() < -10):
+        return result
+    i = result.index[result["Ticker"] == symbol][0]
+    row = result.loc[i]
+    if str(row.get("Scan source")) != "LIVE":
+        return result
+    scanned_at = pd.to_datetime(row.get("scanned_at"), errors="coerce", utc=True)
+    if pd.isna(scanned_at) or (pd.Timestamp.now(tz="UTC") - scanned_at).total_seconds() > 24 * 3600:
+        return result
+    quote = safe_number(record.get("price"))
+    spread_ok, spread_pct, reason = funded_stock_spread_gate(quote, record.get("sell_price"))
+    if not spread_ok:
+        result.at[i, "Gate"] = "LIVE QUOTE REJECTED — " + reason
+        return result
+
+    state = str(row.get("Technical state") or "")
+    if state == "FUNDED BREAKOUT PENDING OPEN":
+        signal_date = pd.to_datetime(row.get("Breakout date"), errors="coerce")
+        if pd.isna(signal_date) or not 0 <= (pd.Timestamp.now(tz="America/New_York").date()
+                                             - signal_date.date()).days <= 4:
+            return result
+        plan = validate_breakout_quote(
+            {"reference_entry": row.get("Reference entry"),
+             "resistance": row.get("Resistance"),
+             "reference_stop": row.get("Reference stop"),
+             "reference_target": row.get("Reference target")},
+            quote,
+        )
+        if not plan.get("ok"):
+            result.at[i, "Gate"] = "LIVE QUOTE REJECTED — " + str(plan.get("reason"))
+            return result
+        result.at[i, "Technical state"] = "FUNDED BREAKOUT ENTRY CHECK"
+        result.at[i, "MACD progress"] = "BREAKOUT CONFIRMED"
+    elif state == "ENTRY READY":
+        signal_date = pd.to_datetime(row.get("Core signal date"), errors="coerce")
+        if pd.isna(signal_date) or not 0 <= (
+            pd.Timestamp.now(tz="America/New_York").date() - signal_date.date()
+        ).days <= 4:
+            return result
+        old_entry = safe_number(row.get("Entry"))
+        stop, target = safe_number(row.get("Stop")), safe_number(row.get("Target"))
+        if not all(np.isfinite(v) for v in (old_entry, stop, target)):
+            return result
+        if (quote > old_entry * 1.01 or quote < old_entry * 0.98
+                or quote <= stop or quote >= target):
+            result.at[i, "Gate"] = "MANUAL QUOTE TOO FAR FROM ORIGINAL ENTRY"
+            return result
+        plan = {"ok": True, "entry": quote, "stop": stop, "target": target}
+        result.at[i, "Technical state"] = "FUNDED CORE ENTRY CHECK"
+    else:
+        return result
+    result.at[i, "Entry"] = float(plan["entry"])
+    result.at[i, "Stop"] = float(plan["stop"])
+    result.at[i, "Target"] = float(plan["target"])
+    expected_exit_spread = quote - safe_number(record.get("sell_price"))
+    net_reward = float(plan["target"]) - quote - expected_exit_spread
+    net_risk = quote - float(plan["stop"]) + expected_exit_spread
+    result.at[i, "R:R"] = net_reward / net_risk if net_risk > 0 else np.nan
+    result.at[i, "Spread-adjusted R:R"] = result.at[i, "R:R"]
+    result.at[i, "Verified quote time"] = verified_at.isoformat()
+    result.at[i, "Verified spread %"] = round(spread_pct, 3)
+    return result
+
+
+def funded_stock_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD,
+                               observed_spread_pct=np.nan):
+    """Funded stocks only: model stop risk PLUS a cost/slippage reserve.
+
+    This cannot enforce maximum loss when Kraken requires manual exits.
+    """
+    entry, stop, risk_usd = safe_number(entry), safe_number(stop), safe_number(risk_usd)
+    observed = safe_number(observed_spread_pct)
+    if (not all(np.isfinite(v) for v in (entry, stop, risk_usd))
+            or entry <= stop or entry <= 0 or risk_usd <= 0 or _account_guard(risk_usd)):
+        return np.nan, np.nan, np.nan
+    reserve_pct = max(FUNDED_STOCK_COST_BUFFER_PCT,
+                      observed if np.isfinite(observed) else 0.0)
+    modeled_loss_fraction = (entry - stop) / entry + reserve_pct / 100
+    if modeled_loss_fraction <= 0:
+        return np.nan, np.nan, np.nan
+    equity = safe_number(st.session_state.get("funded_account_equity"))
+    notional = min(risk_usd / modeled_loss_fraction,
+                   equity * FUNDED_MAX_POSITION_PCT / 100)
+    return notional / entry, notional, notional * modeled_loss_fraction
+
+
 def funded_stock_status(row: pd.Series) -> str:
     state = str(row.get("Technical state") or "").upper()
     rr = safe_number(row.get("R:R"))
@@ -570,10 +691,19 @@ def funded_stock_status(row: pd.Series) -> str:
     rsi = safe_number(row.get("RSI"))
     if state == "DATA UNAVAILABLE":
         return "⚪ DATA UNAVAILABLE"
-    if state not in {"WATCH", "FUNDED TREND WATCH", "PRE-CROSS READY", "ENTRY READY", "AWAITING NEXT OPEN"}:
+    if state not in {
+        "WATCH", "FUNDED TREND WATCH", "PRE-CROSS READY",
+        "ENTRY READY", "AWAITING NEXT OPEN",
+        "FUNDED BREAKOUT PENDING OPEN", "FUNDED BREAKOUT REVIEW",
+        "FUNDED BREAKOUT ENTRY CHECK", "FUNDED CORE ENTRY CHECK",
+    }:
         return "⚪ NO CURRENT SETUP"
     if not np.isfinite(liquidity) or liquidity < 0.5:
         return "🔴 FUNDED PASS · LIQUIDITY"
+    if state == "FUNDED BREAKOUT REVIEW":
+        return "🟡 FUNDED WATCH · BREAKOUT REVIEW"
+    if state == "FUNDED BREAKOUT PENDING OPEN":
+        return "🟡 FUNDED WATCH · VERIFY LIVE ENTRY"
     if state == "FUNDED TREND WATCH":
         return "🟡 FUNDED WATCH · COMPRESSION"
     if state == "WATCH":
@@ -582,14 +712,30 @@ def funded_stock_status(row: pd.Series) -> str:
         return "🟡 FUNDED WATCH · PRE-CROSS"
     if state == "AWAITING NEXT OPEN":
         return "🟡 FUNDED WATCH · NEXT OPEN"
+    if state == "ENTRY READY":
+        # The original engine records the last session's historic opening
+        # price. A historic opening is NOT a confirmed executable quote.
+        return "🟡 FUNDED WATCH · RECONFIRM LIVE PRICE"
+    if state in {"FUNDED BREAKOUT ENTRY CHECK", "FUNDED CORE ENTRY CHECK"}:
+        verified_at = pd.to_datetime(row.get("Verified quote time"), errors="coerce", utc=True)
+        spread = safe_number(row.get("Verified spread %"))
+        if pd.isna(verified_at) or not np.isfinite(spread) or spread > FUNDED_STOCK_MAX_SPREAD_PCT:
+            return "🟡 FUNDED WATCH · VERIFY SPREAD"
+        if not 0 <= (pd.Timestamp.now(tz="UTC") - verified_at).total_seconds() <= 600:
+            return "🟡 FUNDED WATCH · REFRESH QUOTE"
     if (not all(np.isfinite(v) for v in (entry, stop, target, rr))
             or entry <= stop or target <= entry):
         return "🟡 FUNDED WATCH · RISK PLAN"
     actual_rr = (target - entry) / (entry - stop)
     if min(rr, actual_rr) < FUNDED_READY_MIN_RR:
         return "🟡 FUNDED WATCH · R:R"
-    if macd != "CONFIRMED":
+    if macd not in {"CONFIRMED", "BREAKOUT CONFIRMED"}:
         return "🟡 FUNDED WATCH · CONFIRMATION"
+    technical_score = safe_number(row.get("Technical score"))
+    if state == "FUNDED BREAKOUT ENTRY CHECK" and (
+        not np.isfinite(technical_score) or technical_score < 75
+    ):
+        return "🟡 FUNDED WATCH · QUALITY SCORE"
     earnings = str(row.get("Earnings check") or "")
     if earnings == "WITHIN 5 SESSIONS":
         return "🔴 FUNDED PASS · EARNINGS WINDOW"
@@ -602,7 +748,12 @@ def funded_stock_status(row: pd.Series) -> str:
         return "🟡 FUNDED WATCH · VERIFY EARNINGS"
     if np.isfinite(rsi) and rsi > 80:
         return "🔴 FUNDED PASS · EXTENDED RSI"
-    tier = "🟢 A+ FUNDED READY" if min(rr, actual_rr) >= FUNDED_A_PLUS_MIN_RR else "🟢 FUNDED READY"
+    tier = (
+        "🟢 A+ FUNDED READY"
+        if min(rr, actual_rr) >= FUNDED_A_PLUS_MIN_RR
+           and np.isfinite(technical_score) and technical_score >= 75
+        else "🟢 FUNDED READY"
+    )
     account_gate = _account_guard(
         FUNDED_STANDARD_RISK_USD if tier == "🟢 A+ FUNDED READY" else FUNDED_REDUCED_RISK_USD
     )
@@ -648,7 +799,7 @@ def load_funded_stock_rows() -> pd.DataFrame:
             state.eq("WATCH"),
         ],
         [
-            "🟢 READY",
+            "🟡 CORE SIGNAL · RECHECK LIVE",
             "🟡 WATCH",
         ],
         default="⚪ NO CURRENT SETUP",
@@ -692,7 +843,7 @@ def load_funded_stock_rows() -> pd.DataFrame:
     output["Funded status"] = output.apply(funded_stock_status, axis=1)
     stock_plans = output.apply(
         lambda row: (
-            funded_position_plan(
+            funded_stock_position_plan(
                 row.get("Entry"),
                 row.get("Stop"),
                 risk_usd=(
@@ -921,7 +1072,8 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - **A+ FUNDED READY:** at least **2.5R**, actionable timing and all funded gates passed. Planned loss: **$4**.
         - **FUNDED READY:** at least **2.0R** with stronger confirmation. Planned loss: **$3**.
         - For crypto, the original engine must confirm **BUY**, eligibility, timing, relative strength and execution; the score must be **80+**. WATCH never bypasses those gates.
-        - For stocks, higher-low **COMPRESSION**, **PRE-CROSS READY** and **AWAITING NEXT OPEN** remain WATCH until there is a completed, executable entry. A live technical setup requires at least **2.0R**, liquidity and a manual earnings check.
+        - For stocks, higher-low **COMPRESSION**, **PRE-CROSS READY**, **AWAITING NEXT OPEN** and daily breakouts remain WATCH until a current Kraken Funded buy/sell quote is manually verified. Stocks trade 24/7 on Kraken Funded.
+        - Funded breakout confirmation requires resistance tests, a constructive base, >=1.35x volume, rising 180/200-day averages, RSI 50–75, positive relative strength, and a credible projected 2R+ plan. The target is a **projection**, not an assured resistance exit.
         - **RECLAIM NEEDED / EARLY** remains WATCH until confirmation actually arrives.
         - Maximum combined planned open risk remains **$10** so most of the $30 failure buffer stays unused.
         - Position size is calculated from **entry → invalidation/stop**, capped at **35% of current entered equity**.
@@ -985,54 +1137,129 @@ if "funded_scan_time" not in st.session_state:
 
 scan_col, note_col = st.columns([1, 2.2], vertical_alignment="center")
 with scan_col:
+    run_stock_scan = st.button(
+        "📈 Scan stocks only", type="primary",
+        use_container_width=True, key="scan_kraken_funded_stocks_only",
+    )
     run_funded_scan = st.button(
-        "🔄 Scan Kraken Funded universe",
-        type="primary",
+        "🔄 Scan all funded assets",
         use_container_width=True,
         key="scan_kraken_funded_universe",
     )
 with note_col:
     st.caption(
-        "Runs all funded stocks and coins through the current CL Signal rule engines, "
-        "then keeps the results loaded while you move between tabs."
+        "Scan stocks only for a faster, focused review. Scan all retains the "
+        "existing combined stocks and crypto workflow."
     )
 
-if run_funded_scan:
+if run_stock_scan or run_funded_scan:
     with st.spinner("Scanning all Kraken Funded stocks…"):
         try:
             st.session_state["funded_stock_live_scan"] = scan_funded_stocks_live()
         except Exception as exc:
             st.session_state["funded_stock_live_scan"] = pd.DataFrame()
             st.error(f"Stock scan failed: {type(exc).__name__}")
-    with st.spinner("Scanning all Kraken Funded crypto…"):
-        try:
-            st.session_state["funded_crypto_live_scan"] = scan_funded_crypto_live()
-        except Exception as exc:
-            st.session_state["funded_crypto_live_scan"] = pd.DataFrame()
-            st.error(f"Crypto scan failed: {type(exc).__name__}")
-    st.session_state["funded_scan_time"] = pd.Timestamp.now(tz="Europe/London").strftime("%d %b %Y %H:%M")
-    if (not st.session_state["funded_stock_live_scan"].empty
-            and not st.session_state["funded_crypto_live_scan"].empty):
-        st.success("Funded stock and crypto scans completed. Check unavailable rows before trading.")
+    if run_funded_scan:
+        with st.spinner("Scanning all Kraken Funded crypto…"):
+            try:
+                st.session_state["funded_crypto_live_scan"] = scan_funded_crypto_live()
+            except Exception as exc:
+                st.session_state["funded_crypto_live_scan"] = pd.DataFrame()
+                st.error(f"Crypto scan failed: {type(exc).__name__}")
+    stamp = pd.Timestamp.now(tz="Europe/London").strftime("%d %b %Y %H:%M")
+    st.session_state["funded_stock_scan_time"] = stamp
+    if run_funded_scan:
+        st.session_state["funded_scan_time"] = stamp
+        if (not st.session_state["funded_stock_live_scan"].empty
+                and not st.session_state["funded_crypto_live_scan"].empty):
+            st.success("Full funded scan completed; inspect data gaps before trading.")
+        else:
+            st.warning("At least one scan failed; older prepared results may be displayed.")
+    elif not st.session_state["funded_stock_live_scan"].empty:
+        st.success("Stock scan complete; crypto was not rescanned.")
     else:
-        st.warning("At least one scan failed or returned no data; the page may show prepared, older results.")
+        st.warning("Stock scan did not return data; no new stock signals are verified.")
 
+if st.session_state.get("funded_stock_scan_time"):
+    st.caption(f"Last stock scan: **{st.session_state['funded_stock_scan_time']}**")
 if st.session_state.get("funded_scan_time"):
     st.caption(f"Last full funded scan: **{st.session_state['funded_scan_time']}**")
+
+with st.expander("📈 Stocks — verify a live entry before BUY", expanded=False):
+    live_for_quote = st.session_state.get("funded_stock_live_scan", pd.DataFrame())
+    pending = []
+    if isinstance(live_for_quote, pd.DataFrame) and not live_for_quote.empty:
+        for _, item in live_for_quote.iterrows():
+            if str(item.get("Technical state")) in {"ENTRY READY", "FUNDED BREAKOUT PENDING OPEN"}:
+                pending.append(str(item.get("Ticker")))
+    st.caption(
+        "Kraken Funded stocks can trade 24/7. Enter current BUY and SELL quotes "
+        "from the Kraken Funded app. Spread must not exceed 0.60%. "
+        "Quote confirmation expires after ten minutes; this is not an order."
+    )
+    chosen = st.selectbox(
+        "Candidate", options=["— select candidate —"] + sorted(set(pending)),
+        key="funded_stock_quote_ticker",
+    )
+    quote = st.number_input(
+        "Current Kraken Funded BUY price ($)",
+        min_value=0.0, step=0.10, format="%.4f", key="funded_stock_quote_input",
+    )
+    sell_quote = st.number_input(
+        "Current Kraken Funded SELL price ($)",
+        min_value=0.0, step=0.10, format="%.4f",
+        key="funded_stock_sell_quote_input",
+    )
+    spread_ok, spread_pct, reason = funded_stock_spread_gate(quote, sell_quote)
+    st.caption(
+        f"Current quoted spread: {spread_pct:.3f}%"
+        if np.isfinite(spread_pct) else "Current quoted spread: —"
+    )
+    confirmed = st.checkbox(
+        "I checked this quote just now in the funded trading platform",
+        key="funded_stock_quote_confirmed",
+    )
+    if st.button("Validate stock entry", key="funded_stock_quote_button"):
+        if chosen == "— select candidate —" or not confirmed:
+            st.warning("Select a candidate and confirm both prices are current.")
+        elif not spread_ok:
+            st.warning(reason)
+        else:
+            st.session_state["funded_stock_confirmed_quote"] = {
+                "ticker": chosen, "price": float(quote),
+                "sell_price": float(sell_quote),
+                "verified_at": pd.Timestamp.now(tz="UTC").isoformat(),
+            }
+            st.success("Quote accepted for entry checks; no order has been placed.")
+    record = st.session_state.get("funded_stock_confirmed_quote") or {}
+    if record.get("ticker"):
+        st.caption(
+            f"Last checked: {record.get('ticker')} BUY ${float(record.get('price')):.4f}, "
+            f"SELL ${float(record.get('sell_price', 0)):.4f}. "
+            "Recheck both prices before trading."
+        )
+
+st.warning(
+    "Kraken Funded supports 24/7 stock trading and no advanced order types. "
+    "Stops are manual invalidation/exit levels, NOT guaranteed stop-loss orders. "
+    "Sharp moves and wide spreads can exceed $3/$4 planned risk."
+)
 
 stock_tab, crypto_tab = st.tabs(["📈 Stocks", "⚡ Crypto"])
 
 with stock_tab:
     live_stocks = st.session_state.get("funded_stock_live_scan", pd.DataFrame())
     stocks = live_stocks.copy() if isinstance(live_stocks, pd.DataFrame) and not live_stocks.empty else load_funded_stock_rows()
-    # Re-evaluate manual risk and earnings inputs on EVERY rerun, without new network calls.
+    # Re-evaluate manual risk, verified LIVE quotes and earnings every rerun.
     if isinstance(live_stocks, pd.DataFrame) and not live_stocks.empty:
+        stocks = _apply_verified_stock_quote(stocks)
         stocks["Funded status"] = stocks.apply(funded_stock_status, axis=1)
         risk_plans = [
-            funded_position_plan(
+            funded_stock_position_plan(
                 row.get("Entry"), row.get("Stop"),
                 FUNDED_STANDARD_RISK_USD if row["Funded status"] == "🟢 A+ FUNDED READY"
                 else FUNDED_REDUCED_RISK_USD,
+                row.get("Verified spread %"),
             ) if row["Funded status"] in {"🟢 A+ FUNDED READY", "🟢 FUNDED READY"}
             else (np.nan, np.nan, np.nan)
             for _, row in stocks.iterrows()
@@ -1081,9 +1308,36 @@ with stock_tab:
     elif stock_filter == "Data unavailable":
         shown = shown[shown["Funded status"] == "⚪ DATA UNAVAILABLE"]
 
+    # Actionable candidates first, followed by developing compression patterns.
+    # Preserve all rows and avoid changing their calculated statuses.
+    rank = {
+        "🟢 A+ FUNDED READY": 0,
+        "🟢 FUNDED READY": 1,
+        "🟡 FUNDED WATCH · VERIFY LIVE ENTRY": 2,
+        "🟡 FUNDED WATCH · RECONFIRM LIVE PRICE": 2,
+        "🟡 FUNDED WATCH · NEXT OPEN": 3,
+        "🟡 FUNDED WATCH · PRE-CROSS": 3,
+        "🟡 FUNDED WATCH · COMPRESSION": 4,
+        "🟡 FUNDED WATCH · DEVELOPING": 5,
+        "🟡 FUNDED WATCH · BREAKOUT REVIEW": 6,
+        "⚪ NO CURRENT SETUP": 8,
+        "⚪ DATA UNAVAILABLE": 9,
+    }
+    shown["_rank"] = shown["Funded status"].map(rank).fillna(7)
+    shown["_distance"] = pd.to_numeric(shown.get("To resistance %"), errors="coerce").abs()
+    shown["_score"] = pd.to_numeric(shown.get("Technical score"), errors="coerce")
+    shown = shown.sort_values(
+        ["_rank", "_distance", "_score"],
+        ascending=[True, True, False], na_position="last",
+    )
+
     stock_cols = [
         "Funded status", "CL Signal", "Ticker", "Fundamentals", "Fundamental note",
-        "Earnings check", "Gate", "Pre-cross blocker", "Technical score", "To resistance %", "MACD",
+        "Earnings check", "Gate", "Pre-cross blocker", "Technical score",
+        "To resistance %", "Resistance", "Breakout volume ×", "Breakout tests",
+        "Breakout date", "Reference entry", "Reference stop", "Reference target",
+        "Reference R:R", "Target basis", "Verified quote time", "Verified spread %",
+        "Spread-adjusted R:R", "MACD",
         "RSI", "Liquidity", "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
     ]
     st.dataframe(
@@ -1119,8 +1373,10 @@ with stock_tab:
         })
         st.dataframe(breakdown, hide_index=True, use_container_width=True)
     st.caption(
-        "A+ READY uses about $4 planned risk at 2.5R+. READY uses about $3 risk at 2.0R+ with stronger confirmation. "
-        "For stocks, a WATCH may upgrade only with confirmed MACD, constructive RSI, valid liquidity and risk plan. WATCH/PASS states never receive live sizing."
+        "Funded stock sizing reserves at least 0.50% of notional for spread/slippage, "
+        "and uses verified Kraken buy/sell quotes for a conservative R:R. "
+        "A+ = $4 modeled loss at 2.5R+; READY = $3 modeled loss at 2R+. "
+        "These are not guaranteed stop losses: Kraken Funded exits are manual."
     )
 
 with crypto_tab:
