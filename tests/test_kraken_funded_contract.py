@@ -125,6 +125,10 @@ class FundedRulesTests(unittest.TestCase):
         self.assertEqual(self.stock(**{"Technical state": "PRE-CROSS READY"}),
                          "🟡 FUNDED WATCH · PRE-CROSS")
 
+    def test_compression_discovery_is_watch_only(self):
+        self.assertEqual(self.stock(**{"Technical state": "FUNDED TREND WATCH"}),
+                         "🟡 FUNDED WATCH · COMPRESSION")
+
     def test_daily_stock_earnings_window_veto(self):
         self.assertEqual(self.stock(**{"Earnings check": "WITHIN 5 SESSIONS"}),
                          "🔴 FUNDED PASS · EARNINGS WINDOW")
