@@ -7,7 +7,7 @@ results are deliberately labelled *TECHNICAL ONLY*, not production-ready.
 from __future__ import annotations
 
 from collections import Counter, defaultdict
-from dataclasses import dataclass
+import json
 import math
 import numpy as np
 import pandas as pd
@@ -79,6 +79,8 @@ def signal_candidates(histories, benchmark, first_date=None):
         qualified_breakout = 0
         liquidity_rejections = 0
         full_rule_rejections = Counter()
+        individual_gate_hits = Counter()
+        breakout_suppressed_by_core = 0
         for i in np.flatnonzero(plausible.to_numpy()):
             if i < MIN_HISTORY or i >= len(data) - 1:
                 continue
@@ -105,6 +107,7 @@ def signal_candidates(histories, benchmark, first_date=None):
                 zone_top = _finite(core.get("zone_high"))
                 if not all(math.isfinite(v) for v in (stop, target, ref, atr, zone_top)):
                     full_rule_rejections["CORE PLAN NOT FINITE"] += 1
+                    individual_gate_hits["CORE: PLAN NOT FINITE"] += 1
                     continue
                 plan = {"reference_entry": ref, "reference_stop": stop,
                         "reference_target": target, "atr": atr,
@@ -112,14 +115,20 @@ def signal_candidates(histories, benchmark, first_date=None):
             elif core.get("technical_state") == "BLOCKED" and bool(breakout_prefilter.iloc[i]):
                 brk = evaluate_funded_breakout(past, past_benchmark)
                 if brk is None or brk.get("technical_state") != "FUNDED BREAKOUT PENDING OPEN":
-                    full_rule_rejections[
-                        ("BREAKOUT: " + str(brk.get("technical_reason", "NOT DETECTED")))
-                        if brk else "BREAKOUT: NOT DETECTED"
-                    ] += 1
+                    reason_text = (
+                        str(brk.get("technical_reason", "NOT DETECTED"))
+                        if brk else "NOT DETECTED"
+                    )
+                    full_rule_rejections["BREAKOUT: " + reason_text] += 1
+                    # Each breakout evaluation can fail several independent
+                    # safety gates; count EACH one, not their combined string.
+                    for veto in {x.strip() for x in reason_text.split(";") if x.strip()}:
+                        individual_gate_hits["BREAKOUT: " + veto] += 1
                     continue
                 score = _finite(brk.get("technical_score"))
                 if not math.isfinite(score) or score < 75:
                     full_rule_rejections["BREAKOUT QUALITY SCORE BELOW 75"] += 1
+                    individual_gate_hits["BREAKOUT: QUALITY SCORE BELOW 75"] += 1
                     continue
                 route = "FUNDED BREAKOUT"
                 plan = {
@@ -130,9 +139,14 @@ def signal_candidates(histories, benchmark, first_date=None):
                     "signal_date": date,
                 }
             else:
-                full_rule_rejections[
-                    "CORE: " + str(core.get("technical_reason", "NO CONFIRMED SETUP"))
-                ] += 1
+                failure = "CORE: " + str(core.get("technical_reason", "NO CONFIRMED SETUP"))
+                full_rule_rejections[failure] += 1
+                individual_gate_hits[failure] += 1
+                if bool(breakout_prefilter.iloc[i]) and core.get("technical_state") != "BLOCKED":
+                    # Mirrors the LIVE priority path: an existing core WATCH
+                    # can prevent a parallel breakout evaluation. Report this
+                    # separately rather than incorrectly call it a failed gate.
+                    breakout_suppressed_by_core += 1
                 continue
 
             turnover = float((past["Close"] * past["Volume"]).tail(20).median())
@@ -157,6 +171,9 @@ def signal_candidates(histories, benchmark, first_date=None):
             "Breakout trigger sessions": breakout_trigger_count,
             "Full-rule rejections": sum(full_rule_rejections.values()),
             "Top rule blocker": full_rule_rejections.most_common(1)[0][0] if full_rule_rejections else "",
+            "Top individual gate": individual_gate_hits.most_common(1)[0][0] if individual_gate_hits else "",
+            "Individual gate hits JSON": json.dumps(dict(individual_gate_hits), sort_keys=True),
+            "Breakouts bypassed due to core WATCH": breakout_suppressed_by_core,
             "Liquidity rejections": liquidity_rejections,
             "Qualified core signals": qualified_core,
             "Qualified breakout signals": qualified_breakout,
@@ -168,6 +185,61 @@ def signal_candidates(histories, benchmark, first_date=None):
     return found, pd.DataFrame(diagnostics)
 
 
+def summarize_individual_rule_gates(diagnostics):
+    """Aggregate actual rejection gate hits rather than per-symbol modal labels.
+
+    One rejected breakout can fail several gates, so totals can exceed the
+    number of rejected candidate sessions. Core states report their FIRST
+    blocker only, because the underlying core evaluator returns early.
+    """
+    if diagnostics is None or diagnostics.empty:
+        return pd.DataFrame(columns=[
+            "Route", "Failed condition", "Signal sessions affected",
+            "% of all candidate sessions", "Stocks affected",
+        ])
+    total_sessions = int(pd.to_numeric(
+        diagnostics.get("Candidate sessions", pd.Series(dtype=float)),
+        errors="coerce",
+    ).fillna(0).sum())
+    totals = Counter()
+    stocks = defaultdict(set)
+    for _, item in diagnostics.iterrows():
+        ticker = str(item.get("Ticker", ""))
+        try:
+            gates = json.loads(str(item.get("Individual gate hits JSON") or "{}"))
+        except (TypeError, ValueError, json.JSONDecodeError):
+            gates = {}
+        if not isinstance(gates, dict):
+            continue
+        for gate, count in gates.items():
+            if not isinstance(gate, str) or not gate:
+                continue
+            try:
+                hits = int(count)
+            except (ValueError, TypeError, OverflowError):
+                continue
+            if hits <= 0:
+                continue
+            totals[gate] += hits
+            stocks[gate].add(ticker)
+    output = []
+    for gate, count in totals.most_common():
+        route, _, reason = gate.partition(": ")
+        output.append({
+            "Route": route,
+            "Failed condition": reason or gate,
+            "Signal sessions affected": count,
+            "% of all candidate sessions": round(
+                count * 100 / total_sessions, 2,
+            ) if total_sessions else 0,
+            "Stocks affected": len(stocks[gate]),
+        })
+    return pd.DataFrame(output, columns=[
+        "Route", "Failed condition", "Signal sessions affected",
+        "% of all candidate sessions", "Stocks affected",
+    ])
+
+
 def summarize_backtest_funnel(diagnostics, result):
     """Make a one-row scenario summary self-explanatory when trades are zero."""
     metrics = dict(result["metrics"])
@@ -176,6 +248,7 @@ def summarize_backtest_funnel(diagnostics, result):
             "Candidate sessions", "Core trigger sessions", "Breakout trigger sessions",
             "Full-rule rejections", "Liquidity rejections",
             "Qualified core signals", "Qualified breakout signals",
+            "Breakouts bypassed due to core WATCH",
         )
         for name in metric_fields:
             metrics[name] = int(
