@@ -15,6 +15,7 @@ import yfinance as yf
 
 from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
+from funded_stock_data import get_validated_stock_history
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -321,10 +322,21 @@ def scan_funded_stocks_live() -> pd.DataFrame:
     benchmark = _extract_yahoo_frame(benchmark_raw, "^GSPC")
     if benchmark is None:
         benchmark = benchmark_raw
-    prices = yf.download(
-        KRAKEN_FUNDED_STOCKS, period="3y", interval="1d", group_by="ticker",
-        auto_adjust=False, threads=True, progress=False,
-    )
+    try:
+        prices = yf.download(
+            KRAKEN_FUNDED_STOCKS, period="3y", interval="1d", group_by="ticker",
+            auto_adjust=False, threads=True, progress=False,
+        )
+    except Exception:
+        # Every ticker will be checked through a separate source request below.
+        prices = pd.DataFrame()
+    scan_now = pd.Timestamp.now(tz="America/New_York")
+
+    def retry_stock(symbol):
+        return yf.download(
+            symbol, period="3y", interval="1d", auto_adjust=False,
+            threads=False, progress=False,
+        )
     rows = []
     for symbol in KRAKEN_FUNDED_STOCKS:
         fundamental = fundamentals.get(symbol, {})
@@ -338,18 +350,17 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Scan source": "LIVE",
             "scanned_at": pd.Timestamp.now(tz="UTC").isoformat(),
         }
-        frame = _extract_yahoo_frame(prices, symbol)
-        if frame is None or len(frame.dropna(subset=["Close", "Volume"])) < 252:
-            rows.append({**basic, "Technical state": "DATA UNAVAILABLE",
-                         "Gate": "INSUFFICIENT PRICE HISTORY",
-                         "Funded status": "⚪ DATA UNAVAILABLE"})
+        frame, data_source, data_gate = get_validated_stock_history(
+            prices, symbol, retry_stock, scan_now,
+        )
+        if frame is None:
+            rows.append({
+                **basic, "Technical state": "DATA UNAVAILABLE",
+                "Gate": data_gate, "Price source": data_source,
+                "Funded status": "⚪ DATA UNAVAILABLE",
+                "CL Signal": "⚪ DATA UNAVAILABLE",
+            })
             continue
-        # Yahoo daily bars may include today's unfinished US session. Never
-        # promote an incomplete daily crossover to an executable trade.
-        ny_now = pd.Timestamp.now(tz="America/New_York")
-        last_bar_date = pd.Timestamp(frame.index[-1]).date()
-        if last_bar_date == ny_now.date() and (ny_now.hour < 16 or (ny_now.hour == 16 and ny_now.minute < 15)):
-            frame = frame.iloc[:-1]
         technical = evaluate_price_setup(frame, benchmark)
         # Same Wilder RSI as the core engine, available even for WATCH/BLOCKED.
         current_rsi = safe_number(_wilder_rsi(pd.to_numeric(frame["Close"], errors="coerce"), 14).iloc[-1])
@@ -365,6 +376,8 @@ def scan_funded_stocks_live() -> pd.DataFrame:
         turnover_usd = float((clean["Close"] * clean["Volume"]).tail(20).median())
         row = {
             **basic, "Technical state": technical.get("technical_state"),
+            "Price source": data_source,
+            "Last completed bar": str(pd.Timestamp(frame.index[-1]).date()),
             "CL Signal": technical.get("technical_state", "—"),
             "Gate": technical.get("technical_reason"),
             "MACD progress": technical.get("macd_progress"),
@@ -1333,7 +1346,8 @@ with stock_tab:
 
     stock_cols = [
         "Funded status", "CL Signal", "Ticker", "Fundamentals", "Fundamental note",
-        "Earnings check", "Gate", "Pre-cross blocker", "Technical score",
+        "Earnings check", "Price source", "Last completed bar",
+        "Gate", "Pre-cross blocker", "Technical score",
         "To resistance %", "Resistance", "Breakout volume ×", "Breakout tests",
         "Breakout date", "Reference entry", "Reference stop", "Reference target",
         "Reference R:R", "Target basis", "Verified quote time", "Verified spread %",
