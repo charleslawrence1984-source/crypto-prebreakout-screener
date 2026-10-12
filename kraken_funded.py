@@ -17,7 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
-from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel
+from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1649,6 +1649,28 @@ with stock_tab:
                         data=data.to_csv(index=False), file_name=filename,
                         mime="text/csv", key="funded_export_" + key,
                     )
+            gate_breakdown = summarize_individual_rule_gates(
+                history_result["diagnostics"]
+            )
+            st.markdown("**Why historical setups fail — individual rules**")
+            st.caption(
+                "Exact historical gate-hit totals. A breakout can fail multiple "
+                "conditions, so rows do NOT sum to the total rejected sessions. "
+                "For the core RSI/MACD engine, only the FIRST blocker is shown. "
+                "These are research diagnostics, not adjustments to entry rules."
+            )
+            if gate_breakdown.empty:
+                st.caption("No historical full-rule rejection counts recorded.")
+            else:
+                st.dataframe(
+                    gate_breakdown, hide_index=True, use_container_width=True,
+                )
+                st.download_button(
+                    "Download individual rule rejection counts CSV",
+                    data=gate_breakdown.to_csv(index=False),
+                    file_name="funded_stock_backtest_rule_rejections.csv",
+                    mime="text/csv", key="funded_stock_backtest_gate_export",
+                )
             st.markdown("**Historical signal funnel and data coverage**")
             st.caption(
                 "Trigger sessions show the raw RSI/MACD or resistance-cross events. "
