@@ -81,6 +81,7 @@ def signal_candidates(histories, benchmark, first_date=None):
         full_rule_rejections = Counter()
         individual_gate_hits = Counter()
         breakout_suppressed_by_core = 0
+        breakout_plan_observations = []
         for i in np.flatnonzero(plausible.to_numpy()):
             if i < MIN_HISTORY or i >= len(data) - 1:
                 continue
@@ -114,6 +115,41 @@ def signal_candidates(histories, benchmark, first_date=None):
                         "zone_top": zone_top, "signal_date": date}
             elif core.get("technical_state") == "BLOCKED" and bool(breakout_prefilter.iloc[i]):
                 brk = evaluate_funded_breakout(past, past_benchmark)
+                if brk is not None:
+                    brk_reasons = {
+                        x.strip() for x in str(brk.get("technical_reason", "")).split(";")
+                        if x.strip()
+                    } if brk.get("technical_state") != "FUNDED BREAKOUT PENDING OPEN" else set()
+                    ref_entry = _finite(brk.get("reference_entry"))
+                    ref_stop = _finite(brk.get("reference_stop"))
+                    ref_target = _finite(brk.get("reference_target"))
+                    stop_pct = (
+                        (ref_entry - ref_stop) / ref_entry * 100
+                        if math.isfinite(ref_entry) and ref_entry > 0 and math.isfinite(ref_stop)
+                        else math.nan
+                    )
+                    upside_pct = (
+                        (ref_target - ref_entry) / ref_entry * 100
+                        if math.isfinite(ref_entry) and ref_entry > 0 and math.isfinite(ref_target)
+                        else math.nan
+                    )
+                    breakout_plan_observations.append({
+                        "Ticker": symbol,
+                        "Signal date": str(date.date()),
+                        "Technical state": str(brk.get("technical_state") or ""),
+                        "Projected R:R": _finite(brk.get("reference_reward_risk")),
+                        "Projected stop %": round(stop_pct, 3) if math.isfinite(stop_pct) else None,
+                        "Projected upside %": round(upside_pct, 3) if math.isfinite(upside_pct) else None,
+                        "Technical score": _finite(brk.get("technical_score")),
+                        "Other gates failed": len(brk_reasons - {
+                            "PROJECTED R:R BELOW 2",
+                            "STRUCTURAL STOP OUTSIDE 0.4–8%",
+                        }),
+                        "R:R failed": "PROJECTED R:R BELOW 2" in brk_reasons,
+                        "Stop-distance failed": "STRUCTURAL STOP OUTSIDE 0.4–8%" in brk_reasons,
+                        "Resistance-test failed": "RESISTANCE NOT TESTED TWICE" in brk_reasons,
+                        "All technical gates passed": not brk_reasons,
+                    })
                 if brk is None or brk.get("technical_state") != "FUNDED BREAKOUT PENDING OPEN":
                     reason_text = (
                         str(brk.get("technical_reason", "NOT DETECTED"))
@@ -174,6 +210,9 @@ def signal_candidates(histories, benchmark, first_date=None):
             "Top individual gate": individual_gate_hits.most_common(1)[0][0] if individual_gate_hits else "",
             "Individual gate hits JSON": json.dumps(dict(individual_gate_hits), sort_keys=True),
             "Breakouts bypassed due to core WATCH": breakout_suppressed_by_core,
+            "Breakout plan observations JSON": json.dumps(
+                breakout_plan_observations, allow_nan=False,
+            ),
             "Liquidity rejections": liquidity_rejections,
             "Qualified core signals": qualified_core,
             "Qualified breakout signals": qualified_breakout,
@@ -238,6 +277,72 @@ def summarize_individual_rule_gates(diagnostics):
         "Route", "Failed condition", "Signal sessions affected",
         "% of all candidate sessions", "Stocks affected",
     ])
+
+
+def breakout_plan_research(diagnostics):
+    """Historical diagnostic observations, not an alternative trading strategy.
+
+    Uses only completed signal-date bars. Records separate stop/R:R failures
+    and co-occurring vetoes without adjusting any actual entry conditions.
+    """
+    columns = [
+        "Ticker", "Signal date", "Technical state", "Projected R:R",
+        "Projected stop %", "Projected upside %", "Technical score",
+        "Other gates failed", "R:R failed", "Stop-distance failed",
+        "Resistance-test failed", "All technical gates passed",
+    ]
+    rows = []
+    if isinstance(diagnostics, pd.DataFrame) and not diagnostics.empty:
+        for _, stock in diagnostics.iterrows():
+            try:
+                events = json.loads(str(stock.get("Breakout plan observations JSON") or "[]"))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                events = []
+            if isinstance(events, list):
+                rows.extend(
+                    {key: item.get(key) for key in columns}
+                    for item in events if isinstance(item, dict)
+                )
+    return pd.DataFrame(rows, columns=columns)
+
+
+def summarize_breakout_plan_research(details):
+    """Summarize veto co-occurrence; never infer improved profitability."""
+    if details is None or details.empty:
+        return pd.DataFrame(columns=["Measure", "Value", "Interpretation"])
+    frame = details.copy()
+    rr_fail = frame["R:R failed"].fillna(False).astype(bool)
+    stop_fail = frame["Stop-distance failed"].fillna(False).astype(bool)
+    other = pd.to_numeric(frame["Other gates failed"], errors="coerce").fillna(999)
+    stopped = pd.to_numeric(frame["Projected stop %"], errors="coerce")
+    reward = pd.to_numeric(frame["Projected R:R"], errors="coerce")
+    upside = pd.to_numeric(frame["Projected upside %"], errors="coerce")
+    def median_or_none(series):
+        values = series.replace([np.inf, -np.inf], np.nan).dropna()
+        return round(float(values.median()), 2) if len(values) else "N/A"
+    observations = [
+        ("Breakout plans evaluated", len(frame),
+         "Completed-bar breakout checks actually evaluated; may exclude core-prioritised events"),
+        ("R:R failed with no other gates failing", int((rr_fail & ~stop_fail & (other == 0)).sum()),
+         "Would meet all other technical gates except projected R:R"),
+        ("Stop-distance failed with no other gates failing", int((~rr_fail & stop_fail & (other == 0)).sum()),
+         "Would meet all other technical gates except stop-distance"),
+        ("Only R:R and/or stop-distance failed", int(((rr_fail | stop_fail) & (other == 0)).sum()),
+         "Hypothetical research pool before quote, earnings or broker risk checks"),
+        ("R:R failed alongside additional non-plan gates", int((rr_fail & (other > 0)).sum()),
+         "Removing the projected R:R veto alone would not qualify these"),
+        ("Stop wider than 8%", int((stopped > 8).sum()),
+         "Wide structural stops (risk constraint)"),
+        ("Stop tighter than 0.4%", int((stopped < 0.4).sum()),
+         "Stops too close to entry"),
+        ("Median projected R:R", median_or_none(reward),
+         "Statistical description only; not a trade recommendation"),
+        ("Median projected stop %", median_or_none(stopped),
+         "Structural stop distance"),
+        ("Median projected upside %", median_or_none(upside),
+         "Measured-move target projection before costs"),
+    ]
+    return pd.DataFrame(observations, columns=["Measure", "Value", "Interpretation"])
 
 
 def summarize_backtest_funnel(diagnostics, result):
