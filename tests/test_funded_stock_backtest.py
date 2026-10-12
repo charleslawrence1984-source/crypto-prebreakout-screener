@@ -9,8 +9,10 @@ from funded_stock_backtest import (
     _entry_plan, _exit_on_bar, signal_candidates, simulate_portfolio,
     summarize_backtest_funnel, summarize_individual_rule_gates,
     breakout_plan_research, summarize_breakout_plan_research,
+    simulate_shadow_breakout_stops, summarize_shadow_breakout_stops,
 )
 from test_funded_stock_breakout import sample_bars
+from funded_stock_breakout import evaluate_funded_breakout
 
 
 def signal(dates, ticker="AAPL"):
@@ -320,6 +322,102 @@ class FundedStockBacktestTests(unittest.TestCase):
         ])
         self.assertTrue(breakout_plan_research(data).empty)
         self.assertTrue(summarize_breakout_plan_research(pd.DataFrame()).empty)
+
+    @staticmethod
+    def _shadow_case():
+        dates = pd.bdate_range("2025-09-01", periods=5)
+        market = pd.DataFrame({
+            "Open": [100.0] * 5, "High": [101.0] * 5,
+            "Low": [99.0] * 5, "Close": [100.0] * 5,
+            "Volume": [2000000] * 5,
+        }, index=dates)
+        details = pd.DataFrame([{
+            "Ticker": "AAPL", "Signal date": str(dates[0].date()),
+            "Projected R:R": 0.8, "Technical score": 100.0,
+            "Other gates failed": 0, "R:R failed": True,
+            "Stop-distance failed": True,
+            "Reference entry": 100.0, "Reference stop": 88.0,
+            "Reference target": 120.0, "Resistance": 99.6,
+            "Support stop": 94.0, "Retest stop": 98.0,
+        }])
+        return {"AAPL": market}, details, dates
+
+    def test_shadow_research_keeps_original_rejected_and_alternates_eligible(self):
+        hist, details, dates = self._shadow_case()
+        hist["AAPL"].loc[dates[2], ["High", "Low", "Close"]] = [121, 99, 120]
+        output = simulate_shadow_breakout_stops(
+            hist, details, holding_sessions=4, friction_pct=0.5,
+        )
+        self.assertEqual(len(output), 3)
+        original = output[output["Stop method"].str.startswith("APPROVED")].iloc[0]
+        self.assertEqual(original["Status"], "STOP OUTSIDE APPROVED 0.4–8%")
+        alternates = output[output["Stop method"].str.contains("research")]
+        self.assertEqual(len(alternates), 2)
+        self.assertTrue(alternates["Status"].eq("COMPLETED").all())
+        self.assertTrue(alternates["Exit reason"].eq("TARGET").all())
+        self.assertTrue((alternates["Realized R"] > 2).all())
+        summary = summarize_shadow_breakout_stops(output)
+        self.assertEqual(summary["Completed outcomes"].sum(), 2)
+        self.assertEqual(summary["Targets hit"].sum(), 2)
+
+    def test_shadow_assumes_stop_before_target_when_both_hit(self):
+        hist, details, dates = self._shadow_case()
+        hist["AAPL"].loc[dates[2], ["High", "Low", "Close"]] = [121, 93, 106]
+        output = simulate_shadow_breakout_stops(hist, details, holding_sessions=4)
+        alternatives = output[output["Stop method"].str.contains("research")]
+        self.assertTrue(alternatives["Status"].eq("COMPLETED").all())
+        self.assertTrue(
+            alternatives["Exit reason"].str.startswith("STOP").all()
+        )
+        self.assertTrue((alternatives["Realized R"] < 0).all())
+
+    def test_shadow_censors_when_full_forward_horizon_not_observed(self):
+        hist, details, dates = self._shadow_case()
+        output = simulate_shadow_breakout_stops(hist, details, holding_sessions=20)
+        alternatives = output[output["Stop method"].str.contains("research")]
+        self.assertTrue(
+            alternatives["Status"].eq("OPEN / INCOMPLETE OUTCOME").all()
+        )
+        self.assertTrue(alternatives["Realized R"].isna().all())
+        grouped = summarize_shadow_breakout_stops(output)
+        self.assertEqual(grouped["Completed outcomes"].sum(), 0)
+        self.assertEqual(grouped["Censored open"].sum(), 2)
+
+    def test_shadow_rejects_next_open_gap_even_for_better_stops(self):
+        hist, details, dates = self._shadow_case()
+        hist["AAPL"].loc[dates[1], ["Open", "High", "Low", "Close"]] = [
+            105, 106, 104, 105,
+        ]
+        output = simulate_shadow_breakout_stops(hist, details, holding_sessions=4)
+        self.assertTrue(output["Status"].eq("ENTRY GAP OR RESISTANCE LOST").all())
+        self.assertEqual(
+            summarize_shadow_breakout_stops(output)["Completed outcomes"].sum(), 0,
+        )
+
+    def test_shadow_rejects_nonplan_gate_failures_and_bad_assumptions(self):
+        hist, details, dates = self._shadow_case()
+        details.loc[0, "Other gates failed"] = 1
+        self.assertTrue(simulate_shadow_breakout_stops(hist, details).empty)
+        details.loc[0, "Other gates failed"] = 0
+        details.loc[0, "Technical score"] = 50
+        self.assertTrue(simulate_shadow_breakout_stops(hist, details).empty)
+        details.loc[0, "Technical score"] = 100
+        with self.assertRaises(ValueError):
+            simulate_shadow_breakout_stops(hist, details, friction_pct=0)
+        with self.assertRaises(ValueError):
+            simulate_shadow_breakout_stops(hist, details, holding_sessions=1)
+
+    def test_shadow_stops_only_use_completed_signal_bar_levels(self):
+        bars, benchmark = sample_bars()
+        result = evaluate_funded_breakout(bars, benchmark)
+        self.assertIn("research_stop_support", result)
+        self.assertIn("research_stop_retest", result)
+        self.assertAlmostEqual(
+            result["reference_stop"],
+            round(min(
+                result["research_stop_support"], result["research_stop_retest"],
+            ), 4), places=4,
+        )
 
     def test_zero_candidates_summary_stays_honest(self):
         result = simulate_portfolio({"AAPL": make_prices()}, [])
