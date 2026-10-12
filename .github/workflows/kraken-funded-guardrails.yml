@@ -1,0 +1,26 @@
+name: Kraken Funded guardrail checks
+
+on:
+  push:
+    paths:
+      - "kraken_funded.py"
+      - "tests/test_kraken_funded_contract.py"
+      - ".github/workflows/kraken-funded-guardrails.yml"
+  pull_request:
+    paths:
+      - "kraken_funded.py"
+      - "tests/test_kraken_funded_contract.py"
+      - ".github/workflows/kraken-funded-guardrails.yml"
+
+jobs:
+  funded-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Kraken Funded module
+        run: python -m py_compile kraken_funded.py
+      - name: Run isolated production-rules regression tests
+        run: python -m unittest discover -s tests -p test_kraken_funded_contract.py -v
