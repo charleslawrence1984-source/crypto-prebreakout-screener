@@ -799,7 +799,7 @@ def load_funded_stock_rows() -> pd.DataFrame:
             state.eq("WATCH"),
         ],
         [
-            "🟢 READY",
+            "🟡 CORE SIGNAL · RECHECK LIVE",
             "🟡 WATCH",
         ],
         default="⚪ NO CURRENT SETUP",
@@ -1137,38 +1137,51 @@ if "funded_scan_time" not in st.session_state:
 
 scan_col, note_col = st.columns([1, 2.2], vertical_alignment="center")
 with scan_col:
+    run_stock_scan = st.button(
+        "📈 Scan stocks only", type="primary",
+        use_container_width=True, key="scan_kraken_funded_stocks_only",
+    )
     run_funded_scan = st.button(
-        "🔄 Scan Kraken Funded universe",
-        type="primary",
+        "🔄 Scan all funded assets",
         use_container_width=True,
         key="scan_kraken_funded_universe",
     )
 with note_col:
     st.caption(
-        "Runs all funded stocks and coins through the current CL Signal rule engines, "
-        "then keeps the results loaded while you move between tabs."
+        "Scan stocks only for a faster, focused review. Scan all retains the "
+        "existing combined stocks and crypto workflow."
     )
 
-if run_funded_scan:
+if run_stock_scan or run_funded_scan:
     with st.spinner("Scanning all Kraken Funded stocks…"):
         try:
             st.session_state["funded_stock_live_scan"] = scan_funded_stocks_live()
         except Exception as exc:
             st.session_state["funded_stock_live_scan"] = pd.DataFrame()
             st.error(f"Stock scan failed: {type(exc).__name__}")
-    with st.spinner("Scanning all Kraken Funded crypto…"):
-        try:
-            st.session_state["funded_crypto_live_scan"] = scan_funded_crypto_live()
-        except Exception as exc:
-            st.session_state["funded_crypto_live_scan"] = pd.DataFrame()
-            st.error(f"Crypto scan failed: {type(exc).__name__}")
-    st.session_state["funded_scan_time"] = pd.Timestamp.now(tz="Europe/London").strftime("%d %b %Y %H:%M")
-    if (not st.session_state["funded_stock_live_scan"].empty
-            and not st.session_state["funded_crypto_live_scan"].empty):
-        st.success("Funded stock and crypto scans completed. Check unavailable rows before trading.")
+    if run_funded_scan:
+        with st.spinner("Scanning all Kraken Funded crypto…"):
+            try:
+                st.session_state["funded_crypto_live_scan"] = scan_funded_crypto_live()
+            except Exception as exc:
+                st.session_state["funded_crypto_live_scan"] = pd.DataFrame()
+                st.error(f"Crypto scan failed: {type(exc).__name__}")
+    stamp = pd.Timestamp.now(tz="Europe/London").strftime("%d %b %Y %H:%M")
+    st.session_state["funded_stock_scan_time"] = stamp
+    if run_funded_scan:
+        st.session_state["funded_scan_time"] = stamp
+        if (not st.session_state["funded_stock_live_scan"].empty
+                and not st.session_state["funded_crypto_live_scan"].empty):
+            st.success("Full funded scan completed; inspect data gaps before trading.")
+        else:
+            st.warning("At least one scan failed; older prepared results may be displayed.")
+    elif not st.session_state["funded_stock_live_scan"].empty:
+        st.success("Stock scan complete; crypto was not rescanned.")
     else:
-        st.warning("At least one scan failed or returned no data; the page may show prepared, older results.")
+        st.warning("Stock scan did not return data; no new stock signals are verified.")
 
+if st.session_state.get("funded_stock_scan_time"):
+    st.caption(f"Last stock scan: **{st.session_state['funded_stock_scan_time']}**")
 if st.session_state.get("funded_scan_time"):
     st.caption(f"Last full funded scan: **{st.session_state['funded_scan_time']}**")
 
@@ -1295,6 +1308,29 @@ with stock_tab:
     elif stock_filter == "Data unavailable":
         shown = shown[shown["Funded status"] == "⚪ DATA UNAVAILABLE"]
 
+    # Actionable candidates first, followed by developing compression patterns.
+    # Preserve all rows and avoid changing their calculated statuses.
+    rank = {
+        "🟢 A+ FUNDED READY": 0,
+        "🟢 FUNDED READY": 1,
+        "🟡 FUNDED WATCH · VERIFY LIVE ENTRY": 2,
+        "🟡 FUNDED WATCH · RECONFIRM LIVE PRICE": 2,
+        "🟡 FUNDED WATCH · NEXT OPEN": 3,
+        "🟡 FUNDED WATCH · PRE-CROSS": 3,
+        "🟡 FUNDED WATCH · COMPRESSION": 4,
+        "🟡 FUNDED WATCH · DEVELOPING": 5,
+        "🟡 FUNDED WATCH · BREAKOUT REVIEW": 6,
+        "⚪ NO CURRENT SETUP": 8,
+        "⚪ DATA UNAVAILABLE": 9,
+    }
+    shown["_rank"] = shown["Funded status"].map(rank).fillna(7)
+    shown["_distance"] = pd.to_numeric(shown.get("To resistance %"), errors="coerce").abs()
+    shown["_score"] = pd.to_numeric(shown.get("Technical score"), errors="coerce")
+    shown = shown.sort_values(
+        ["_rank", "_distance", "_score"],
+        ascending=[True, True, False], na_position="last",
+    )
+
     stock_cols = [
         "Funded status", "CL Signal", "Ticker", "Fundamentals", "Fundamental note",
         "Earnings check", "Gate", "Pre-cross blocker", "Technical score",
@@ -1337,8 +1373,10 @@ with stock_tab:
         })
         st.dataframe(breakdown, hide_index=True, use_container_width=True)
     st.caption(
-        "A+ READY uses about $4 planned risk at 2.5R+. READY uses about $3 risk at 2.0R+ with stronger confirmation. "
-        "For stocks, a WATCH may upgrade only with confirmed MACD, constructive RSI, valid liquidity and risk plan. WATCH/PASS states never receive live sizing."
+        "Funded stock sizing reserves at least 0.50% of notional for spread/slippage, "
+        "and uses verified Kraken buy/sell quotes for a conservative R:R. "
+        "A+ = $4 modeled loss at 2.5R+; READY = $3 modeled loss at 2R+. "
+        "These are not guaranteed stop losses: Kraken Funded exits are manual."
     )
 
 with crypto_tab:
