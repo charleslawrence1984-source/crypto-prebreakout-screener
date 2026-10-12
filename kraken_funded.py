@@ -40,6 +40,7 @@ FUNDED_READY_MIN_RR = 2.0
 FUNDED_CRYPTO_READY_SCORE = 80.0
 FUNDED_MAX_POSITION_PCT = 35.0
 FUNDED_STOCK_MAX_SPREAD_PCT = 0.60
+FUNDED_STOCK_COST_BUFFER_PCT = 0.50
 
 KRAKEN_FUNDED_STOCKS = [
     "NVDA", "NFLX", "SPCX", "GOOGL", "CRCL", "AAPL", "TSLA", "MSTR", "HOOD",
@@ -392,7 +393,7 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             else FUNDED_REDUCED_RISK_USD if row["Funded status"] == "🟢 FUNDED READY"
             else np.nan
         )
-        plan = (funded_position_plan(row.get("Entry"), row.get("Stop"), risk_usd)
+        plan = (funded_stock_position_plan(row.get("Entry"), row.get("Stop"), risk_usd, row.get("Verified spread %"))
                 if np.isfinite(risk_usd) else (np.nan, np.nan, np.nan))
         row["Position $"] = round(plan[1], 2) if np.isfinite(plan[1]) else np.nan
         row["Risk $"] = round(plan[2], 2) if np.isfinite(plan[2]) else np.nan
@@ -587,13 +588,6 @@ def funded_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD):
     return units, notional, units * (entry - stop)
 
 
-def _us_regular_session() -> bool:
-    now = pd.Timestamp.now(tz="America/New_York")
-    # Price verification is manual and only trusted during a regular US session.
-    # Holiday checks are deliberately left to the user; the page is not a broker.
-    return now.weekday() < 5 and (9, 30) <= (now.hour, now.minute) < (16, 0)
-
-
 def _apply_verified_stock_quote(frame: pd.DataFrame) -> pd.DataFrame:
     """Only the verified quote can populate an actionable funded stock entry."""
     result = frame.copy()
@@ -656,12 +650,36 @@ def _apply_verified_stock_quote(frame: pd.DataFrame) -> pd.DataFrame:
     result.at[i, "Entry"] = float(plan["entry"])
     result.at[i, "Stop"] = float(plan["stop"])
     result.at[i, "Target"] = float(plan["target"])
-    result.at[i, "R:R"] = (
-        float(plan["target"]) - float(plan["entry"])
-    ) / (float(plan["entry"]) - float(plan["stop"]))
+    expected_exit_spread = quote - safe_number(record.get("sell_price"))
+    net_reward = float(plan["target"]) - quote - expected_exit_spread
+    net_risk = quote - float(plan["stop"]) + expected_exit_spread
+    result.at[i, "R:R"] = net_reward / net_risk if net_risk > 0 else np.nan
+    result.at[i, "Spread-adjusted R:R"] = result.at[i, "R:R"]
     result.at[i, "Verified quote time"] = verified_at.isoformat()
     result.at[i, "Verified spread %"] = round(spread_pct, 3)
     return result
+
+
+def funded_stock_position_plan(entry, stop, risk_usd=FUNDED_STANDARD_RISK_USD,
+                               observed_spread_pct=np.nan):
+    """Funded stocks only: model stop risk PLUS a cost/slippage reserve.
+
+    This cannot enforce maximum loss when Kraken requires manual exits.
+    """
+    entry, stop, risk_usd = safe_number(entry), safe_number(stop), safe_number(risk_usd)
+    observed = safe_number(observed_spread_pct)
+    if (not all(np.isfinite(v) for v in (entry, stop, risk_usd))
+            or entry <= stop or entry <= 0 or risk_usd <= 0 or _account_guard(risk_usd)):
+        return np.nan, np.nan, np.nan
+    reserve_pct = max(FUNDED_STOCK_COST_BUFFER_PCT,
+                      observed if np.isfinite(observed) else 0.0)
+    modeled_loss_fraction = (entry - stop) / entry + reserve_pct / 100
+    if modeled_loss_fraction <= 0:
+        return np.nan, np.nan, np.nan
+    equity = safe_number(st.session_state.get("funded_account_equity"))
+    notional = min(risk_usd / modeled_loss_fraction,
+                   equity * FUNDED_MAX_POSITION_PCT / 100)
+    return notional / entry, notional, notional * modeled_loss_fraction
 
 
 def funded_stock_status(row: pd.Series) -> str:
@@ -825,7 +843,7 @@ def load_funded_stock_rows() -> pd.DataFrame:
     output["Funded status"] = output.apply(funded_stock_status, axis=1)
     stock_plans = output.apply(
         lambda row: (
-            funded_position_plan(
+            funded_stock_position_plan(
                 row.get("Entry"),
                 row.get("Stop"),
                 risk_usd=(
@@ -1224,10 +1242,11 @@ with stock_tab:
         stocks = _apply_verified_stock_quote(stocks)
         stocks["Funded status"] = stocks.apply(funded_stock_status, axis=1)
         risk_plans = [
-            funded_position_plan(
+            funded_stock_position_plan(
                 row.get("Entry"), row.get("Stop"),
                 FUNDED_STANDARD_RISK_USD if row["Funded status"] == "🟢 A+ FUNDED READY"
                 else FUNDED_REDUCED_RISK_USD,
+                row.get("Verified spread %"),
             ) if row["Funded status"] in {"🟢 A+ FUNDED READY", "🟢 FUNDED READY"}
             else (np.nan, np.nan, np.nan)
             for _, row in stocks.iterrows()
@@ -1281,7 +1300,8 @@ with stock_tab:
         "Earnings check", "Gate", "Pre-cross blocker", "Technical score",
         "To resistance %", "Resistance", "Breakout volume ×", "Breakout tests",
         "Breakout date", "Reference entry", "Reference stop", "Reference target",
-        "Reference R:R", "Target basis", "Verified quote time", "Verified spread %", "MACD",
+        "Reference R:R", "Target basis", "Verified quote time", "Verified spread %",
+        "Spread-adjusted R:R", "MACD",
         "RSI", "Liquidity", "Entry", "Stop", "Target", "R:R", "Position $", "Risk $",
     ]
     st.dataframe(
