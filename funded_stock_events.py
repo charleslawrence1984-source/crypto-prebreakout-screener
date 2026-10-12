@@ -85,6 +85,58 @@ def lookup_estimated_earnings(ticker, today):
             "quality": "; ".join(errors) if errors else "NO UPCOMING DATE FOUND"}
 
 
+
+def fetch_fmp_earnings_calendar(api_key, symbols, today, http_get=None):
+    """Optional independent *estimated* earnings calendar, one HTTP request.
+
+    The provider may require a paid entitlement. Failure is reported, never
+    turned into an official-event confirmation or an invented date.
+    """
+    if not api_key or not str(api_key).strip():
+        return {}, "FMP API KEY NOT CONFIGURED"
+    if http_get is None:
+        from requests import get as http_get
+    try:
+        end = today + pd.Timedelta(days=89)
+        response = http_get(
+            "https://financialmodelingprep.com/stable/earnings-calendar",
+            params={
+                "from": today.isoformat(), "to": end.date().isoformat(),
+                "apikey": str(api_key).strip(),
+            },
+            timeout=20,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        rows = (payload.get("data") or payload.get("results"))
+        if isinstance(payload, dict) else payload
+        if not isinstance(rows, list):
+            return {}, "FMP RESPONSE NOT A CALENDAR LIST"
+        universe = {str(symbol).upper() for symbol in symbols}
+        found = {}
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            symbol = str(row.get("symbol") or "").upper()
+            when = event_date(row.get("date"))
+            if symbol not in universe or when is None or when < today:
+                continue
+            existing = found.get(symbol)
+            if existing is None or when.isoformat() < existing["estimated_date"]:
+                found[symbol] = {
+                    "estimated_date": when.isoformat(),
+                    "source": "FMP earnings calendar (UNVERIFIED)",
+                    "quality": "ESTIMATE AVAILABLE",
+                }
+        return found, "FMP CALENDAR RETURNED"
+    except Exception as exc:
+        # No request URL, response body or API key in diagnostic messages.
+        code = getattr(getattr(exc, "response", None), "status_code", None)
+        if code:
+            return {}, f"FMP HTTP {code}"
+        return {}, f"FMP FETCH FAILED: {type(exc).__name__}"
+
+
 def validate_official_event_verification(record, ticker, today, now):
     """Checks record completeness/freshness, not the truth of a web page."""
     if not isinstance(record, dict) or str(record.get("ticker", "")).upper() != str(ticker).upper():
