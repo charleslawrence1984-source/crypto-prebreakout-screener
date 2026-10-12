@@ -149,6 +149,15 @@ def signal_candidates(histories, benchmark, first_date=None):
                             if math.isfinite(_finite(brk.get("technical_score")))
                             else None
                         ),
+                        # Research-only signal-day levels. Outcomes are
+                        # calculated separately using FORWARD bars and can
+                        # never change the signal qualification decision.
+                        "Reference entry": ref_entry if math.isfinite(ref_entry) else None,
+                        "Reference stop": ref_stop if math.isfinite(ref_stop) else None,
+                        "Reference target": ref_target if math.isfinite(ref_target) else None,
+                        "Resistance": _finite(brk.get("resistance")),
+                        "Support stop": _finite(brk.get("research_stop_support")),
+                        "Retest stop": _finite(brk.get("research_stop_retest")),
                         "Other gates failed": len(brk_reasons - {
                             "PROJECTED R:R BELOW 2",
                             "STRUCTURAL STOP OUTSIDE 0.4–8%",
@@ -296,6 +305,8 @@ def breakout_plan_research(diagnostics):
     columns = [
         "Ticker", "Signal date", "Technical state", "Projected R:R",
         "Projected stop %", "Projected upside %", "Technical score",
+        "Reference entry", "Reference stop", "Reference target", "Resistance",
+        "Support stop", "Retest stop",
         "Other gates failed", "R:R failed", "Stop-distance failed",
         "Resistance-test failed", "All technical gates passed",
     ]
@@ -312,6 +323,151 @@ def breakout_plan_research(diagnostics):
                     for item in events if isinstance(item, dict)
                 )
     return pd.DataFrame(rows, columns=columns)
+
+
+def simulate_shadow_breakout_stops(histories, details, holding_sessions=20,
+                                   friction_pct=0.5):
+    """RESEARCH: same 24-like plan-only setups, fixed stop alternatives.
+
+    The stop levels originate strictly from each signal's completed historical
+    bars. Forward prices influence OUTCOMES only, never the candidates/plans.
+    These are independent hypothetical entries, not portfolio fills or BUY.
+    """
+    columns = [
+        "Ticker", "Signal date", "Entry date", "Stop method",
+        "Original R:R", "Signal-day structural stop %",
+        "Entry ask proxy", "Stop", "Target", "Net entry R:R",
+        "Status", "Exit date", "Exit reason", "Realized R",
+    ]
+    if not 2 <= holding_sessions <= 90 or not 0.5 <= friction_pct <= 5:
+        raise ValueError("Shadow assumptions outside supported safety range")
+    if details is None or details.empty:
+        return pd.DataFrame(columns=columns)
+    rows = []
+    half_cost = friction_pct / 200.0
+    variants = (
+        ("APPROVED ORIGINAL (control)", "Reference stop"),
+        ("RECENT SUPPORT (research)", "Support stop"),
+        ("RESISTANCE RETEST (research)", "Retest stop"),
+    )
+    for _, event in details.iterrows():
+        if int(event.get("Other gates failed", 999)) != 0:
+            continue
+        if not (bool(event.get("R:R failed")) or bool(event.get("Stop-distance failed"))):
+            continue
+        score = _finite(event.get("Technical score"))
+        if not math.isfinite(score) or score < 75:
+            continue
+        ticker = str(event.get("Ticker") or "")
+        prices = histories.get(ticker)
+        signal_date = pd.Timestamp(event["Signal date"])
+        ref = _finite(event.get("Reference entry"))
+        target = _finite(event.get("Reference target"))
+        resistance = _finite(event.get("Resistance"))
+        if prices is None or prices.empty:
+            continue
+        prices = prices.sort_index()
+        try:
+            location = prices.index.get_loc(signal_date)
+        except KeyError:
+            continue
+        if not isinstance(location, (int, np.integer)) or location+1>=len(prices):
+            continue
+        start = int(location) + 1
+        entry_date = pd.Timestamp(prices.index[start])
+        raw_open = _finite(prices.iloc[start]["Open"])
+        for name, stop_key in variants:
+            stop = _finite(event.get(stop_key))
+            row = {
+                "Ticker": ticker, "Signal date": str(signal_date.date()),
+                "Entry date": str(entry_date.date()), "Stop method": name,
+                "Original R:R": _finite(event.get("Projected R:R")),
+                "Signal-day structural stop %": round(
+                    (ref - stop)/ref * 100, 3,
+                ) if ref > 0 and math.isfinite(stop) else math.nan,
+                "Entry ask proxy": round(raw_open*(1+half_cost), 4)
+                                   if math.isfinite(raw_open) else math.nan,
+                "Stop": stop, "Target": target,
+                "Net entry R:R": math.nan, "Status": "",
+                "Exit date": "", "Exit reason": "", "Realized R": math.nan,
+            }
+            if not all(math.isfinite(v) for v in
+                       (ref, target, resistance, raw_open, stop)) or ref <= 0 or raw_open <= 0:
+                row["Status"] = "INVALID HISTORICAL PLAN"
+            elif not stop < raw_open < target:
+                row["Status"] = "INVALID PRICE / STOP / TARGET"
+            elif (raw_open > ref * 1.01 or raw_open > resistance * 1.02
+                  or raw_open < resistance * 0.998):
+                row["Status"] = "ENTRY GAP OR RESISTANCE LOST"
+            else:
+                entry_ask = raw_open * (1+half_cost)
+                stop_bid = stop * (1-half_cost)
+                target_bid = target * (1-half_cost)
+                unit_risk = entry_ask - stop_bid
+                net_rr = (target_bid-entry_ask)/unit_risk if unit_risk > 0 else math.nan
+                row["Net entry R:R"] = round(net_rr, 3)
+                stop_pct = (raw_open - stop)/raw_open*100
+                if not 0.4 <= stop_pct <= 8.0:
+                    row["Status"] = "STOP OUTSIDE APPROVED 0.4–8%"
+                elif not math.isfinite(net_rr) or net_rr < 2:
+                    row["Status"] = "NET REWARD/RISK BELOW 2R"
+                else:
+                    row["Status"] = "OPEN / INCOMPLETE OUTCOME"
+                    forward = prices.iloc[start:start + holding_sessions]
+                    for offset, (bar_date, candle) in enumerate(forward.iterrows()):
+                        op, hi, lo, close = [_finite(candle[k]) for k in
+                                             ("Open", "High", "Low", "Close")]
+                        if not all(math.isfinite(v) for v in (op, hi, lo, close)):
+                            row["Status"] = "INVALID FORWARD PRICE BAR"
+                            break
+                        if op <= stop:
+                            exit_bid, why = op*(1-half_cost), "STOP GAP"
+                        elif lo <= stop:
+                            exit_bid, why = stop_bid, "STOP (includes ambiguous bar)"
+                        elif hi >= target:
+                            exit_bid, why = target_bid, "TARGET"
+                        elif offset == holding_sessions-1:
+                            exit_bid, why = close*(1-half_cost), "TIME EXIT"
+                        else:
+                            continue
+                        row["Exit date"] = str(pd.Timestamp(bar_date).date())
+                        row["Exit reason"] = why
+                        row["Realized R"] = round(
+                            (exit_bid - entry_ask)/unit_risk, 3,
+                        )
+                        row["Status"] = "COMPLETED"
+                        break
+            rows.append(row)
+    return pd.DataFrame(rows, columns=columns)
+
+
+def summarize_shadow_breakout_stops(outcomes):
+    """Group identical independently predeclared stop variants fairly."""
+    columns = ["Stop method", "Research observations", "Passed entry proxy",
+               "Completed outcomes", "Censored open", "Stops hit",
+               "Targets hit", "Wins (completed)", "Mean realized R",
+               "Warning"]
+    if outcomes is None or outcomes.empty:
+        return pd.DataFrame(columns=columns)
+    result = []
+    for name, chunk in outcomes.groupby("Stop method", sort=False):
+        done = chunk[chunk["Status"] == "COMPLETED"]
+        open_rows = chunk[chunk["Status"] == "OPEN / INCOMPLETE OUTCOME"]
+        eligible = len(done) + len(open_rows)
+        rs = pd.to_numeric(done["Realized R"], errors="coerce").dropna()
+        result.append({
+            "Stop method": name,
+            "Research observations": len(chunk),
+            "Passed entry proxy": eligible,
+            "Completed outcomes": len(done),
+            "Censored open": len(open_rows),
+            "Stops hit": int(done["Exit reason"].str.startswith("STOP").sum()),
+            "Targets hit": int(done["Exit reason"].eq("TARGET").sum()),
+            "Wins (completed)": int((rs>0).sum()),
+            "Mean realized R": round(float(rs.mean()), 3) if len(rs) else math.nan,
+            "Warning": "Research only; no historical earnings or Kraken execution model",
+        })
+    return pd.DataFrame(result, columns=columns)
 
 
 def summarize_breakout_plan_research(details):
