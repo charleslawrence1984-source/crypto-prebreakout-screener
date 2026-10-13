@@ -10,6 +10,7 @@ from funded_stock_backtest import (
     summarize_backtest_funnel, summarize_individual_rule_gates,
     breakout_plan_research, summarize_breakout_plan_research,
     simulate_shadow_breakout_stops, summarize_shadow_breakout_stops,
+    summarize_shadow_robustness,
 )
 from test_funded_stock_breakout import sample_bars
 from funded_stock_breakout import evaluate_funded_breakout
@@ -473,6 +474,95 @@ class FundedStockBacktestTests(unittest.TestCase):
             round(min(
                 result["research_stop_support"], result["research_stop_retest"],
             ), 4), places=4,
+        )
+
+    def test_robustness_splits_historical_periods_and_keeps_costs_separate(self):
+        data = pd.DataFrame([
+            {
+                "Entry date": "2018-06-04", "Stop method": "RESISTANCE RETEST (research)",
+                "Status": "COMPLETED", "Exit reason": "TARGET", "Realized R": 2.5,
+            },
+            {
+                "Entry date": "2021-06-04", "Stop method": "RESISTANCE RETEST (research)",
+                "Status": "COMPLETED", "Exit reason": "STOP", "Realized R": -1.0,
+            },
+            {
+                "Entry date": "2024-06-04", "Stop method": "RESISTANCE RETEST (research)",
+                "Status": "OPEN / INCOMPLETE OUTCOME", "Exit reason": "", "Realized R": np.nan,
+            },
+            {
+                "Entry date": "2025-06-04", "Stop method": "RESISTANCE RETEST (research)",
+                "Status": "ENTRY GAP >1% ABOVE SIGNAL CLOSE",
+                "Exit reason": "", "Realized R": np.nan,
+            },
+        ])
+        stress = data.copy()
+        stress.loc[0, "Status"] = "NET REWARD/RISK BELOW 2R"
+        stress.loc[0, "Exit reason"] = ""
+        stress.loc[0, "Realized R"] = np.nan
+        results = summarize_shadow_robustness({
+            "0.50%": data, "1.00%": stress,
+        })
+        baseline = results[(results["Cost scenario"] == "0.50%") &
+                           (results["Historical cohort"] == "All observed years")].iloc[0]
+        stressed = results[(results["Cost scenario"] == "1.00%") &
+                           (results["Historical cohort"] == "All observed years")].iloc[0]
+        self.assertEqual(int(baseline["Observed plans"]), 4)
+        self.assertEqual(int(baseline["Passed next-open entry"]), 3)
+        self.assertEqual(int(baseline["Completed trades"]), 2)
+        self.assertEqual(int(baseline["Censored trades"]), 1)
+        self.assertEqual(float(baseline["Win rate % (completed)"]), 50.0)
+        self.assertAlmostEqual(float(baseline["Mean R (completed)"]), .75)
+        self.assertEqual(int(stressed["Completed trades"]), 1)
+        self.assertEqual(int(stressed["Entry rejections"]), 2)
+        self.assertEqual(
+            set(results.loc[results["Cost scenario"] == "0.50%", "Historical cohort"]),
+            {"All observed years", "Before 2020", "2020–2022", "2023–2024", "2025 onward"},
+        )
+
+    def test_robustness_never_fabricates_win_rate_without_trades(self):
+        only_skipped = pd.DataFrame([{
+            "Entry date": "2026-10-12", "Stop method": "APPROVED ORIGINAL (control)",
+            "Status": "ENTRY RESISTANCE LOST", "Exit reason": "",
+            "Realized R": np.nan,
+        }])
+        results = summarize_shadow_robustness({"Stress": only_skipped})
+        self.assertEqual(len(results), 2)
+        self.assertTrue(results["Win rate % (completed)"].isna().all())
+        self.assertTrue(
+            results["Statistical confidence"].eq("NO EXECUTED PROXY TRADES").all()
+        )
+        self.assertTrue(summarize_shadow_robustness({}).empty)
+        self.assertTrue(summarize_shadow_robustness({
+            "Bad": pd.DataFrame({"junk": [1]})
+        }).empty)
+
+    def test_robustness_stops_remain_hypothetical_and_costs_rechecked(self):
+        histories, details, dates = self._shadow_case()
+        histories["AAPL"].loc[dates[2], ["High", "Low", "Close"]] = [
+            121, 99, 120,
+        ]
+        baseline = simulate_shadow_breakout_stops(
+            histories, details, holding_sessions=4, friction_pct=0.5,
+        )
+        stress = simulate_shadow_breakout_stops(
+            histories, details, holding_sessions=4, friction_pct=1.0,
+        )
+        combined = summarize_shadow_robustness({
+            "Base": baseline, "Stress": stress,
+        })
+        totals = combined[combined["Historical cohort"] == "All observed years"]
+        self.assertEqual(len(totals), 6)
+        for scenario in ("Base", "Stress"):
+            retest = totals[
+                (totals["Cost scenario"] == scenario) &
+                (totals["Stop method"] == "RESISTANCE RETEST (research)")
+            ]
+            self.assertEqual(int(retest.iloc[0]["Observed plans"]), 1)
+        self.assertTrue(
+            totals["Statistical confidence"].str.contains(
+                "INCONCLUSIVE|NO EXECUTED PROXY TRADES"
+            ).all()
         )
 
     def test_zero_candidates_summary_stays_honest(self):
