@@ -370,6 +370,48 @@ class FundedStockBacktestTests(unittest.TestCase):
             alternatives["Exit reason"].str.startswith("STOP").all()
         )
         self.assertTrue((alternatives["Realized R"] < 0).all())
+        self.assertTrue(
+            alternatives["Exit reason"].eq("STOP (TARGET ALSO CROSSED)").all()
+        )
+
+    def test_shadow_plain_stop_does_not_claim_ambiguous_high(self):
+        hist, details, dates = self._shadow_case()
+        hist["AAPL"].loc[dates[2], ["High", "Low", "Close"]] = [106, 93, 100]
+        result = simulate_shadow_breakout_stops(hist, details, holding_sessions=4)
+        alternatives = result[result["Stop method"].str.contains("research")]
+        self.assertTrue(alternatives["Exit reason"].eq("STOP").all())
+        self.assertTrue(alternatives["Realized R"].eq(-1.0).all())
+
+    def test_shadow_lost_resistance_distinguished_from_gap_chasing(self):
+        hist, details, dates = self._shadow_case()
+        hist["AAPL"].loc[dates[1], ["Open", "High", "Low", "Close"]] = [
+            99.0, 100.0, 98.5, 99.0,
+        ]
+        result = simulate_shadow_breakout_stops(hist, details, holding_sessions=4)
+        self.assertTrue(result["Status"].eq("ENTRY RESISTANCE LOST").all())
+
+    def test_shadow_over_two_percent_above_resistance_distinguished(self):
+        hist, details, dates = self._shadow_case()
+        details.loc[0, "Resistance"] = 98.0
+        result = simulate_shadow_breakout_stops(hist, details, holding_sessions=4)
+        self.assertTrue(result["Status"].eq("ENTRY >2% ABOVE RESISTANCE").all())
+
+    def test_portfolio_plain_stop_and_same_candle_ambiguity_are_distinguished(self):
+        common = {
+            "stop": 98.0, "target": 110.0, "half_cost": 0.0025,
+            "max_hold": 20,
+        }
+        plain = _exit_on_bar(
+            common, {"Open": 100, "High": 101, "Low": 97, "Close": 99},
+            False, 1,
+        )
+        ambiguous = _exit_on_bar(
+            common, {"Open": 100, "High": 112, "Low": 97, "Close": 104},
+            False, 1,
+        )
+        self.assertEqual(plain[1], "STOP")
+        self.assertEqual(ambiguous[1], "STOP (TARGET ALSO CROSSED)")
+        self.assertEqual(plain[0], ambiguous[0])
 
     def test_shadow_censors_when_full_forward_horizon_not_observed(self):
         hist, details, dates = self._shadow_case()
@@ -389,7 +431,7 @@ class FundedStockBacktestTests(unittest.TestCase):
             105, 106, 104, 105,
         ]
         output = simulate_shadow_breakout_stops(hist, details, holding_sessions=4)
-        self.assertTrue(output["Status"].eq("ENTRY GAP OR RESISTANCE LOST").all())
+        self.assertTrue(output["Status"].eq("ENTRY GAP >1% ABOVE SIGNAL CLOSE").all())
         self.assertEqual(
             summarize_shadow_breakout_stops(output)["Completed outcomes"].sum(), 0,
         )
