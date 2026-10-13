@@ -17,7 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
-from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops
+from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops, summarize_shadow_robustness
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1526,7 +1526,7 @@ with stock_tab:
         back_col1, back_col2 = st.columns(2)
         with back_col1:
             period = st.selectbox(
-                "Download history", ["3y", "5y"], index=1,
+                "Download history", ["3y", "5y", "10y"], index=1,
                 key="funded_stock_backtest_period",
             )
         with back_col2:
@@ -1539,7 +1539,9 @@ with stock_tab:
             "Entry is estimated at the NEXT US session open, with 0.50% baseline "
             "or 1.00% stress-model roundtrip friction. Stop and target crossing "
             "on the same daily candle is treated as a stop. Open trades at the "
-            "historical endpoint are censored."
+            "historical endpoint are censored. A 10-year download includes "
+            "approximately one year of required indicator warm-up, so the usable "
+            "test period is shorter than ten years."
         )
         if st.button(
             "Run stock historical backtest", key="funded_stock_backtest_run",
@@ -1590,13 +1592,24 @@ with stock_tab:
                         histories, signals, roundtrip_cost_pct=1.0,
                         max_hold_sessions=holding,
                     )
+                    observations = breakout_plan_research(diagnostics)
                     shadow = simulate_shadow_breakout_stops(
-                        histories, breakout_plan_research(diagnostics),
+                        histories, observations,
                         holding_sessions=holding, friction_pct=0.5,
                     )
+                    shadow_stressed = simulate_shadow_breakout_stops(
+                        histories, observations,
+                        holding_sessions=holding, friction_pct=1.0,
+                    )
+                    robustness = summarize_shadow_robustness({
+                        "0.50% modelled roundtrip friction": shadow,
+                        "1.00% modelled roundtrip friction": shadow_stressed,
+                    })
                     st.session_state["funded_stock_backtest_result"] = {
                         "base": baseline, "stress": stressed,
                         "shadow_outcomes": shadow,
+                        "shadow_stressed_outcomes": shadow_stressed,
+                        "shadow_robustness": robustness,
                         "diagnostics": diagnostics,
                         "unavailable": pd.DataFrame(data_problems),
                         "signals": len(signals), "period": period,
@@ -1755,6 +1768,42 @@ with stock_tab:
                     "actual Kraken Funded 24/7 quotes, and real executable "
                     "stops are not reconstructed. Do not use shadow levels to trade."
                 )
+            st.markdown("**Retrospective robustness — market periods and trading costs**")
+            st.caption(
+                "Compare the same fixed stop approaches in earlier versus later "
+                "historical years, under 0.50% and 1.00% modelled roundtrip friction. "
+                "The 2025 onward cohort has already influenced our research "
+                "decisions; none of these cohorts is a genuinely untouched holdout. "
+                "Every row shows independent hypothetical setups, NOT a funded "
+                "account-equity simulation. Stops, targets, earnings and Kraken "
+                "24/7 execution remain subject to the stated backtest limitations."
+            )
+            robust = history_result.get("shadow_robustness", pd.DataFrame())
+            if robust.empty:
+                st.caption("No eligible robustness observations in this scan.")
+            else:
+                st.dataframe(
+                    robust, hide_index=True, use_container_width=True,
+                )
+                st.download_button(
+                    "Download shadow robustness by period and cost CSV",
+                    data=robust.to_csv(index=False),
+                    file_name="funded_stock_shadow_robustness.csv",
+                    mime="text/csv",
+                    key="funded_stock_shadow_robustness_export",
+                )
+                total_rows = robust.loc[
+                    robust["Historical cohort"] == "All observed years"
+                ]
+                if total_rows.empty or (
+                    total_rows["Completed trades"].max() < 30
+                ):
+                    st.warning(
+                        "Fewer than 30 completed trades in these scenarios. "
+                        "Historical results cannot establish a reliable edge, "
+                        "even if the mean R happens to be positive. Increasing "
+                        "history is descriptive research, not independent validation."
+                    )
             st.markdown("**Historical signal funnel and data coverage**")
             st.caption(
                 "Trigger sessions show the raw RSI/MACD or resistance-cross events. "

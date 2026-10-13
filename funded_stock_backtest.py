@@ -479,6 +479,82 @@ def summarize_shadow_breakout_stops(outcomes):
     return pd.DataFrame(result, columns=columns)
 
 
+def summarize_shadow_robustness(scenarios):
+    """Descriptive, retrospective robustness cohorts for shadow-stop experiments.
+
+    Scenarios map a descriptive cost label to the corresponding shadow stop
+    outcome DataFrame. Every scenario is evaluated independently using that
+    scenario's assumed costs and resulting entry approvals. Never treats
+    hypothetical R as real funded P&L or an unseen validation sample.
+    """
+    columns = [
+        "Cost scenario", "Historical cohort", "Stop method",
+        "Observed plans", "Passed next-open entry", "Entry rejections",
+        "Completed trades", "Censored trades", "Wins", "Stop exits",
+        "Target exits", "Time exits", "Win rate % (completed)",
+        "Mean R (completed)", "Sum R (independent trades)",
+        "Statistical confidence",
+    ]
+    if not isinstance(scenarios, dict) or not scenarios:
+        return pd.DataFrame(columns=columns)
+
+    result = []
+    for label, frame in scenarios.items():
+        if not isinstance(frame, pd.DataFrame) or frame.empty:
+            continue
+        required = {"Entry date", "Stop method", "Status", "Exit reason", "Realized R"}
+        if not required.issubset(frame.columns):
+            continue
+        data = frame.copy()
+        dates = pd.to_datetime(data["Entry date"], errors="coerce")
+        data = data.loc[dates.notna()].copy()
+        if data.empty:
+            continue
+        years = dates.loc[dates.notna()].dt.year
+        data["_cohort"] = years.map(
+            lambda year: (
+                "Before 2020" if year < 2020
+                else "2020–2022" if year <= 2022
+                else "2023–2024" if year <= 2024
+                else "2025 onward"
+            )
+        )
+        for cohort_name, group in (
+            [("All observed years", data)]
+            + list(data.groupby("_cohort", sort=True))
+        ):
+            for method, chunk in group.groupby("Stop method", sort=False):
+                done = chunk.loc[chunk["Status"].eq("COMPLETED")]
+                censored = chunk.loc[chunk["Status"].eq("OPEN / INCOMPLETE OUTCOME")]
+                passed = len(done) + len(censored)
+                realized = pd.to_numeric(done["Realized R"], errors="coerce").dropna()
+                wins = int((realized > 0).sum())
+                n = len(realized)
+                result.append({
+                    "Cost scenario": str(label),
+                    "Historical cohort": cohort_name,
+                    "Stop method": method,
+                    "Observed plans": len(chunk),
+                    "Passed next-open entry": passed,
+                    "Entry rejections": len(chunk) - passed,
+                    "Completed trades": len(done),
+                    "Censored trades": len(censored),
+                    "Wins": wins,
+                    "Stop exits": int(done["Exit reason"].fillna("").str.startswith("STOP").sum()),
+                    "Target exits": int(done["Exit reason"].eq("TARGET").sum()),
+                    "Time exits": int(done["Exit reason"].eq("TIME EXIT").sum()),
+                    "Win rate % (completed)": round(100 * wins / n, 2) if n else math.nan,
+                    "Mean R (completed)": round(float(realized.mean()), 3) if n else math.nan,
+                    "Sum R (independent trades)": round(float(realized.sum()), 3) if n else math.nan,
+                    "Statistical confidence": (
+                        "NO EXECUTED PROXY TRADES" if n == 0
+                        else "SMALL SAMPLE — INCONCLUSIVE" if n < 30
+                        else "RETROSPECTIVE — NOT INDEPENDENT VALIDATION"
+                    ),
+                })
+    return pd.DataFrame(result, columns=columns)
+
+
 def summarize_breakout_plan_research(details):
     """Summarize veto co-occurrence; never infer improved profitability."""
     if details is None or details.empty:
