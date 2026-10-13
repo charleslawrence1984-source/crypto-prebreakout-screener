@@ -398,9 +398,12 @@ def simulate_shadow_breakout_stops(histories, details, holding_sessions=20,
                 row["Status"] = "INVALID HISTORICAL PLAN"
             elif not stop < raw_open < target:
                 row["Status"] = "INVALID PRICE / STOP / TARGET"
-            elif (raw_open > ref * 1.01 or raw_open > resistance * 1.02
-                  or raw_open < resistance * 0.998):
-                row["Status"] = "ENTRY GAP OR RESISTANCE LOST"
+            elif raw_open > ref * 1.01:
+                row["Status"] = "ENTRY GAP >1% ABOVE SIGNAL CLOSE"
+            elif raw_open > resistance * 1.02:
+                row["Status"] = "ENTRY >2% ABOVE RESISTANCE"
+            elif raw_open < resistance * 0.998:
+                row["Status"] = "ENTRY RESISTANCE LOST"
             else:
                 entry_ask = raw_open * (1+half_cost)
                 stop_bid = stop * (1-half_cost)
@@ -425,7 +428,11 @@ def simulate_shadow_breakout_stops(histories, details, holding_sessions=20,
                         if op <= stop:
                             exit_bid, why = op*(1-half_cost), "STOP GAP"
                         elif lo <= stop:
-                            exit_bid, why = stop_bid, "STOP (includes ambiguous bar)"
+                            why = (
+                                "STOP (TARGET ALSO CROSSED)"
+                                if hi >= target else "STOP"
+                            )
+                            exit_bid = stop_bid
                         elif hi >= target:
                             exit_bid, why = target_bid, "TARGET"
                         elif offset == holding_sessions-1:
@@ -606,7 +613,9 @@ def _exit_on_bar(position, bar, is_last_session, holding_sessions):
     if op <= stop:
         return op * (1 - half_cost), "STOP GAP"
     if lo <= stop:
-        return stop * (1 - half_cost), "STOP / INTRADAY AMBIGUITY"
+        # Report ambiguity ONLY if daily HIGH also touched the target.
+        why = "STOP (TARGET ALSO CROSSED)" if hi >= target else "STOP"
+        return stop * (1 - half_cost), why
     if hi >= target:
         return target * (1 - half_cost), "TARGET"
     if holding_sessions >= position["max_hold"]:
