@@ -17,7 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
-from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops, summarize_shadow_robustness, audit_history_window_consistency
+from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops, summarize_shadow_robustness, audit_history_window_consistency, historical_signal_start
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1580,7 +1580,7 @@ with stock_tab:
                             histories[stock] = frame
                     if not histories:
                         raise ValueError("No historical stocks met the OHLCV checks")
-                    start_year = now_ny.tz_localize(None).normalize() - pd.DateOffset(years=int(period[0]))
+                    start_year = historical_signal_start(now_ny, period)
                     stage_trace = [] if period == "10y" else None
                     signals, diagnostics = signal_candidates(
                         histories, benchmark_hist, first_date=start_year,

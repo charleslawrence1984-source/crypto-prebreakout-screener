@@ -26,6 +26,22 @@ MIN_LIQUIDITY_GBPM = 0.5
 MIN_HISTORY = 252
 
 
+def historical_signal_start(now, period):
+    """Start historical stock signals at the FULL selected lookback horizon.
+
+    Research candles need ~252 prior sessions of indicator warm-up; candidates
+    themselves are still guarded by MIN_HISTORY. Never silently parse '10y'
+    as '1y' by indexing the first character of a period label.
+    """
+    supported_years = {"3y": 3, "5y": 5, "10y": 10}
+    if period not in supported_years:
+        raise ValueError(f"Unsupported funded-stock backtest history: {period!r}")
+    current = pd.Timestamp(now)
+    if current.tzinfo is not None:
+        current = current.tz_localize(None)
+    return current.normalize() - pd.DateOffset(years=supported_years[period])
+
+
 def _finite(value):
     try:
         number = float(value)
