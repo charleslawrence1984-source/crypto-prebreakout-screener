@@ -11,7 +11,7 @@ from funded_stock_backtest import (
     breakout_plan_research, summarize_breakout_plan_research,
     simulate_shadow_breakout_stops, summarize_shadow_breakout_stops,
     summarize_shadow_robustness, audit_history_window_consistency,
-    _qualifying_shadow_plan_keys,
+    _qualifying_shadow_plan_keys, _compare_candidate_route_traces,
 )
 from test_funded_stock_breakout import sample_bars
 from funded_stock_breakout import evaluate_funded_breakout
@@ -672,6 +672,70 @@ class FundedStockBacktestTests(unittest.TestCase):
             "2026-01-01",
         )
         self.assertTrue(audit["disagreements"].empty)
+
+    def test_route_trace_discriminates_prefilter_and_core_priority(self):
+        full = [
+            {"Ticker": "AAPL", "Signal date": "2025-01-06",
+             "Breakout trigger": True, "Core trigger": False,
+             "Core state": "BLOCKED"},
+            {"Ticker": "MU", "Signal date": "2025-01-07",
+             "Breakout trigger": True, "Core trigger": False,
+             "Core state": "WATCH"},
+            {"Ticker": "TSM", "Signal date": "2025-01-08",
+             "Breakout trigger": True, "Core trigger": False,
+             "Core state": "BLOCKED"},
+        ]
+        shorter = [
+            {**full[0], "Core state": "WATCH"},
+            {**full[1], "Core state": "BLOCKED"},
+            {"Ticker": "NVDA", "Signal date": "2025-01-09",
+             "Breakout trigger": True, "Core trigger": False,
+             "Core state": "BLOCKED"},
+        ]
+        comparison = _compare_candidate_route_traces(
+            full, shorter, "2023-01-01",
+        )
+        counts = dict(zip(
+            comparison["counts"]["Check"], comparison["counts"]["Value"],
+        ))
+        self.assertEqual(counts["Preliminary candidate sessions — full history"], 3)
+        self.assertEqual(counts["Preliminary candidate sessions — cropped history"], 3)
+        self.assertEqual(counts["Breakout triggers — full history"], 3)
+        self.assertEqual(counts["Breakouts reaching breakout engine — full history"], 2)
+        self.assertEqual(counts["Breakouts reaching breakout engine — cropped history"], 2)
+        self.assertEqual(counts["Prefilter trigger presence disagreements"], 2)
+        self.assertEqual(counts["Core route state disagreements"], 2)
+        self.assertEqual(len(comparison["differences"]), 4)
+
+    def test_route_trace_identical_sessions_have_no_mismatches(self):
+        event = {"Ticker": "AAPL", "Signal date": "2025-05-15",
+                 "Breakout trigger": True, "Core trigger": False,
+                 "Core state": "BLOCKED"}
+        result = _compare_candidate_route_traces(
+            [event], [dict(event)], "2024-01-01",
+        )
+        self.assertTrue(result["differences"].empty)
+        counts = dict(zip(result["counts"]["Check"], result["counts"]["Value"]))
+        self.assertEqual(counts["Breakout triggers — full history"], 1)
+        self.assertEqual(counts["Core route state disagreements"], 0)
+
+    def test_candidate_trace_instrumentation_never_changes_signals(self):
+        bars, benchmark = sample_bars()
+        future_date = bars.index[-1] + pd.offsets.BDay(1)
+        next_bar = bars.iloc[-1:].copy()
+        next_bar.index = [future_date]
+        histories = {"AAPL": pd.concat([bars, next_bar])}
+        full_signals, full_diagnostics = signal_candidates(
+            histories, benchmark,
+        )
+        trace = []
+        traced_signals, traced_diagnostics = signal_candidates(
+            histories, benchmark, audit_trace=trace,
+        )
+        self.assertEqual(full_signals, traced_signals)
+        pd.testing.assert_frame_equal(full_diagnostics, traced_diagnostics)
+        self.assertTrue(trace)
+        self.assertTrue(all("Core state" in row for row in trace))
 
     def test_zero_candidates_summary_stays_honest(self):
         result = simulate_portfolio({"AAPL": make_prices()}, [])
