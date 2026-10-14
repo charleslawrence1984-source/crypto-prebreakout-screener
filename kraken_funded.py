@@ -1581,8 +1581,10 @@ with stock_tab:
                     if not histories:
                         raise ValueError("No historical stocks met the OHLCV checks")
                     start_year = now_ny.tz_localize(None).normalize() - pd.DateOffset(years=int(period[0]))
+                    stage_trace = [] if period == "10y" else None
                     signals, diagnostics = signal_candidates(
                         histories, benchmark_hist, first_date=start_year,
+                        audit_trace=stage_trace,
                     )
                     baseline = simulate_portfolio(
                         histories, signals, roundtrip_cost_pct=0.5,
@@ -1614,6 +1616,7 @@ with stock_tab:
                         history_audit = audit_history_window_consistency(
                             histories, benchmark_hist, diagnostics,
                             last_five_years_start=five_year_start,
+                            full_audit_trace=stage_trace,
                         )
                     st.session_state["funded_stock_backtest_result"] = {
                         "base": baseline, "stress": stressed,
@@ -1864,6 +1867,28 @@ with stock_tab:
                         file_name="funded_stock_history_signal_mismatches.csv",
                         mime="text/csv",
                         key="funded_stock_history_signal_mismatches",
+                    )
+                stage_mismatches = history_audit.get(
+                    "stage_mismatches", pd.DataFrame()
+                )
+                if not stage_mismatches.empty:
+                    st.markdown("**Which signal-detection stage disagrees?**")
+                    st.caption(
+                        "Identifies whether the same historical session generated "
+                        "a different preliminary trigger or a different CORE "
+                        "priority classification when supplied longer warm-up. "
+                        "This is an audit, NOT a new trading signal."
+                    )
+                    st.dataframe(
+                        stage_mismatches.head(100), hide_index=True,
+                        use_container_width=True,
+                    )
+                    st.download_button(
+                        "Download stock historical routing discrepancies CSV",
+                        data=stage_mismatches.to_csv(index=False),
+                        file_name="funded_stock_historical_routing_discrepancies.csv",
+                        mime="text/csv",
+                        key="funded_stock_historical_routing_discrepancies_export",
                     )
                 if not history_audit["coverage"].empty:
                     observed_earliest = pd.to_datetime(

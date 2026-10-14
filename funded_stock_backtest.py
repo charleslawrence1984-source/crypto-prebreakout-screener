@@ -34,7 +34,7 @@ def _finite(value):
         return math.nan
 
 
-def signal_candidates(histories, benchmark, first_date=None):
+def signal_candidates(histories, benchmark, first_date=None, audit_trace=None):
     """Generate candidates with no forward-looking data whatsoever.
 
     Core uses the approved completed-bar MACD/RSI engine; breakout uses the
@@ -97,6 +97,18 @@ def signal_candidates(histories, benchmark, first_date=None):
             past = data.iloc[:i+1]
             past_benchmark = benchmark.loc[:date]
             core = evaluate_price_setup(past, past_benchmark)
+            if audit_trace is not None:
+                # Research ONLY: distinguish the original trigger from
+                # subsequent core-first route suppression on exact dates.
+                # Capture diagnostics; never change a live trading decision.
+                audit_trace.append({
+                    "Ticker": symbol,
+                    "Signal date": str(date.date()),
+                    "Breakout trigger": bool(breakout_prefilter.iloc[i]),
+                    "Core trigger": bool(core_prefilter.iloc[i]),
+                    "Core state": str(core.get("technical_state", "")),
+                    "Core reason": str(core.get("technical_reason", "")),
+                })
             route = None
             if core.get("technical_state") == "AWAITING NEXT OPEN":
                 route = "CORE RSI/MACD"
@@ -502,8 +514,101 @@ def _qualifying_shadow_plan_keys(plan_details, overlap_start):
     )
 
 
+def _compare_candidate_route_traces(full_trace, cropped_trace, overlap_start):
+    """Find the earliest stage where equivalent historical candles diverge.
+
+    Compare SAME ticker/dates, and distinguish preliminary trigger mismatch
+    from downstream CORE-first routing. This is research-only reporting.
+    """
+    columns = [
+        "Ticker", "Signal date", "Stage", "Full 10y observation",
+        "5y-cropped observation",
+    ]
+    def comparable(records):
+        if not records:
+            return {}
+        result = {}
+        start_date = pd.Timestamp(overlap_start).date()
+        for item in records:
+            try:
+                date = pd.Timestamp(item["Signal date"]).date()
+                if date < start_date:
+                    continue
+                key = (str(item["Ticker"]), date.isoformat())
+                result[key] = item
+            except (TypeError, KeyError, ValueError):
+                continue
+        return result
+
+    full = comparable(full_trace)
+    cropped = comparable(cropped_trace)
+    differences = []
+    for symbol, session in sorted(set(full) | set(cropped)):
+        older = full.get((symbol, session))
+        shorter = cropped.get((symbol, session))
+        if older is None or shorter is None:
+            differences.append({
+                "Ticker": symbol,
+                "Signal date": session,
+                "Stage": "PREFILTER TRIGGER PRESENCE",
+                "Full 10y observation": "ABSENT" if older is None else "PRESENT",
+                "5y-cropped observation": "ABSENT" if shorter is None else "PRESENT",
+            })
+            continue
+        for field, name in (
+            ("Breakout trigger", "BREAKOUT PREFILTER"),
+            ("Core trigger", "CORE PREFILTER"),
+            ("Core state", "CORE ROUTING STATE"),
+        ):
+            if older.get(field) != shorter.get(field):
+                differences.append({
+                    "Ticker": symbol, "Signal date": session,
+                    "Stage": name,
+                    "Full 10y observation": str(older.get(field)),
+                    "5y-cropped observation": str(shorter.get(field)),
+                })
+
+    def count(table, field, expected=True):
+        return sum(item.get(field) == expected for item in table.values())
+    def routed(table):
+        return sum(
+            item.get("Breakout trigger") is True
+            and item.get("Core state") == "BLOCKED"
+            for item in table.values()
+        )
+    def bypassed(table):
+        return sum(
+            item.get("Breakout trigger") is True
+            and item.get("Core state") != "BLOCKED"
+            for item in table.values()
+        )
+    summary = [
+        ("Preliminary candidate sessions — full history", len(full)),
+        ("Preliminary candidate sessions — cropped history", len(cropped)),
+        ("Breakout triggers — full history", count(full, "Breakout trigger")),
+        ("Breakout triggers — cropped history", count(cropped, "Breakout trigger")),
+        ("Breakouts reaching breakout engine — full history", routed(full)),
+        ("Breakouts reaching breakout engine — cropped history", routed(cropped)),
+        ("Breakouts bypassed due to CORE priority — full history", bypassed(full)),
+        ("Breakouts bypassed due to CORE priority — cropped history", bypassed(cropped)),
+        ("Prefilter trigger presence disagreements", sum(
+            row["Stage"] == "PREFILTER TRIGGER PRESENCE" for row in differences
+        )),
+        ("Breakout prefilter disagreements", sum(
+            row["Stage"] == "BREAKOUT PREFILTER" for row in differences
+        )),
+        ("Core route state disagreements", sum(
+            row["Stage"] == "CORE ROUTING STATE" for row in differences
+        )),
+    ]
+    return {
+        "counts": pd.DataFrame(summary, columns=["Check", "Value"]),
+        "differences": pd.DataFrame(differences, columns=columns),
+    }
+
+
 def audit_history_window_consistency(histories, benchmark, full_diagnostics,
-                                     last_five_years_start):
+                                     last_five_years_start, full_audit_trace=None):
     """Compare full history with a 5y crop OF THE SAME DOWNLOADED CANDLES.
 
     A direct invariant check on overlapping signal dates only, after allowing
@@ -534,8 +639,14 @@ def audit_history_window_consistency(histories, benchmark, full_diagnostics,
     cropped_benchmark = recent_sessions(benchmark)
     if cropped_benchmark.empty or "Close" not in cropped_benchmark:
         raise ValueError("Cannot audit overlapping windows without benchmark history")
+    shorter_trace = [] if full_audit_trace is not None else None
     shorter_signals, shorter_diagnostics = signal_candidates(
-        cropped_histories, cropped_benchmark, first_date=overlap_start
+        cropped_histories, cropped_benchmark, first_date=overlap_start,
+        audit_trace=shorter_trace,
+    )
+    stage_comparison = (
+        _compare_candidate_route_traces(full_audit_trace, shorter_trace, overlap_start)
+        if full_audit_trace is not None else None
     )
     original_plans = breakout_plan_research(full_diagnostics)
     shorter_plans = breakout_plan_research(shorter_diagnostics)
@@ -609,8 +720,7 @@ def audit_history_window_consistency(histories, benchmark, full_diagnostics,
         min(coverage_frame["Actual first daily bar"])
         if total_tickers else "UNAVAILABLE"
     )
-    return {
-        "summary": pd.DataFrame([
+    summary = pd.DataFrame([
             {
                 "Check": "Earliest historical daily candle available",
                 "Value": earliest,
@@ -658,7 +768,15 @@ def audit_history_window_consistency(histories, benchmark, full_diagnostics,
                     "this does not confirm separately downloaded 5y files match."
                 ),
             },
-        ]),
+        ])
+    if stage_comparison is not None:
+        summary = pd.concat([summary, stage_comparison["counts"]], ignore_index=True)
+    return {
+        "summary": summary,
+        "stage_mismatches": (
+            stage_comparison["differences"]
+            if stage_comparison is not None else pd.DataFrame()
+        ),
         "coverage": coverage_frame,
         "disagreements": pd.DataFrame(
             mismatches, columns=["Ticker", "Signal date", "Appears in"]
