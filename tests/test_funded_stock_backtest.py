@@ -12,6 +12,7 @@ from funded_stock_backtest import (
     simulate_shadow_breakout_stops, summarize_shadow_breakout_stops,
     summarize_shadow_robustness, audit_history_window_consistency,
     _qualifying_shadow_plan_keys, _compare_candidate_route_traces,
+    historical_signal_start,
 )
 from test_funded_stock_breakout import sample_bars
 from funded_stock_breakout import evaluate_funded_breakout
@@ -43,6 +44,23 @@ def make_prices(second=None, third=None):
 
 
 class FundedStockBacktestTests(unittest.TestCase):
+    def test_stock_history_selector_keeps_entire_ten_year_horizon(self):
+        now = pd.Timestamp("2026-10-14 12:30:00", tz="America/New_York")
+        self.assertEqual(historical_signal_start(now, "10y"), pd.Timestamp("2016-10-14"))
+        self.assertEqual(historical_signal_start(now, "5y"), pd.Timestamp("2021-10-14"))
+        self.assertEqual(historical_signal_start(now, "3y"), pd.Timestamp("2023-10-14"))
+
+    def test_history_selector_normalizes_naive_clock(self):
+        now = pd.Timestamp("2026-10-14 23:50:00")
+        self.assertEqual(historical_signal_start(now, "10y"), pd.Timestamp("2016-10-14"))
+        self.assertEqual(historical_signal_start(now, "5y"), pd.Timestamp("2021-10-14"))
+
+    def test_stock_history_selector_rejects_unsupported_labels(self):
+        for period in ("1y", "0y", "10", "11y", "", None):
+            with self.subTest(period=period):
+                with self.assertRaises(ValueError):
+                    historical_signal_start(pd.Timestamp("2026-10-14"), period)
+
     def test_next_open_not_signal_close_is_entry(self):
         bars, benchmark = sample_bars()
         future_date = bars.index[-1] + pd.offsets.BDay(1)
