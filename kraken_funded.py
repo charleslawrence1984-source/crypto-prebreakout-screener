@@ -17,7 +17,7 @@ from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
-from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops, summarize_shadow_robustness
+from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops, summarize_shadow_robustness, audit_history_window_consistency
 from trade_rules import FundamentalSnapshot, evaluate_price_setup, score_fundamental_snapshot, _wilder_rsi
 from crypto_market_pipeline import make_exchange, ohlcv_frame, flatten_deep_score
 from crypto_rule_engine import ScreenerConfig, score_setup
@@ -1605,11 +1605,22 @@ with stock_tab:
                         "0.50% modelled roundtrip friction": shadow,
                         "1.00% modelled roundtrip friction": shadow_stressed,
                     })
+                    history_audit = None
+                    if period == "10y":
+                        five_year_start = (
+                            now_ny.tz_localize(None).normalize()
+                            - pd.DateOffset(years=5)
+                        )
+                        history_audit = audit_history_window_consistency(
+                            histories, benchmark_hist, diagnostics,
+                            last_five_years_start=five_year_start,
+                        )
                     st.session_state["funded_stock_backtest_result"] = {
                         "base": baseline, "stress": stressed,
                         "shadow_outcomes": shadow,
                         "shadow_stressed_outcomes": shadow_stressed,
                         "shadow_robustness": robustness,
+                        "history_consistency_audit": history_audit,
                         "diagnostics": diagnostics,
                         "unavailable": pd.DataFrame(data_problems),
                         "signals": len(signals), "period": period,
@@ -1804,6 +1815,73 @@ with stock_tab:
                         "even if the mean R happens to be positive. Increasing "
                         "history is descriptive research, not independent validation."
                     )
+            history_audit = history_result.get("history_consistency_audit")
+            if history_audit is not None:
+                st.markdown("**10-year vs 5-year overlapping history — integrity audit**")
+                st.warning(
+                    "This is a DATA / SIGNAL REPRODUCIBILITY CHECK, not a new trading "
+                    "strategy. It compares the last five years within the SAME 10y "
+                    "download with their full-history calculation, allowing one "
+                    "additional calendar year for indicator warm-up. "
+                    "It does not check consistency against a separate 5y Yahoo download."
+                )
+                st.dataframe(
+                    history_audit["summary"], hide_index=True,
+                    use_container_width=True,
+                )
+                st.download_button(
+                    "Download 10y versus 5y consistency summary CSV",
+                    data=history_audit["summary"].to_csv(index=False),
+                    file_name="funded_stock_history_consistency_summary.csv",
+                    mime="text/csv",
+                    key="funded_stock_history_consistency_summary",
+                )
+                st.markdown("**Historical bar coverage by stock**")
+                st.dataframe(
+                    history_audit["coverage"], hide_index=True,
+                    use_container_width=True,
+                )
+                st.download_button(
+                    "Download 10-year stock historical coverage CSV",
+                    data=history_audit["coverage"].to_csv(index=False),
+                    file_name="funded_stock_10y_history_coverage.csv",
+                    mime="text/csv",
+                    key="funded_stock_10y_history_coverage",
+                )
+                if not history_audit["disagreements"].empty:
+                    st.error(
+                        "Historical signals CHANGE when using the same daily candles "
+                        "with a longer indicator warm-up. Treat the 10-year "
+                        "result as UNVERIFIED until this discrepancy is reviewed."
+                    )
+                    st.dataframe(
+                        history_audit["disagreements"], hide_index=True,
+                        use_container_width=True,
+                    )
+                    st.download_button(
+                        "Download mismatched historical signal dates CSV",
+                        data=history_audit["disagreements"].to_csv(index=False),
+                        file_name="funded_stock_history_signal_mismatches.csv",
+                        mime="text/csv",
+                        key="funded_stock_history_signal_mismatches",
+                    )
+                if not history_audit["coverage"].empty:
+                    observed_earliest = pd.to_datetime(
+                        history_audit["coverage"]["Actual first daily bar"],
+                        errors="coerce",
+                    ).min()
+                    if pd.notna(observed_earliest):
+                        requested_start = (
+                            pd.Timestamp.now(tz="America/New_York")
+                            .tz_localize(None).normalize()
+                            - pd.DateOffset(years=9)
+                        )
+                        if observed_earliest > requested_start:
+                            st.error(
+                                "No downloaded stock has a daily candle older "
+                                "than nine years: investigate whether Yahoo "
+                                "returned the requested ten-year history."
+                            )
             st.markdown("**Historical signal funnel and data coverage**")
             st.caption(
                 "Trigger sessions show the raw RSI/MACD or resistance-cross events. "

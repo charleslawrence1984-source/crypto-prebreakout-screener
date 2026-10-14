@@ -10,7 +10,8 @@ from funded_stock_backtest import (
     summarize_backtest_funnel, summarize_individual_rule_gates,
     breakout_plan_research, summarize_breakout_plan_research,
     simulate_shadow_breakout_stops, summarize_shadow_breakout_stops,
-    summarize_shadow_robustness,
+    summarize_shadow_robustness, audit_history_window_consistency,
+    _qualifying_shadow_plan_keys,
 )
 from test_funded_stock_breakout import sample_bars
 from funded_stock_breakout import evaluate_funded_breakout
@@ -564,6 +565,113 @@ class FundedStockBacktestTests(unittest.TestCase):
                 "INCONCLUSIVE|NO EXECUTED PROXY TRADES"
             ).all()
         )
+
+    def test_qualifying_shadow_keys_respect_cohort_and_full_rules(self):
+        raw = pd.DataFrame([
+            {"Ticker": "MU", "Signal date": "2023-05-04",
+             "Other gates failed": 0, "Technical score": 90,
+             "R:R failed": True, "Stop-distance failed": False},
+            {"Ticker": "MSFT", "Signal date": "2025-08-12",
+             "Other gates failed": 2, "Technical score": 90,
+             "R:R failed": True, "Stop-distance failed": True},
+            {"Ticker": "TSM", "Signal date": "2025-09-18",
+             "Other gates failed": 0, "Technical score": 95,
+             "R:R failed": False, "Stop-distance failed": True},
+            {"Ticker": "AAPL", "Signal date": "2025-12-08",
+             "Other gates failed": 0, "Technical score": 70,
+             "R:R failed": True, "Stop-distance failed": True},
+        ])
+        self.assertEqual(
+            _qualifying_shadow_plan_keys(raw, pd.Timestamp("2024-01-01")),
+            {("TSM", "2025-09-18")},
+        )
+
+    def test_ten_year_overlap_audit_reports_exact_coverage_and_candidate_dates(self):
+        bars, benchmark = sample_bars()
+        future_date = bars.index[-1] + pd.offsets.BDay(1)
+        bar_next = bars.iloc[-1:].copy()
+        bar_next.index = [future_date]
+        bar_next["Open"] = bar_next["Close"]
+        extended = pd.concat([bars, bar_next])
+
+        old_days = pd.bdate_range(
+            end=bars.index[0] - pd.offsets.BDay(1), periods=800,
+        )
+        close_values = np.linspace(50, 99.7, len(old_days))
+        old_stock = pd.DataFrame({
+            "Open": close_values, "High": close_values+0.5,
+            "Low": close_values-0.5, "Close": close_values,
+            "Volume": np.full(len(old_days), 900000.0),
+        }, index=old_days)
+        old_benchmark = pd.DataFrame(
+            {"Close": np.linspace(4400, 4899, len(old_days))},
+            index=old_days,
+        )
+        full_stock = pd.concat([old_stock, extended])
+        full_market = pd.concat([
+            old_benchmark, benchmark,
+            pd.DataFrame(
+                {"Close": [benchmark["Close"].iloc[-1]]},
+                index=[future_date],
+            ),
+        ])
+        signals, full_diagnostics = signal_candidates(
+            {"AAPL": full_stock}, full_market,
+            first_date=pd.Timestamp("2023-01-01"),
+        )
+        audit = audit_history_window_consistency(
+            {"AAPL": full_stock}, full_market, full_diagnostics,
+            last_five_years_start=pd.Timestamp("2025-01-01"),
+        )
+        self.assertEqual(len(audit["coverage"]), 1)
+        self.assertEqual(
+            audit["coverage"].iloc[0]["Full download bars"],
+            len(full_stock),
+        )
+        self.assertEqual(
+            audit["coverage"].iloc[0]["Actual first daily bar"],
+            str(old_days[0].date()),
+        )
+        self.assertGreater(
+            audit["coverage"].iloc[0]["Bars in last 5y crop"], 252
+        )
+        self.assertTrue(audit["disagreements"].empty)
+        self.assertEqual(
+            audit["summary"].loc[
+                audit["summary"]["Check"] == "Eligible setup date disagreements",
+                "Value",
+            ].iloc[0], 0,
+        )
+
+    def test_history_overlap_incomplete_prices_do_not_claim_valid_5yr(self):
+        dates = pd.bdate_range("2026-01-01", periods=260)
+        vals = np.linspace(100, 102, len(dates))
+        bars = pd.DataFrame({
+            "Open": vals, "High": vals + 0.2, "Low": vals - 0.2,
+            "Close": vals, "Volume": np.full(len(vals), 3000000),
+        }, index=dates)
+        benchmark = bars[["Close"]].copy()
+        diag = pd.DataFrame([{
+            "Ticker": "AAPL", "Status": "SCANNED",
+            "Candidate sessions": 0,
+            "Breakout plan observations JSON": "[]",
+        }])
+        audit = audit_history_window_consistency(
+            {"AAPL": bars}, benchmark, diag,
+            last_five_years_start=pd.Timestamp("2021-10-01"),
+        )
+        self.assertEqual(
+            audit["coverage"].iloc[0]["Actual first daily bar"],
+            "2026-01-01",
+        )
+        self.assertEqual(
+            audit["summary"].loc[
+                audit["summary"]["Check"] ==
+                "Earliest historical daily candle available", "Value",
+            ].iloc[0],
+            "2026-01-01",
+        )
+        self.assertTrue(audit["disagreements"].empty)
 
     def test_zero_candidates_summary_stays_honest(self):
         result = simulate_portfolio({"AAPL": make_prices()}, [])
