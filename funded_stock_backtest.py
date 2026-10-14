@@ -479,6 +479,195 @@ def summarize_shadow_breakout_stops(outcomes):
     return pd.DataFrame(result, columns=columns)
 
 
+def _qualifying_shadow_plan_keys(plan_details, overlap_start):
+    """Dates of breakout-plan candidates eligible for shadow-stop *research*."""
+    if plan_details is None or plan_details.empty:
+        return set()
+    data = plan_details.copy()
+    dates = pd.to_datetime(data["Signal date"], errors="coerce")
+    other = pd.to_numeric(data["Other gates failed"], errors="coerce")
+    score = pd.to_numeric(data["Technical score"], errors="coerce")
+    qualifies = (
+        (dates >= pd.Timestamp(overlap_start))
+        & other.eq(0)
+        & score.ge(75)
+        & (
+            data["R:R failed"].fillna(False).astype(bool)
+            | data["Stop-distance failed"].fillna(False).astype(bool)
+        )
+    )
+    return set(
+        zip(data.loc[qualifies, "Ticker"].astype(str),
+            dates.loc[qualifies].dt.strftime("%Y-%m-%d"))
+    )
+
+
+def audit_history_window_consistency(histories, benchmark, full_diagnostics,
+                                     last_five_years_start):
+    """Compare full history with a 5y crop OF THE SAME DOWNLOADED CANDLES.
+
+    A direct invariant check on overlapping signal dates only, after allowing
+    1 calendar year of indicator warm-up in the shorter series. The comparison
+    cannot diagnose differences between two separately downloaded Yahoo batches
+    and deliberately never affects the production/portfolio trade decisions.
+    """
+    cutoff = pd.Timestamp(last_five_years_start)
+    if cutoff.tzinfo is not None:
+        cutoff = cutoff.tz_localize(None)
+    cutoff = cutoff.normalize()
+    overlap_start = cutoff + pd.DateOffset(years=1)
+
+    def recent_sessions(frame):
+        if frame is None or frame.empty:
+            return pd.DataFrame()
+        keep = [
+            pd.Timestamp(item).date() >= cutoff.date()
+            for item in frame.index
+        ]
+        return frame.loc[keep].copy()
+
+    cropped_histories = {
+        ticker: recent_sessions(data)
+        for ticker, data in histories.items()
+        if data is not None and not data.empty
+    }
+    cropped_benchmark = recent_sessions(benchmark)
+    if cropped_benchmark.empty or "Close" not in cropped_benchmark:
+        raise ValueError("Cannot audit overlapping windows without benchmark history")
+    shorter_signals, shorter_diagnostics = signal_candidates(
+        cropped_histories, cropped_benchmark, first_date=overlap_start
+    )
+    original_plans = breakout_plan_research(full_diagnostics)
+    shorter_plans = breakout_plan_research(shorter_diagnostics)
+    original_keys = _qualifying_shadow_plan_keys(original_plans, overlap_start)
+    trimmed_keys = _qualifying_shadow_plan_keys(shorter_plans, overlap_start)
+    all_original = set(zip(
+        original_plans.loc[
+            pd.to_datetime(original_plans.get("Signal date"), errors="coerce") >= overlap_start,
+            "Ticker"
+        ].astype(str),
+        original_plans.loc[
+            pd.to_datetime(original_plans.get("Signal date"), errors="coerce") >= overlap_start,
+            "Signal date"
+        ].astype(str),
+    )) if not original_plans.empty else set()
+    all_trimmed = set(zip(
+        shorter_plans["Ticker"].astype(str),
+        shorter_plans["Signal date"].astype(str),
+    )) if not shorter_plans.empty else set()
+
+    original_by_stock = (
+        full_diagnostics.set_index("Ticker")
+        if isinstance(full_diagnostics, pd.DataFrame)
+        and not full_diagnostics.empty and "Ticker" in full_diagnostics
+        else pd.DataFrame()
+    )
+    cropped_by_stock = (
+        shorter_diagnostics.set_index("Ticker")
+        if not shorter_diagnostics.empty else pd.DataFrame()
+    )
+    coverage = []
+    for ticker, data in sorted(histories.items()):
+        if data is None or data.empty:
+            continue
+        recent = cropped_histories.get(ticker, pd.DataFrame())
+        first_bar = pd.Timestamp(data.index[0]).date()
+        last_bar = pd.Timestamp(data.index[-1]).date()
+        original_qual = len([key for key in original_keys if key[0] == ticker])
+        trimmed_qual = len([key for key in trimmed_keys if key[0] == ticker])
+        orig_count = int(
+            original_by_stock.loc[ticker, "Candidate sessions"]
+        ) if ticker in original_by_stock.index else 0
+        cropped_count = int(
+            cropped_by_stock.loc[ticker, "Candidate sessions"]
+        ) if ticker in cropped_by_stock.index else 0
+        coverage.append({
+            "Ticker": ticker,
+            "Actual first daily bar": str(first_bar),
+            "Actual last daily bar": str(last_bar),
+            "Full download bars": len(data),
+            "Bars in last 5y crop": len(recent),
+            "Full-history preliminary sessions": orig_count,
+            "5y-cropped preliminary sessions": cropped_count,
+            "Full-history eligible plans (same overlapping window)": original_qual,
+            "Cropped-history eligible plans": trimmed_qual,
+            "Usable overlapping history": len(recent) >= 252,
+        })
+
+    mismatches = [
+        {"Ticker": ticker, "Signal date": date,
+         "Appears in": "FULL HISTORY ONLY"}
+        for ticker, date in sorted(original_keys - trimmed_keys)
+    ] + [
+        {"Ticker": ticker, "Signal date": date,
+         "Appears in": "5-YEAR CROP ONLY"}
+        for ticker, date in sorted(trimmed_keys - original_keys)
+    ]
+    coverage_frame = pd.DataFrame(coverage)
+    total_tickers = len(coverage_frame)
+    earliest = (
+        min(coverage_frame["Actual first daily bar"])
+        if total_tickers else "UNAVAILABLE"
+    )
+    return {
+        "summary": pd.DataFrame([
+            {
+                "Check": "Earliest historical daily candle available",
+                "Value": earliest,
+            },
+            {
+                "Check": "Stocks with downloaded daily bars",
+                "Value": total_tickers,
+            },
+            {
+                "Check": "Stocks with >=252 bars in the overlapping 5y crop",
+                "Value": int(coverage_frame["Usable overlapping history"].sum())
+                         if total_tickers else 0,
+            },
+            {
+                "Check": "Comparable-window start (warm-up excluded)",
+                "Value": str(overlap_start.date()),
+            },
+            {
+                "Check": "Full-history breakout evaluations in comparable window",
+                "Value": len(all_original),
+            },
+            {
+                "Check": "Five-year-cropped breakout evaluations",
+                "Value": len(all_trimmed),
+            },
+            {
+                "Check": "Full-history eligible shadow plan-only setups",
+                "Value": len(original_keys),
+            },
+            {
+                "Check": "Five-year-cropped eligible shadow plan-only setups",
+                "Value": len(trimmed_keys),
+            },
+            {
+                "Check": "Eligible setup date disagreements",
+                "Value": len(mismatches),
+            },
+            {
+                "Check": "WARNING",
+                "Value": (
+                    "Overlapping history gives different candidate dates; "
+                    "do not use as validation without reviewing differences."
+                    if mismatches else
+                    "Eligible dates agree on the SAME downloaded candles; "
+                    "this does not confirm separately downloaded 5y files match."
+                ),
+            },
+        ]),
+        "coverage": coverage_frame,
+        "disagreements": pd.DataFrame(
+            mismatches, columns=["Ticker", "Signal date", "Appears in"]
+        ),
+        "trimmed_diagnostics": shorter_diagnostics,
+        "trimmed_signals": len(shorter_signals),
+    }
+
+
 def summarize_shadow_robustness(scenarios):
     """Descriptive, retrospective robustness cohorts for shadow-stop experiments.
 
