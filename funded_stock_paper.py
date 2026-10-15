@@ -96,7 +96,8 @@ def _candidate(row, now):
             return None
     elif state != "FUNDED BREAKOUT PENDING OPEN":
         return None
-    if _num(row.get("Technical score")) < 75:
+    score = _num(row.get("Technical score"))
+    if not math.isfinite(score) or score < 75:
         return None
 
     close = _num(row.get("Reference entry"))
