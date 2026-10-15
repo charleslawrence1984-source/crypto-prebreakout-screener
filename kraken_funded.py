@@ -15,7 +15,7 @@ import yfinance as yf
 
 from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
-from funded_crypto_checks import completed_funded_crypto_candles, crypto_gate_audit
+from funded_crypto_checks import completed_funded_crypto_candles, crypto_gate_audit, crypto_distance_sensitivity
 from funded_stock_paper import (
     empty_journal, capture_new_breakouts, import_journal_csv,
     update_paper_outcomes, summarize_paper_journal,
@@ -2196,6 +2196,11 @@ with crypto_tab:
         st.dataframe(
             crypto_gate_audit(crypto), hide_index=True,
             use_container_width=True,
+        )
+        st.markdown("**Proximity sensitivity — hypothetical WATCH research only**")
+        st.dataframe(
+            crypto_distance_sensitivity(crypto),
+            hide_index=True, use_container_width=True,
         )
         audit_columns = [
             "Coin", "CL Signal", "Funded status", "Score", "Entry timing",
