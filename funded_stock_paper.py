@@ -161,8 +161,9 @@ def capture_new_breakouts(scan, existing, now):
     return frame[COLUMNS], len(additions)
 
 
-def import_journal_csv(content, allowed_tickers):
+def import_journal_csv(content, allowed_tickers, now=None):
     """Fail closed on corrupt or structurally inconsistent user-maintained CSV."""
+    current = _time(now) if now is not None else pd.Timestamp.now(tz="UTC")
     if not isinstance(content, bytes) or len(content) > 2_000_000:
         raise ValueError("Journal must be an uploaded CSV no larger than 2 MB")
     try:
@@ -188,7 +189,7 @@ def import_journal_csv(content, allowed_tickers):
         )
         if (
             tick not in valid_tickers or signal is None or pd.isna(captured)
-            or captured > pd.Timestamp.now(tz="UTC") + pd.Timedelta(minutes=2)
+            or captured > current + pd.Timedelta(minutes=2)
             or method not in known_methods or cost not in COSTS_PCT
             or hold != MAX_HOLD_SESSIONS
             or not all(math.isfinite(v) for v in (close, resistance, stop, target))
