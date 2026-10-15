@@ -112,3 +112,30 @@ def crypto_gate_audit(frame, near_resistance_pct=5.0, score_threshold=80.0):
             int(status.isin(("🟢 A+ FUNDED READY", "🟢 FUNDED READY")).sum()),
         ],
     })
+
+
+def crypto_distance_sensitivity(frame):
+    """Research-only proximity distribution, never a replacement BUY gate."""
+    columns = [
+        "Hypothetical max distance to resistance", "Coins nearby",
+        "Nearby coins with score >=80", "Trade approvals",
+    ]
+    if frame is None or frame.empty:
+        return pd.DataFrame(columns=columns)
+    distance = pd.to_numeric(frame.get(
+        "To resistance %", pd.Series(math.nan, index=frame.index),
+    ), errors="coerce")
+    score = pd.to_numeric(frame.get(
+        "Score", pd.Series(math.nan, index=frame.index),
+    ), errors="coerce")
+    return pd.DataFrame([
+        {
+            "Hypothetical max distance to resistance": f"{level}%",
+            "Coins nearby": int(distance.between(0, level).sum()),
+            "Nearby coins with score >=80": int((
+                distance.between(0, level) & (score >= 80)
+            ).sum()),
+            "Trade approvals": "NONE — RESEARCH DISTRIBUTION ONLY",
+        }
+        for level in (3, 5, 8, 10, 15)
+    ], columns=columns)
