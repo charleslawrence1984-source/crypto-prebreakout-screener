@@ -15,6 +15,7 @@ import yfinance as yf
 
 from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
+from funded_crypto_checks import completed_funded_crypto_candles, crypto_gate_audit, crypto_distance_sensitivity
 from funded_stock_paper import (
     empty_journal, capture_new_breakouts, import_journal_csv,
     update_paper_outcomes, summarize_paper_journal,
@@ -475,8 +476,17 @@ async def scan_funded_crypto_live_async() -> pd.DataFrame:
     try:
         await exchange.load_markets()
         tickers = await exchange.fetch_tickers()
-        btc4 = ohlcv_frame(await exchange.fetch_ohlcv("BTC/USD", timeframe="4h", limit=180))
-        btcd = ohlcv_frame(await exchange.fetch_ohlcv("BTC/USD", timeframe="1d", limit=365))
+        scan_clock = pd.Timestamp.now(tz="UTC")
+        btc4 = completed_funded_crypto_candles(
+            ohlcv_frame(await exchange.fetch_ohlcv("BTC/USD", timeframe="4h", limit=180)),
+            "4h", scan_clock,
+        )
+        btcd = completed_funded_crypto_candles(
+            ohlcv_frame(await exchange.fetch_ohlcv("BTC/USD", timeframe="1d", limit=365)),
+            "1d", scan_clock,
+        )
+        if len(btc4) < 70 or len(btcd) < 35:
+            raise ValueError("Insufficient completed BTC benchmark candles")
 
         for base in KRAKEN_FUNDED_CRYPTO:
             symbol = f"{base}/USD"
@@ -495,7 +505,18 @@ async def scan_funded_crypto_live_async() -> pd.DataFrame:
                     exchange.fetch_ohlcv(symbol, timeframe="1d", limit=365),
                     exchange.fetch_ohlcv(symbol, timeframe="1w", limit=220),
                 )
-                df4, dfd, dfw = ohlcv_frame(raw4), ohlcv_frame(rawd), ohlcv_frame(raww)
+                coin_clock = pd.Timestamp.now(tz="UTC")
+                df4 = completed_funded_crypto_candles(
+                    ohlcv_frame(raw4), "4h", coin_clock,
+                )
+                dfd = completed_funded_crypto_candles(
+                    ohlcv_frame(rawd), "1d", coin_clock,
+                )
+                week_raw = ohlcv_frame(raww)
+                dfw = (
+                    completed_funded_crypto_candles(week_raw, "1w", coin_clock)
+                    if not week_raw.empty else week_raw
+                )
                 cfg = ScreenerConfig(
                     exchange_id="kraken", quote=symbol.split("/")[-1],
                     universe_size=len(KRAKEN_FUNDED_CRYPTO), min_quote_volume=0,
@@ -521,6 +542,12 @@ async def scan_funded_crypto_live_async() -> pd.DataFrame:
                 }
                 flat = flatten_deep_score(item, result)
                 flat["Coin"] = base
+                flat["Last completed 4h bar UTC"] = str(df4["timestamp"].iloc[-1])
+                flat["Last completed daily bar UTC"] = str(dfd["timestamp"].iloc[-1])
+                flat["4h bar age hours"] = round(
+                    (coin_clock - (df4["timestamp"].iloc[-1] + pd.Timedelta(hours=4)))
+                    .total_seconds() / 3600, 2,
+                )
                 flat["Candle caution"] = bool(result.get("candle_caution", False))
                 rows.append(flat)
             except Exception as exc:
@@ -2156,6 +2183,44 @@ with crypto_tab:
         hide_index=True,
         use_container_width=True,
     )
+    with st.expander("Research audit — crypto signal funnel and freshness", expanded=False):
+        st.caption(
+            "These audit counts OVERLAP: one coin can fail distance, "
+            "quality, timing and spot liquidity simultaneously. They are "
+            "not reasons to bypass the original strategy rules. "
+            "The 33 configured coins are a fixed research list, not a "
+            "verified complete list of every region-specific asset shown "
+            "in the Kraken Funded mobile app. Spot-exchange quote volume "
+            "is only a liquidity proxy, not an actual Funded quote/spread."
+        )
+        st.dataframe(
+            crypto_gate_audit(crypto), hide_index=True,
+            use_container_width=True,
+        )
+        st.markdown("**Proximity sensitivity — hypothetical WATCH research only**")
+        st.dataframe(
+            crypto_distance_sensitivity(crypto),
+            hide_index=True, use_container_width=True,
+        )
+        audit_columns = [
+            "Coin", "CL Signal", "Funded status", "Score", "Entry timing",
+            "Swing eligible", "Entry timing actionable", "Swing reason",
+            "To resistance %", "RSI", "RS vs BTC %",
+            "Execution liquidity pass", "Execution reason",
+            "Last completed 4h bar UTC", "Last completed daily bar UTC",
+            "4h bar age hours",
+        ]
+        st.dataframe(
+            crypto[[col for col in audit_columns if col in crypto.columns]],
+            hide_index=True, use_container_width=True,
+        )
+        st.download_button(
+            "Download detailed Kraken Funded crypto rule audit CSV",
+            data=crypto.to_csv(index=False),
+            file_name="funded_crypto_rule_audit.csv",
+            mime="text/csv",
+            key="funded_crypto_rule_audit_export",
+        )
     with st.expander("Why crypto is being filtered out", expanded=False):
         crypto_status = crypto["Funded status"].fillna("UNKNOWN").astype(str)
         breakdown = pd.DataFrame({
