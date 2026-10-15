@@ -512,8 +512,10 @@ async def scan_funded_crypto_live_async() -> pd.DataFrame:
                 dfd = completed_funded_crypto_candles(
                     ohlcv_frame(rawd), "1d", coin_clock,
                 )
-                dfw = completed_funded_crypto_candles(
-                    ohlcv_frame(raww), "1w", coin_clock,
+                week_raw = ohlcv_frame(raww)
+                dfw = (
+                    completed_funded_crypto_candles(week_raw, "1w", coin_clock)
+                    if not week_raw.empty else week_raw
                 )
                 cfg = ScreenerConfig(
                     exchange_id="kraken", quote=symbol.split("/")[-1],
