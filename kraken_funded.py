@@ -18,6 +18,7 @@ from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_qu
 from funded_stock_paper import (
     empty_journal, capture_new_breakouts, import_journal_csv,
     update_paper_outcomes, summarize_paper_journal,
+    explain_capture_eligibility,
 )
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
@@ -1576,6 +1577,29 @@ with stock_tab:
                     "'Scan stocks only' first; WATCH setups with other failed "
                     "gates cannot be backfilled or promoted into paper trades."
                 )
+        with st.expander("Why were no NEW stock paper signals recorded?"):
+            capture_checks = explain_capture_eligibility(
+                paper_live_scan,
+                st.session_state["funded_stock_paper_journal"],
+                pd.Timestamp.now(tz="UTC"),
+            )
+            summary_counts = (
+                capture_checks["Paper journal assessment"]
+                .value_counts().rename_axis("Explanation")
+                .reset_index(name="Stocks")
+            )
+            st.dataframe(
+                summary_counts, hide_index=True, use_container_width=True,
+            )
+            st.caption(
+                "A zero capture count is normal when there is no recent "
+                "qualifying breakout. Data unavailable, expired scans and "
+                "other technical vetoes are displayed separately. This "
+                "report does NOT override any funded trading restrictions."
+            )
+            st.dataframe(
+                capture_checks, hide_index=True, use_container_width=True,
+            )
         paper_book = st.session_state["funded_stock_paper_journal"]
         if not paper_book.empty:
             if st.button(

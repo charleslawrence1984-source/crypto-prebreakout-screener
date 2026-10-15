@@ -7,6 +7,7 @@ import pandas as pd
 from funded_stock_paper import (
     COLUMNS, COSTS_PCT, empty_journal, capture_new_breakouts,
     import_journal_csv, update_paper_outcomes, summarize_paper_journal,
+    explain_capture_eligibility,
 )
 
 
@@ -50,6 +51,88 @@ class FundedStockPaperTests(unittest.TestCase):
         if second:
             data.loc[dates[2], ["Open", "High", "Low", "Close"]] = second
         return {"MU": data}
+
+    def test_zero_capture_diagnostics_report_no_scan_and_no_breakout(self):
+        empty = explain_capture_eligibility(pd.DataFrame(), empty_journal(), self.NOW)
+        self.assertEqual(len(empty), 1)
+        self.assertIn("NO FRESH STOCK SCAN", empty.iloc[0]["Paper journal assessment"])
+        blocked = explain_capture_eligibility(
+            self.scan(**{
+                "Technical state": "BLOCKED",
+                "Breakout date": np.nan,
+            }),
+            empty_journal(), self.NOW,
+        )
+        self.assertEqual(
+            blocked.iloc[0]["Paper journal assessment"],
+            "NO BREAKOUT ON THE LAST COMPLETED US SESSION",
+        )
+
+    def test_explanations_are_consistent_with_capture_decision(self):
+        cases = [
+            ({"scanned_at": (self.NOW-pd.Timedelta(minutes=30)).isoformat()},
+             "STOCK SCAN EXPIRED"),
+            ({"Technical state": "FUNDED BREAKOUT REVIEW",
+              "Gate": "NO CONSTRUCTIVE BASE"},
+             "OTHER TECHNICAL"),
+            ({"Technical score": 72},
+             "BREAKOUT QUALITY"),
+            ({"Reference target": np.nan},
+             "INCOMPLETE OR INVALID"),
+        ]
+        for changes, expected in cases:
+            with self.subTest(case=changes):
+                scan = self.scan(**changes)
+                explain = explain_capture_eligibility(
+                    scan, empty_journal(), self.NOW,
+                )
+                self.assertIn(expected, explain.iloc[0]["Paper journal assessment"])
+                _, n = capture_new_breakouts(scan, empty_journal(), self.NOW)
+                self.assertEqual(n, 0)
+        ready = explain_capture_eligibility(self.scan(), empty_journal(), self.NOW)
+        self.assertEqual(
+            ready.iloc[0]["Paper journal assessment"],
+            "ELIGIBLE — NEW PROSPECTIVE PAPER SNAPSHOT",
+        )
+        book = self.journal()
+        recorded = explain_capture_eligibility(self.scan(), book, self.NOW)
+        self.assertEqual(
+            recorded.iloc[0]["Paper journal assessment"],
+            "ALREADY CAPTURED — NO DUPLICATE",
+        )
+
+    def test_provider_outage_never_erases_a_completed_paper_result(self):
+        book = self.journal()
+        prices = self.future_prices(second=[100, 121, 99, 120])
+        good = update_paper_outcomes(
+            book, prices, self.NOW+pd.Timedelta(days=10),
+        )
+        self.assertEqual(int(good["Status"].eq("COMPLETED").sum()), 2)
+        missing = update_paper_outcomes(
+            good, {}, self.NOW+pd.Timedelta(days=11),
+        )
+        pd.testing.assert_frame_equal(good, missing)
+        bad = update_paper_outcomes(
+            good, {"MU": pd.DataFrame()}, self.NOW+pd.Timedelta(days=11),
+        )
+        pd.testing.assert_frame_equal(good, bad)
+
+    def test_missing_original_entry_candle_preserves_completed_paper_result(self):
+        book = self.journal()
+        good = update_paper_outcomes(
+            book, self.future_prices(second=[100, 121, 99, 120]),
+            self.NOW+pd.Timedelta(days=10),
+        )
+        trimmed = self.future_prices(length=15)
+        trimmed["MU"] = trimmed["MU"].iloc[-3:]
+        subsequent = update_paper_outcomes(
+            good, trimmed, self.NOW+pd.Timedelta(days=50),
+        )
+        # Previously captured final outcomes cannot disappear simply
+        # because the source truncated the old price window.
+        final_before = good[good["Status"].eq("COMPLETED")]
+        final_after = subsequent[subsequent["Status"].eq("COMPLETED")]
+        pd.testing.assert_frame_equal(final_before, final_after)
 
     def test_live_signal_capture_creates_four_frozen_methods_costs(self):
         saved = self.journal()
