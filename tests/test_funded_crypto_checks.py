@@ -6,6 +6,7 @@ import pandas as pd
 
 from funded_crypto_checks import (
     completed_funded_crypto_candles, crypto_gate_audit,
+    crypto_distance_sensitivity,
 )
 
 
@@ -113,6 +114,23 @@ class FundedCryptoCandleTests(unittest.TestCase):
         self.assertEqual(counts["Underlying swing shape not eligible"], 3)
         self.assertEqual(counts["Kraken spot-volume proxy below $1m"], 1)
         self.assertEqual(counts["Funded READY/A+ (all live checks)"], 0)
+
+    def test_proximity_widening_does_not_create_a_buy(self):
+        scan = pd.DataFrame({
+            "Coin": ["BTC", "BNB", "ETH", "SHIB"],
+            "To resistance %": [4.2, 5.3, 9.2, 11.9],
+            "Score": [26.2, 23.2, 16.9, 27.1],
+        })
+        sensitivity = crypto_distance_sensitivity(scan)
+        counts = dict(zip(
+            sensitivity["Hypothetical max distance to resistance"],
+            sensitivity["Coins nearby"],
+        ))
+        self.assertEqual(counts["3%"], 0)
+        self.assertEqual(counts["5%"], 1)
+        self.assertEqual(counts["10%"], 3)
+        self.assertEqual(int(sensitivity["Nearby coins with score >=80"].sum()), 0)
+        self.assertTrue(sensitivity["Trade approvals"].str.startswith("NONE").all())
 
     def test_empty_crypto_audit_does_not_fabricate_qualifying_assets(self):
         result = crypto_gate_audit(pd.DataFrame())
