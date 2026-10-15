@@ -112,6 +112,88 @@ def _candidate(row, now):
     return tick, signal_day, state, reason, close, resistance, target, original, retest
 
 
+def explain_capture_eligibility(scan, existing, now):
+    """Account for every STOCK scan row when no NEW paper scenario is recorded.
+
+    Pure display-only diagnostic. In particular, this cannot override
+    _candidate(), which alone authorizes prospective signal capture.
+    """
+    observed_at = _time(now)
+    columns = ["Ticker", "Paper journal assessment"]
+    if scan is None or scan.empty:
+        return pd.DataFrame([{
+            "Ticker": "—", "Paper journal assessment":
+            "NO FRESH STOCK SCAN — RUN SCAN STOCKS ONLY",
+        }], columns=columns)
+    already = set(existing["Paper ID"].astype(str)) if (
+        isinstance(existing, pd.DataFrame)
+        and not existing.empty and "Paper ID" in existing.columns
+    ) else set()
+    records = []
+    for _, row in scan.iterrows():
+        ticker = str(row.get("Ticker") or "—").upper().strip()
+        candidate = _candidate(row, observed_at)
+        if candidate is not None:
+            signal_day = candidate[1].isoformat()
+            possible_ids = {
+                f"{ticker}|{signal_day}|{method}|{cost:.2f}"
+                for method, _ in STOP_METHODS for cost in COSTS_PCT
+            }
+            status = (
+                "ALREADY CAPTURED — NO DUPLICATE"
+                if possible_ids.issubset(already)
+                else "ELIGIBLE — NEW PROSPECTIVE PAPER SNAPSHOT"
+            )
+        else:
+            scanned = pd.to_datetime(
+                row.get("scanned_at"), errors="coerce", utc=True,
+            )
+            signal_date = _date(row.get("Breakout date"))
+            bar_date = _date(row.get("Last completed bar"))
+            technical = str(row.get("Technical state") or "")
+            reasons = {
+                item.strip()
+                for item in str(row.get("Gate") or "").split(";")
+                if item.strip()
+            }
+            if str(row.get("Scan source")) != "LIVE":
+                status = "NOT A LIVE STOCK SCAN"
+            elif pd.isna(scanned) or not 0 <= (
+                observed_at-scanned
+            ).total_seconds() <= 900:
+                status = "STOCK SCAN EXPIRED — RESCAN BEFORE CAPTURE"
+            elif signal_date is None or signal_date != bar_date:
+                status = "NO BREAKOUT ON THE LAST COMPLETED US SESSION"
+            else:
+                ny_now = observed_at.tz_convert("America/New_York")
+                next_open = (
+                    pd.Timestamp(signal_date) + pd.offsets.BDay(1)
+                ).date()
+                if ny_now.date() > next_open or (
+                    ny_now.date() == next_open
+                    and (ny_now.hour, ny_now.minute) >= (9, 30)
+                ):
+                    status = "PAPER CAPTURE WINDOW ALREADY CLOSED"
+                elif technical not in (
+                    "FUNDED BREAKOUT PENDING OPEN", "FUNDED BREAKOUT REVIEW"
+                ):
+                    status = "NOT A CONFIRMED BREAKOUT ROUTE"
+                elif technical == "FUNDED BREAKOUT REVIEW" and (
+                    not reasons or not reasons.issubset(ALLOWED_FAILURES)
+                ):
+                    status = "OTHER TECHNICAL BREAKOUT GATES FAILED"
+                elif not math.isfinite(_num(row.get("Technical score"))) or (
+                    _num(row.get("Technical score")) < 75
+                ):
+                    status = "BREAKOUT QUALITY SCORE BELOW 75"
+                else:
+                    status = "INCOMPLETE OR INVALID FROZEN TRADE PLAN"
+        records.append({
+            "Ticker": ticker, "Paper journal assessment": status,
+        })
+    return pd.DataFrame(records, columns=columns)
+
+
 def capture_new_breakouts(scan, existing, now):
     """Append immutable plans for currently fresh signals; never backfill."""
     time = _time(now)
@@ -240,7 +322,22 @@ def update_paper_outcomes(journal, completed_histories, now):
         ticker = str(row["Ticker"])
         signal_day = _date(row["Signal date"])
         created = pd.to_datetime(row["Created UTC"], utc=True, errors="coerce")
-        price_bars = _next_completed_bars(completed_histories.get(ticker), signal_day)
+        price_bars = _next_completed_bars(
+            completed_histories.get(ticker), signal_day,
+        )
+        # Never destroy existing completed outcomes or rejections when
+        # Yahoo returns no recent validated daily bars. Research CSV remains
+        # authoritative until valid price history is available again.
+        if pd.isna(created) or signal_day is None or price_bars.empty:
+            continue
+        first_date = pd.Timestamp(price_bars.index[0]).date()
+        if (first_date - signal_day).days > 7 and str(row["Status"]) in (
+            "COMPLETED", "OPEN PAPER PROXY",
+        ):
+            # Do not invent a new entry at a later candle, and do not
+            # overwrite an already observed trade when its first candle
+            # has fallen out of the provider's limited lookback window.
+            continue
         for field in RESULT_COLUMNS:
             updated.at[i, field] = (
                 "AWAITING NEXT COMPLETE US SESSION" if field == "Status"
@@ -248,9 +345,6 @@ def update_paper_outcomes(journal, completed_histories, now):
                 else "" if field in ("Next entry date", "Exit date", "Exit reason")
                 else math.nan
             )
-        if pd.isna(created) or signal_day is None or price_bars.empty:
-            continue
-        first_date = pd.Timestamp(price_bars.index[0]).date()
         if (first_date - signal_day).days > 7:
             updated.at[i, "Status"] = "INCOMPLETE ENTRY PRICE HISTORY"
             continue
