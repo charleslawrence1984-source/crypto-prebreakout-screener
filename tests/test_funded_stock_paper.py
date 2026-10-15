@@ -90,8 +90,8 @@ class FundedStockPaperTests(unittest.TestCase):
         next_day = pd.Timestamp("2026-10-16T14:05:00Z")
         scan = self.scan(scanned_at=(next_day-pd.Timedelta(minutes=2)).isoformat())
         snap, n = capture_new_breakouts(scan, empty_journal(), next_day)
-        self.assertEqual(n, 4)  # 10:05 UTC is 10:05? 14:05Z = 10:05 NY; should reject.
-        # assertion corrected in next commit if timezone interpretation changes
+        self.assertEqual(n, 0)
+        self.assertTrue(snap.empty)
 
     def test_csv_roundtrip_and_tampered_stop_rejected(self):
         book = self.journal()
@@ -182,7 +182,7 @@ class FundedStockPaperTests(unittest.TestCase):
 
     def test_incomplete_next_open_data_does_not_shift_entry_to_later_price(self):
         book = self.journal()
-        late = self.future_prices()
+        late = self.future_prices(length=7)
         late["MU"] = late["MU"].iloc[-1:]
         updated = update_paper_outcomes(book, late, self.NOW+pd.Timedelta(days=10))
         self.assertTrue(updated["Status"].eq("INCOMPLETE ENTRY PRICE HISTORY").all())
