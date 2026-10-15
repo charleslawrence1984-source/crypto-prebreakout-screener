@@ -15,6 +15,10 @@ import yfinance as yf
 
 from cl_signal_ui import render_module_header
 from funded_stock_breakout import evaluate_funded_breakout, validate_breakout_quote
+from funded_stock_paper import (
+    empty_journal, capture_new_breakouts, import_journal_csv,
+    update_paper_outcomes, summarize_paper_journal,
+)
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
 from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops, summarize_shadow_robustness, audit_history_window_consistency, historical_signal_start
@@ -445,6 +449,7 @@ def scan_funded_stocks_live() -> pd.DataFrame:
             "Core signal date": technical.get("signal_date"),
             "Reference entry": technical.get("reference_entry"),
             "Reference stop": technical.get("reference_stop"),
+            "Research retest stop": technical.get("research_stop_retest"),
             "Reference target": technical.get("reference_target"),
             "Reference R:R": technical.get("reference_reward_risk"),
             "Target basis": technical.get("reference_target_basis"),
@@ -1514,6 +1519,125 @@ with stock_tab:
         "A+ = $4 modeled loss at 2.5R+; READY = $3 modeled loss at 2R+. "
         "These are not guaranteed stop losses: Kraken Funded exits are manual."
     )
+
+    with st.expander("📝 Stocks only — prospective paper-trading journal", expanded=False):
+        st.warning(
+            "RESEARCH ONLY — not an order or live BUY signal. Record plans only "
+            "from a fresh STOCKS live scan, before the NEXT regular US session "
+            "opens. Paper entries use the following US session OPEN as a proxy, "
+            "with stop-first daily-bar modelling, not actual Kraken 24/7 fills. "
+            "Results exclude historical earnings blackouts and cannot verify "
+            "whether a stop is executable."
+        )
+        st.caption(
+            "Only breakout plans with a score of at least 75 and no failed "
+            "technical checks beyond projected R:R or original stop width "
+            "are eligible for this research journal. Each signal creates "
+            "four immutable method/cost scenarios (original vs resistance "
+            "retest, both at 0.5% and 1.0% modelled costs). No past backtest "
+            "candidates can be added retrospectively."
+        )
+        if "funded_stock_paper_journal" not in st.session_state:
+            st.session_state["funded_stock_paper_journal"] = empty_journal()
+        paper_upload = st.file_uploader(
+            "Import previously downloaded paper journal CSV",
+            type=["csv"], key="funded_stock_paper_upload",
+        )
+        if st.button("Import paper journal (replace current in-memory copy)",
+                     disabled=paper_upload is None,
+                     key="funded_stock_paper_import"):
+            try:
+                st.session_state["funded_stock_paper_journal"] = import_journal_csv(
+                    paper_upload.getvalue(), KRAKEN_FUNDED_STOCKS,
+                )
+                st.success("Journal loaded. Re-export after each new snapshot or update.")
+            except ValueError as exc:
+                st.error(f"Journal rejected: {exc}")
+        paper_live_scan = st.session_state.get(
+            "funded_stock_live_scan", pd.DataFrame(),
+        )
+        if st.button(
+            "Record NEW signal-day breakout plans from fresh live stock scan",
+            key="funded_stock_paper_capture",
+        ):
+            saved, added = capture_new_breakouts(
+                paper_live_scan, st.session_state["funded_stock_paper_journal"],
+                pd.Timestamp.now(tz="UTC"),
+            )
+            st.session_state["funded_stock_paper_journal"] = saved
+            if added:
+                st.success(
+                    f"Recorded {added} new paper scenarios. Download your CSV "
+                    "below before closing or refreshing this session."
+                )
+            else:
+                st.info(
+                    "No new qualifying fresh breakout snapshots. Run "
+                    "'Scan stocks only' first; WATCH setups with other failed "
+                    "gates cannot be backfilled or promoted into paper trades."
+                )
+        paper_book = st.session_state["funded_stock_paper_journal"]
+        if not paper_book.empty:
+            if st.button(
+                "Update paper outcomes using subsequently completed US daily bars",
+                key="funded_stock_paper_update",
+            ):
+                fetched, failures = {}, []
+                with st.spinner("Checking completed US stock candles for journaled signals…"):
+                    now_et = pd.Timestamp.now(tz="America/New_York")
+                    for symbol in sorted(set(paper_book["Ticker"])):
+                        try:
+                            clean, provider, why = get_validated_stock_history(
+                                None, symbol,
+                                lambda ticker: yf.download(
+                                    ticker, period="2y", interval="1d",
+                                    auto_adjust=False, progress=False,
+                                    threads=False,
+                                ),
+                                now_et,
+                            )
+                            if clean is not None:
+                                fetched[symbol] = clean
+                            else:
+                                failures.append(f"{symbol}: {why}")
+                        except Exception as exc:
+                            failures.append(f"{symbol}: {type(exc).__name__}")
+                    st.session_state["funded_stock_paper_journal"] = update_paper_outcomes(
+                        paper_book, fetched, pd.Timestamp.now(tz="UTC"),
+                    )
+                if failures:
+                    st.warning(
+                        "No update for stocks without validated, fully completed "
+                        "daily candles: " + "; ".join(failures)
+                    )
+                else:
+                    st.success("Paper observations updated. Export the new CSV below.")
+            paper_book = st.session_state["funded_stock_paper_journal"]
+            st.dataframe(
+                summarize_paper_journal(paper_book),
+                hide_index=True, use_container_width=True,
+            )
+            with st.expander("Inspect frozen paper signals and outcomes"):
+                st.dataframe(
+                    paper_book, hide_index=True, use_container_width=True,
+                )
+            st.download_button(
+                "Download CURRENT forward paper-trading journal CSV",
+                data=paper_book.to_csv(index=False),
+                file_name="funded_stock_forward_paper_journal.csv",
+                mime="text/csv", key="funded_stock_paper_download",
+            )
+            st.warning(
+                "IMPORTANT: This journal is held in browser-session memory only. "
+                "Download the CSV after every change, and import your latest "
+                "saved copy next visit; otherwise observations may be lost. "
+                "CSV records are user-managed and not tamper-proof evidence."
+            )
+        else:
+            st.caption(
+                "No paper observations recorded. The journal starts empty "
+                "on purpose; historical test winners are NOT imported."
+            )
 
     with st.expander("📊 Stocks only — historical backtest (research)", expanded=False):
         st.warning(
