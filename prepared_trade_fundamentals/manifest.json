@@ -3,7 +3,7 @@
     "euronext_amsterdam": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-10-16T08:07:01+01:00",
+      "completed_at": "2026-10-16T14:14:02+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 76,
       "fresh_coverage_pct": 100.0,
@@ -20,7 +20,7 @@
     "euronext_brussels": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-10-16T08:07:01+01:00",
+      "completed_at": "2026-10-16T14:14:02+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 103,
       "fresh_coverage_pct": 100.0,
@@ -37,7 +37,7 @@
     "euronext_lisbon": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-10-16T08:07:02+01:00",
+      "completed_at": "2026-10-16T14:14:03+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 32,
       "fresh_coverage_pct": 100.0,
@@ -53,20 +53,20 @@
     },
     "euronext_paris": {
       "batch_errors": [],
-      "batch_size": 500,
-      "completed_at": "2026-10-16T08:07:01+01:00",
+      "batch_size": 250,
+      "completed_at": "2026-10-16T14:14:02+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 544,
-      "fresh_coverage_pct": 100.0,
-      "fresh_symbols": 544,
+      "coverage_symbols": 547,
+      "fresh_coverage_pct": 0.5,
+      "fresh_symbols": 3,
       "label": "Euronext Paris",
       "provider": "TradingView batch fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 544,
+      "requested_this_run": 3,
       "rulebook_build": "2026.10.02.03",
-      "started_at": "2026-10-16T00:42:39+01:00",
+      "started_at": "2026-10-16T14:14:02+01:00",
       "status": "complete",
-      "universe_symbols": 544
+      "universe_symbols": 547
     },
     "gettex": {
       "batch_errors": [],
@@ -88,7 +88,7 @@
     "lse": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-10-16T08:07:00+01:00",
+      "completed_at": "2026-10-16T14:14:01+01:00",
       "coverage_pct": 96.6,
       "coverage_symbols": 456,
       "fresh_coverage_pct": 0.0,
@@ -98,14 +98,14 @@
       "remaining_symbols": 16,
       "requested_this_run": 16,
       "rulebook_build": "2026.10.02.03",
-      "started_at": "2026-10-16T08:06:59+01:00",
+      "started_at": "2026-10-16T14:14:01+01:00",
       "status": "partial",
       "universe_symbols": 472
     },
     "lse_aim": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-10-16T08:07:00+01:00",
+      "completed_at": "2026-10-16T14:14:02+01:00",
       "coverage_pct": 99.8,
       "coverage_symbols": 448,
       "fresh_coverage_pct": 0.0,
@@ -115,26 +115,26 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "rulebook_build": "2026.10.02.03",
-      "started_at": "2026-10-16T08:07:00+01:00",
+      "started_at": "2026-10-16T14:14:01+01:00",
       "status": "partial",
       "universe_symbols": 449
     },
     "madrid": {
       "batch_errors": [],
       "batch_size": 250,
-      "completed_at": "2026-10-16T08:07:01+01:00",
+      "completed_at": "2026-10-16T14:14:02+01:00",
       "coverage_pct": 99.6,
-      "coverage_symbols": 268,
-      "fresh_coverage_pct": 0.0,
-      "fresh_symbols": 0,
+      "coverage_symbols": 269,
+      "fresh_coverage_pct": 0.4,
+      "fresh_symbols": 1,
       "label": "Bolsa de Madrid",
       "provider": "TradingView batch fundamentals",
       "remaining_symbols": 1,
-      "requested_this_run": 1,
+      "requested_this_run": 2,
       "rulebook_build": "2026.10.02.03",
-      "started_at": "2026-10-16T08:07:01+01:00",
+      "started_at": "2026-10-16T14:14:02+01:00",
       "status": "partial",
-      "universe_symbols": 269
+      "universe_symbols": 270
     },
     "nasdaq": {
       "batch_errors": [],
@@ -190,7 +190,7 @@
     "six": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-10-16T08:07:01+01:00",
+      "completed_at": "2026-10-16T14:14:02+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 209,
       "fresh_coverage_pct": 100.0,
@@ -224,7 +224,7 @@
     "vienna": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-10-16T08:07:01+01:00",
+      "completed_at": "2026-10-16T14:14:02+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 63,
       "fresh_coverage_pct": 100.0,
@@ -241,7 +241,7 @@
     "xetra": {
       "batch_errors": [],
       "batch_size": 500,
-      "completed_at": "2026-10-16T08:07:00+01:00",
+      "completed_at": "2026-10-16T14:14:01+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 392,
       "fresh_coverage_pct": 100.0,
@@ -259,5 +259,5 @@
   "last_completed_exchange": "madrid",
   "rulebook_build": "2026.10.02.03",
   "schema_version": 1,
-  "updated_at": "2026-10-16T08:07:02+01:00"
+  "updated_at": "2026-10-16T14:14:03+01:00"
 }

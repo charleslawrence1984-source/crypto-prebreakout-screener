@@ -1,5 +1,16 @@
 {
   "exchanges": {
+    "euronext_paris": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Euronext Paris",
+      "new_count": 3,
+      "new_symbols": [
+        "ALECR.PA",
+        "COUR.PA",
+        "MLPRI.PA"
+      ]
+    },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
@@ -18,10 +29,12 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "Bolsa de Madrid",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "SCGAV.MC"
+      ]
     }
   },
-  "generated_at": "2026-10-16T08:07:02+01:00",
+  "generated_at": "2026-10-16T14:14:03+01:00",
   "rulebook_build": "2026.10.02.03"
 }
