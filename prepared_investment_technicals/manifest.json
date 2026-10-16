@@ -3,8 +3,8 @@
     "euronext_amsterdam": {
       "coverage_symbols": 0,
       "dispatch_counts": {
-        "ASML.AS": 5,
-        "EXO.AS": 166
+        "ASML.AS": 6,
+        "EXO.AS": 167
       },
       "eligible_symbols": 2,
       "errors": [
@@ -20,14 +20,14 @@
       "remaining_symbols": 2,
       "requested_this_run": 2,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:15+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:56+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "euronext_brussels": {
       "coverage_symbols": 0,
       "dispatch_counts": {
-        "SPA.BR": 239
+        "SPA.BR": 240
       },
       "eligible_symbols": 1,
       "errors": [
@@ -39,7 +39,7 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:15+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:56+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -51,7 +51,7 @@
       "remaining_symbols": 0,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:16+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:56+01:00",
       "status": "complete",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -65,7 +65,7 @@
       "remaining_symbols": 1,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:14+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:56+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -762,14 +762,14 @@
       "remaining_symbols": 85,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:13+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:55+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "lse_aim": {
       "coverage_symbols": 0,
       "dispatch_counts": {
-        "JHD.L": 360
+        "JHD.L": 361
       },
       "eligible_symbols": 1,
       "errors": [
@@ -781,7 +781,7 @@
       "remaining_symbols": 1,
       "requested_this_run": 1,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:13+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:55+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -809,7 +809,7 @@
       "remaining_symbols": 15,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:15+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:56+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -2110,42 +2110,42 @@
     "six": {
       "coverage_symbols": 15,
       "dispatch_counts": {
-        "ABBNE.SW": 360,
-        "ACLN.SW": 360,
-        "ALSN.SW": 360,
-        "APGN.SW": 265,
-        "BAER.SW": 360,
-        "BCGE.SW": 291,
-        "BCHN.SW": 360,
-        "BCVN.SW": 360,
-        "BEAN.SW": 360,
-        "BEKN.SW": 360,
-        "BRKN.SW": 360,
-        "BUCN.SW": 360,
-        "CFR.SW": 360,
-        "CFTE.SW": 360,
-        "EFGN.SW": 360,
-        "EMSN.SW": 360,
-        "GALE.SW": 360,
-        "GEBN.SW": 360,
-        "GEBNE.SW": 360,
-        "GIVN.SW": 360,
-        "HBAN.SW": 360,
-        "IFCN.SW": 291,
-        "INRN.SW": 360,
-        "KARN.SW": 360,
-        "LOGN.SW": 360,
-        "LOGNE.SW": 360,
-        "LUKN.SW": 360,
-        "MOZN.SW": 360,
-        "NOVN.SW": 360,
-        "NOVNEE.SW": 360,
-        "PGHN.SW": 360,
-        "RO.SW": 360,
-        "ROP.SW": 360,
-        "UBSG.SW": 360,
-        "UBSGE.SW": 360,
-        "WKBN.SW": 360
+        "ABBNE.SW": 361,
+        "ACLN.SW": 361,
+        "ALSN.SW": 361,
+        "APGN.SW": 266,
+        "BAER.SW": 361,
+        "BCGE.SW": 292,
+        "BCHN.SW": 361,
+        "BCVN.SW": 361,
+        "BEAN.SW": 361,
+        "BEKN.SW": 361,
+        "BRKN.SW": 361,
+        "BUCN.SW": 361,
+        "CFR.SW": 361,
+        "CFTE.SW": 361,
+        "EFGN.SW": 361,
+        "EMSN.SW": 361,
+        "GALE.SW": 361,
+        "GEBN.SW": 361,
+        "GEBNE.SW": 361,
+        "GIVN.SW": 361,
+        "HBAN.SW": 361,
+        "IFCN.SW": 292,
+        "INRN.SW": 361,
+        "KARN.SW": 361,
+        "LOGN.SW": 361,
+        "LOGNE.SW": 361,
+        "LUKN.SW": 361,
+        "MOZN.SW": 361,
+        "NOVN.SW": 361,
+        "NOVNEE.SW": 361,
+        "PGHN.SW": 361,
+        "RO.SW": 361,
+        "ROP.SW": 361,
+        "UBSG.SW": 361,
+        "UBSGE.SW": 361,
+        "WKBN.SW": 361
       },
       "eligible_symbols": 51,
       "errors": [
@@ -2297,7 +2297,7 @@
       "remaining_symbols": 36,
       "requested_this_run": 36,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:14+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:56+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -2394,9 +2394,9 @@
     "vienna": {
       "coverage_symbols": 2,
       "dispatch_counts": {
-        "DOC.VI": 360,
-        "EBS.VI": 360,
-        "RBI.VI": 360
+        "DOC.VI": 361,
+        "EBS.VI": 361,
+        "RBI.VI": 361
       },
       "eligible_symbols": 5,
       "errors": [
@@ -2416,7 +2416,7 @@
       "remaining_symbols": 3,
       "requested_this_run": 3,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:15+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:56+01:00",
       "status": "partial",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
@@ -2467,12 +2467,12 @@
       "remaining_symbols": 38,
       "requested_this_run": 0,
       "returned_this_run": 0,
-      "source_fundamentals_updated_at": "2026-10-16T02:14:13+01:00",
+      "source_fundamentals_updated_at": "2026-10-16T07:22:55+01:00",
       "status": "deferred_fundamentals",
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     }
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-16T06:02:25.806722+00:00"
+  "updated_at": "2026-10-16T06:24:01.837201+00:00"
 }
