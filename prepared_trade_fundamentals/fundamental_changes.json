@@ -1,14 +1,5 @@
 {
   "exchanges": {
-    "euronext_paris": {
-      "changed_count": 0,
-      "changed_symbols": [],
-      "label": "Euronext Paris",
-      "new_count": 1,
-      "new_symbols": [
-        "MLHYE.PA"
-      ]
-    },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
@@ -29,8 +20,32 @@
       "label": "Bolsa de Madrid",
       "new_count": 0,
       "new_symbols": []
+    },
+    "nasdaq": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "NASDAQ",
+      "new_count": 2,
+      "new_symbols": [
+        "CTY",
+        "TCXB"
+      ]
+    },
+    "nyse": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "NYSE",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "tsx": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Toronto Stock Exchange",
+      "new_count": 0,
+      "new_symbols": []
     }
   },
-  "generated_at": "2026-10-16T19:01:15+01:00",
+  "generated_at": "2026-10-16T22:04:10+01:00",
   "rulebook_build": "2026.10.02.03"
 }
