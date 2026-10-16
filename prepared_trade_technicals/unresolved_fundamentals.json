@@ -57,12 +57,9 @@
       ]
     },
     "nasdaq": {
-      "count": 2,
+      "count": 0,
       "label": "NASDAQ",
-      "symbols": [
-        "CTY",
-        "TCXB"
-      ]
+      "symbols": []
     },
     "nyse": {
       "count": 5,
@@ -174,8 +171,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-16T19:45:55+01:00",
+  "recorded_at": "2026-10-16T23:01:53+01:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-16T19:01:15+01:00",
-  "total_unresolved": 102
+  "source_fundamentals_updated_at": "2026-10-16T22:04:10+01:00",
+  "total_unresolved": 100
 }
