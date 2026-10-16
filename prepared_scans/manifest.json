@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-16T02:14:15+01:00",
+      "completed_at": "2026-10-16T07:22:56+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -52,7 +52,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-16T02:14:15+01:00",
+      "completed_at": "2026-10-16T07:22:56+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -100,7 +100,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-16T02:14:16+01:00",
+      "completed_at": "2026-10-16T07:22:56+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 14,
       "coverage_target_symbols": 14,
@@ -151,7 +151,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-16T02:14:14+01:00",
+      "completed_at": "2026-10-16T07:22:56+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 158,
       "coverage_target_symbols": 158,
@@ -164,12 +164,12 @@
         "rate_limit_errors": 0,
         "requested": 1,
         "symbol_outcomes": {
-          "LBIRD.PA": {
+          "ALPRG.PA": {
             "status": "below_market_cap"
           }
         }
       },
-      "eligible_symbols": 159,
+      "eligible_symbols": 160,
       "gap_fill_dispatch_counts": {
         "74SW.PA": 0,
         "ABVX.PA": 0,
@@ -183,6 +183,7 @@
         "AL2SI.PA": 0,
         "ALHG.PA": 0,
         "ALO.PA": 0,
+        "ALPRG.PA": 1,
         "ALTA.PA": 0,
         "ALVDM.PA": 0,
         "AM.PA": 0,
@@ -331,7 +332,7 @@
         "WAVE.PA": 0,
         "WLN.PA": 0
       },
-      "gap_fill_last_dispatched_at": "2026-10-16T02:14:13+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-16T07:22:55+01:00",
       "label": "Euronext Paris",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -341,6 +342,12 @@
       "price_refresh_updated": 12,
       "price_refreshed_at": "2026-10-16T00:45:18+01:00",
       "provider_backoff": {
+        "ALPRG.PA": {
+          "attempts": 1,
+          "deferred_at": "2026-10-16T07:22:54+01:00",
+          "reason": "below_market_cap",
+          "until": "2026-10-23T07:22:54+01:00"
+        },
         "LBIRD.PA": {
           "attempts": 1,
           "deferred_at": "2026-10-16T02:14:12+01:00",
@@ -348,7 +355,7 @@
           "until": "2026-10-23T02:14:12+01:00"
         }
       },
-      "provider_deferred_symbols": 1,
+      "provider_deferred_symbols": 2,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
       "requested_this_run": 1,
@@ -10536,7 +10543,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-16T02:14:13+01:00",
+      "completed_at": "2026-10-16T07:22:55+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 232,
       "coverage_target_symbols": 232,
@@ -10821,7 +10828,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-16T02:14:13+01:00",
+      "completed_at": "2026-10-16T07:22:55+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 21,
       "coverage_target_symbols": 21,
@@ -10866,7 +10873,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-16T02:14:15+01:00",
+      "completed_at": "2026-10-16T07:22:56+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 72,
       "coverage_target_symbols": 72,
@@ -12050,7 +12057,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-16T02:14:14+01:00",
+      "completed_at": "2026-10-16T07:22:56+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 146,
       "coverage_target_symbols": 146,
@@ -12168,7 +12175,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-16T02:14:15+01:00",
+      "completed_at": "2026-10-16T07:22:56+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 38,
       "coverage_target_symbols": 38,
@@ -12213,7 +12220,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-16T02:14:13+01:00",
+      "completed_at": "2026-10-16T07:22:55+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 158,
       "coverage_target_symbols": 158,
@@ -12268,5 +12275,5 @@
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-10-16T00:45:18+01:00",
   "schema_version": 1,
-  "updated_at": "2026-10-16T02:14:16+01:00"
+  "updated_at": "2026-10-16T07:22:56+01:00"
 }
