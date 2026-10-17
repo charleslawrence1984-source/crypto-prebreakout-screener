@@ -8,6 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+import requests
 
 # Keep Streamlit's bare-mode context warnings out of scheduled-job logs.
 logging.getLogger("streamlit").setLevel(logging.CRITICAL)
@@ -53,6 +54,40 @@ def active_provider_backoff(backoff: dict, now: datetime) -> dict:
         if until > now:
             active[str(symbol)] = meta
     return active
+
+
+def is_transient_provider_error(exc: Exception) -> bool:
+    """Identify transport/provider interruptions that are safe to retry later."""
+    current = exc
+    seen = set()
+    transient_text = (
+        "connection reset",
+        "connection aborted",
+        "remote disconnected",
+        "read timed out",
+        "connect timeout",
+        "connection timed out",
+        "temporarily unavailable",
+        "temporary failure",
+        "server disconnected",
+    )
+    while current is not None and id(current) not in seen:
+        seen.add(id(current))
+        if isinstance(
+            current,
+            (
+                requests.exceptions.ConnectionError,
+                requests.exceptions.Timeout,
+                ConnectionResetError,
+                TimeoutError,
+            ),
+        ):
+            return True
+        message = str(current).lower()
+        if any(token in message for token in transient_text):
+            return True
+        current = current.__cause__ or current.__context__
+    return False
 
 
 def update_provider_backoff(
@@ -507,16 +542,40 @@ def main() -> int:
                 flush=True,
             )
         except Exception as exc:
+            now = datetime.now(ZoneInfo("Europe/London"))
+            if is_transient_provider_error(exc):
+                previous_status = str(previous.get("status") or "partial")
+                if previous_status == "failed":
+                    has_coverage = int(previous.get("coverage_symbols", 0) or 0) > 0
+                    remaining = int(previous.get("remaining_symbols", 1) or 0)
+                    previous_status = "complete" if has_coverage and remaining == 0 else "partial"
+                manifest["exchanges"][kind] = {
+                    **previous,
+                    "label": labels_by_kind[kind],
+                    "status": previous_status,
+                    "provider_transient_error": f"{exc.__class__.__name__}: {str(exc)[:500]}",
+                    "provider_deferred_at": now.isoformat(timespec="seconds"),
+                    "provider_retry_after": (now + timedelta(hours=1)).isoformat(timespec="seconds"),
+                }
+                manifest["updated_at"] = now.isoformat(timespec="seconds")
+                save_manifest(manifest_path, manifest)
+                print(
+                    f"[{position}/{len(kinds)}] {kind}: PROVIDER DEFERRED: "
+                    f"transient network error; preserved existing snapshot ({exc})",
+                    flush=True,
+                )
+                continue
+
             failures += 1
             manifest["exchanges"][kind] = {
                 **previous,
                 "label": labels_by_kind[kind],
                 "status": "failed",
                 "started_at": started,
-                "failed_at": datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"),
+                "failed_at": now.isoformat(timespec="seconds"),
                 "error": f"{exc.__class__.__name__}: {str(exc)[:500]}",
             }
-            manifest["updated_at"] = datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds")
+            manifest["updated_at"] = now.isoformat(timespec="seconds")
             save_manifest(manifest_path, manifest)
             print(f"[{position}/{len(kinds)}] {kind}: FAILED: {exc}", flush=True)
 
