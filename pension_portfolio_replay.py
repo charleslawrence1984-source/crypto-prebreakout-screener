@@ -10,7 +10,9 @@ Assumptions (conservative and explicit):
 - Entire book denominated in GBP; price feeds must already include historical FX.
 - Whole-share execution only; execution cost is an assumed percentage PER SIDE,
   covering spread, slippage, dealing fees, any FX and relevant tax as specified.
-- A cash dividend recorded on its PAYMENT SESSION credits uninvested cash.
+- Cash dividends are credited on the historical EX-DIVIDEND SESSION to shares
+  held at the PREVIOUS session close; actual payment settlement is abstracted.
+  Both dividend series and price series must have compatible split factors.
 - No margin, shorting, leverage, automatic rebalancing or forced exit.
 - Missing held-position marks, invalid/missing metadata or stale next-session
   execution data STOP the backtest instead of manufacturing positive results.
@@ -39,7 +41,7 @@ class HistoricalPriceBar:
     sector: str
     opening_price_gbp: float
     closing_price_gbp: float
-    dividend_paid_per_share_gbp: float = 0.0
+    dividend_ex_date_gbp_per_share: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -91,7 +93,7 @@ def replay_point_in_time_decisions(
     for bar in price_bars:
         if not bar.ticker.strip() or not bar.sector.strip() or bar.sector.lower() == "unknown":
             raise ValueError("market price lacks ticker or independently classified sector")
-        values = [bar.opening_price_gbp, bar.closing_price_gbp, bar.dividend_paid_per_share_gbp]
+        values = [bar.opening_price_gbp, bar.closing_price_gbp, bar.dividend_ex_date_gbp_per_share]
         if not all(isfinite(value) for value in values) or min(values[:2]) <= 0 or values[2] < 0:
             raise ValueError(f"{bar.ticker}: invalid open, close or dividend GBP data")
         by_ticker = market.setdefault(bar.day, {})
@@ -115,7 +117,12 @@ def replay_point_in_time_decisions(
             if count > 0 and ticker not in bars:
                 raise ValueError(f"{ticker} {day}: held security missing a price mark")
 
+        # Ex-date distributions belong to previous-session owners, so an
+        # opening sale still receives the dividend and an opening buy does not.
         if session_ix > 0:
+            for ticker, count in holdings.items():
+                if count > 0:
+                    cash += count * bars[ticker].dividend_ex_date_gbp_per_share
             orders = []
             for n, decision in enumerate(decisions):
                 if n in done or decision.action not in active_actions:
@@ -198,11 +205,6 @@ def replay_point_in_time_decisions(
                 holdings[ticker] = quantity + new_shares
                 sectors[ticker] = bar.sector
                 fills.append(HistoricalFill(day, ticker, order.action, new_shares, bar.opening_price_gbp, round(fee, 6)))
-
-        # Cash dividends are posted after dealing; no DRIP is silently assumed.
-        for ticker, count in holdings.items():
-            if count > 0:
-                cash += count * bars[ticker].dividend_paid_per_share_gbp
 
         nav = cash + sum(
             count * bars[ticker].closing_price_gbp
