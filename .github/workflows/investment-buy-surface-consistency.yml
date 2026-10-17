@@ -1,0 +1,48 @@
+name: Investment BUY surface consistency (draft)
+
+on:
+  pull_request:
+    paths:
+      - "tests/audit_investment_buy_surface_consistency.py"
+      - "tests/test_investment_buy_surface_consistency.py"
+      - ".github/workflows/investment-buy-surface-consistency.yml"
+      - "investment_live_readiness.py"
+      - "stock_app.py"
+      - "prepared_priority_investments/summary.json"
+      - "prepared_priority_investments/manifest.json"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  read-only-buy-surface-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install Stocks dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile production Stocks and read-only audit
+        run: python -m py_compile stock_app.py investment_live_readiness.py tests/audit_investment_buy_surface_consistency.py
+      - name: Verify existing Investment readiness and price-date regressions
+        run: |
+          python -m unittest discover -s tests -p test_investment_live_readiness.py -v
+          python -m unittest discover -s tests -p test_investment_price_freshness.py -v
+          python -m unittest test_investment_technicals -v
+      - name: Audit actual Investment BUYs and Home/Opportunities/Quick/Portfolio overlays
+        run: python tests/audit_investment_buy_surface_consistency.py
+      - name: Verify Stocks Streamlit frontend can render without UI exceptions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from streamlit.testing.v1 import AppTest
+          app = AppTest.from_file(str(Path("stock_app.py").resolve()), default_timeout=40).run()
+          failures = [str(err.message) for err in app.exception]
+          print({"title_count": len(app.title), "exceptions": failures}, flush=True)
+          assert not failures, "Stock Streamlit AppTest emitted uncaught exceptions"
+          PY
