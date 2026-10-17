@@ -21,9 +21,9 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: investment-buy-publication-health
-  cancel-in-progress: false
+# No shared concurrency group: GitHub replaces a *pending* run within the same
+# group even with cancel-in-progress:false. Read-only reports can safely overlap,
+# and every successful/failed upstream should receive its own audit.
 
 jobs:
   read-only-buy-surface-audit:
