@@ -1,0 +1,26 @@
+name: Diagnose Investment technical runtime on real public candles
+
+on:
+  pull_request:
+    paths:
+      - "tests/diagnose_investment_technical_runtime.py"
+      - "scheduled_investment_technicals.py"
+      - ".github/workflows/investment-technical-runtime-diagnosis.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-original-technical:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install same dependencies as existing scheduled technical backfill
+        run: python -m pip install -r requirements.txt
+      - name: Reproduce actual ASML and EXO technical failures without writing output
+        run: python tests/diagnose_investment_technical_runtime.py
