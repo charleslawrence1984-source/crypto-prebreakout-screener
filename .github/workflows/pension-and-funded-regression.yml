@@ -13,6 +13,9 @@ on:
       - "platform_home.py"
       - "kraken_funded.py"
       - "funded_scan_readiness.py"
+      - "funded_forward_capture.py"
+      - "funded_forward_runner.py"
+      - ".github/workflows/funded-forward-research.yml"
       - "tests/test_pension_guardrails.py"
       - "tests/test_pension_fund_comparison.py"
       - "tests/test_pension_point_in_time.py"
@@ -20,6 +23,7 @@ on:
       - "tests/test_pension_portfolio_replay.py"
       - "tests/test_funded_account_contract.py"
       - "tests/test_funded_scan_readiness.py"
+      - "tests/test_funded_forward_capture.py"
       - "tests/test_managed_pension_ui.py"
       - ".github/workflows/pension-and-funded-regression.yml"
   workflow_dispatch:
@@ -41,7 +45,7 @@ jobs:
         run: python -m pip install "pandas>=2.1,<3"
       - name: Compile all changed Python routes and rules
         run: |
-          python -m py_compile stock_app_v2.py platform_home.py managed_pension.py pension_guardrails.py pension_fund_comparison.py pension_point_in_time.py pension_return_accounting.py pension_portfolio_replay.py kraken_funded.py funded_scan_readiness.py
+          python -m py_compile stock_app_v2.py platform_home.py managed_pension.py pension_guardrails.py pension_fund_comparison.py pension_point_in_time.py pension_return_accounting.py pension_portfolio_replay.py kraken_funded.py funded_scan_readiness.py funded_forward_capture.py funded_forward_runner.py
       - name: Pension diversification, freshness, and verification tests
         run: python -m unittest discover -s tests -p test_pension_guardrails.py -v
       - name: Validate matched return periods and fees before ranking pensions
@@ -54,6 +58,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_pension_portfolio_replay.py -v
       - name: Differentiate stale funded scans from real technical rejections
         run: python -m unittest discover -s tests -p test_funded_scan_readiness.py -v
+      - name: Verify both stock and crypto prospective snapshot safeguards
+        run: python -m unittest discover -s tests -p test_funded_forward_capture.py -v
       - name: Existing Kraken Funded loss-floor regression tests
         run: python -m unittest discover -s tests -p test_funded_account_contract.py -v
 
