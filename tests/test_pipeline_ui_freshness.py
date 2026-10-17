@@ -17,7 +17,10 @@ def isolated(path,*names):
     functions=[n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef)) and n.name in names]
     if len(functions)!=len(names):
         raise RuntimeError("Missing expected Crypto/Meme health helpers")
-    node=ast.Module(body=functions,type_ignores=[])
+    node=ast.Module(
+        body=[ast.ImportFrom(module="__future__",names=[ast.alias(name="annotations")],level=0)] + functions,
+        type_ignores=[],
+    )
     ns={"pd":pd,"np":np,"math":math}
     exec(compile(ast.fix_missing_locations(node),str(path),"exec"),ns)
     return ns
