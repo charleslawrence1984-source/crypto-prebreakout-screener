@@ -98,6 +98,19 @@ class PublishedCryptoSafety(unittest.TestCase):
             with self.subTest(audit=audit):
                 self.assertEqual(verified_crypto_publisher_health("CURRENT",manifest,audit),"UNVERIFIED")
 
+    def test_crypto_screens_use_a_single_verified_prepared_feed_overlay(self):
+        # Structural check only: Streamlit executes UI at import time.
+        from pathlib import Path
+        src=(Path(__file__).resolve().parent.parent / "app.py").read_text(encoding="utf-8")
+        self.assertEqual(src.count("mask_prepared_crypto_signals("),1)
+        self.assertEqual(src.count("verified_crypto_publisher_health("),1)
+        self.assertIn("prepared_swing_feed, prepared_accumulation_feed = mask_prepared_crypto_signals(",src)
+        self.assertGreaterEqual(src.count("prepared_swing_feed.copy()"),2)
+        self.assertGreaterEqual(src.count("prepared_accumulation_feed.copy()"),2)
+        self.assertIn('"Swing status", "Publication evidence"',src)
+        self.assertIn('"Accumulation status", "Publication evidence"',src)
+        self.assertIn("Historical BUY/READY labels and active entry levels are withheld.",src)
+
 
 if __name__=="__main__":
     unittest.main()
