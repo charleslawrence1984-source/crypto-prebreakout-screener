@@ -22,6 +22,20 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Test the latest PRODUCTION prepared snapshots, not the potentially
+          # outdated cache files in the unmerged draft audit branch.
+          ref: main
+          fetch-depth: 0
+      - name: Add draft-only read-only audit harness to the production checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin refs/heads/audit/investment-buy-surface-consistency-20261017
+          git show FETCH_HEAD:tests/audit_investment_buy_surface_consistency.py > tests/audit_investment_buy_surface_consistency.py
+          git show FETCH_HEAD:tests/diagnose_stocks_ui_render.py > tests/diagnose_stocks_ui_render.py
+          echo "Audited production commit: $(git rev-parse HEAD)"
+          echo "Read-only script source: $(git rev-parse FETCH_HEAD)"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
