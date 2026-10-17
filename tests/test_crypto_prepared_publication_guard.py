@@ -4,7 +4,9 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from crypto_prepared_publication_guard import mask_prepared_crypto_signals
+from crypto_prepared_publication_guard import (
+    mask_prepared_crypto_signals, verified_crypto_publisher_health,
+)
 
 NOW = datetime(2026, 10, 17, 20, 0, tzinfo=timezone.utc)
 
@@ -69,6 +71,32 @@ class PublishedCryptoSafety(unittest.TestCase):
     def test_reject_naive_clock(self):
         with self.assertRaises(ValueError):
             mask_prepared_crypto_signals(*frames(),pipeline_health="CURRENT",now=NOW.replace(tzinfo=None))
+
+    def test_actual_exchange_audit_overrides_untruthful_current_flag(self):
+        time=ts(5)
+        manifest={"status":"CURRENT","updated_at":time}
+        rows=[{"exchange_id":name,"status":"CURRENT"}
+              for name in ("binance","okx","bybit","kraken","cryptocom")]
+        sidecar={"generated_at":time,"exchange_counts":rows,"errors":[]}
+        self.assertEqual(verified_crypto_publisher_health("CURRENT",manifest,sidecar),"CURRENT")
+        rows[2]["status"]="VENUE UNAVAILABLE"
+        self.assertEqual(verified_crypto_publisher_health("CURRENT",manifest,sidecar),"PARTIAL")
+        self.assertEqual(verified_crypto_publisher_health("STALE",manifest,sidecar),"STALE")
+
+    def test_missing_venue_and_mismatched_audit_never_count_as_current(self):
+        time=ts(5)
+        manifest={"status":"CURRENT","updated_at":time}
+        base=[{"exchange_id":name,"status":"CURRENT"}
+              for name in ("binance","okx","bybit","kraken","cryptocom")]
+        cases=[
+            {},
+            {"generated_at":time,"exchange_counts":base[:-1]},
+            {"generated_at":ts(120),"exchange_counts":base},
+            {"generated_at":time,"exchange_counts":base+[base[0]]},
+        ]
+        for audit in cases:
+            with self.subTest(audit=audit):
+                self.assertEqual(verified_crypto_publisher_health("CURRENT",manifest,audit),"UNVERIFIED")
 
 
 if __name__=="__main__":

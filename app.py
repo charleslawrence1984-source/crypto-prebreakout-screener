@@ -3039,9 +3039,15 @@ st.session_state.macro_liquidity = macro
 
 # Publication freshness and individual scoring timestamps must both pass.
 # Presentation-only copies: do not alter saved scores or live Quick Analysis.
-from crypto_prepared_publication_guard import mask_prepared_crypto_signals
+from crypto_prepared_publication_guard import (
+    mask_prepared_crypto_signals, verified_crypto_publisher_health,
+)
 pipeline_manifest = pipeline_state.get("manifest") or {}
-crypto_prepared_health = crypto_pipeline_health_label(pipeline_manifest)
+crypto_prepared_health = verified_crypto_publisher_health(
+    crypto_pipeline_health_label(pipeline_manifest),
+    pipeline_manifest,
+    pipeline_state.get("audit") or {},
+)
 prepared_swing_feed, prepared_accumulation_feed = mask_prepared_crypto_signals(
     pipeline_state.get("swing", pd.DataFrame()),
     pipeline_state.get("accumulation", pd.DataFrame()),
