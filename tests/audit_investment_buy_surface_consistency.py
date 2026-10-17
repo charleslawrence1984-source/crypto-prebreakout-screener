@@ -165,6 +165,22 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
             ticker = str(row.get("Ticker") or "")
             assert kind, f"BUY displayed with unknown exchange label: {label}"
             assert not evidence.issue(ticker, kind=kind), f"Unverified BUY visible in Streamlit loader: {kind} {ticker}"
+            # The rendered row itself must match the validated listing's saved
+            # quote, source candle, currency and FX valuation—not merely its ticker.
+            published = evidence.priority_by_listing[(kind, ticker)]
+            assert math.isclose(float(row["Price"]), float(published["Price"]),
+                                abs_tol=1e-6, rel_tol=1e-8), (
+                f"Displayed BUY quote differs from validated priority: {kind} {ticker}"
+            )
+            assert str(row.get("Price candle date") or "") == str(published.get("Price candle date") or ""), (
+                f"Displayed BUY candle date differs from validated priority: {kind} {ticker}"
+            )
+            assert str(row.get("Quote currency") or "") == str(published.get("Quote currency") or ""), (
+                f"Displayed BUY quote currency differs from validated priority: {kind} {ticker}"
+            )
+            assert str(row.get("Valuation FX status") or "") == "PASS", (
+                f"Displayed BUY is not FX-safe: {kind} {ticker}"
+            )
             quick = stock_app.quick_investment_decision(row.to_dict())
             assert quick.get("action") == "BUY CANDIDATE", (
                 f"Home/Opportunities BUY conflicts with actual Quick Analysis: {kind} {ticker}: {quick}"
