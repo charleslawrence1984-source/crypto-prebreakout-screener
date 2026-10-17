@@ -4886,6 +4886,11 @@ tab_home, tab1, tab_opportunities, tab2, tab5, tab3, tab4 = st.tabs(
 with tab_home:
     home_trade = apply_trade_refresh_overlay(load_all_trade_opportunities())
     home_investment = load_all_investment_opportunities()
+    if not load_investment_publication_status().get("ready"):
+        st.warning(
+            "Investment market-wide data is under validation. Saved BUY labels are withheld "
+            "until underlying fundamental, technical and priority publications pass health checks."
+        )
     home_watchlist = load_browser_watchlist()
     home_events = load_browser_watch_events()
 
