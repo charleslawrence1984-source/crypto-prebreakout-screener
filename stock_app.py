@@ -1304,7 +1304,12 @@ def yahoo_exchange_symbol(symbol: str, suffix: str) -> str:
 
 
 def tradingview_company_rows(market: str, exchange: str, include_indexes: bool = False) -> List[dict]:
-    """Return all common-stock rows currently published for one exchange."""
+    """Return all common-stock rows currently published for one exchange.
+
+    TradingView occasionally resets long-running scanner connections. Retry only
+    transient transport/server failures here so a single provider blip does not
+    invalidate an otherwise healthy scheduled backfill.
+    """
     columns = ["name", "description", "country", "currency", "market_cap_basic"]
     if include_indexes:
         columns.append("indexes")
@@ -1321,13 +1326,36 @@ def tradingview_company_rows(market: str, exchange: str, include_indexes: bool =
         "sort": {"sortBy": "name", "sortOrder": "asc"},
         "range": [0, 50000],
     }
-    response = requests.post(
-        f"https://scanner.tradingview.com/{market}/scan",
-        json=payload,
-        headers=HEADERS,
-        timeout=45,
-    )
-    response.raise_for_status()
+
+    response = None
+    last_error = None
+    retryable_http = {408, 425, 429, 500, 502, 503, 504}
+    for attempt in range(4):
+        try:
+            response = requests.post(
+                f"https://scanner.tradingview.com/{market}/scan",
+                json=payload,
+                headers=HEADERS,
+                timeout=45,
+            )
+            response.raise_for_status()
+            break
+        except requests.exceptions.HTTPError as exc:
+            status = getattr(getattr(exc, "response", None), "status_code", None)
+            if status not in retryable_http:
+                raise
+            last_error = exc
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as exc:
+            last_error = exc
+
+        if attempt < 3:
+            time.sleep(2 * (attempt + 1))
+
+    if response is None or not response.ok:
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError(f"TradingView {exchange} scan returned no response")
+
     rows = []
     for item in response.json().get("data", []):
         values = item.get("d", [])
