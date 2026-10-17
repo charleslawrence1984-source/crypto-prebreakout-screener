@@ -1,6 +1,7 @@
 """Deterministic, offline regression tests for Investment publication BUY safety."""
 import ast
 import json
+import hashlib
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -68,6 +69,13 @@ class InvestmentReadinessTests(unittest.TestCase):
             "Fundamental fingerprint": "sha256-test", "Technical build": "model-1",
             "rsi": 50.5, "trade_score": 65,
         }]
+        self.source_rows = pd.DataFrame([
+            {"Ticker": "AAA", "Action": "BUY CANDIDATE", "Hard gates": "PASS", "Price": 15.5},
+            {"Ticker": "BBB", "Action": "WAIT", "Hard gates": "PASS", "Price": 20.0},
+        ])
+        self.rows[0]["Fundamental fingerprint"] = hashlib.sha256(
+            self.source_rows.iloc[0].to_json().encode()
+        ).hexdigest()
         self.persist()
 
     def persist(self):
@@ -78,6 +86,10 @@ class InvestmentReadinessTests(unittest.TestCase):
         (self.root / "prepared_priority_investments" / "summary.json").write_text(json.dumps(self.summary))
         pd.DataFrame(self.rows).to_csv(
             self.root / "prepared_investment_technicals" / "nyse.csv.gz",
+            index=False, compression="gzip",
+        )
+        self.source_rows.to_csv(
+            self.root / "prepared_scans" / "nyse.csv.gz",
             index=False, compression="gzip",
         )
 
@@ -108,6 +120,16 @@ class InvestmentReadinessTests(unittest.TestCase):
                 self.persist()
                 self.assertIn(expected, self.evidence().issue("AAA", kind="nyse"))
                 target[key] = before
+
+    def test_source_row_revision_invalidates_technical_fingerprint(self):
+        self.source_rows.loc[0, "Price"] = 15.6
+        self.persist()
+        self.assertIn("fingerprint", self.evidence().issue("AAA", kind="nyse"))
+
+    def test_no_matching_source_record_blocks_old_technical_buy(self):
+        self.source_rows.loc[0, "Ticker"] = "OUTDATED"
+        self.persist()
+        self.assertIn("fingerprint", self.evidence().issue("AAA", kind="nyse"))
 
     def test_missing_source_mismatch_and_validation_fail_closed(self):
         cases = [
