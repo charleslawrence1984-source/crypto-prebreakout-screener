@@ -24,6 +24,7 @@ on:
       - "tests/test_funded_account_contract.py"
       - "tests/test_funded_scan_readiness.py"
       - "tests/test_funded_forward_capture.py"
+      - "tests/test_funded_forward_runner.py"
       - "tests/test_managed_pension_ui.py"
       - ".github/workflows/pension-and-funded-regression.yml"
   workflow_dispatch:
@@ -60,6 +61,8 @@ jobs:
         run: python -m unittest discover -s tests -p test_funded_scan_readiness.py -v
       - name: Verify both stock and crypto prospective snapshot safeguards
         run: python -m unittest discover -s tests -p test_funded_forward_capture.py -v
+      - name: Mocked stock and crypto headless runner smoke tests
+        run: python -m unittest discover -s tests -p test_funded_forward_runner.py -v
       - name: Existing Kraken Funded loss-floor regression tests
         run: python -m unittest discover -s tests -p test_funded_account_contract.py -v
 
