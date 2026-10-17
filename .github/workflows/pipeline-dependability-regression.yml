@@ -15,6 +15,8 @@ on:
       - "tests/test_crypto_publication_status.py"
       - "tests/test_meme_pipeline_rate_limit.py"
       - "tests/test_pipeline_ui_freshness.py"
+      - "crypto_prepared_publication_guard.py"
+      - "tests/test_crypto_prepared_publication_guard.py"
       - "tests/test_investment_technical_namespace.py"
       - ".github/workflows/published-data-health.yml"
       - ".github/workflows/pipeline-dependability-regression.yml"
@@ -34,7 +36,7 @@ jobs:
       - name: Install mock/test dependencies
         run: python -m pip install -r requirements.txt
       - name: Compile pipeline logic and existing UI pages
-        run: python -m py_compile investment_live_readiness.py pipeline_publication_health.py crypto_publication_status.py crypto_market_pipeline.py meme_market_pipeline.py app.py meme_app.py stock_app.py scheduled_investment_technicals.py
+        run: python -m py_compile crypto_prepared_publication_guard.py investment_live_readiness.py pipeline_publication_health.py crypto_publication_status.py crypto_market_pipeline.py meme_market_pipeline.py app.py meme_app.py stock_app.py scheduled_investment_technicals.py
       - name: Preserve production per-listing Investment BUY safeguards
         run: |
           python -m unittest discover -s tests -p test_investment_live_readiness.py -v
@@ -50,5 +52,7 @@ jobs:
         run: python -m unittest discover -s tests -p test_meme_pipeline_rate_limit.py -v
       - name: Test Crypto and Meme visible stale-data warnings
         run: python -m unittest discover -s tests -p test_pipeline_ui_freshness.py -v
+      - name: Fail-close stale and partial Crypto BUY/READY display labels
+        run: python -m unittest discover -s tests -p test_crypto_prepared_publication_guard.py -v
       - name: Guard Investment RSI namespace and simulate backfill calculation
         run: python -m unittest discover -s tests -p test_investment_technical_namespace.py -v

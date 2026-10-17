@@ -3037,14 +3037,22 @@ else:
     macro = unavailable_macro(["Prepared macro snapshot is initialising."])
 st.session_state.macro_liquidity = macro
 
-prepared_swing_feed = pipeline_state.get("swing", pd.DataFrame()).copy()
-prepared_accumulation_feed = pipeline_state.get("accumulation", pd.DataFrame()).copy()
+# Publication freshness and individual scoring timestamps must both pass.
+# Presentation-only copies: do not alter saved scores or live Quick Analysis.
+from crypto_prepared_publication_guard import mask_prepared_crypto_signals
+pipeline_manifest = pipeline_state.get("manifest") or {}
+crypto_prepared_health = crypto_pipeline_health_label(pipeline_manifest)
+prepared_swing_feed, prepared_accumulation_feed = mask_prepared_crypto_signals(
+    pipeline_state.get("swing", pd.DataFrame()),
+    pipeline_state.get("accumulation", pd.DataFrame()),
+    pipeline_health=crypto_prepared_health,
+)
 prepared_deep_scores = pipeline_state.get("scores", pd.DataFrame()).copy()
 
 # Opportunities and Advanced Trade must present the same primary Swing feed.
 # Keep the shared columns in one place so the two pages cannot drift apart again.
 PRIMARY_SWING_COLUMNS = [
-    "Swing status", "Opportunity stage", "Entry timing", "Base", "Exchange", "Swing score",
+    "Swing status", "Publication evidence", "Opportunity stage", "Entry timing", "Base", "Exchange", "Swing score",
     "Score band", "BUY score threshold", "Price",
     "Entry mode", "Active entry", "Active entry low", "Active entry high",
     "Ideal pullback entry", "Ideal pullback low", "Ideal pullback high",
@@ -3103,13 +3111,14 @@ with tab_crypto_home:
     d3.metric("Accumulation READY", accumulation_ready_count)
     d4.metric("Accumulation WATCH", accumulation_watch_count)
     d5.metric("Watchlist", len(crypto_watchlist))
-    pipeline_health = crypto_pipeline_health_label(pipeline_manifest)
+    pipeline_health = crypto_prepared_health
     d6.metric("Pipeline", pipeline_health)
     if pipeline_health != "CURRENT":
         st.error(
             "Background Crypto data is " + pipeline_health
             + ". Prepared BUY/READY counts and saved screening rows are "
             "historical research, NOT verified current trading opportunities. "
+            "Their BUY/READY labels and active entry levels are withheld. "
             "Refresh the market data and confirm current exchange quotes before trading."
         )
 
@@ -3285,6 +3294,9 @@ with tab_crypto_home:
 
 with tab_crypto_opportunities:
     st.subheader("Opportunities")
+    if crypto_prepared_health != "CURRENT":
+        st.error("Prepared Crypto signals are RESEARCH ONLY: this publication is " + crypto_prepared_health
+                 + ". Historical BUY/READY labels and active entry levels are withheld.")
     st.caption(
         "The background rule engine continuously scans the eligible crypto universe and feeds this page automatically. "
         "You do not need to run an Advanced scan first."
@@ -3372,7 +3384,7 @@ with tab_crypto_opportunities:
                 shown_acc = shown_acc.head(25)
 
             accumulation_cols = [
-                "Accumulation status", "Opportunity stage", "Base", "Exchange", "Accumulation score",
+                "Accumulation status", "Publication evidence", "Opportunity stage", "Base", "Exchange", "Accumulation score",
                 "Price", "Accumulation low", "Accumulation high",
                 "In accumulation zone", "Coin trend", "RS vs BTC %", "RSI",
                 "Execution venues", "Execution liquidity pass", "Execution reason",
@@ -4084,6 +4096,9 @@ with tab_crypto_advanced:
     )
 
     st.subheader("Current all-market Swing results")
+    if crypto_prepared_health != "CURRENT":
+        st.warning("Background Crypto publication is " + crypto_prepared_health
+                   + "; these saved technical setups are research only, not actionable.")
     st.caption(
         "This table uses the exact same prepared all-market feed as **Opportunities**, so status, "
         "score and entry timing should match there. It is the primary source of truth for the screener."
@@ -5072,6 +5087,9 @@ with tab_crypto_advanced_accumulation:
     )
 
     acc_feed = prepared_accumulation_feed.copy()
+    if crypto_prepared_health != "CURRENT":
+        st.warning("Background Crypto publication is " + crypto_prepared_health
+                   + "; cached accumulation entries cannot be treated as READY.")
     aa1, aa2, aa3 = st.columns(3)
     aa1.metric(
         "READY",
@@ -5104,7 +5122,7 @@ with tab_crypto_advanced_accumulation:
         st.info("No prepared Accumulation READY/WATCH setups are available yet.")
     else:
         acc_cols = [
-            "Accumulation status", "Opportunity stage", "Base", "Exchange",
+            "Accumulation status", "Publication evidence", "Opportunity stage", "Base", "Exchange",
             "Accumulation score", "Accumulation base score", "Accumulation verdict",
             "Tokenomics gate", "Circulating %", "FDV / MCap",
             "Category leader", "Major venue listing count", "Major venue listings",
