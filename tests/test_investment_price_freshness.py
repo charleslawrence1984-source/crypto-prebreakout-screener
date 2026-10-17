@@ -19,6 +19,7 @@ def investment_row(ticker="AAA"):
         "Base intrinsic value": 40.0,
         "Bear intrinsic value": 30.0,
         "Required margin of safety %": 30.0,
+        "Base margin of safety %": 62.5,
         "Hard gates": "PASS",
         "Sector model": "Generic",
         "Quality score": 85.0,
