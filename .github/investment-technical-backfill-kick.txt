@@ -6,3 +6,6 @@ Run existing Investment technical missing-only backfill, retain original technic
 
 Requested 2026-10-17 after explicitly approved PR #25 merge (bccdf82ac6c9176b695b04239dde2df06f029476).
 Run capped missing-only Investment technicals; preserve source-deferred partial statuses, provider cooldowns, and existing strategy rules. Audit NASDAQ, NYSE, LSE, TSX, Madrid, Xetra and Euronext Paris coverage after publishing.
+
+Requested 2026-10-17 after approved PR #28 merge (3516f393111248082653099919358596678e2cb8).
+Run existing capped technical backfill (50 listings per completed exchange); reconcile fingerprint-matching fundamental source versions without changing technical calculation dates, refresh stale technical rows from real candles, retain provider-deferred safeguards. Post-run audit actual source coverage and Investment BUY publication readiness. Keep PRs #20, #22 and #27 unmerged.
