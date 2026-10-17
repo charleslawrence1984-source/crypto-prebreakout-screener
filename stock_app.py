@@ -28,7 +28,7 @@ import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
 from two_strategy import investment_decision, trade_decision
-from investment_live_readiness import InvestmentPublication, withhold_unverified_buys, guard_quick_investment_decision
+from investment_live_readiness import InvestmentPublication, withhold_unverified_buys, guard_quick_investment_decision, guard_portfolio_investment_adds
 from trade_rules import (
     FundamentalSnapshot,
     build_fundamental_snapshot,
@@ -6871,6 +6871,12 @@ with tab5:
         if not portfolio_results.empty
         else pd.DataFrame()
     )
+    if not investment_results.empty:
+        # All screens with a long-term add signal share the same verified
+        # publication evidence. Never rewrite saved positions or TRADE rows.
+        investment_results = guard_portfolio_investment_adds(
+            investment_results, load_investment_publication_evidence(),
+        )
     trade_results = (
         portfolio_results[portfolio_results["Position type"] == "TRADE"].copy()
         if not portfolio_results.empty
@@ -6886,6 +6892,11 @@ with tab5:
             "Your long-term diversification philosophy: no individual stock above 5% and no sector above 20%. "
             "Allocation colours are separate from the investment action."
         )
+
+        if (not investment_results.empty and "Investment readiness" in investment_results.columns
+                and investment_results["Investment readiness"].astype(str).eq("AWAITING VERIFIED DATA").any()):
+            st.warning("Some Investment BUY MORE labels are withheld pending verified research. Existing HOLD, REASSESS and REVIEW FOR SALE decisions are unchanged.")
+
 
         if investment_results.empty:
             st.info(
@@ -6980,7 +6991,7 @@ with tab5:
             st.caption("No reviewed INVESTMENT positions yet.")
         else:
             investment_main = investment_results[[
-                "Ticker", "Company", "Action", "Weight %", "Shares", "Average cost",
+                "Ticker", "Company", "Action", "Investment readiness", "Weight %", "Shares", "Average cost",
                 "Amount invested", "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
             ]].copy()
             investment_main = investment_main.rename(columns={"Quote currency": "Currency"})
@@ -7027,7 +7038,7 @@ with tab5:
                     "Ticker", "Quality score", "Hard gates", "Base intrinsic value",
                     "Bear intrinsic value", "Base margin of safety %",
                     "Required margin of safety %", "Bear margin of safety %",
-                    "Sector", "Industry", "Country", "Review reason", "Manual review required",
+                    "Sector", "Industry", "Country", "Investment readiness", "Review reason", "Manual review required",
                 ]
                 st.dataframe(
                     investment_results[detail_columns],
