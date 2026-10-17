@@ -1,62 +1,124 @@
-name: Investment BUY surface consistency (draft)
+name: Investment BUY publication health
 
 on:
   pull_request:
     paths:
       - "tests/audit_investment_buy_surface_consistency.py"
       - "tests/diagnose_stocks_ui_render.py"
-      - "tests/test_investment_buy_surface_consistency.py"
       - ".github/workflows/investment-buy-surface-consistency.yml"
       - "investment_live_readiness.py"
       - "stock_app.py"
-      - "prepared_priority_investments/summary.json"
-      - "prepared_priority_investments/manifest.json"
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Investment technical backfill", "Investment priority price refresh"]
+    branches: [main]
+    types: [completed]
+  # Also detect publication decay when an expected upstream workflow stops.
+  schedule:
+    - cron: "17 7,19 * * *"
 
 permissions:
   contents: read
+
+concurrency:
+  group: investment-buy-publication-health
+  cancel-in-progress: false
 
 jobs:
   read-only-buy-surface-audit:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - name: Verify upstream workflow succeeded
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          UPSTREAM_WORKFLOW: ${{ github.event.workflow_run.name }}
+          UPSTREAM_RESULT: ${{ github.event.workflow_run.conclusion }}
+          UPSTREAM_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          UPSTREAM_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          if [ "$UPSTREAM_RESULT" != "success" ] || [ "$UPSTREAM_BRANCH" != "main" ]; then
+            echo "::error::Investment BUY audit cannot certify a failed/non-main upstream: $UPSTREAM_WORKFLOW ($UPSTREAM_RESULT, $UPSTREAM_BRANCH). $UPSTREAM_URL"
+            echo "## Upstream publication failure" >> "$GITHUB_STEP_SUMMARY"
+            echo "$UPSTREAM_WORKFLOW completed as $UPSTREAM_RESULT on $UPSTREAM_BRANCH. Do not treat this as a successful BUY audit." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "Auditing after successful $UPSTREAM_WORKFLOW: $UPSTREAM_URL"
+      - name: Check out current published production snapshot
+        uses: actions/checkout@v4
         with:
-          # Test the latest PRODUCTION prepared snapshots, not the potentially
-          # outdated cache files in the unmerged draft audit branch.
           ref: main
           fetch-depth: 0
-      - name: Add draft-only read-only audit harness to the production checkout
+          persist-credentials: false
+      - name: In draft testing only, apply PR audit scripts over production snapshot
+        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref_name != 'main') }}
+        env:
+          AUDIT_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin refs/heads/audit/investment-buy-surface-consistency-20261017
-          git show FETCH_HEAD:tests/audit_investment_buy_surface_consistency.py > tests/audit_investment_buy_surface_consistency.py
-          git show FETCH_HEAD:tests/diagnose_stocks_ui_render.py > tests/diagnose_stocks_ui_render.py
-          echo "Audited production commit: $(git rev-parse HEAD)"
-          echo "Read-only script source: $(git rev-parse FETCH_HEAD)"
+          # The script SHA comes from the event, not a hard-coded draft branch.
+          # After merge, all scheduled/upstream runs use only the main checkout.
+          git fetch --no-tags origin "$AUDIT_SOURCE_SHA"
+          git show "$AUDIT_SOURCE_SHA:tests/audit_investment_buy_surface_consistency.py" > tests/audit_investment_buy_surface_consistency.py
+          git show "$AUDIT_SOURCE_SHA:tests/diagnose_stocks_ui_render.py" > tests/diagnose_stocks_ui_render.py
+          echo "Draft audit scripts at $AUDIT_SOURCE_SHA"
+      - name: Record audited production revision
+        run: |
+          echo "Auditing production $(git rev-parse HEAD)"
+          echo "### Production revision" >> "$GITHUB_STEP_SUMMARY"
+          echo "`$(git rev-parse HEAD)`" >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
           cache: pip
       - name: Install Stocks dependencies
         run: python -m pip install -r requirements.txt
-      - name: Compile production Stocks and read-only audit
-        run: python -m py_compile stock_app.py investment_live_readiness.py tests/audit_investment_buy_surface_consistency.py
-      - name: Verify existing Investment readiness and price-date regressions
+      - name: Compile Stocks and audit
+        run: python -m py_compile stock_app.py investment_live_readiness.py scheduled_investment_technicals.py tests/audit_investment_buy_surface_consistency.py tests/diagnose_stocks_ui_render.py
+      - name: Verify Investment, source-price and technical regressions
         run: |
           python -m unittest discover -s tests -p test_investment_live_readiness.py -v
           python -m unittest discover -s tests -p test_investment_price_freshness.py -v
           python -m unittest test_investment_technicals -v
-      - name: Audit actual Investment BUYs and Home/Opportunities/Quick/Portfolio overlays
-        run: python tests/audit_investment_buy_surface_consistency.py
-      - name: Smoke-test the actual Stocks Streamlit server entrypoint
-        # Full 7k-line browser/AppTest execution invokes background provider
-        # and custom browser storage components and exceeded CI's 40-50s
-        # scripted-render timeout. This smoke verifies server startup ONLY.
-        # Real Investment loader and Quick Analysis BUY consistency are audited
-        # above separately; full browser interaction remains a release gate.
+      - name: Audit publication, real prepared loader and cross-screen BUY/BUY MORE gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python tests/audit_investment_buy_surface_consistency.py > investment-buy-audit.json
+          python -m json.tool investment-buy-audit.json > /dev/null
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          data = json.loads(Path("investment-buy-audit.json").read_text())
+          views = data["streamlit_loader"]
+          assert data["publication_consistency"] == "PASS"
+          assert views["checked"] and views["unverified_displayed_buy_count"] == 0
+          assert views["quick_analysis_disagreement_count"] == 0
+          assert data["priority_valuation_buy_rows"] == (
+              data["fully_verified_priority_buy_rows"] + data["withheld_priority_buy_rows"]
+          )
+          summary = [
+              "### Investment BUY publication audit — PASS",
+              f"- Valuation-only BUY rows: **{data['priority_valuation_buy_rows']}**",
+              f"- Evidence-verified BUYs: **{data['fully_verified_priority_buy_rows']}**",
+              f"- Correctly withheld BUYs: **{data['withheld_priority_buy_rows']}**",
+              f"- UI BUY count: **{views['home_and_opportunities_buy_count']}**",
+              "- Unverified displayed BUYs: **0**",
+              "- Quick Analysis disagreements: **0**",
+              f"- Saved source price sessions: **{data['source_candle_date_count']}**",
+              "- Verification checks publication evidence only; it does not validate expected returns or constitute a buy recommendation.",
+          ]
+          for reason, count in data["withheld_reasons"].items():
+              summary.append(f"  - Withheld: {count} — {reason}")
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as fd:
+              fd.write("\n".join(summary) + "\n")
+          print("\n".join(summary), flush=True)
+          if data["priority_valuation_buy_rows"] > 0 and data["fully_verified_priority_buy_rows"] == 0:
+              print("::warning::All valuation BUYs are now withheld. Check provider and cache freshness.")
+          PY
+      - name: Smoke-test Stocks server startup
         shell: bash
         run: |
           set -euo pipefail
@@ -76,5 +138,17 @@ jobs:
           done
           cat /tmp/cl-stocks-ui.log
           exit 1
-      - name: Require every Stocks Streamlit tab to render with zero exceptions
+      - name: Require Stocks full scripted UI to render with zero exceptions
         run: python tests/diagnose_stocks_ui_render.py
+      - name: Upload read-only audit result for comparison across runs
+        if: ${{ always() && hashFiles('investment-buy-audit.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: investment-buy-audit-${{ github.run_id }}
+          path: investment-buy-audit.json
+          retention-days: 21
+      - name: Record failed audit as a release blocker
+        if: failure()
+        run: |
+          echo "### Investment BUY publication audit — FAILED" >> "$GITHUB_STEP_SUMMARY"
+          echo "Check the failing regression, source data, or rendering step. This run does NOT certify BUY readiness." >> "$GITHUB_STEP_SUMMARY"
