@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "tests/audit_investment_buy_surface_consistency.py"
+      - "tests/diagnose_stocks_ui_render.py"
       - "tests/test_investment_buy_surface_consistency.py"
       - ".github/workflows/investment-buy-surface-consistency.yml"
       - "investment_live_readiness.py"
@@ -61,3 +62,5 @@ jobs:
           done
           cat /tmp/cl-stocks-ui.log
           exit 1
+      - name: Diagnose the remaining full-page Streamlit AppTest timeout (not a passing UI gate)
+        run: python tests/diagnose_stocks_ui_render.py
