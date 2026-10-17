@@ -14,6 +14,9 @@ Assumptions (conservative and explicit):
   held at the PREVIOUS session close; actual payment settlement is abstracted.
   Both dividend series and price series must have compatible split factors.
 - No margin, shorting, leverage, automatic rebalancing or forced exit.
+- Closing-stock price drift ABOVE the target allocation ceilings is
+  explicitly reported, NOT silently ignored or forced sold. A complete
+  pension strategy needs a preapproved drift/rebalancing policy.
 - Missing held-position marks, invalid/missing metadata or stale next-session
   execution data STOP the backtest instead of manufacturing positive results.
 """
@@ -61,6 +64,7 @@ class HistoricalReplay:
     end_cash_gbp: float
     end_share_counts: dict[str, int]
     unfilled_eligible_actions: int
+    closing_allocation_breaches: tuple[str, ...]
 
 
 def replay_point_in_time_decisions(
@@ -106,6 +110,7 @@ def replay_point_in_time_decisions(
     cash = float(initial_cash_gbp)
     fills: list[HistoricalFill] = []
     unfilled = 0
+    closing_breaches: list[str] = []
     positions_nav: list[PensionNAV] = []
     done: set[int] = set()
     active_actions = {"BUY CANDIDATE", "BUY MORE", "SELL"}
@@ -213,6 +218,12 @@ def replay_point_in_time_decisions(
         if not isfinite(nav) or nav <= 0:
             raise ValueError(f"{day}: nonpositive or invalid pension NAV")
         positions_nav.append(PensionNAV(day=day,closing_nav_gbp=round(nav, 6)))
+        closing_weights = [
+            Holding(ticker, sectors[ticker], count * bars[ticker].closing_price_gbp)
+            for ticker,count in holdings.items() if count > 0
+        ]
+        for issue in check_portfolio(closing_weights, max(0.0,cash)):
+            closing_breaches.append(f"{day}: {issue}")
 
     # Ignore WAIT, REASSESS and PASS, but do not silently lose confirmed
     # orders whose execution date never arrived.
@@ -228,4 +239,5 @@ def replay_point_in_time_decisions(
         end_cash_gbp=round(cash, 6),
         end_share_counts={t:n for t,n in holdings.items() if n > 0},
         unfilled_eligible_actions=unfilled,
+        closing_allocation_breaches=tuple(closing_breaches),
     )
