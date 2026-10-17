@@ -62,5 +62,5 @@ jobs:
           done
           cat /tmp/cl-stocks-ui.log
           exit 1
-      - name: Diagnose the remaining full-page Streamlit AppTest timeout (not a passing UI gate)
+      - name: Require every Stocks Streamlit tab to render with zero exceptions
         run: python tests/diagnose_stocks_ui_render.py
