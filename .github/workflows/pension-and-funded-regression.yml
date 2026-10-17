@@ -6,11 +6,13 @@ on:
       - "managed_pension.py"
       - "pension_guardrails.py"
       - "pension_fund_comparison.py"
+      - "pension_point_in_time.py"
       - "stock_app_v2.py"
       - "platform_home.py"
       - "kraken_funded.py"
       - "tests/test_pension_guardrails.py"
       - "tests/test_pension_fund_comparison.py"
+      - "tests/test_pension_point_in_time.py"
       - "tests/test_funded_account_contract.py"
       - "tests/test_managed_pension_ui.py"
       - ".github/workflows/pension-and-funded-regression.yml"
@@ -31,11 +33,13 @@ jobs:
           python-version: "3.12"
       - name: Compile all changed Python routes and rules
         run: |
-          python -m py_compile stock_app_v2.py platform_home.py managed_pension.py pension_guardrails.py pension_fund_comparison.py kraken_funded.py
+          python -m py_compile stock_app_v2.py platform_home.py managed_pension.py pension_guardrails.py pension_fund_comparison.py pension_point_in_time.py kraken_funded.py
       - name: Pension diversification, freshness, and verification tests
         run: python -m unittest discover -s tests -p test_pension_guardrails.py -v
       - name: Validate matched return periods and fees before ranking pensions
         run: python -m unittest discover -s tests -p test_pension_fund_comparison.py -v
+      - name: Reject look-ahead historical statements and survivor-only universes
+        run: python -m unittest discover -s tests -p test_pension_point_in_time.py -v
       - name: Existing Kraken Funded loss-floor regression tests
         run: python -m unittest discover -s tests -p test_funded_account_contract.py -v
 
