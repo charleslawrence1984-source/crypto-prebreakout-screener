@@ -92,8 +92,21 @@ the prospective journal without altering live rules. In particular:
   regression tests.
 - Separate regression tests for the current Kraken Funded account-risk contract.
 - PR workflow to run tests and syntax checks before merge.
+- Point-in-time financial and historical investable-universe **data contracts**
+  with synthetic regression tests preventing future information leakage.
+- Next-session portfolio execution **mechanics replay prototype**, enforcing
+  portfolio allocations, cash dividends, and modeled GBP friction. Only
+  synthetic test histories have been checked; NO live fund performance claims.
+- External-cashflow-neutral performance and same-period GBP total-return
+  accounting, with explicit rejection of missing fees and unmatched providers.
+- Defensive Kraken Funded guards for impossible proposed risk, negative
+  verified spread, and future-dated stock scans. The current stock entry
+  strategy and crypto trade strategy remain otherwise unchanged.
+- Source feasibility review in PENSION_PIT_DATA_SOURCING.md.
 
-**Remaining work:** Full investment page migration, complete point-in-time
-long-term backtester and actual test dataset, current pension fund return
-alignment, and prospective funded stop validation. None are falsely labelled
-as complete or profitable.
+**Remaining work:** Full investment page migration, a REAL acquired/verified
+historical dataset including dead/delisted securities and usable publication
+timestamps, replaying the unchanged scoring engine on those past snapshots,
+independent holdout and live forward investment validation, risk-matched fund
+returns, current pension fund transfer evidence, and prospective funded stock
+stop/entry validation. None are falsely labelled as complete or profitable.
