@@ -20,6 +20,12 @@ stocks = st.Page(
     icon="📈",
     url_path="stocks",
 )
+managed_pension = st.Page(
+    "managed_pension.py",
+    title="Managed Pension",
+    icon="🏦",
+    url_path="managed-pension",
+)
 crypto = st.Page(
     "app.py",
     title="Crypto",
@@ -40,7 +46,7 @@ kraken_funded = st.Page(
 )
 
 page = st.navigation(
-    [home, stocks, crypto, memes, kraken_funded],
+    [home, stocks, managed_pension, crypto, memes, kraken_funded],
     position="hidden",
 )
 page.run()

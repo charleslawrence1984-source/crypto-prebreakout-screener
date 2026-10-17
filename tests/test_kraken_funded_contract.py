@@ -56,6 +56,7 @@ def load_rules():
         "earnings_trade_gate": earnings_trade_gate,
         "FUNDED_START_BALANCE": 1000.0, "FUNDED_FAIL_BALANCE": 970.0,
         "FUNDED_MAX_TOTAL_OPEN_RISK_USD": 10.0,
+        "FUNDED_MAX_RISK_USD": 5.0,
         "FUNDED_MAX_POSITION_PCT": 35.0,
         "FUNDED_STOCK_MAX_SPREAD_PCT": 0.60,
         "FUNDED_STOCK_COST_BUFFER_PCT": 0.50,
@@ -210,6 +211,15 @@ class FundedRulesTests(unittest.TestCase):
     def test_stock_quote_requires_spread_confirmation(self):
         self.assertEqual(self.stock(**{"Verified spread %": math.nan}),
                          "🟡 FUNDED WATCH · VERIFY SPREAD")
+
+    def test_negative_verified_spread_cannot_be_ready(self):
+        self.assertEqual(self.stock(**{"Verified spread %": -0.25}),
+                         "🟡 FUNDED WATCH · VERIFY SPREAD")
+
+    def test_future_timestamp_cannot_be_ready(self):
+        future = datetime.now(timezone.utc) + timedelta(hours=1)
+        self.assertEqual(self.stock(scanned_at=future.isoformat()),
+                         "🟡 FUNDED WATCH · REFRESH SIGNAL")
 
     def test_position_notional_is_capped(self):
         _, notional, risk = self.ns["funded_position_plan"](100, 99.5, 4)
