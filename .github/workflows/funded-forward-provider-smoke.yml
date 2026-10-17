@@ -1,0 +1,57 @@
+name: Funded public-provider integration research smoke (PR only)
+
+# Independent end-to-end preview of the new research recorder before any
+# scheduled default-branch deployment. This may expose Yahoo/Kraken outages.
+# No user broker connection or trading permissions.
+on:
+  pull_request:
+    paths:
+      - "funded_forward_capture.py"
+      - "funded_forward_runner.py"
+      - "tests/test_funded_forward_capture.py"
+      - "tests/test_funded_forward_runner.py"
+      - ".github/workflows/funded-forward-provider-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  public-crypto-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - name: Capture all funded crypto PUBLIC spot observations (NO trading)
+        run: python funded_forward_runner.py --asset crypto --out-dir funded-forward-artifacts
+      - name: Preserve review evidence even for partially failing provider
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-crypto-public-provider-PR-${{ github.run_id }}
+          path: funded-forward-artifacts/*.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  public-stock-data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install -r requirements.txt
+      - name: Capture funded STOCK public daily-price observations (NO trading)
+        run: python funded_forward_runner.py --asset stocks --out-dir funded-forward-artifacts
+      - name: Preserve review evidence even for partially failing provider
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-stocks-public-provider-PR-${{ github.run_id }}
+          path: funded-forward-artifacts/*.json
+          if-no-files-found: warn
+          retention-days: 30
