@@ -279,10 +279,7 @@ def meme_pipeline_age_minutes(manifest: Dict) -> float:
         ts = pd.Timestamp(value)
         if ts.tzinfo is None:
             ts = ts.tz_localize("UTC")
-        return max(
-            (pd.Timestamp.now(tz="UTC") - ts.tz_convert("UTC")).total_seconds() / 60,
-            0.0,
-        )
+        return (pd.Timestamp.now(tz="UTC") - ts.tz_convert("UTC")).total_seconds() / 60
     except Exception:
         return np.nan
 
@@ -2493,10 +2490,18 @@ with tab_meme_advanced:
         trade_plan_api_budget = min(cfg["trade_plan_count"], 8)
         pipeline_age = meme_pipeline_age_minutes(prepared_manifest)
         pipeline_status = str(prepared_manifest.get("status") or "NOT READY").upper()
-        if math.isfinite(pipeline_age) and pipeline_age > 30:
+        if not math.isfinite(pipeline_age):
+            discovery_warnings.append("Background meme publication time is missing or invalid.")
+        elif pipeline_age < -5:
+            discovery_warnings.append("Background meme publication time is in the FUTURE: cannot verify data freshness.")
+        elif pipeline_age > 30:
             discovery_warnings.append(
                 f"Background meme discovery snapshot is stale ({pipeline_age:.0f} minutes old)."
             )
+        if pipeline_status not in {"CURRENT", "PARTIAL"}:
+            discovery_warnings.append("Background meme source status cannot be verified.")
+        elif pipeline_status == "PARTIAL":
+            discovery_warnings.append("Background meme refresh was PARTIAL; previous cached tokens may be retained.")
         for err in (prepared_manifest.get("errors") or [])[:5]:
             discovery_warnings.append(f"Background collector: {err}")
 

@@ -240,6 +240,13 @@ def run(output_dir: str, max_tokens: int) -> int:
         except requests.HTTPError as exc:
             status = getattr(exc.response, "status_code", None)
             errors.append(f"Gecko {chain} page {page}: HTTP {status or 'error'}")
+            if status == 429:
+                # The shared public provider is rate limiting this runner.
+                # Don't hammer another six networks and risk a longer ban.
+                # The persisted previous universe remains available; do not
+                # call this partial fresh data a complete refresh.
+                errors.append("GeckoTerminal rate-limited: remaining pages deferred to next scheduled run")
+                break
         except Exception as exc:
             errors.append(
                 f"Gecko {chain} page {page}: {type(exc).__name__}: {str(exc)[:160]}"
@@ -273,7 +280,10 @@ def run(output_dir: str, max_tokens: int) -> int:
     save_json(manifest, manifest_path)
 
     print(json.dumps(manifest, indent=2, sort_keys=True))
-    return 0 if merged else 1
+    # A saved stale/partial universe is better than a blank UI, but a
+    # provider-limited refresh is NOT a fully successful scheduled data run.
+    # GitHub 'if: always()' still publishes the honest PARTIAL manifest.
+    return 0 if merged and not errors else 1
 
 
 def parse_args():
