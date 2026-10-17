@@ -36,8 +36,8 @@ def check_portfolio(holdings: list[Holding], cash_gbp: float = 0.0) -> list[str]
     for holding in holdings:
         ticker = str(holding.ticker).strip().upper()
         sector = str(holding.sector).strip()
-        if not ticker:
-            errors.append("every position requires a ticker")
+        if not ticker or ticker.lower() in {"nan", "none", "null", "unknown"}:
+            errors.append("every position requires a verified ticker")
         elif ticker in tickers:
             errors.append(f"duplicate holding: {ticker}")
         tickers.add(ticker)
