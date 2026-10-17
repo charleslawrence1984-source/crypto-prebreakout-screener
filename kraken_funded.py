@@ -169,6 +169,11 @@ def _account_guard(risk_usd: float) -> str:
     # User-entered manual information; NOT connected to the funded broker.
     if not st.session_state.get("funded_risk_verified", False):
         return "🟡 FUNDED WATCH · VERIFY ACCOUNT"
+    # Fail closed on invalid proposed risk before account headroom is assessed.
+    # This does not alter entry, stop, target, or strategy scoring rules.
+    risk_usd = safe_number(risk_usd)
+    if not np.isfinite(risk_usd) or risk_usd <= 0 or risk_usd > FUNDED_MAX_RISK_USD:
+        return "🔴 FUNDED PASS · ACCOUNT RISK LIMIT"
     equity = safe_number(st.session_state.get("funded_account_equity"))
     other_risk = safe_number(st.session_state.get("funded_other_open_risk"))
     if (not np.isfinite(equity) or not np.isfinite(other_risk) or other_risk < 0
