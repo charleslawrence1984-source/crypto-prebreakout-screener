@@ -5693,7 +5693,7 @@ with tab_opportunities:
                     rr = safe(priority_row.get("R:R"))
                     if np.isnan(rr):
                         rr = safe(priority_row.get("Shadow R:R"))
-                    priority_rsi_display = safe(priority_row.get("RSI"))
+                    priority_rsi = safe(priority_row.get("RSI"))
                     macd = str(priority_row.get("MACD progress") or "—").strip()
                     blocker = str(priority_row.get("Pre-cross blocker") or "").strip()
 
@@ -5742,7 +5742,7 @@ with tab_opportunities:
 
                     support1, support2, support3 = st.columns(3)
                     support1.metric("Risk / reward", "—" if np.isnan(rr) else f"{rr:.2f}:1")
-                    support2.metric("RSI", "—" if np.isnan(priority_rsi_display) else f"{priority_rsi_display:.1f}")
+                    support2.metric("RSI", "—" if np.isnan(priority_rsi) else f"{priority_rsi:.1f}")
                     support3.metric("MACD", macd or "—")
 
                     if shortlist_index < len(priority_trade):
