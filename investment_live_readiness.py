@@ -217,3 +217,31 @@ def guard_quick_investment_decision(summary: dict, symbol: str,
     else:
         output["reason"] = str(output.get("reason") or "") + " Published technical and priority price evidence verified."
     return output
+
+
+
+def guard_portfolio_investment_adds(frame: pd.DataFrame,
+                                    evidence: InvestmentPublication) -> pd.DataFrame:
+    """Withhold owned-position ADD labels when independent publication is unverified.
+
+    Portfolio HOLD, REASSESS and REVIEW FOR SALE are not overwritten: a
+    missing BUY verification must never suppress an existing sell warning.
+    P&L, position sizes and the saved browser portfolio remain unchanged.
+    """
+    output = frame.copy()
+    if output.empty or "Action" not in output.columns:
+        return output
+    output["Investment readiness"] = "RESEARCH ONLY"
+    adds = output["Action"].astype(str).isin({"BUY MORE", "ADD CANDIDATE"})
+    for index, row in output[adds].iterrows():
+        resolved = str(row.get("Resolved ticker") or row.get("Ticker") or "").strip()
+        reason = evidence.issue(resolved)
+        if reason:
+            output.at[index, "Action"] = "REASSESS"
+            previous = str(row.get("Review reason") or "").strip()
+            note = RESEARCH_ONLY_REASON + ": " + reason
+            output.at[index, "Review reason"] = "; ".join(x for x in (previous, note) if x)
+            output.at[index, "Investment readiness"] = "AWAITING VERIFIED DATA"
+        else:
+            output.at[index, "Investment readiness"] = "VERIFIED PUBLICATION — MANUAL REVIEW REQUIRED"
+    return output
