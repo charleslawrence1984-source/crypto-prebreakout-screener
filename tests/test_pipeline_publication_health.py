@@ -55,7 +55,7 @@ class PublishHealth(unittest.TestCase):
         result=inspect_feed(TRADE,doc,now=NOW)
         self.assertEqual(result["state"],"DEGRADED")
         self.assertIn("tsx:partial"," | ".join(result["issues"]))
-        self.assertEqual(inspect_feed(TRADE,{"updated_at":at(12)},now=NOW)["severity"],"WARNING")
+        self.assertEqual(inspect_feed(TRADE,{"updated_at":at(12)},now=NOW)["severity"],"CRITICAL")
 
     def test_priority_summary_uses_true_price_refreshed_timestamp(self):
         payload={"refreshed_at":at(23),"total":1,"rows":[{"Ticker":"ABC"}]}
