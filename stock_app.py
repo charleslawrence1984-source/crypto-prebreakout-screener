@@ -993,7 +993,10 @@ def quick_trade_decision(res: Dict) -> Dict:
 @st.cache_data(ttl=60, show_spinner=False)
 def load_investment_publication_evidence() -> InvestmentPublication:
     # Read-only source, technical, and priority price publication snapshots.
-    return InvestmentPublication(Path(__file__).resolve().parent)
+    return InvestmentPublication(
+        Path(__file__).resolve().parent,
+        expected_valuation_model=VALUATION_MODEL_VERSION,
+    )
 
 
 def quick_investment_decision(row: Dict | None) -> Dict:
@@ -1004,6 +1007,16 @@ def quick_investment_decision(row: Dict | None) -> Dict:
         }
 
     action = str(row.get("Action") or "UNAVAILABLE").upper()
+    # Live re-analysis is distinct from the saved shortlist, but must not bypass
+    # the current valuation model, FX or quality gates before publication checks.
+    if action == "BUY CANDIDATE" and (
+        row.get("Valuation model version") != VALUATION_MODEL_VERSION
+        or str(row.get("Valuation FX status") or "").upper() != "PASS"
+        or str(row.get("Hard gates") or "").upper() != "PASS"
+        or not math.isfinite(safe(row.get("Quality score")))
+        or safe(row.get("Quality score")) < MIN_INVESTMENT_QUALITY_SCORE
+    ):
+        return {"action": "REVALUE", "reason": "RESEARCH ONLY — live Investment valuation or quality evidence is not verified"}
     valuation_gate = str(row.get("Valuation gate") or "").upper()
     hard_gates = str(row.get("Hard gates") or "").upper()
     manual_review = str(row.get("Manual review required") or "").strip()
