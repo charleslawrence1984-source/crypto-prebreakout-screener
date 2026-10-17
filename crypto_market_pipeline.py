@@ -14,6 +14,7 @@ import pandas as pd
 
 from crypto_macro import snapshot_age_minutes, snapshot_payload
 from crypto_universe_rules import crypto_universe_exclusion_reason
+from crypto_publication_status import publication_status
 from crypto_rule_engine import ScreenerConfig, score_setup
 from crypto_accumulation_model import (
     ACCUMULATION_MODEL_VERSION,
@@ -1421,12 +1422,7 @@ async def run(args) -> int:
     # Deliberately allowed venue outages (e.g. Bybit's regional GitHub IP
     # block) MUST remain visible as degraded source coverage, not silently
     # become a fully 'CURRENT' five-venue discovery snapshot.
-    venue_warnings = [
-        f"{item.get('exchange_id', 'unknown')}: {item.get('status', 'unavailable')}"
-        for item in audits
-        if str(item.get("status") or "").upper() != "CURRENT"
-    ]
-    publication_status = "CURRENT" if not pipeline_errors and not venue_warnings else "PARTIAL"
+    reported_status, venue_warnings = publication_status(audits, pipeline_errors)
     if venue_warnings:
         print("::warning:: Crypto venue coverage partial — " + "; ".join(venue_warnings), flush=True)
 
@@ -1460,7 +1456,7 @@ async def run(args) -> int:
 
     manifest = {
         "updated_at": now_iso(),
-        "status": publication_status,
+        "status": reported_status,
         "venue_warnings": venue_warnings,
         "quote": args.quote,
         "market_data_min_quote_volume": args.market_data_min_quote_volume,
