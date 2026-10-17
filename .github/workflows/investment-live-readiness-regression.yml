@@ -6,6 +6,7 @@ on:
       - "investment_live_readiness.py"
       - "stock_app.py"
       - "tests/test_investment_live_readiness.py"
+      - "tests/audit_investment_live_publication.py"
       - ".github/workflows/investment-live-readiness-regression.yml"
   workflow_dispatch:
 
@@ -31,3 +32,5 @@ jobs:
         run: python -m unittest discover -s tests -p test_investment_callable_bindings.py -v
       - name: Test Investment per-listing coverage, timestamps, valuation, and UI integration
         run: python -m unittest discover -s tests -p test_investment_live_readiness.py -v
+      - name: Read-only audit of actual published technical coverage and withheld BUY labels
+        run: python tests/audit_investment_live_publication.py
