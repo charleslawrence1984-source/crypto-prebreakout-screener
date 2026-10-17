@@ -28,6 +28,7 @@ import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
 from two_strategy import investment_decision, trade_decision
+from investment_live_readiness import InvestmentPublication, withhold_unverified_buys, guard_quick_investment_decision
 from trade_rules import (
     FundamentalSnapshot,
     build_fundamental_snapshot,
@@ -989,6 +990,12 @@ def quick_trade_decision(res: Dict) -> Dict:
     }
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def load_investment_publication_evidence() -> InvestmentPublication:
+    # Read-only source, technical, and priority price publication snapshots.
+    return InvestmentPublication(Path(__file__).resolve().parent)
+
+
 def quick_investment_decision(row: Dict | None) -> Dict:
     if not row:
         return {
@@ -1025,7 +1032,10 @@ def quick_investment_decision(row: Dict | None) -> Dict:
     else:
         reason = str(row.get("Decision reason") or "").strip() or "The investment case needs more evidence before a decision."
 
-    return {"action": action, "reason": reason}
+    return guard_quick_investment_decision(
+        {"action": action, "reason": reason}, row.get("Ticker"),
+        load_investment_publication_evidence(),
+    )
 
 
 def render_decision_card(title: str, action: str, reason: str):
@@ -4503,6 +4513,12 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     output = output.drop_duplicates(subset=["_company_key"], keep="first")
     output = output[output["Action"].isin(["BUY CANDIDATE", "WAIT", "REVALUE"])].copy()
     output = output.drop(columns=["_action_order", "_fx_order", "_company_key"])
+    # Apply the same per-share publication gate before the Home and Opportunities
+    # tabs derive their BUY counts; do not mutate saved strategies or CSV files.
+    output = withhold_unverified_buys(
+        output, load_investment_publication_evidence(),
+        {label: kind for label, kind in INVESTMENT_UNIVERSES.items()},
+    )
     return output.reset_index(drop=True)
 
 
@@ -4872,6 +4888,9 @@ tab_home, tab1, tab_opportunities, tab2, tab5, tab3, tab4 = st.tabs(
 with tab_home:
     home_trade = apply_trade_refresh_overlay(load_all_trade_opportunities())
     home_investment = load_all_investment_opportunities()
+    if (not home_investment.empty and "Decision reason" in home_investment.columns
+            and home_investment["Decision reason"].astype(str).str.contains("RESEARCH ONLY —", regex=False).any()):
+        st.warning("Investment data readiness: some saved BUY labels are withheld because verified technical or price evidence is missing/stale. These remain research-only; the scoring rules are unchanged.")
     home_watchlist = load_browser_watchlist()
     home_events = load_browser_watch_events()
 
@@ -5746,6 +5765,9 @@ with tab_opportunities:
 
     with investment_feed_tab:
         investment_opportunities = load_all_investment_opportunities()
+        if (not investment_opportunities.empty and "Decision reason" in investment_opportunities.columns
+                and investment_opportunities["Decision reason"].astype(str).str.contains("RESEARCH ONLY —", regex=False).any()):
+            st.warning("Investment data not fully verified: one or more BUY candidates were downgraded to REVALUE pending source/technical/price checks. Never treat the cached shortlist as an order instruction.")
         if investment_opportunities.empty:
             st.info(
                 "No prepared Investment BUY or WAIT opportunities with passing hard quality gates are available yet."
@@ -5869,7 +5891,7 @@ with tab_opportunities:
 
                 with st.expander("More Investment detail", expanded=False):
                     investment_detail_cols = [
-                        "Action", "Ticker", "Company", "Exchange", "Sector",
+                        "Action", "Investment readiness", "Ticker", "Company", "Exchange", "Sector",
                         "Price", "Quality score", "Moat score",
                         "Base margin of safety %", "Required margin of safety %",
                         "MOS gap %", "Valuation gate", "Valuation FX status",
@@ -5891,7 +5913,7 @@ with tab_opportunities:
                         f"{validation['hard_gate_pass']:,} pass hard quality gates · "
                         f"{validation['old_buy_pool']:,} prior BUY candidates awaiting/under FX-safe review · "
                         f"{validation['fx_safe_revalued']:,} priority names currently FX-safe revalued · "
-                        f"{validation.get('fx_safe_unique_buys', validation['fx_safe_buys']):,} validated unique BUY"
+                        f"{validation.get('fx_safe_unique_buys', validation['fx_safe_buys']):,} valuation-screened unique BUY (before publication readiness)"
                         f"{'s' if validation.get('fx_safe_unique_buys', validation['fx_safe_buys']) != 1 else ''} "
                         f"({validation['fx_safe_buys']:,} listing-level BUY rows)."
                     )
@@ -6470,6 +6492,13 @@ with tab4:
                 filtered_fundamentals = fundamental_results[
                     fundamental_results["Quality score"] >= min_quality_score
                 ].copy()
+                filtered_fundamentals = withhold_unverified_buys(
+                    filtered_fundamentals, load_investment_publication_evidence(),
+                    {label: kind for label, kind in INVESTMENT_UNIVERSES.items()},
+                )
+                if (not filtered_fundamentals.empty and "Decision reason" in filtered_fundamentals
+                        and filtered_fundamentals["Decision reason"].astype(str).str.contains("RESEARCH ONLY —", regex=False).any()):
+                    st.warning("Unverified Advanced Investment BUY labels are withheld as research-only until saved source, technical and priority-price evidence agree.")
 
                 if market_cap_failures or below_min_market_cap:
                     st.caption(
