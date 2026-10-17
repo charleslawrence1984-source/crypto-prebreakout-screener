@@ -28,7 +28,7 @@ import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
 from two_strategy import investment_decision, trade_decision
-from investment_live_readiness import InvestmentPublication, withhold_unverified_buys, guard_quick_investment_decision, guard_portfolio_investment_adds
+from investment_live_readiness import InvestmentPublication, withhold_unverified_buys, guard_quick_investment_decision, guard_portfolio_investment_adds, daily_price_session_issue
 from trade_rules import (
     FundamentalSnapshot,
     build_fundamental_snapshot,
@@ -2478,9 +2478,38 @@ def _fast_info_number(fast, *keys) -> float:
     return np.nan
 
 
-def _batch_latest_prices(symbols: List[str], chunk_size: int = 200) -> tuple[Dict[str, float], int]:
+def _batch_latest_prices(symbols: List[str], chunk_size: int = 200, *,
+                         with_candle_dates: bool = False) -> tuple[Dict, int]:
+    """Download real daily close bars; optionally return each bar's source date.
+
+    Existing fundamental scans keep receiving {ticker: float}. Investment
+    priority price refresh instead receives {ticker: {price, candle_date}}.
+    A daily DateIndex may be timezone-naive; store the source trading SESSION
+    DATE, never an invented UTC close timestamp or the download run time.
+    """
     prices = {}
     rate_limit_errors = 0
+
+    def record(symbol, closes):
+        series = pd.to_numeric(closes, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+        series = series[series > 0]
+        if series.empty:
+            return
+        value = safe(series.iloc[-1])
+        if not math.isfinite(value) or value <= 0:
+            return
+        if with_candle_dates:
+            try:
+                session = pd.Timestamp(series.index[-1])
+                if pd.isna(session):
+                    return
+                candle_date = session.date().isoformat()
+            except (TypeError, ValueError, OverflowError):
+                return
+            prices[symbol] = {"price": value, "candle_date": candle_date}
+        else:
+            prices[symbol] = value
+
     for start in range(0, len(symbols), chunk_size):
         chunk = symbols[start:start + chunk_size]
         try:
@@ -2499,18 +2528,13 @@ def _batch_latest_prices(symbols: List[str], chunk_size: int = 200) -> tuple[Dic
                 closes = batch["Close"]
                 for sym in chunk:
                     if sym in closes.columns:
-                        series = pd.to_numeric(closes[sym], errors="coerce").dropna()
-                        if not series.empty:
-                            prices[sym] = safe(series.iloc[-1])
+                        record(sym, closes[sym])
             elif "Close" in batch.columns and len(chunk) == 1:
-                series = pd.to_numeric(batch["Close"], errors="coerce").dropna()
-                if not series.empty:
-                    prices[chunk[0]] = safe(series.iloc[-1])
+                record(chunk[0], batch["Close"])
         except Exception as exc:
             if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
                 rate_limit_errors += 1
     return prices, rate_limit_errors
-
 
 def _investment_company_result(
     sym: str,
@@ -2767,12 +2791,16 @@ def load_prepared_investment_scan(kind: str, modified_ns: int) -> pd.DataFrame:
 def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     """Refresh only prices and price-dependent investment decisions."""
     if frame.empty or "Ticker" not in frame.columns:
-        return frame, {"updated": 0, "missing": 0, "rate_limit_errors": 0}
+        return frame, {"updated": 0, "missing": 0, "stale_candles": 0, "rate_limit_errors": 0}
     out = frame.copy()
     symbols = out["Ticker"].dropna().astype(str).tolist()
-    prices, rate_limit_errors = _batch_latest_prices(symbols)
+    prices, rate_limit_errors = _batch_latest_prices(symbols, with_candle_dates=True)
+    # Clear previous proof before attempting a new session-specific refresh.
+    # Legacy prepared rows have no source-bar date and must never be trusted.
+    out["Price candle date"] = ""
     updated = 0
     missing = 0
+    stale_candles = 0
     for idx, row in out.iterrows():
         symbol = str(row.get("Ticker") or "")
         if str(row.get("Valuation model version") or "") != VALUATION_MODEL_VERSION:
@@ -2785,9 +2813,23 @@ def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFram
             out.at[idx, "Valuation gate"] = "WAIT"
             out.at[idx, "Decision reason"] = "valuation currency conversion is unavailable or unverified"
             continue
-        price = safe(prices.get(symbol))
+        quote = prices.get(symbol)
+        price = safe(quote.get("price")) if isinstance(quote, dict) else np.nan
         if np.isnan(price) or price <= 0:
             missing += 1
+            if str(row.get("Action") or "").upper() == "BUY CANDIDATE":
+                out.at[idx, "Action"] = "REVALUE"
+                out.at[idx, "Valuation gate"] = "REVALUE"
+                out.at[idx, "Decision reason"] = "RESEARCH ONLY — daily price quote is missing"
+            continue
+        candle_date = quote.get("candle_date")
+        out.at[idx, "Price candle date"] = candle_date or ""
+        candle_issue = daily_price_session_issue(candle_date, datetime.datetime.now(datetime.timezone.utc))
+        if candle_issue:
+            stale_candles += 1
+            out.at[idx, "Action"] = "REVALUE"
+            out.at[idx, "Valuation gate"] = "REVALUE"
+            out.at[idx, "Decision reason"] = "RESEARCH ONLY — " + candle_issue
             continue
         base_value = safe(row.get("Base intrinsic value"))
         bear_value = safe(row.get("Bear intrinsic value"))
@@ -2830,7 +2872,7 @@ def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFram
         ascending=[True, False, False],
         na_position="last",
     ).drop(columns=["_action_rank"]).reset_index(drop=True)
-    return out, {"updated": updated, "missing": missing, "rate_limit_errors": rate_limit_errors}
+    return out, {"updated": updated, "missing": missing, "stale_candles": stale_candles, "rate_limit_errors": rate_limit_errors}
 
 
 @st.cache_data(ttl=120, show_spinner=False)
