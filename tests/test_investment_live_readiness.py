@@ -50,12 +50,13 @@ class InvestmentReadinessTests(unittest.TestCase):
             "exchanges": {"nyse": {
                 "price_refreshed_at": stamp(-1),
                 "price_refresh_status": "complete", "price_refresh_missing": 0,
-                "price_refresh_rate_limit_errors": 0,
+                "price_refresh_rate_limit_errors": 0, "price_refresh_updated": 1,
             }}
         }
         self.summary = {"refreshed_at": stamp(-1), "rows": [{
             "Ticker": "AAA", "Prepared exchange": "nyse", "Action": "BUY CANDIDATE",
             "Valuation FX status": "PASS", "Valuation gate": "PASS",
+            "Valuation model version": "model-v2",
             "Price": 15.5, "Base margin of safety %": 42,
             "Required margin of safety %": 30,
             "Bear margin of safety %": 15, "Quality score": 81,
@@ -80,7 +81,7 @@ class InvestmentReadinessTests(unittest.TestCase):
         )
 
     def evidence(self):
-        return InvestmentPublication(self.root, now=NOW)
+        return InvestmentPublication(self.root, now=NOW, expected_valuation_model="model-v2")
 
     def test_verified_listing_allowed_despite_other_source_provider_deferred_symbol(self):
         self.assertEqual(self.evidence().issue("AAA", kind="nyse"), "")
@@ -117,6 +118,8 @@ class InvestmentReadinessTests(unittest.TestCase):
             (self.rows[0], "Fundamental fingerprint", "", "fingerprint"),
             (self.rows[0], "rsi", None, "RSI"),
             (self.summary["rows"][0], "Action", "WAIT", "priority"),
+            (self.summary["rows"][0], "Valuation model version", "model-v1", "model version"),
+            (self.price["exchanges"]["nyse"], "price_refresh_updated", 0, "updated prices"),
             (self.summary["rows"][0], "Base margin of safety %", 12, "valuation"),
             (self.price["exchanges"]["nyse"], "price_refresh_status", "partial", "quote"),
         ]
