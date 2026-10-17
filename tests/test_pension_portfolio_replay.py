@@ -94,6 +94,8 @@ class PensionReplayContractTests(unittest.TestCase):
     def test_missing_held_stock_price_prevents_report(self):
         a,b,c,d,e=fake_inputs()
         e=[bar for bar in e if bar.day!=D2]
+        # Preserve that calendar session via an unrelated quoted ticker.
+        e.append(HistoricalPriceBar(D2,"XYZ","Healthcare",100,100))
         with self.assertRaisesRegex(ValueError,"missing a price mark"):
             run(inputset=(a,b,c,d,e))
 
