@@ -66,6 +66,12 @@ class PensionReplayContractTests(unittest.TestCase):
         self.assertEqual(report.nav[2].closing_nav_gbp,1000)
         self.assertEqual(report.end_cash_gbp,955)
 
+    def test_price_appreciation_above_ceiling_is_explicitly_flagged(self):
+        a,b,c,d,e=fake_inputs()
+        e=[replace(bar,closing_price_gbp=20) if bar.day==D2 else bar for bar in e]
+        report=run(inputset=(a,b,c,d,e))
+        self.assertTrue(any("stock weight" in issue for issue in report.closing_allocation_breaches))
+
     def test_spread_or_dealing_cost_reduces_eligible_position_size(self):
         report=run(cost=1)
         self.assertEqual(report.fills[0].shares,4)
