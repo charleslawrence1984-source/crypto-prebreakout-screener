@@ -58,8 +58,10 @@ def _finite_positive(value):
 class InvestmentPublication:
     """Evidence indexes are by *exact listing*; no symbol/venue substitution."""
 
-    def __init__(self, root: Path, *, now: datetime | None = None):
+    def __init__(self, root: Path, *, now: datetime | None = None,
+                 expected_valuation_model: str | None = None):
         self.root = Path(root)
+        self.expected_valuation_model = expected_valuation_model
         self.now = now or datetime.now(timezone.utc)
         if self.now.tzinfo is None or self.now.utcoffset() is None:
             raise ValueError("now must be timezone aware")
@@ -148,6 +150,8 @@ class InvestmentPublication:
 
         if price.get("price_refresh_status") != "complete":
             return "priority quote refresh is incomplete"
+        if not isinstance(price.get("price_refresh_updated"), int) or price.get("price_refresh_updated") < 1:
+            return "priority quote refresh did not confirm updated prices"
         if price.get("price_refresh_missing") != 0 or price.get("price_refresh_rate_limit_errors", 0) != 0:
             return "priority quote refresh has unresolved failures"
         if not _recent(price.get("price_refreshed_at"), self.now, hours=PRICE_MAX_AGE_HOURS):
@@ -157,6 +161,9 @@ class InvestmentPublication:
         priority = self.priority_by_listing.get((kind, symbol))
         if not priority or priority.get("Action") != "BUY CANDIDATE":
             return "this listing has no matching validated priority BUY"
+        if (self.expected_valuation_model is not None
+                and priority.get("Valuation model version") != self.expected_valuation_model):
+            return "priority valuation model version is not current"
         if priority.get("Valuation FX status") != "PASS" or priority.get("Valuation gate") != "PASS":
             return "FX-safe valuation is not verified"
         if not _finite_positive(priority.get("Price")):
