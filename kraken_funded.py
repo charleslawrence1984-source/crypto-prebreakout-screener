@@ -21,6 +21,7 @@ from funded_stock_paper import (
     update_paper_outcomes, summarize_paper_journal,
     explain_capture_eligibility,
 )
+from funded_scan_readiness import audit_funded_stock_scan
 from funded_stock_data import get_validated_stock_history
 from funded_stock_events import earnings_window, lookup_estimated_earnings, earnings_trade_gate, validate_official_event_verification, fetch_fmp_earnings_calendar
 from funded_stock_backtest import signal_candidates, simulate_portfolio, summarize_backtest_funnel, summarize_individual_rule_gates, breakout_plan_research, summarize_breakout_plan_research, simulate_shadow_breakout_stops, summarize_shadow_breakout_stops, summarize_shadow_robustness, audit_history_window_consistency, historical_signal_start
@@ -1453,6 +1454,38 @@ with stock_tab:
     c4.metric("Watch", watch_count)
     c5.metric("No current setup", no_setup_count)
     c6.metric("Data unavailable", unavailable_count)
+
+    # The funded scanner is normally clicked manually, and may fall back to
+    # PREPARED historical rows. Do not mistake a zero-READY count for proof
+    # the strategy found no setups in a fresh, complete live scan.
+    readiness = audit_funded_stock_scan(
+        stocks, KRAKEN_FUNDED_STOCKS,
+        now=pd.Timestamp.now(tz="UTC").to_pydatetime(),
+    )
+    with st.expander("🔎 Funded stock scanner diagnostic — data vs signals", expanded=False):
+        st.markdown(f"**Scan evidence: {readiness.status}**")
+        st.caption(
+            f"Fresh LIVE evidence (<15 min): {readiness.fresh_live_rows}/"
+            f"{readiness.total_expected} stocks · "
+            f"Missing price history: {readiness.data_unavailable} · "
+            f"Potential manual quotes: {readiness.pending_live_quotes} · "
+            f"READY labels (unverified): {readiness.manual_review_ready_labels}."
+        )
+        for item in readiness.blockers:
+            st.write("• " + item)
+        if readiness.distinct_rejection_reasons:
+            st.markdown("**Most frequent raw technical blockers**")
+            st.dataframe(
+                pd.DataFrame(
+                    readiness.distinct_rejection_reasons,
+                    columns=["Original rule rejection", "Stocks"],
+                ),
+                hide_index=True, use_container_width=True,
+            )
+        st.caption(
+            "Read-only diagnostic. Not a live order, fill confirmation, "
+            "future return estimate or authorization to trade."
+        )
 
     stock_filter = st.segmented_control(
         "Show",
