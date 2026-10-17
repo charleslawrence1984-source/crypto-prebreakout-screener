@@ -68,6 +68,8 @@ jobs:
           cp _audit_draft_source/tests/audit_investment_buy_surface_consistency.py tests/
           cp _audit_draft_source/tests/diagnose_stocks_ui_render.py tests/
           cp _audit_draft_source/tests/test_investment_audit_automation.py tests/
+          mkdir -p .github/workflows
+          cp _audit_draft_source/.github/workflows/investment-buy-surface-consistency.yml .github/workflows/
           echo "Production revision: $(git rev-parse HEAD)"
       - name: Record audited production revision
         run: |
