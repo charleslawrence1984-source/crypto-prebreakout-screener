@@ -41,12 +41,16 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           from unittest.mock import patch
+          import pandas as pd
+          import yfinance as yf
           from streamlit.testing.v1 import AppTest
-          # The test runner opens stock_app.py as a standalone script; unlike
-          # the deployed multipage router, it does not register platform_home.
-          # Stub ONLY the navigation link, not the Investment content/widgets.
-          with patch("streamlit.page_link", lambda *args, **kwargs: None):
-              app = AppTest.from_file(str(Path("stock_app.py").resolve()), default_timeout=50).run()
+          # This standalone renderer has no registered multipage home route.
+          # Disable real provider requests in the smoke ONLY; the preceding
+          # audited live prepared dataset and real Stocks loader are untouched.
+          with (patch("streamlit.page_link", lambda *args, **kwargs: None),
+                patch.object(yf, "download", return_value=pd.DataFrame()),
+                patch.object(yf, "Ticker", side_effect=RuntimeError("Network disabled during UI smoke"))):
+              app = AppTest.from_file(str(Path("stock_app.py").resolve()), default_timeout=40).run()
           failures = [str(err.message) for err in app.exception]
           print({"tab_count": len(app.tabs), "title_count": len(app.title),
                  "exceptions": failures}, flush=True)
