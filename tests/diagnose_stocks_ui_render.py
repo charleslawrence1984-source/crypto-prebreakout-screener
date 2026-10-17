@@ -1,8 +1,9 @@
-"""Diagnostic ONLY: locate full Stocks Streamlit AppTest slow path safely.
+"""Assert the complete Stocks Streamlit script renders in offline AppTest.
 
-A passing exit code indicates diagnostic completion, NOT successful full UI
-rendering. The production pages, investment strategy and source files are
-untouched. This is bounded to 26 seconds and does not hit Yahoo providers.
+Real widget tree is exercised (all page/tab blocks). Navigation, JS browser
+storage and Yahoo network are mocked ONLY within this CI harness. Passing
+is evidence of scripted rendering, not a real-browser interaction/persistence
+test. Production source, strategy and published research remain unchanged.
 """
 from __future__ import annotations
 
@@ -48,12 +49,10 @@ def main():
         ):
             ui = AppTest.from_file(str(Path("stock_app.py").resolve()), default_timeout=26).run()
         exceptions = [str(exc.message) for exc in ui.exception]
-        print({"status": "APPTEST_RETURNED", "tabs": len(ui.tabs),
+        print({"status": "STOCKS_UI_RENDERED", "tabs": len(ui.tabs),
                "exceptions": exceptions[:8]}, flush=True)
-        # Any discovered exceptions should inform a separate UI repair.
-    except Exception as exc:
-        print({"status": "APPTEST_DID_NOT_FINISH", "error_type": type(exc).__name__,
-               "details": str(exc)[:250]}, flush=True)
+        assert len(ui.tabs) >= 7, "Stocks script did not render its 7 main navigation tabs"
+        assert not exceptions, "Stocks UI emitted uncaught Streamlit rendering exceptions"
     finally:
         faulthandler.cancel_dump_traceback_later()
 
