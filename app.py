@@ -200,10 +200,9 @@ def crypto_pipeline_age_minutes(manifest: dict) -> float:
         timestamp = pd.Timestamp(value)
         if timestamp.tzinfo is None:
             timestamp = timestamp.tz_localize("UTC")
-        return max(
-            (pd.Timestamp.now(tz="UTC") - timestamp.tz_convert("UTC")).total_seconds() / 60,
-            0.0,
-        )
+        # Preserve negative ages: an unexpectedly future-dated publication
+        # must never be silently labelled CURRENT.
+        return (pd.Timestamp.now(tz="UTC") - timestamp.tz_convert("UTC")).total_seconds() / 60
     except Exception:
         return np.nan
 
@@ -213,10 +212,14 @@ def crypto_pipeline_health_label(manifest: dict) -> str:
     status = str(manifest.get("status") or "NOT READY").upper()
     if not math.isfinite(age):
         return "NOT READY"
+    if age < -5:
+        return "INVALID CLOCK"
     if age > 20:
         return "STALE"
     if status == "PARTIAL":
         return "PARTIAL"
+    if status != "CURRENT":
+        return "NOT READY"
     return "CURRENT"
 
 
@@ -3100,7 +3103,15 @@ with tab_crypto_home:
     d3.metric("Accumulation READY", accumulation_ready_count)
     d4.metric("Accumulation WATCH", accumulation_watch_count)
     d5.metric("Watchlist", len(crypto_watchlist))
-    d6.metric("Pipeline", crypto_pipeline_health_label(pipeline_manifest))
+    pipeline_health = crypto_pipeline_health_label(pipeline_manifest)
+    d6.metric("Pipeline", pipeline_health)
+    if pipeline_health != "CURRENT":
+        st.error(
+            "Background Crypto data is " + pipeline_health
+            + ". Prepared BUY/READY counts and saved screening rows are "
+            "historical research, NOT verified current trading opportunities. "
+            "Refresh the market data and confirm current exchange quotes before trading."
+        )
 
     if pipeline_manifest:
         pipeline_time = (
