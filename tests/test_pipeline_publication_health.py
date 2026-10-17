@@ -37,6 +37,7 @@ class PublishHealth(unittest.TestCase):
         info=inspect_feed(MEME,{"updated_at":at(10),"status":"PARTIAL",
             "universe_tokens":2000,"errors":["Gecko API: HTTP 429"]},now=NOW)
         self.assertEqual(info["state"],"DEGRADED")
+        self.assertEqual(info["severity"],"CRITICAL")
         self.assertTrue(any("provider" in issue for issue in info["issues"]))
 
     def test_missing_manifest_never_assumed_healthy(self):
@@ -70,6 +71,11 @@ class PublishHealth(unittest.TestCase):
             (directory/"manifest.json").write_text(json.dumps({
                 "updated_at":at(50),"status":"CURRENT","deep_scores_current":40,
                 "unique_eligible_coins":120}),encoding="utf-8")
+            (directory/"audit.json").write_text(json.dumps({
+                "generated_at":at(50),"exchange_counts":[
+                    {"exchange_id":venue,"status":"CURRENT"}
+                    for venue in ("binance","okx","bybit","kraken","cryptocom")
+                ]}),encoding="utf-8")
             report=audit(Path(root),now=NOW,definitions=[CRYPTO,MEME])
             self.assertEqual(report["overall"],"CRITICAL")
             self.assertEqual([r["state"] for r in report["datasets"]],["CURRENT","MISSING"])
@@ -94,6 +100,60 @@ class PublishHealth(unittest.TestCase):
         definition=next(f for f in FEEDS if f.key=="investment_technicals")
         self.assertEqual(definition.max_age_minutes,96*60)
         self.assertEqual(next(f for f in FEEDS if f.key=="investment_fundamentals").max_age_minutes,7*24*60)
+
+    def test_crypto_venue_audit_overrides_false_current_manifest(self):
+        # Mirrors the real 17 October run where Bybit was unavailable but the
+        # producer left the top-level status as CURRENT.
+        with TemporaryDirectory() as directory:
+            root=Path(directory)
+            feed_dir=root/"prepared_crypto"
+            feed_dir.mkdir()
+            (feed_dir/"manifest.json").write_text(json.dumps({
+                "updated_at":at(7),"status":"CURRENT",
+                "deep_scores_current":151,"unique_eligible_coins":158
+            }),encoding="utf-8")
+            (feed_dir/"audit.json").write_text(json.dumps({
+                "generated_at":at(7),"exchange_counts":[
+                    {"exchange_id":name,"status":"CURRENT" if name!="bybit" else "VENUE UNAVAILABLE"}
+                    for name in ("binance","okx","bybit","kraken","cryptocom")
+                ]}),encoding="utf-8")
+            report=audit(root,now=NOW,definitions=[CRYPTO])
+            self.assertEqual(report["overall"],"CRITICAL")
+            self.assertEqual(report["datasets"][0]["state"],"DEGRADED")
+            self.assertIn("bybit", " ".join(report["datasets"][0]["issues"]))
+
+    def test_crypto_current_without_venue_audit_fails_closed(self):
+        with TemporaryDirectory() as directory:
+            root=Path(directory)
+            fd=root/"prepared_crypto"
+            fd.mkdir()
+            (fd/"manifest.json").write_text(json.dumps({
+                "updated_at":at(5),"status":"CURRENT",
+                "deep_scores_current":60,"unique_eligible_coins":160
+            }),encoding="utf-8")
+            report=audit(root,now=NOW,definitions=[CRYPTO])
+            self.assertEqual(report["overall"],"CRITICAL")
+            self.assertIn("unavailable", " ".join(report["datasets"][0]["issues"]).lower())
+
+    def test_crypto_audit_timestamp_mismatch_is_not_current(self):
+        with TemporaryDirectory() as directory:
+            root=Path(directory)
+            fd=root/"prepared_crypto"
+            fd.mkdir()
+            (fd/"manifest.json").write_text(json.dumps({
+                "updated_at":at(5),"status":"CURRENT",
+                "deep_scores_current":60,"unique_eligible_coins":160
+            }),encoding="utf-8")
+            (fd/"audit.json").write_text(json.dumps({
+                "generated_at":at(240),"exchange_counts":[
+                    {"exchange_id":name,"status":"CURRENT"}
+                    for name in ("binance","okx","bybit","kraken","cryptocom")
+                ]}),encoding="utf-8")
+            self.assertEqual(audit(root,now=NOW,definitions=[CRYPTO])["overall"],"CRITICAL")
+
+    def test_heartbeat_policy_matches_live_ui(self):
+        self.assertEqual(next(f for f in FEEDS if f.key=="crypto").max_age_minutes,20)
+        self.assertEqual(next(f for f in FEEDS if f.key=="meme").max_age_minutes,30)
 
 
 if __name__=="__main__":
