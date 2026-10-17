@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import math
+import hashlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -73,6 +74,7 @@ class InvestmentPublication:
         self.tech_by_listing = {}
         self.priority_by_listing = {}
         self.venues_by_ticker = {}
+        self._source_frames = {}  # lazy: only exchanges with candidate BUY checks
 
         for kind, meta in self.technical.get("exchanges", {}).items():
             if not isinstance(meta, dict):
@@ -101,6 +103,27 @@ class InvestmentPublication:
             if kind and sym and (kind, sym) not in self.priority_by_listing:
                 self.priority_by_listing[(kind, sym)] = item
                 self.venues_by_ticker.setdefault(sym, set()).add(kind)
+
+    def _current_source_fingerprint(self, kind: str, symbol: str) -> str:
+        """Recompute the worker's exact eligible-row fingerprint, read-only."""
+        if kind not in self._source_frames:
+            path = self.root / "prepared_scans" / (kind + ".csv.gz")
+            try:
+                self._source_frames[kind] = pd.read_csv(path, compression="gzip")
+            except (OSError, ValueError, EOFError):
+                self._source_frames[kind] = pd.DataFrame()
+        frame = self._source_frames[kind]
+        required = {"Ticker", "Action", "Hard gates", "Price"}
+        if not required.issubset(frame.columns):
+            return ""
+        matches = frame.loc[frame["Ticker"].astype(str).eq(symbol)]
+        if matches.empty:
+            return ""
+        row = matches.iloc[-1]
+        if (row["Hard gates"] != "PASS" or row["Action"] not in {"BUY CANDIDATE", "WAIT"}
+                or not _finite_positive(row["Price"])):
+            return ""
+        return hashlib.sha256(row.to_json().encode()).hexdigest()
 
     def issue(self, symbol: str, *, kind: str | None = None) -> str:
         """Empty string means the current publication prerequisites all pass."""
@@ -141,6 +164,9 @@ class InvestmentPublication:
         fingerprint = record.get("Fundamental fingerprint")
         if pd.isna(fingerprint) or str(fingerprint).strip().lower() in {"", "nan", "none"}:
             return "technical fundamental fingerprint is missing"
+        source_fingerprint = self._current_source_fingerprint(kind, symbol)
+        if not source_fingerprint or str(fingerprint) != source_fingerprint:
+            return "technical fingerprint no longer matches the current verified fundamentals"
         if not _recent(record.get("Technical calculated at"), self.now, hours=TECH_MAX_AGE_HOURS):
             return "technical calculation is stale or undated"
         if not _finite_positive(record.get("trade_score")):
