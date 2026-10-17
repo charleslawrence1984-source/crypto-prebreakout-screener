@@ -25,8 +25,8 @@ class PublishedFeed:
 
 
 FEEDS = (
-    PublishedFeed("crypto", "prepared_crypto/manifest.json", 30),
-    PublishedFeed("meme", "prepared_meme/manifest.json", 45),
+    PublishedFeed("crypto", "prepared_crypto/manifest.json", 20),
+    PublishedFeed("meme", "prepared_meme/manifest.json", 30),
     PublishedFeed("trade_fundamentals", "prepared_trade_fundamentals/manifest.json", 96 * 60, True),
     PublishedFeed("trade_technicals", "prepared_trade_technicals/manifest.json", 96 * 60, True),
     PublishedFeed("investment_fundamentals", "prepared_scans/manifest.json", 7 * 24 * 60, True),
@@ -85,7 +85,9 @@ def inspect_feed(
     if status in {"PARTIAL", "FAILED", "DATA ISSUE", "ERROR", "UNAVAILABLE"}:
         result["issues"].append(f"Publisher status is {status}, not fully current")
 
-    critical_structure = False
+    # Partial Crypto/Meme publications are not actionable live research; unlike
+    # provider-deferred stock-market rows they are critical source failures.
+    critical_structure = definition.key in {"crypto", "meme"} and status != "CURRENT"
     exchanges = payload.get("exchanges") or {}
     if definition.requires_exchange_coverage:
         if not isinstance(exchanges, dict) or not exchanges:
@@ -149,6 +151,50 @@ def inspect_feed(
     return result
 
 
+EXPECTED_CRYPTO_VENUES = frozenset({"binance", "okx", "bybit", "kraken", "cryptocom"})
+
+
+def crypto_venue_audit_issues(root: Path, manifest: Mapping[str, object] | None) -> list[str]:
+    """Cross-check the saved Crypto venue evidence independently of its manifest status.
+
+    The previous producer could publish CURRENT while Bybit's runner region
+    was blocked. Never rely only on the producer's status flag.
+    """
+    try:
+        audit_data = json.loads((root / "prepared_crypto" / "audit.json").read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, ValueError):
+        return ["Crypto venue audit is unavailable or unreadable"]
+    if not isinstance(audit_data, dict):
+        return ["Crypto venue audit is not an object"]
+    rows = audit_data.get("exchange_counts")
+    if not isinstance(rows, list) or not rows:
+        return ["Crypto venue audit is missing exchange details"]
+    manifest_time = timestamp(manifest.get("updated_at")) if isinstance(manifest, dict) else None
+    audit_time = timestamp(audit_data.get("generated_at"))
+    if manifest_time is None or audit_time is None or abs((audit_time - manifest_time).total_seconds()) > 600:
+        return ["Crypto venue audit timestamp does not match the published manifest"]
+    observed = set()
+    issues = []
+    for record in rows:
+        if not isinstance(record, dict):
+            issues.append("Malformed Crypto venue audit record")
+            continue
+        venue = str(record.get("exchange_id") or "").strip().lower()
+        if not venue:
+            issues.append("Unnamed Crypto venue audit record")
+            continue
+        if venue in observed:
+            issues.append(f"Duplicate Crypto venue audit: {venue}")
+        observed.add(venue)
+        status = str(record.get("status") or "").strip().upper()
+        if status != "CURRENT":
+            issues.append(f"Crypto venue {venue} is {status or 'UNVERIFIED'}")
+    missing = EXPECTED_CRYPTO_VENUES - observed
+    if missing:
+        issues.append("Crypto venue audit missing expected venues: " + ", ".join(sorted(missing)))
+    return issues
+
+
 def audit(root: Path, *, now: datetime | None = None, definitions=FEEDS) -> dict:
     clock = now or datetime.now(timezone.utc)
     datasets = []
@@ -158,7 +204,15 @@ def audit(root: Path, *, now: datetime | None = None, definitions=FEEDS) -> dict
             payload = json.loads(path.read_text(encoding="utf-8"))
         except (OSError,ValueError,UnicodeError):
             payload = None
-        datasets.append(inspect_feed(definition,payload,now=clock))
+        health = inspect_feed(definition,payload,now=clock)
+        if definition.key == "crypto" and health["state"] not in {"MISSING", "INVALID TIMESTAMP"}:
+            venue_issues = crypto_venue_audit_issues(root, payload)
+            if venue_issues:
+                health["issues"].extend(venue_issues)
+                health["severity"] = "CRITICAL"
+                if health["state"] == "CURRENT":
+                    health["state"] = "DEGRADED"
+        datasets.append(health)
     worst = "CRITICAL" if any(d["severity"]=="CRITICAL" for d in datasets) else (
         "WARNING" if any(d["severity"]=="WARNING" for d in datasets) else "OK")
     return {"schema":"cl-signal-publication-health-v1",
@@ -177,8 +231,8 @@ def main() -> int:
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(result,indent=2,sort_keys=True)+"\n",encoding="utf-8")
     print(json.dumps(result,indent=2))
-    # Warnings (partial/deferred markets) remain visible but do not permanently
-    # fail the hourly diagnostic. Stale, missing or future-dated feeds do fail.
+    # Stock provider-deferred gaps are warnings; missing, stale, future-dated,
+    # partial Crypto/Meme or unaudited exchanges are critical failures.
     return 0 if args.no_fail or result["overall"] != "CRITICAL" else 1
 
 
