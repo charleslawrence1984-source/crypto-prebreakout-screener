@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "pipeline_publication_health.py"
+      - "investment_readiness_guard.py"
       - "crypto_publication_status.py"
       - "crypto_market_pipeline.py"
       - "meme_market_pipeline.py"
@@ -12,6 +13,7 @@ on:
       - "scheduled_investment_technicals.py"
       - "meme_app.py"
       - "tests/test_pipeline_publication_health.py"
+      - "tests/test_investment_readiness_guard.py"
       - "tests/test_crypto_publication_status.py"
       - "tests/test_meme_pipeline_rate_limit.py"
       - "tests/test_pipeline_ui_freshness.py"
@@ -34,7 +36,9 @@ jobs:
       - name: Install mock/test dependencies
         run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3" "requests>=2.32,<3"
       - name: Compile pipeline logic and existing UI pages
-        run: python -m py_compile pipeline_publication_health.py crypto_publication_status.py crypto_market_pipeline.py meme_market_pipeline.py app.py meme_app.py stock_app.py scheduled_investment_technicals.py
+        run: python -m py_compile investment_readiness_guard.py pipeline_publication_health.py crypto_publication_status.py crypto_market_pipeline.py meme_market_pipeline.py app.py meme_app.py stock_app.py scheduled_investment_technicals.py
+      - name: Guard live-facing Investment BUY labels when data publication is unverified
+        run: python -m unittest discover -s tests -p test_investment_readiness_guard.py -v
       - name: Test published data freshness and coverage
         run: python -m unittest discover -s tests -p test_pipeline_publication_health.py -v
       - name: Test exchange-level partial Crypto publication
