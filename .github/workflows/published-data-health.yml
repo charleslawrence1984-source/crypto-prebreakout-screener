@@ -71,7 +71,7 @@ jobs:
           ]
           for feed in report["datasets"]:
               issues="; ".join(str(v) for v in feed["issues"]) or "None"
-              issues=issues.replace("|","/").replace("\\n"," ")
+              issues=issues.replace("|","/").replace("\n"," ")
               summary.append(
                   f"| {feed['feed']} | {feed['state']} | {feed['age_minutes']} | {issues[:300]} |"
               )
@@ -79,7 +79,7 @@ jobs:
                   name=feed["feed"]
                   print(f"::warning title=Unhealthy published data ({name})::{feed['state']}: {issues[:450]}")
           with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as out:
-              out.write("\\n".join(summary)+"\\n")
+              out.write("\n".join(summary)+"\n")
           PY
       - name: Preserve diagnostic report even if some feeds failed
         if: always()
