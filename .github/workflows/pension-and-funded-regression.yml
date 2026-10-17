@@ -10,6 +10,7 @@ on:
       - "kraken_funded.py"
       - "tests/test_pension_guardrails.py"
       - "tests/test_funded_account_contract.py"
+      - "tests/test_managed_pension_ui.py"
       - ".github/workflows/pension-and-funded-regression.yml"
   workflow_dispatch:
 
@@ -33,3 +34,17 @@ jobs:
         run: python -m unittest discover -s tests -p test_pension_guardrails.py -v
       - name: Existing Kraken Funded loss-floor regression tests
         run: python -m unittest discover -s tests -p test_funded_account_contract.py -v
+
+  streamlit:
+    name: Managed Pension route smoke check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install UI smoke test dependencies
+        run: pip install "streamlit>=1.45,<2" pandas
+      - name: Test homepage and pension page navigation
+        run: python -m unittest discover -s tests -p test_managed_pension_ui.py -v
