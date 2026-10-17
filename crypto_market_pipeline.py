@@ -1418,6 +1418,17 @@ async def run(args) -> int:
     nominal_minutes = runs_per_sweep * 5
 
     pipeline_errors = universe_errors + discovery_errors + enrichment_errors + deep_errors
+    # Deliberately allowed venue outages (e.g. Bybit's regional GitHub IP
+    # block) MUST remain visible as degraded source coverage, not silently
+    # become a fully 'CURRENT' five-venue discovery snapshot.
+    venue_warnings = [
+        f"{item.get('exchange_id', 'unknown')}: {item.get('status', 'unavailable')}"
+        for item in audits
+        if str(item.get("status") or "").upper() != "CURRENT"
+    ]
+    publication_status = "CURRENT" if not pipeline_errors and not venue_warnings else "PARTIAL"
+    if venue_warnings:
+        print("::warning:: Crypto venue coverage partial — " + "; ".join(venue_warnings), flush=True)
 
     audit = {
         "generated_at": now_iso(),
@@ -1427,6 +1438,7 @@ async def run(args) -> int:
         "buy_min_combined_24h_volume": args.buy_min_combined_volume,
         "buy_min_execution_24h_volume": args.buy_min_execution_volume,
         "exchange_counts": audits,
+        "venue_warnings": venue_warnings,
         "eligible_market_rows": int(len(all_markets)),
         "unique_eligible_coins": int(total_unique),
         "deduplicated_cross_exchange_coins": int(total_unique),
@@ -1448,7 +1460,8 @@ async def run(args) -> int:
 
     manifest = {
         "updated_at": now_iso(),
-        "status": "CURRENT" if not pipeline_errors else "PARTIAL",
+        "status": publication_status,
+        "venue_warnings": venue_warnings,
         "quote": args.quote,
         "market_data_min_quote_volume": args.market_data_min_quote_volume,
         "discovery_min_combined_volume": args.discovery_min_combined_volume,
