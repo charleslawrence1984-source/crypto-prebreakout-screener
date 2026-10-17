@@ -56,14 +56,29 @@ def eligible_rows(frame):
 
 
 def complete_exchange(meta, frame):
+    """Permit a source-complete batch of VERIFIED rows, not missing provider data.
+
+    The fundamental collector counts temporarily provider-deferred symbols in
+    eligible_symbols, but excludes them from coverage_target_symbols. Its
+    status can be 'complete' when every *non-deferred* symbol is stored. Allow
+    technicals for those present rows only, after verifying the full count
+    contract. The published technical manifest must still be PARTIAL while
+    provider-deferred fundamentals remain missing.
+    """
+    if meta.get("status") != "complete" or meta.get("remaining_symbols") != 0:
+        return False
     total = meta.get("eligible_symbols")
+    covered = meta.get("coverage_symbols")
+    deferred = meta.get("provider_deferred_symbols", 0)
+    target = meta.get("coverage_target_symbols", total)
+    if any(type(n) is not int or n < 0 for n in (total, covered, deferred, target)):
+        return False
+    if target + deferred != total or covered != target or "Ticker" not in frame:
+        return False
     return (
-        meta.get("status") == "complete"
-        and total is not None
-        and meta.get("remaining_symbols") == 0
-        and meta.get("coverage_symbols") == total
-        and "Ticker" in frame
-        and frame["Ticker"].nunique() == total
+        len(frame) == covered
+        and frame["Ticker"].notna().all()
+        and frame["Ticker"].nunique() == covered
     )
 
 
@@ -138,7 +153,15 @@ def prepare(source_dir, output_dir, limit, analyse, build):
             coverage = len(combined)
             remaining = len(fingerprints) - coverage
             manifest["exchanges"][kind] = {
-                "status": ("complete" if remaining == 0 else "partial") if ready else "deferred_fundamentals",
+                # Verified source rows may be technically complete while other
+                # fundamentals are provider-deferred. Never publish a globally
+                # complete technical feed until those source gaps are resolved.
+                "status": ("complete" if remaining == 0 and
+                           meta.get("provider_deferred_symbols", 0) == 0
+                           else "partial") if ready else "deferred_fundamentals",
+                "source_provider_deferred_symbols": meta.get("provider_deferred_symbols", 0),
+                "source_total_eligible_symbols": meta.get("eligible_symbols"),
+                "source_coverage_target_symbols": meta.get("coverage_target_symbols"),
                 "eligible_symbols": len(fingerprints),
                 "coverage_symbols": coverage,
                 "remaining_symbols": remaining,
