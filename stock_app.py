@@ -5947,7 +5947,7 @@ with tab_opportunities:
                 with st.expander("More Investment detail", expanded=False):
                     investment_detail_cols = [
                         "Action", "Investment readiness", "Ticker", "Company", "Exchange", "Sector",
-                        "Price", "Quality score", "Moat score",
+                        "Price", "Price candle date", "Quality score", "Moat score",
                         "Base margin of safety %", "Required margin of safety %",
                         "MOS gap %", "Valuation gate", "Valuation FX status",
                         "Financial currency", "Quote currency", "Alternate listings", "Decision reason",
