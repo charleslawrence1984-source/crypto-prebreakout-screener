@@ -16,6 +16,7 @@ import pandas as pd
 
 TECH_MAX_AGE_HOURS = 96  # accommodates a normal weekend; never silent indefinite reuse
 PRICE_MAX_AGE_HOURS = 96
+MAX_PRICE_SESSION_AGE_DAYS = 4  # Friday close remains acceptable through a normal Monday
 FUNDAMENTAL_MAX_AGE_DAYS = 7
 CLOCK_SKEW_MINUTES = 5
 RESEARCH_ONLY_REASON = "RESEARCH ONLY — Investment publication is not verified"
@@ -55,6 +56,28 @@ def _finite_positive(value):
     except (TypeError, ValueError, OverflowError):
         return False
 
+
+def daily_price_session_issue(value, now: datetime, *, max_age_days: int = MAX_PRICE_SESSION_AGE_DAYS) -> str:
+    """Validate the actual Yahoo daily bar SESSION DATE, not the time we fetched it.
+
+    Daily histories can have a date-only (timezone-naive) index. Never fabricate
+    a UTC close timestamp from midnight. A missing date, future date, or an old
+    session must suppress an Investment BUY, including across normal weekends.
+    """
+    if not isinstance(value, str) or not value.strip():
+        return "per-share daily price candle date is missing"
+    try:
+        session = datetime.strptime(value.strip(), "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return "per-share daily price candle date is invalid"
+    if now.tzinfo is None or now.utcoffset() is None:
+        raise ValueError("now must be timezone aware")
+    age = (now.date() - session).days
+    if age < 0:
+        return "per-share daily price candle date is in the future"
+    if age > max_age_days:
+        return "per-share daily price candle is stale"
+    return ""
 
 class InvestmentPublication:
     """Evidence indexes are by *exact listing*; no symbol/venue substitution."""
@@ -194,6 +217,11 @@ class InvestmentPublication:
             return "FX-safe valuation is not verified"
         if not _finite_positive(priority.get("Price")):
             return "validated priority quote is missing"
+        # A recent workflow timestamp is NOT evidence that Yahoo returned a
+        # recent candle for this specific listing. Verify the saved session.
+        candle_issue = daily_price_session_issue(priority.get("Price candle date"), self.now)
+        if candle_issue:
+            return candle_issue
         if not _finite_positive(priority.get("Base margin of safety %")):
             return "positive margin-of-safety evidence is missing"
         try:
