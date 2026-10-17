@@ -40,9 +40,16 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
+          from unittest.mock import patch
           from streamlit.testing.v1 import AppTest
-          app = AppTest.from_file(str(Path("stock_app.py").resolve()), default_timeout=40).run()
+          # The test runner opens stock_app.py as a standalone script; unlike
+          # the deployed multipage router, it does not register platform_home.
+          # Stub ONLY the navigation link, not the Investment content/widgets.
+          with patch("streamlit.page_link", lambda *args, **kwargs: None):
+              app = AppTest.from_file(str(Path("stock_app.py").resolve()), default_timeout=50).run()
           failures = [str(err.message) for err in app.exception]
-          print({"title_count": len(app.title), "exceptions": failures}, flush=True)
+          print({"tab_count": len(app.tabs), "title_count": len(app.title),
+                 "exceptions": failures}, flush=True)
           assert not failures, "Stock Streamlit AppTest emitted uncaught exceptions"
+          assert len(app.tabs) > 0, "Stocks page rendered without its navigation tabs"
           PY
