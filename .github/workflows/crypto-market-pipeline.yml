@@ -3,6 +3,7 @@ name: Crypto all-market pipeline
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - "crypto_market_pipeline.py"
       - "crypto_universe_rules.py"

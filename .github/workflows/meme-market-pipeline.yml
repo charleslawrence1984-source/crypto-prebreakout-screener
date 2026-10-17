@@ -3,6 +3,7 @@ name: Meme discovery pipeline
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - "meme_market_pipeline.py"
       - "meme_discovery_utils.py"
