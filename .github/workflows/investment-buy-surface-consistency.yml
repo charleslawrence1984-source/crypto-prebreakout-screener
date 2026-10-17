@@ -50,19 +50,23 @@ jobs:
           ref: main
           fetch-depth: 0
           persist-credentials: false
-      - name: In draft testing only, apply PR audit scripts over production snapshot
+      - name: Checkout draft audit harness separately for PR testing only
         if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref_name != 'main') }}
-        env:
-          AUDIT_SOURCE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          path: _audit_draft_source
+          persist-credentials: false
+      - name: Apply draft read-only harness over current production snapshot
+        if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && github.ref_name != 'main') }}
         shell: bash
         run: |
           set -euo pipefail
-          # The script SHA comes from the event, not a hard-coded draft branch.
-          # After merge, all scheduled/upstream runs use only the main checkout.
-          git fetch --no-tags origin "$AUDIT_SOURCE_SHA"
-          git show "$AUDIT_SOURCE_SHA:tests/audit_investment_buy_surface_consistency.py" > tests/audit_investment_buy_surface_consistency.py
-          git show "$AUDIT_SOURCE_SHA:tests/diagnose_stocks_ui_render.py" > tests/diagnose_stocks_ui_render.py
-          echo "Draft audit scripts at $AUDIT_SOURCE_SHA"
+          # Never rely on a branch name or an authenticated git fetch inside CI.
+          # After merge, both tests and data load directly from main.
+          cp _audit_draft_source/tests/audit_investment_buy_surface_consistency.py tests/
+          cp _audit_draft_source/tests/diagnose_stocks_ui_render.py tests/
+          echo "Production revision: $(git rev-parse HEAD)"
       - name: Record audited production revision
         run: |
           echo "Auditing production $(git rev-parse HEAD)"
