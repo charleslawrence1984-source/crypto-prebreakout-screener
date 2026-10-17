@@ -14,11 +14,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from investment_live_readiness import InvestmentPublication
+from strategy_scores_v3 import VALUATION_MODEL_VERSION
 
 
 def main():
     root = Path(__file__).resolve().parents[1]
-    health = InvestmentPublication(root)
+    health = InvestmentPublication(root, expected_valuation_model=VALUATION_MODEL_VERSION)
     fund = health.fundamental.get("exchanges", {})
     tech = health.technical.get("exchanges", {})
     priority = health.summary.get("rows", [])
@@ -51,7 +52,7 @@ def main():
         "technical_pending": pending,
         "upstream_retryable_missing": source_pending,
         "upstream_provider_deferred": source_deferred,
-        "priority_valution_buy_rows_before_ui_guard": buy_rows,
+        "priority_valuation_buy_rows_before_ui_guard": buy_rows,
         "ready_buy_rows_after_guard": ready,
         "withheld_buy_rows": buy_rows - ready,
         "withheld_reasons": dict(reasons.most_common(12)),
