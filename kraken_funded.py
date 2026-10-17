@@ -819,7 +819,7 @@ def funded_stock_status(row: pd.Series) -> str:
     if state in {"FUNDED BREAKOUT ENTRY CHECK", "FUNDED CORE ENTRY CHECK"}:
         verified_at = pd.to_datetime(row.get("Verified quote time"), errors="coerce", utc=True)
         spread = safe_number(row.get("Verified spread %"))
-        if pd.isna(verified_at) or not np.isfinite(spread) or spread > FUNDED_STOCK_MAX_SPREAD_PCT:
+        if pd.isna(verified_at) or not np.isfinite(spread) or spread < 0 or spread > FUNDED_STOCK_MAX_SPREAD_PCT:
             return "🟡 FUNDED WATCH · VERIFY SPREAD"
         if not 0 <= (pd.Timestamp.now(tz="UTC") - verified_at).total_seconds() <= 600:
             return "🟡 FUNDED WATCH · REFRESH QUOTE"
@@ -847,7 +847,9 @@ def funded_stock_status(row: pd.Series) -> str:
     if str(row.get("Scan source") or "") != "LIVE":
         return "🟡 FUNDED WATCH · RUN LIVE SCAN"
     scanned_at = pd.to_datetime(row.get("scanned_at"), errors="coerce", utc=True)
-    if pd.isna(scanned_at) or (pd.Timestamp.now(tz="UTC") - scanned_at).total_seconds() > 24 * 3600:
+    # A provider clock error or synthetic future timestamp cannot upgrade to READY.
+    scan_age = (pd.Timestamp.now(tz="UTC") - scanned_at).total_seconds() if not pd.isna(scanned_at) else float("nan")
+    if not np.isfinite(scan_age) or not 0 <= scan_age <= 24 * 3600:
         return "🟡 FUNDED WATCH · REFRESH SIGNAL"
     if np.isfinite(rsi) and rsi > 80:
         return "🔴 FUNDED PASS · EXTENDED RSI"
