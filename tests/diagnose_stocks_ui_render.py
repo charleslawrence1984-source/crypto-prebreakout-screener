@@ -16,12 +16,33 @@ import yfinance as yf
 from streamlit.testing.v1 import AppTest
 
 
+class BrowserStorageStub:
+    """The AppTest harness has no browser JS; preserve session-state logic."""
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def getItem(self, key):
+        return None
+
+    def setItem(self, key, value):
+        return None
+
+    def get(self, key):
+        return None
+
+    def set(self, key, value, **kwargs):
+        return None
+
+
 def main():
     faulthandler.enable()
     faulthandler.dump_traceback_later(11, repeat=False, file=sys.stderr)
     try:
         with (
             patch("streamlit.page_link", lambda *args, **kwargs: None),
+            patch("streamlit_local_storage.LocalStorage", BrowserStorageStub),
+            patch("streamlit_cookies_controller.CookieController", BrowserStorageStub),
             patch.object(yf, "download", return_value=pd.DataFrame()),
             patch.object(yf, "Ticker", side_effect=RuntimeError("Offline diagnostic")),
         ):
