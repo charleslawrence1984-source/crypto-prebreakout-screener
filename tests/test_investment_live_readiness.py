@@ -12,6 +12,7 @@ from investment_live_readiness import (
     InvestmentPublication,
     guard_quick_investment_decision,
     withhold_unverified_buys,
+    guard_portfolio_investment_adds,
 )
 
 
@@ -147,6 +148,34 @@ class InvestmentReadinessTests(unittest.TestCase):
         self.assertEqual(guard_quick_investment_decision({"action": "BUY CANDIDATE"}, "BBB", evidence)["action"], "REVALUE")
         pd.testing.assert_frame_equal(initial, before)
 
+    def test_portfolio_buy_more_is_consistent_with_prepared_and_quick_buy(self):
+        holdings = pd.DataFrame([
+            {"Ticker": "AAA", "Resolved ticker": "AAA", "Action": "BUY MORE", "Review reason": "quality passes", "Market value £": 1234},
+            {"Ticker": "BBB", "Resolved ticker": "BBB", "Action": "ADD CANDIDATE", "Review reason": "valuation passes", "Market value £": 900},
+            {"Ticker": "CCC", "Resolved ticker": "CCC", "Action": "HOLD", "Review reason": "price too high", "Market value £": 400},
+            {"Ticker": "DDD", "Resolved ticker": "DDD", "Action": "REVIEW FOR SALE", "Review reason": "thesis failed", "Market value £": 200},
+        ])
+        before = holdings.copy(deep=True)
+        evidence = self.evidence()
+        output = guard_portfolio_investment_adds(holdings, evidence)
+        self.assertEqual(list(output["Action"]), ["BUY MORE", "REASSESS", "HOLD", "REVIEW FOR SALE"])
+        self.assertIn("RESEARCH ONLY", output.iloc[1]["Review reason"])
+        self.assertEqual(output.iloc[0]["Investment readiness"], "VERIFIED PUBLICATION — MANUAL REVIEW REQUIRED")
+        self.assertEqual(list(output["Market value £"]), [1234, 900, 400, 200])
+        pd.testing.assert_frame_equal(holdings, before)
+
+    def test_portfolio_buy_more_fails_closed_if_priority_quote_stale(self):
+        self.price["exchanges"]["nyse"]["price_refreshed_at"] = stamp(-150)
+        self.persist()
+        output = guard_portfolio_investment_adds(
+            pd.DataFrame([
+                {"Ticker": "AAA", "Resolved ticker": "AAA", "Action": "BUY MORE", "Review reason": "valuation passed"},
+                {"Ticker": "AAA", "Resolved ticker": "AAA", "Action": "REVIEW FOR SALE", "Review reason": "thesis invalid"},
+            ]), self.evidence(),
+        )
+        self.assertEqual(list(output["Action"]), ["REASSESS", "REVIEW FOR SALE"])
+        self.assertEqual(output.iloc[1]["Review reason"], "thesis invalid")
+
     def test_if_the_price_refresh_stales_no_screen_can_retain_buy(self):
         self.price["exchanges"]["nyse"]["price_refreshed_at"] = stamp(-150)
         self.persist()
@@ -177,6 +206,13 @@ class InvestmentUIIntegrationTests(unittest.TestCase):
         self.assertIn("guard_quick_investment_decision", ast.unparse(self.funcs["quick_investment_decision"]))
         self.assertIn("investment_summary = quick_investment_decision(investment_row)", self.source)
         self.assertIn("investment_decision_summary = quick_investment_decision(investment_row)", self.source)
+
+    def test_owned_investment_adds_use_same_guard_without_touching_trade(self):
+        self.assertIn("guard_portfolio_investment_adds", self.source)
+        self.assertIn("investment_results = guard_portfolio_investment_adds(", self.source)
+        self.assertIn("Some Investment BUY MORE labels are withheld", self.source)
+        self.assertIn('"Action", "Investment readiness", "Weight %"', self.source)
+        self.assertIn("trade_results = (", self.source)
 
     def test_advanced_investment_guarded_but_trade_loader_not_touched(self):
         self.assertIn("filtered_fundamentals = withhold_unverified_buys(", self.source)
