@@ -1,3 +1,5 @@
 Requested 2026-09-20T13:26:00+01:00.
 Resume existing safe missing-only batches while idle. Preserve provider cooldown, independent writer locks, eligibility checks and explicit partial coverage. Investment diagnostics now retain per-symbol outcomes; technical retries use the same listing and unchanged indicator rules.
 Requested 2026-09-22T21:10:00+01:00 after headless portfolio-storage fix.
+Requested 2026-10-17 after approved merge of isolated RSI collision fix PR #23 (commit 31a2ddf).
+Run existing Investment technical missing-only backfill, retain original technical build and scoring, preserve provider throttling controls and incomplete-feed statuses; check ASML.AS, EXO.AS and SPA.BR outcomes.
