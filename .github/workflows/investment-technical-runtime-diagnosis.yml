@@ -5,6 +5,8 @@ on:
     paths:
       - "tests/diagnose_investment_technical_runtime.py"
       - "scheduled_investment_technicals.py"
+      - "test_investment_technicals.py"
+      - "tests/audit_investment_technical_reconcile.py"
       - "stock_app.py"
       - "tests/test_investment_callable_bindings.py"
       - ".github/workflows/investment-technical-runtime-diagnosis.yml"
@@ -32,3 +34,5 @@ jobs:
         run: python -m unittest discover -s tests -p test_investment_callable_bindings.py -v
       - name: Reproduce actual ASML and EXO technical failures without writing output
         run: python tests/diagnose_investment_technical_runtime.py
+      - name: Dry-run the real published cache reconciliation without touching production
+        run: python tests/audit_investment_technical_reconcile.py
