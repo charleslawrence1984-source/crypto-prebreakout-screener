@@ -78,6 +78,23 @@ class PublishHealth(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"timezone"):
             inspect_feed(MEME,{},now=NOW.replace(tzinfo=None))
 
+    def test_only_nondefault_venues_unresolved_are_not_active_gaps(self):
+        doc={"updated_at":at(20),"exchanges":{"nasdaq":{"status":"complete"},
+            "otc":{"status":"partial"},"gettex":{"status":"deferred_fundamentals"}}}
+        result=inspect_feed(TRADE,doc,now=NOW)
+        self.assertEqual(result["severity"],"WARNING")
+        self.assertNotIn("Incomplete active markets", " | ".join(result["issues"]))
+        self.assertIn("Excluded non-default markets", " | ".join(result["issues"]))
+
+    def test_missing_exchange_evidence_is_critical(self):
+        info=inspect_feed(TRADE,{"updated_at":at(5)},now=NOW)
+        self.assertEqual(info["severity"],"CRITICAL")
+
+    def test_investment_technical_timestamp_policy_is_96_hours(self):
+        definition=next(f for f in FEEDS if f.key=="investment_technicals")
+        self.assertEqual(definition.max_age_minutes,96*60)
+        self.assertEqual(next(f for f in FEEDS if f.key=="investment_fundamentals").max_age_minutes,7*24*60)
+
 
 if __name__=="__main__":
     unittest.main()

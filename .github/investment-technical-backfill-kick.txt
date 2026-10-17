@@ -1,3 +1,14 @@
 Requested 2026-09-20T13:26:00+01:00.
 Resume existing safe missing-only batches while idle. Preserve provider cooldown, independent writer locks, eligibility checks and explicit partial coverage. Investment diagnostics now retain per-symbol outcomes; technical retries use the same listing and unchanged indicator rules.
 Requested 2026-09-22T21:10:00+01:00 after headless portfolio-storage fix.
+Requested 2026-10-17 after approved merge of isolated RSI collision fix PR #23 (commit 31a2ddf).
+Run existing Investment technical missing-only backfill, retain original technical build and scoring, preserve provider throttling controls and incomplete-feed statuses; check ASML.AS, EXO.AS and SPA.BR outcomes.
+
+Requested 2026-10-17 after explicitly approved PR #25 merge (bccdf82ac6c9176b695b04239dde2df06f029476).
+Run capped missing-only Investment technicals; preserve source-deferred partial statuses, provider cooldowns, and existing strategy rules. Audit NASDAQ, NYSE, LSE, TSX, Madrid, Xetra and Euronext Paris coverage after publishing.
+
+Requested 2026-10-17 after approved PR #28 merge (3516f393111248082653099919358596678e2cb8).
+Run existing capped technical backfill (50 listings per completed exchange); reconcile fingerprint-matching fundamental source versions without changing technical calculation dates, refresh stale technical rows from real candles, retain provider-deferred safeguards. Post-run audit actual source coverage and Investment BUY publication readiness. Keep PRs #20, #22 and #27 unmerged.
+
+Requested 2026-10-17 after approved release PR #27 (2a26ad2ca2efcf24f9a22ac810c393f7bcbd4af5).
+Run one further existing capped Investment technical batch (50 symbols per eligible completed exchange), prioritising remaining NASDAQ/NYSE gaps. Confirm the NEW automatic Investment BUY publication health workflow_run triggers and verifies current main after completion, with no merged strategy or broker changes.

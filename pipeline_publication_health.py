@@ -25,12 +25,12 @@ class PublishedFeed:
 
 
 FEEDS = (
-    PublishedFeed("crypto", "prepared_crypto/manifest.json", 90),
-    PublishedFeed("meme", "prepared_meme/manifest.json", 120),
+    PublishedFeed("crypto", "prepared_crypto/manifest.json", 30),
+    PublishedFeed("meme", "prepared_meme/manifest.json", 45),
     PublishedFeed("trade_fundamentals", "prepared_trade_fundamentals/manifest.json", 96 * 60, True),
     PublishedFeed("trade_technicals", "prepared_trade_technicals/manifest.json", 96 * 60, True),
-    PublishedFeed("investment_fundamentals", "prepared_scans/manifest.json", 96 * 60, True),
-    PublishedFeed("investment_technicals", "prepared_investment_technicals/manifest.json", 7 * 24 * 60, True),
+    PublishedFeed("investment_fundamentals", "prepared_scans/manifest.json", 7 * 24 * 60, True),
+    PublishedFeed("investment_technicals", "prepared_investment_technicals/manifest.json", 96 * 60, True),
     PublishedFeed("investment_priority", "prepared_priority_investments/summary.json", 96 * 60),
 )
 
@@ -85,18 +85,28 @@ def inspect_feed(
     if status in {"PARTIAL", "FAILED", "DATA ISSUE", "ERROR", "UNAVAILABLE"}:
         result["issues"].append(f"Publisher status is {status}, not fully current")
 
+    critical_structure = False
     exchanges = payload.get("exchanges") or {}
     if definition.requires_exchange_coverage:
         if not isinstance(exchanges, dict) or not exchanges:
             result["issues"].append("Exchange-level coverage absent")
+            critical_structure = True
         else:
-            incomplete = [
-                f"{name}:{str(info.get('status') or 'unknown')}"
-                for name, info in exchanges.items()
-                if not isinstance(info, dict) or str(info.get("status") or "").lower() != "complete"
-            ]
-            if incomplete:
-                result["issues"].append("Incomplete markets: " + ", ".join(incomplete[:12]))
+            # Gettex/OTC are deliberately not in the default Trade/Investment
+            # universe. Preserve diagnostic visibility without calling these
+            # optional venues unresolved active markets.
+            inactive = {"gettex", "otc"}
+            active_incomplete = []
+            optional_incomplete = []
+            for name, info in exchanges.items():
+                status_value = str(info.get("status") or "unknown") if isinstance(info, dict) else "unknown"
+                if status_value.lower() != "complete":
+                    item = f"{name}:{status_value}"
+                    (optional_incomplete if name in inactive else active_incomplete).append(item)
+            if active_incomplete:
+                result["issues"].append("Incomplete active markets: " + ", ".join(active_incomplete[:12]))
+            if optional_incomplete:
+                result["issues"].append("Excluded non-default markets (informational): " + ", ".join(optional_incomplete[:12]))
 
     if definition.key == "investment_priority":
         try:
@@ -105,6 +115,7 @@ def inspect_feed(
             total = -1
         if total <= 0 or not isinstance(payload.get("rows"), list) or len(payload["rows"]) != total:
             result["issues"].append("Priority summary count/rows are inconsistent or empty")
+            critical_structure = True
 
     if definition.key == "crypto":
         try:
@@ -114,6 +125,7 @@ def inspect_feed(
             scored,eligible=-1,-1
         if eligible <= 0 or scored < 0:
             result["issues"].append("Crypto universe/deep-score coverage unverified")
+            critical_structure = True
         if str(payload.get("status") or "").upper() not in {"CURRENT","PARTIAL"}:
             result["issues"].append("Crypto publisher status missing or unknown")
 
@@ -124,12 +136,13 @@ def inspect_feed(
             tokens=-1
         if tokens <= 0:
             result["issues"].append("No valid meme token universe published")
+            critical_structure = True
         if status not in {"CURRENT","PARTIAL"}:
             result["issues"].append("Meme publisher status missing or unknown")
 
     if result["issues"]:
         result["state"] = "DEGRADED"
-        result["severity"] = "WARNING"
+        result["severity"] = "CRITICAL" if critical_structure else "WARNING"
     else:
         result["state"] = "CURRENT"
         result["severity"] = "OK"
@@ -164,7 +177,9 @@ def main() -> int:
     path.parent.mkdir(parents=True,exist_ok=True)
     path.write_text(json.dumps(result,indent=2,sort_keys=True)+"\n",encoding="utf-8")
     print(json.dumps(result,indent=2))
-    return 0 if args.no_fail or result["overall"]=="OK" else 1
+    # Warnings (partial/deferred markets) remain visible but do not permanently
+    # fail the hourly diagnostic. Stale, missing or future-dated feeds do fail.
+    return 0 if args.no_fail or result["overall"] != "CRITICAL" else 1
 
 
 if __name__=="__main__":

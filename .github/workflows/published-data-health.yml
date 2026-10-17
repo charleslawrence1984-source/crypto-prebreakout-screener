@@ -33,6 +33,14 @@ jobs:
         run: |
           python -m py_compile pipeline_publication_health.py
           python -m unittest discover -s tests -p test_pipeline_publication_health.py -v
+      - name: Check out real production main data for PR health diagnostics
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: _published_main
+          persist-credentials: false
+
       - name: Restore most recent PUBLISHED Crypto and Meme branch data
         # Test real publication history on PRs too; otherwise a green PR
         # check proves only synthetic fixtures, not the live feed's health.
@@ -42,9 +50,14 @@ jobs:
           git fetch origin meme-data:refs/remotes/origin/meme-data
           git checkout origin/crypto-data -- prepared_crypto
           git checkout origin/meme-data -- prepared_meme
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            cp -a prepared_crypto _published_main/
+            cp -a prepared_meme _published_main/
+            echo "PR diagnostic against production revision $(git -C _published_main rev-parse HEAD)"
+          fi
       - name: Inspect actual published feeds on PR (report blockers, do not block fixes)
         if: github.event_name == 'pull_request'
-        run: python pipeline_publication_health.py --output pipeline-publication-artifacts/health.json --no-fail
+        run: python pipeline_publication_health.py --root _published_main --output pipeline-publication-artifacts/health.json --no-fail
       - name: Audit actual published feeds on schedule (fail if stale/partial)
         if: github.event_name != 'pull_request'
         run: python pipeline_publication_health.py --output pipeline-publication-artifacts/health.json

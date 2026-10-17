@@ -50,10 +50,12 @@ def main() -> int:
                 "complete"
                 if diagnostics.get("missing", 0) == 0
                 and diagnostics.get("rate_limit_errors", 0) == 0
+                and diagnostics.get("stale_candles", 0) == 0
                 else "partial"
             )
             meta["price_refresh_updated"] = int(diagnostics.get("updated", 0) or 0)
             meta["price_refresh_missing"] = int(diagnostics.get("missing", 0) or 0)
+            meta["price_refresh_stale_candles"] = int(diagnostics.get("stale_candles", 0) or 0)
             meta["price_refresh_rate_limit_errors"] = int(
                 diagnostics.get("rate_limit_errors", 0) or 0
             )
