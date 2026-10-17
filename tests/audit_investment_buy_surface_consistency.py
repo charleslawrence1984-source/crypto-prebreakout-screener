@@ -23,12 +23,41 @@ from investment_live_readiness import (
     guard_portfolio_investment_adds,
     guard_quick_investment_decision,
     withhold_unverified_buys,
+    _recent,
+    TECH_MAX_AGE_HOURS,
+    PRICE_MAX_AGE_HOURS,
+    FUNDAMENTAL_MAX_AGE_DAYS,
 )
 from strategy_scores_v3 import VALUATION_MODEL_VERSION
 
 
 def nonempty_session(value):
     return isinstance(value, str) and len(value) == 10 and value[4] == "-" and value[7] == "-"
+
+
+def publication_feed_health(fundamental: dict, technical: dict, priority: dict, now: datetime) -> dict:
+    """Require active source processing, without requiring an arbitrary number of BUYs.
+
+    A valid zero-BUY session is NOT an outage. But a stopped data pipeline
+    must not silently produce a green health check just because BUYs are
+    properly withheld by fail-closed UI guards.
+    """
+    feeds = {
+        "fundamentals": (fundamental.get("updated_at"), 24 * FUNDAMENTAL_MAX_AGE_DAYS),
+        "technicals": (technical.get("updated_at"), TECH_MAX_AGE_HOURS),
+        "prices": (priority.get("price_refreshed_at"), PRICE_MAX_AGE_HOURS),
+    }
+    failures = [
+        name for name, (date, max_hours) in feeds.items()
+        if not _recent(date, now, hours=max_hours)
+    ]
+    if failures:
+        raise AssertionError(
+            "Investment publication feed is missing, expired or future-dated: " +
+            ", ".join(failures) + ". Data must be republished before health can pass."
+        )
+    return {name: {"refreshed_at": date, "max_age_hours": age_hours}
+            for name, (date, age_hours) in feeds.items()}
 
 
 def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> dict:
@@ -38,6 +67,9 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
         expected_valuation_model=VALUATION_MODEL_VERSION,
     )
     summary = evidence.summary
+    feed_health = publication_feed_health(
+        evidence.fundamental, evidence.technical, evidence.priority, evidence.now
+    )
     assert summary.get("refreshed_at") == evidence.priority.get("price_refreshed_at"), (
         "Priority publication manifest and summary timestamps disagree"
     )
@@ -46,6 +78,7 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
 
     saved = summary.get("rows")
     assert isinstance(saved, list), "Priority summary has no listing rows"
+    assert saved, "Priority research snapshot unexpectedly contains zero rows"
 
     # Compare every summary item to the exact corresponding saved priority CSV.
     # This prevents one screen from seeing a newer quote or decision than another.
@@ -212,6 +245,7 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
         "streamlit_loader": screen,
         "source_candle_date_count": sum(nonempty_session(x.get("Price candle date")) for x in saved),
         "publication_consistency": "PASS",
+        "feed_freshness": feed_health,
         "note": "Publication verification and cross-screen signal safety only; not financial advice or historical alpha evidence.",
     }
     assert len(passes) + len(unverified) == len(buy)
