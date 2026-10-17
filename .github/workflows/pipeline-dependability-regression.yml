@@ -1,0 +1,42 @@
+name: CL Signal cross-pipeline dependability regression
+
+on:
+  pull_request:
+    paths:
+      - "pipeline_publication_health.py"
+      - "crypto_publication_status.py"
+      - "crypto_market_pipeline.py"
+      - "meme_market_pipeline.py"
+      - "app.py"
+      - "meme_app.py"
+      - "tests/test_pipeline_publication_health.py"
+      - "tests/test_crypto_publication_status.py"
+      - "tests/test_meme_pipeline_rate_limit.py"
+      - "tests/test_pipeline_ui_freshness.py"
+      - ".github/workflows/published-data-health.yml"
+      - ".github/workflows/pipeline-dependability-regression.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  publication-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install mock/test dependencies
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3" "requests>=2.32,<3"
+      - name: Compile pipeline logic and existing UI pages
+        run: python -m py_compile pipeline_publication_health.py crypto_publication_status.py crypto_market_pipeline.py meme_market_pipeline.py app.py meme_app.py
+      - name: Test published data freshness and coverage
+        run: python -m unittest discover -s tests -p test_pipeline_publication_health.py -v
+      - name: Test exchange-level partial Crypto publication
+        run: python -m unittest discover -s tests -p test_crypto_publication_status.py -v
+      - name: Test Gecko rate-limit circuit breaker and saved-data preservation
+        run: python -m unittest discover -s tests -p test_meme_pipeline_rate_limit.py -v
+      - name: Test Crypto and Meme visible stale-data warnings
+        run: python -m unittest discover -s tests -p test_pipeline_ui_freshness.py -v
