@@ -1,0 +1,33 @@
+name: Investment publication readiness regression (draft)
+
+on:
+  pull_request:
+    paths:
+      - "investment_live_readiness.py"
+      - "stock_app.py"
+      - "tests/test_investment_live_readiness.py"
+      - ".github/workflows/investment-live-readiness-regression.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-investment-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install same dependencies used by Stocks
+        run: python -m pip install -r requirements.txt
+      - name: Compile Stocks and read-only publication guard
+        run: python -m py_compile stock_app.py investment_live_readiness.py scheduled_investment_technicals.py
+      - name: Verify technical-cache regression
+        run: python -m unittest test_investment_technicals -v
+      - name: Verify global RSI callable is never shadowed
+        run: python -m unittest discover -s tests -p test_investment_callable_bindings.py -v
+      - name: Test Investment per-listing coverage, timestamps, valuation, and UI integration
+        run: python -m unittest discover -s tests -p test_investment_live_readiness.py -v
