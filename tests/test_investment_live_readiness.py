@@ -59,7 +59,7 @@ class InvestmentReadinessTests(unittest.TestCase):
             "Ticker": "AAA", "Prepared exchange": "nyse", "Action": "BUY CANDIDATE",
             "Valuation FX status": "PASS", "Valuation gate": "PASS",
             "Valuation model version": "model-v2",
-            "Price": 15.5, "Base margin of safety %": 42,
+            "Price": 15.5, "Price candle date": "2026-10-16", "Base margin of safety %": 42,
             "Required margin of safety %": 30,
             "Bear margin of safety %": 15, "Quality score": 81,
         }]}
@@ -120,6 +120,45 @@ class InvestmentReadinessTests(unittest.TestCase):
                 self.persist()
                 self.assertIn(expected, self.evidence().issue("AAA", kind="nyse"))
                 target[key] = before
+
+    def test_individual_price_candle_date_fails_closed(self):
+        """A fresh refresh time does not make an individual stale bar tradable."""
+        failures = [
+            (None, "missing"),
+            ("", "missing"),
+            ("not a date", "invalid"),
+            ("2026-10-12", "stale"),
+            ("2026-10-19", "future"),
+        ]
+        item = self.summary["rows"][0]
+        for candidate, reason in failures:
+            with self.subTest(price_candle_date=candidate):
+                item["Price candle date"] = candidate
+                self.persist()
+                self.assertIn(reason, self.evidence().issue("AAA", kind="nyse"))
+
+    def test_latest_friday_close_is_usable_on_weekend_but_not_next_weekend(self):
+        self.assertEqual(self.evidence().issue("AAA", kind="nyse"), "")
+        self.summary["rows"][0]["Price candle date"] = "2026-10-09"
+        self.persist()
+        self.assertIn("stale", self.evidence().issue("AAA", kind="nyse"))
+
+    def test_stale_candle_blocks_all_buy_surfaces_and_preserves_sell_reviews(self):
+        self.summary["rows"][0]["Price candle date"] = "2026-10-08"
+        self.persist()
+        evidence = self.evidence()
+        feed = withhold_unverified_buys(pd.DataFrame([{
+            "Ticker": "AAA", "Exchange": "NYSE", "Action": "BUY CANDIDATE",
+        }]), evidence, {"NYSE": "nyse"})
+        self.assertEqual(feed.iloc[0]["Action"], "REVALUE")
+        self.assertIn("stale", feed.iloc[0]["Decision reason"])
+        self.assertEqual(guard_quick_investment_decision(
+            {"action": "BUY CANDIDATE"}, "AAA", evidence)["action"], "REVALUE")
+        portfolio = guard_portfolio_investment_adds(pd.DataFrame([
+            {"Ticker": "AAA", "Action": "BUY MORE", "Review reason": "add"},
+            {"Ticker": "AAA", "Action": "REVIEW FOR SALE", "Review reason": "sell review"},
+        ]), evidence)
+        self.assertEqual(list(portfolio["Action"]), ["REASSESS", "REVIEW FOR SALE"])
 
     def test_source_row_revision_invalidates_technical_fingerprint(self):
         self.source_rows.loc[0, "Price"] = 15.6
