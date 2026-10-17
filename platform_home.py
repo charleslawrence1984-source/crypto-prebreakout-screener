@@ -336,7 +336,7 @@ with left:
     st.markdown(
         """
         <div class="eyebrow">Smarter insights. Brighter opportunities.</div>
-        <div class="hero-title">Find opportunities across stocks and crypto.</div>
+        <div class="hero-title">Trade markets. Research companies. Build for retirement.</div>
         <div class="hero-copy">
             CL Signal helps you find, understand and track potential opportunities without
             digging through endless charts, indicators and raw market data yourself.
@@ -365,15 +365,15 @@ with right:
             <div class="mini-row">
                 <div class="mini-card">
                     <div class="mini-label">Stocks</div>
-                    <div class="mini-value">Trade + Invest</div>
+                    <div class="mini-value">Trading · legacy Investment views remain during migration</div>
                 </div>
                 <div class="mini-card">
                     <div class="mini-label">Crypto</div>
                     <div class="mini-value">Swing + Accumulate</div>
                 </div>
                 <div class="mini-card">
-                    <div class="mini-label">Workflow</div>
-                    <div class="mini-value">BUY · WAIT · PASS</div>
+                    <div class="mini-label">Managed Pension</div>
+                    <div class="mini-value">Research only · not live</div>
                 </div>
             </div>
         </div>
@@ -392,10 +392,17 @@ st.markdown(
     <div class="market-grid">
         <a class="market-card-link" href="stocks" target="_self" aria-label="Open Stocks">
             <div class="market-heading">📈 Stocks</div>
-            <div class="market-sub">Swing trades and long-term investment opportunities.</div>
-            <div class="market-copy">Find technical trade setups alongside long-term company analysis using fundamentals, valuation, margin of safety and disciplined entry criteria.</div>
-            <div class="tags"><span class="tag">Swing trades</span><span class="tag">Long-term</span><span class="tag">Valuation</span></div>
+            <div class="market-sub">Swing trades and technical opportunities.</div>
+            <div class="market-copy">Focus on trade setups, entries, exits and risk. Existing Investment screens remain here during the staged migration to Managed Pension.</div>
+            <div class="tags"><span class="tag">Swing trades</span><span class="tag">Trade rules</span><span class="tag">Legacy views</span></div>
             <div class="market-card-cta"><span>Open Stocks</span><span aria-hidden="true">→</span></div>
+        </a>
+        <a class="market-card-link" href="managed-pension" target="_self" aria-label="Open Managed Pension">
+            <div class="market-heading">🏦 Managed Pension</div>
+            <div class="market-sub">CL Signal Investment · Ten years to forever.</div>
+            <div class="market-copy">A separate research-only workspace for long-term business quality, valuation, portfolio diversification and pension readiness. No transactions until testing and provider comparisons are complete.</div>
+            <div class="tags"><span class="tag">Long-term</span><span class="tag">Valuation</span><span class="tag">Research only</span></div>
+            <div class="market-card-cta"><span>Open Managed Pension</span><span aria-hidden="true">→</span></div>
         </a>
         <a class="market-card-link" href="crypto" target="_self" aria-label="Open Crypto">
             <div class="market-heading">⚡ Crypto</div>
