@@ -136,7 +136,8 @@ class InvestmentPublication:
             return "technical build does not match the published manifest"
         if record.get("Fundamental source updated at") != fund.get("completed_at"):
             return "technical input has not been reconciled with fundamentals"
-        if not str(record.get("Fundamental fingerprint") or "").strip():
+        fingerprint = record.get("Fundamental fingerprint")
+        if pd.isna(fingerprint) or str(fingerprint).strip().lower() in {"", "nan", "none"}:
             return "technical fundamental fingerprint is missing"
         if not _recent(record.get("Technical calculated at"), self.now, hours=TECH_MAX_AGE_HOURS):
             return "technical calculation is stale or undated"
