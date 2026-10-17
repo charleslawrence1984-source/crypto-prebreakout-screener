@@ -8,6 +8,9 @@ Only explicit prospective original technical candidates are simulated.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from hashlib import sha256
+from hmac import compare_digest
+import json
 from datetime import datetime, timezone
 from math import isfinite
 from typing import Mapping, Sequence
@@ -72,6 +75,16 @@ def assess_frozen_outcome(
     """
     if snapshot.get("research_only") is not True or snapshot.get("broker_account_connected") is not False:
         raise ValueError("only frozen research-only, broker-disconnected snapshots supported")
+    if snapshot.get("schema") != "cl-signal-funded-forward-snapshot-v1":
+        raise ValueError("unsupported frozen research snapshot schema")
+    expected_hash=str(snapshot.get("payload_sha256") or "")
+    raw={key:value for key,value in snapshot.items() if key!="payload_sha256"}
+    canonical=json.dumps(raw,sort_keys=True,ensure_ascii=False,separators=(",",":"),allow_nan=False)
+    actual_hash=sha256(canonical.encode("utf-8")).hexdigest()
+    if not compare_digest(expected_hash,actual_hash):
+        raise ValueError("frozen prospective snapshot content hash mismatch")
+    if row not in snapshot.get("rows",[]):
+        raise ValueError("outcome source row is not part of the frozen snapshot")
     kind = str(snapshot.get("asset_type") or "")
     if kind not in {"stocks","crypto"} or str(row.get("asset_type")) != kind:
         raise ValueError("mismatched funded asset kind")
