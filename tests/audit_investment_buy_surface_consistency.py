@@ -41,6 +41,9 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
     assert summary.get("refreshed_at") == evidence.priority.get("price_refreshed_at"), (
         "Priority publication manifest and summary timestamps disagree"
     )
+    def normalized_text(value):
+        return "" if value is None or (isinstance(value, float) and math.isnan(value)) else str(value)
+
     saved = summary.get("rows")
     assert isinstance(saved, list), "Priority summary has no listing rows"
 
@@ -53,7 +56,7 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
         path = root / "prepared_priority_investments" / (kind + ".csv.gz")
         if not path.exists():
             continue
-        frame = pd.read_csv(path, compression="gzip").fillna(value={"Price candle date": ""}) if False else pd.read_csv(path, compression="gzip")
+        frame = pd.read_csv(path, compression="gzip")
         if "Ticker" not in frame:
             mismatch.append(kind + ":missing-Ticker")
             continue
@@ -85,7 +88,7 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
             mismatch.append(str(key) + ":missing-priority-CSV")
             continue
         for name in ("Action", "Valuation FX status", "Valuation gate", "Valuation model version"):
-            if str(item.get(name) or "") != str(original.get(name) or ""):
+            if normalized_text(item.get(name)) != normalized_text(original.get(name)):
                 mismatch.append(str(key) + ":" + name)
         for name in ("Price", "Quality score", "Base margin of safety %",
                      "Required margin of safety %", "Bear margin of safety %"):
