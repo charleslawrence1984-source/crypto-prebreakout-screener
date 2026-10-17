@@ -50,7 +50,7 @@ class InvestmentPublicationHealthTests(unittest.TestCase):
         self.assertIn("github.event.workflow_run.conclusion", workflow)
         self.assertIn('ref: main', workflow)
         self.assertIn("actions/upload-artifact@v4", workflow)
-        self.assertIn("cancel-in-progress: false", workflow)
+        self.assertNotIn("\nconcurrency:\n", workflow)
         self.assertNotIn("audit/investment-buy-surface-consistency-20261017", workflow)
 
 
