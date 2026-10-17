@@ -28,6 +28,7 @@ import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
 from two_strategy import investment_decision, trade_decision
+from investment_readiness_guard import investment_publication_readiness, withhold_unverified_investment_buys
 from trade_rules import (
     FundamentalSnapshot,
     build_fundamental_snapshot,
@@ -4297,6 +4298,12 @@ def canonical_company_key(name: str) -> str:
     return "".join(tokens)
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def load_investment_publication_status() -> Dict:
+    """Fail closed if any published Investment data input is unverified."""
+    return investment_publication_readiness(Path(__file__).resolve().parent)
+
+
 @st.cache_data(ttl=30, show_spinner=False)
 def load_investment_validation_coverage() -> Dict:
     audit_path = PREPARED_SCAN_DIR / "investment_audit.json"
@@ -4472,6 +4479,13 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     output.loc[stale_or_invalid, "MOS gap %"] = np.nan
     output.loc[stale_or_invalid, "Decision reason"] = (
         "FX-safe valuation refresh required; quality evidence retained, valuation decision withheld"
+    )
+
+    # A fresh price update is NOT proof that the underlying long-term
+    # fundamental and technical research is complete. Prevent unverified
+    # publication from becoming an actionable Investment BUY label.
+    output = withhold_unverified_investment_buys(
+        output, load_investment_publication_status()
     )
 
     output["_action_order"] = output["Action"].map(
@@ -5745,6 +5759,17 @@ with tab_opportunities:
             )
 
     with investment_feed_tab:
+        investment_health = load_investment_publication_status()
+        if not investment_health.get("ready"):
+            st.error(
+                "INVESTMENT DATA NOT LIVE-READY — source publication is incomplete, "
+                "stale or unverified. Previously saved BUY labels are withheld; "
+                "the table remains available for research only."
+            )
+            st.caption(
+                "Source diagnostics: "
+                + "; ".join(investment_health.get("issues", [])[:3])[:850]
+            )
         investment_opportunities = load_all_investment_opportunities()
         if investment_opportunities.empty:
             st.info(
