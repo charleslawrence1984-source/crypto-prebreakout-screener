@@ -5,6 +5,7 @@ on:
     paths:
       - "tests/audit_investment_buy_surface_consistency.py"
       - "tests/diagnose_stocks_ui_render.py"
+      - "tests/test_investment_audit_automation.py"
       - ".github/workflows/investment-buy-surface-consistency.yml"
       - "investment_live_readiness.py"
       - "stock_app.py"
@@ -66,6 +67,7 @@ jobs:
           # After merge, both tests and data load directly from main.
           cp _audit_draft_source/tests/audit_investment_buy_surface_consistency.py tests/
           cp _audit_draft_source/tests/diagnose_stocks_ui_render.py tests/
+          cp _audit_draft_source/tests/test_investment_audit_automation.py tests/
           echo "Production revision: $(git rev-parse HEAD)"
       - name: Record audited production revision
         run: |
@@ -85,6 +87,7 @@ jobs:
           python -m unittest discover -s tests -p test_investment_live_readiness.py -v
           python -m unittest discover -s tests -p test_investment_price_freshness.py -v
           python -m unittest test_investment_technicals -v
+          python -m unittest discover -s tests -p test_investment_audit_automation.py -v
       - name: Audit publication, real prepared loader and cross-screen BUY/BUY MORE gates
         shell: bash
         run: |
