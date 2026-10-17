@@ -1,0 +1,56 @@
+name: CL Signal published data health — read-only
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Shift away from the top of the hour. GitHub schedule is best-effort.
+    - cron: "17 * * * *"
+  pull_request:
+    paths:
+      - "pipeline_publication_health.py"
+      - "tests/test_pipeline_publication_health.py"
+      - ".github/workflows/published-data-health.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cl-signal-published-feed-health-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publication-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check read-only pipeline publication contract
+        run: |
+          python -m py_compile pipeline_publication_health.py
+          python -m unittest discover -s tests -p test_pipeline_publication_health.py -v
+      - name: Restore most recent PUBLISHED Crypto and Meme branch data
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          git fetch origin crypto-data meme-data
+          git checkout FETCH_HEAD -- . >/dev/null 2>&1 || true
+          git fetch origin crypto-data:refs/remotes/origin/crypto-data
+          git fetch origin meme-data:refs/remotes/origin/meme-data
+          git checkout origin/crypto-data -- prepared_crypto
+          git checkout origin/meme-data -- prepared_meme
+      - name: Audit actual published data and fail on stale/partial provider feeds
+        if: github.event_name != 'pull_request'
+        run: python pipeline_publication_health.py --output pipeline-publication-artifacts/health.json
+      - name: Preserve diagnostic report even if some feeds failed
+        if: always() && github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-health-${{ github.run_id }}-${{ github.run_attempt }}
+          path: pipeline-publication-artifacts/health.json
+          if-no-files-found: warn
+          retention-days: 30
