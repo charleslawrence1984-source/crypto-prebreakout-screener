@@ -87,7 +87,7 @@ jobs:
               for _, row in frame.iterrows():
                   item = {}
                   for col in [
-                      "Action", "Ticker", "Company", "Price", "Quality score", "Moat score",
+                      "Action", "Ticker", "Company", "Price", "Price candle date", "Quality score", "Moat score",
                       "Base margin of safety %", "Required margin of safety %",
                       "Bear margin of safety %", "Valuation gate",
                       "Valuation model version", "Valuation FX status",
