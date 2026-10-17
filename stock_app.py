@@ -28,6 +28,7 @@ import yfinance as yf
 from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
 from two_strategy import investment_decision, trade_decision
+from investment_live_readiness import InvestmentPublication, withhold_unverified_buys, guard_quick_investment_decision, guard_portfolio_investment_adds, daily_price_session_issue
 from trade_rules import (
     FundamentalSnapshot,
     build_fundamental_snapshot,
@@ -989,6 +990,15 @@ def quick_trade_decision(res: Dict) -> Dict:
     }
 
 
+@st.cache_data(ttl=60, show_spinner=False)
+def load_investment_publication_evidence() -> InvestmentPublication:
+    # Read-only source, technical, and priority price publication snapshots.
+    return InvestmentPublication(
+        Path(__file__).resolve().parent,
+        expected_valuation_model=VALUATION_MODEL_VERSION,
+    )
+
+
 def quick_investment_decision(row: Dict | None) -> Dict:
     if not row:
         return {
@@ -997,6 +1007,16 @@ def quick_investment_decision(row: Dict | None) -> Dict:
         }
 
     action = str(row.get("Action") or "UNAVAILABLE").upper()
+    # Live re-analysis is distinct from the saved shortlist, but must not bypass
+    # the current valuation model, FX or quality gates before publication checks.
+    if action == "BUY CANDIDATE" and (
+        row.get("Valuation model version") != VALUATION_MODEL_VERSION
+        or str(row.get("Valuation FX status") or "").upper() != "PASS"
+        or str(row.get("Hard gates") or "").upper() != "PASS"
+        or not math.isfinite(safe(row.get("Quality score")))
+        or safe(row.get("Quality score")) < MIN_INVESTMENT_QUALITY_SCORE
+    ):
+        return {"action": "REVALUE", "reason": "RESEARCH ONLY — live Investment valuation or quality evidence is not verified"}
     valuation_gate = str(row.get("Valuation gate") or "").upper()
     hard_gates = str(row.get("Hard gates") or "").upper()
     manual_review = str(row.get("Manual review required") or "").strip()
@@ -1025,7 +1045,10 @@ def quick_investment_decision(row: Dict | None) -> Dict:
     else:
         reason = str(row.get("Decision reason") or "").strip() or "The investment case needs more evidence before a decision."
 
-    return {"action": action, "reason": reason}
+    return guard_quick_investment_decision(
+        {"action": action, "reason": reason}, row.get("Ticker"),
+        load_investment_publication_evidence(),
+    )
 
 
 def render_decision_card(title: str, action: str, reason: str):
@@ -2455,9 +2478,38 @@ def _fast_info_number(fast, *keys) -> float:
     return np.nan
 
 
-def _batch_latest_prices(symbols: List[str], chunk_size: int = 200) -> tuple[Dict[str, float], int]:
+def _batch_latest_prices(symbols: List[str], chunk_size: int = 200, *,
+                         with_candle_dates: bool = False) -> tuple[Dict, int]:
+    """Download real daily close bars; optionally return each bar's source date.
+
+    Existing fundamental scans keep receiving {ticker: float}. Investment
+    priority price refresh instead receives {ticker: {price, candle_date}}.
+    A daily DateIndex may be timezone-naive; store the source trading SESSION
+    DATE, never an invented UTC close timestamp or the download run time.
+    """
     prices = {}
     rate_limit_errors = 0
+
+    def record(symbol, closes):
+        series = pd.to_numeric(closes, errors="coerce").replace([np.inf, -np.inf], np.nan).dropna()
+        series = series[series > 0]
+        if series.empty:
+            return
+        value = safe(series.iloc[-1])
+        if not math.isfinite(value) or value <= 0:
+            return
+        if with_candle_dates:
+            try:
+                session = pd.Timestamp(series.index[-1])
+                if pd.isna(session):
+                    return
+                candle_date = session.date().isoformat()
+            except (TypeError, ValueError, OverflowError):
+                return
+            prices[symbol] = {"price": value, "candle_date": candle_date}
+        else:
+            prices[symbol] = value
+
     for start in range(0, len(symbols), chunk_size):
         chunk = symbols[start:start + chunk_size]
         try:
@@ -2476,18 +2528,13 @@ def _batch_latest_prices(symbols: List[str], chunk_size: int = 200) -> tuple[Dic
                 closes = batch["Close"]
                 for sym in chunk:
                     if sym in closes.columns:
-                        series = pd.to_numeric(closes[sym], errors="coerce").dropna()
-                        if not series.empty:
-                            prices[sym] = safe(series.iloc[-1])
+                        record(sym, closes[sym])
             elif "Close" in batch.columns and len(chunk) == 1:
-                series = pd.to_numeric(batch["Close"], errors="coerce").dropna()
-                if not series.empty:
-                    prices[chunk[0]] = safe(series.iloc[-1])
+                record(chunk[0], batch["Close"])
         except Exception as exc:
             if "ratelimit" in exc.__class__.__name__.lower() or "too many requests" in str(exc).lower():
                 rate_limit_errors += 1
     return prices, rate_limit_errors
-
 
 def _investment_company_result(
     sym: str,
@@ -2744,12 +2791,16 @@ def load_prepared_investment_scan(kind: str, modified_ns: int) -> pd.DataFrame:
 def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     """Refresh only prices and price-dependent investment decisions."""
     if frame.empty or "Ticker" not in frame.columns:
-        return frame, {"updated": 0, "missing": 0, "rate_limit_errors": 0}
+        return frame, {"updated": 0, "missing": 0, "stale_candles": 0, "rate_limit_errors": 0}
     out = frame.copy()
     symbols = out["Ticker"].dropna().astype(str).tolist()
-    prices, rate_limit_errors = _batch_latest_prices(symbols)
+    prices, rate_limit_errors = _batch_latest_prices(symbols, with_candle_dates=True)
+    # Clear previous proof before attempting a new session-specific refresh.
+    # Legacy prepared rows have no source-bar date and must never be trusted.
+    out["Price candle date"] = ""
     updated = 0
     missing = 0
+    stale_candles = 0
     for idx, row in out.iterrows():
         symbol = str(row.get("Ticker") or "")
         if str(row.get("Valuation model version") or "") != VALUATION_MODEL_VERSION:
@@ -2762,9 +2813,23 @@ def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFram
             out.at[idx, "Valuation gate"] = "WAIT"
             out.at[idx, "Decision reason"] = "valuation currency conversion is unavailable or unverified"
             continue
-        price = safe(prices.get(symbol))
+        quote = prices.get(symbol)
+        price = safe(quote.get("price")) if isinstance(quote, dict) else np.nan
         if np.isnan(price) or price <= 0:
             missing += 1
+            if str(row.get("Action") or "").upper() == "BUY CANDIDATE":
+                out.at[idx, "Action"] = "REVALUE"
+                out.at[idx, "Valuation gate"] = "REVALUE"
+                out.at[idx, "Decision reason"] = "RESEARCH ONLY — daily price quote is missing"
+            continue
+        candle_date = quote.get("candle_date")
+        out.at[idx, "Price candle date"] = candle_date or ""
+        candle_issue = daily_price_session_issue(candle_date, datetime.datetime.now(datetime.timezone.utc))
+        if candle_issue:
+            stale_candles += 1
+            out.at[idx, "Action"] = "REVALUE"
+            out.at[idx, "Valuation gate"] = "REVALUE"
+            out.at[idx, "Decision reason"] = "RESEARCH ONLY — " + candle_issue
             continue
         base_value = safe(row.get("Base intrinsic value"))
         bear_value = safe(row.get("Bear intrinsic value"))
@@ -2807,7 +2872,7 @@ def refresh_prepared_investment_prices(frame: pd.DataFrame) -> tuple[pd.DataFram
         ascending=[True, False, False],
         na_position="last",
     ).drop(columns=["_action_rank"]).reset_index(drop=True)
-    return out, {"updated": updated, "missing": missing, "rate_limit_errors": rate_limit_errors}
+    return out, {"updated": updated, "missing": missing, "stale_candles": stale_candles, "rate_limit_errors": rate_limit_errors}
 
 
 @st.cache_data(ttl=120, show_spinner=False)
@@ -4503,6 +4568,12 @@ def load_all_investment_opportunities() -> pd.DataFrame:
     output = output.drop_duplicates(subset=["_company_key"], keep="first")
     output = output[output["Action"].isin(["BUY CANDIDATE", "WAIT", "REVALUE"])].copy()
     output = output.drop(columns=["_action_order", "_fx_order", "_company_key"])
+    # Apply the same per-share publication gate before the Home and Opportunities
+    # tabs derive their BUY counts; do not mutate saved strategies or CSV files.
+    output = withhold_unverified_buys(
+        output, load_investment_publication_evidence(),
+        {label: kind for label, kind in INVESTMENT_UNIVERSES.items()},
+    )
     return output.reset_index(drop=True)
 
 
@@ -4872,6 +4943,9 @@ tab_home, tab1, tab_opportunities, tab2, tab5, tab3, tab4 = st.tabs(
 with tab_home:
     home_trade = apply_trade_refresh_overlay(load_all_trade_opportunities())
     home_investment = load_all_investment_opportunities()
+    if (not home_investment.empty and "Decision reason" in home_investment.columns
+            and home_investment["Decision reason"].astype(str).str.contains("RESEARCH ONLY —", regex=False).any()):
+        st.warning("Investment data readiness: some saved BUY labels are withheld because verified technical or price evidence is missing/stale. These remain research-only; the scoring rules are unchanged.")
     home_watchlist = load_browser_watchlist()
     home_events = load_browser_watch_events()
 
@@ -5746,6 +5820,9 @@ with tab_opportunities:
 
     with investment_feed_tab:
         investment_opportunities = load_all_investment_opportunities()
+        if (not investment_opportunities.empty and "Decision reason" in investment_opportunities.columns
+                and investment_opportunities["Decision reason"].astype(str).str.contains("RESEARCH ONLY —", regex=False).any()):
+            st.warning("Investment data not fully verified: one or more BUY candidates were downgraded to REVALUE pending source/technical/price checks. Never treat the cached shortlist as an order instruction.")
         if investment_opportunities.empty:
             st.info(
                 "No prepared Investment BUY or WAIT opportunities with passing hard quality gates are available yet."
@@ -5869,8 +5946,8 @@ with tab_opportunities:
 
                 with st.expander("More Investment detail", expanded=False):
                     investment_detail_cols = [
-                        "Action", "Ticker", "Company", "Exchange", "Sector",
-                        "Price", "Quality score", "Moat score",
+                        "Action", "Investment readiness", "Ticker", "Company", "Exchange", "Sector",
+                        "Price", "Price candle date", "Quality score", "Moat score",
                         "Base margin of safety %", "Required margin of safety %",
                         "MOS gap %", "Valuation gate", "Valuation FX status",
                         "Financial currency", "Quote currency", "Alternate listings", "Decision reason",
@@ -5891,7 +5968,7 @@ with tab_opportunities:
                         f"{validation['hard_gate_pass']:,} pass hard quality gates · "
                         f"{validation['old_buy_pool']:,} prior BUY candidates awaiting/under FX-safe review · "
                         f"{validation['fx_safe_revalued']:,} priority names currently FX-safe revalued · "
-                        f"{validation.get('fx_safe_unique_buys', validation['fx_safe_buys']):,} validated unique BUY"
+                        f"{validation.get('fx_safe_unique_buys', validation['fx_safe_buys']):,} valuation-screened unique BUY (before publication readiness)"
                         f"{'s' if validation.get('fx_safe_unique_buys', validation['fx_safe_buys']) != 1 else ''} "
                         f"({validation['fx_safe_buys']:,} listing-level BUY rows)."
                     )
@@ -6470,6 +6547,13 @@ with tab4:
                 filtered_fundamentals = fundamental_results[
                     fundamental_results["Quality score"] >= min_quality_score
                 ].copy()
+                filtered_fundamentals = withhold_unverified_buys(
+                    filtered_fundamentals, load_investment_publication_evidence(),
+                    {label: kind for label, kind in INVESTMENT_UNIVERSES.items()},
+                )
+                if (not filtered_fundamentals.empty and "Decision reason" in filtered_fundamentals
+                        and filtered_fundamentals["Decision reason"].astype(str).str.contains("RESEARCH ONLY —", regex=False).any()):
+                    st.warning("Unverified Advanced Investment BUY labels are withheld as research-only until saved source, technical and priority-price evidence agree.")
 
                 if market_cap_failures or below_min_market_cap:
                     st.caption(
@@ -6829,6 +6913,12 @@ with tab5:
         if not portfolio_results.empty
         else pd.DataFrame()
     )
+    if not investment_results.empty:
+        # All screens with a long-term add signal share the same verified
+        # publication evidence. Never rewrite saved positions or TRADE rows.
+        investment_results = guard_portfolio_investment_adds(
+            investment_results, load_investment_publication_evidence(),
+        )
     trade_results = (
         portfolio_results[portfolio_results["Position type"] == "TRADE"].copy()
         if not portfolio_results.empty
@@ -6844,6 +6934,11 @@ with tab5:
             "Your long-term diversification philosophy: no individual stock above 5% and no sector above 20%. "
             "Allocation colours are separate from the investment action."
         )
+
+        if (not investment_results.empty and "Investment readiness" in investment_results.columns
+                and investment_results["Investment readiness"].astype(str).eq("AWAITING VERIFIED DATA").any()):
+            st.warning("Some Investment BUY MORE labels are withheld pending verified research. Existing HOLD, REASSESS and REVIEW FOR SALE decisions are unchanged.")
+
 
         if investment_results.empty:
             st.info(
@@ -6938,7 +7033,7 @@ with tab5:
             st.caption("No reviewed INVESTMENT positions yet.")
         else:
             investment_main = investment_results[[
-                "Ticker", "Company", "Action", "Weight %", "Shares", "Average cost",
+                "Ticker", "Company", "Action", "Investment readiness", "Weight %", "Shares", "Average cost",
                 "Amount invested", "Current price", "Return %", "Market value £", "Unrealised P/L £", "Quote currency",
             ]].copy()
             investment_main = investment_main.rename(columns={"Quote currency": "Currency"})
@@ -6985,7 +7080,7 @@ with tab5:
                     "Ticker", "Quality score", "Hard gates", "Base intrinsic value",
                     "Bear intrinsic value", "Base margin of safety %",
                     "Required margin of safety %", "Bear margin of safety %",
-                    "Sector", "Industry", "Country", "Review reason", "Manual review required",
+                    "Sector", "Industry", "Country", "Investment readiness", "Review reason", "Manual review required",
                 ]
                 st.dataframe(
                     investment_results[detail_columns],
