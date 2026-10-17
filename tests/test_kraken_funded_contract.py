@@ -56,6 +56,7 @@ def load_rules():
         "earnings_trade_gate": earnings_trade_gate,
         "FUNDED_START_BALANCE": 1000.0, "FUNDED_FAIL_BALANCE": 970.0,
         "FUNDED_MAX_TOTAL_OPEN_RISK_USD": 10.0,
+        "FUNDED_MAX_RISK_USD": 5.0,
         "FUNDED_MAX_POSITION_PCT": 35.0,
         "FUNDED_STOCK_MAX_SPREAD_PCT": 0.60,
         "FUNDED_STOCK_COST_BUFFER_PCT": 0.50,
