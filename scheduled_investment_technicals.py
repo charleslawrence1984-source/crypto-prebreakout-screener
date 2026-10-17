@@ -11,6 +11,7 @@ import pandas as pd
 
 logging.getLogger("streamlit").setLevel(logging.CRITICAL)
 import stock_app
+from investment_live_readiness import TECH_MAX_AGE_HOURS, _recent
 
 BUILD = "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
 # This build identifier is now intentionally stable. UI/UX-only edits in stock_app.py
@@ -112,19 +113,35 @@ def prepare(source_dir, output_dir, limit, analyse, build):
             frame = pd.read_csv(src) if src.exists() else pd.DataFrame()
             eligible = eligible_rows(frame)
             fingerprints = {str(row["Ticker"]): fingerprint(row) for _, row in eligible.iterrows()}
+            ready = complete_exchange(meta, frame)
+            timestamp = meta.get("completed_at") or source.get("updated_at")
             cached = pd.read_csv(target) if target.exists() else pd.DataFrame()
             cached = reconcile(cached, fingerprints, build)
+            # A matching SHA256 means this exact source row is unchanged. It is
+            # safe to reconcile ONLY the source-version stamp to a completed,
+            # verified fundamental publication; this does NOT update the time
+            # the technical calculation was actually run.
+            if ready and not cached.empty and timestamp:
+                cached["Fundamental source updated at"] = timestamp
             # Persist invalidation even when zero companies remain eligible.
             if cached.empty:
                 target.unlink(missing_ok=True)
             else:
                 cached.to_csv(target, index=False, compression="gzip")
-            ready = complete_exchange(meta, frame)
-            timestamp = meta.get("completed_at") or source.get("updated_at")
             covered = set(cached["Ticker"]) if not cached.empty else set()
             attempts = manifest["exchanges"].get(kind, {}).get("dispatch_counts", {})
             missing = sorted(set(fingerprints) - covered, key=lambda s: (attempts.get(s, 0), s))
-            selected = missing[:limit] if ready else []
+            now = datetime.now(timezone.utc)
+            # Source-matching rows can still be technically stale. Retry them
+            # first on the next bounded hourly batch instead of indefinitely
+            # keeping an old candle/RSI under a fresh manifest timestamp.
+            stale = []
+            if ready and not cached.empty:
+                stale = sorted(
+                    str(row["Ticker"]) for _, row in cached.iterrows()
+                    if not _recent(row.get("Technical calculated at"), now, hours=TECH_MAX_AGE_HOURS)
+                )
+            selected = (stale + missing)[:limit] if ready else []
             previous_meta = manifest["exchanges"].get(kind, {})
             rows, errors = [], []
             if limit == 0:
@@ -149,14 +166,24 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                         break
             combined = pd.concat([cached, pd.DataFrame(rows)], ignore_index=True)
             if not combined.empty:
+                # A successfully refreshed stale symbol supersedes its previous
+                # record; a failed refresh keeps old evidence but the BUY gate
+                # still refuses it until its calculation timestamp is fresh.
+                combined = combined.drop_duplicates("Ticker", keep="last")
                 combined.to_csv(target, index=False, compression="gzip")
             coverage = len(combined)
             remaining = len(fingerprints) - coverage
+            fresh_coverage = sum(
+                _recent(row.get("Technical calculated at"), datetime.now(timezone.utc),
+                        hours=TECH_MAX_AGE_HOURS)
+                for _, row in combined.iterrows()
+            ) if not combined.empty else 0
+            stale_coverage = coverage - fresh_coverage
             manifest["exchanges"][kind] = {
                 # Verified source rows may be technically complete while other
                 # fundamentals are provider-deferred. Never publish a globally
                 # complete technical feed until those source gaps are resolved.
-                "status": ("complete" if remaining == 0 and
+                "status": ("complete" if remaining == 0 and stale_coverage == 0 and
                            meta.get("provider_deferred_symbols", 0) == 0
                            else "partial") if ready else "deferred_fundamentals",
                 "source_provider_deferred_symbols": meta.get("provider_deferred_symbols", 0),
@@ -164,6 +191,8 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                 "source_coverage_target_symbols": meta.get("coverage_target_symbols"),
                 "eligible_symbols": len(fingerprints),
                 "coverage_symbols": coverage,
+                "fresh_coverage_symbols": fresh_coverage,
+                "stale_coverage_symbols": stale_coverage,
                 "remaining_symbols": remaining,
                 "requested_this_run": previous_meta.get("requested_this_run", 0) if limit == 0 else len(rows) + len(errors),
                 "returned_this_run": previous_meta.get("returned_this_run", 0) if limit == 0 else len(rows),
@@ -172,7 +201,7 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                 "technical_build": build,
                 "dispatch_counts": {s: attempts.get(s, 0) for s in missing if s not in {r["Ticker"] for r in rows}},
             }
-            print(f"{kind}: {manifest['exchanges'][kind]['status']} {coverage}/{len(fingerprints)}", flush=True)
+            print(f"{kind}: {manifest['exchanges'][kind]['status']} {coverage}/{len(fingerprints)} (fresh {fresh_coverage}, stale {stale_coverage})", flush=True)
         except Exception as exc:
             # Unreadable fundamentals cannot support a usable technical cache.
             target.unlink(missing_ok=True)
