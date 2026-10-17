@@ -23,7 +23,7 @@ def load_contract():
     keys = {
         "FUNDED_START_BALANCE", "FUNDED_TARGET_BALANCE", "FUNDED_FAIL_BALANCE",
         "FUNDED_STANDARD_RISK_USD", "FUNDED_REDUCED_RISK_USD",
-        "FUNDED_MAX_TOTAL_OPEN_RISK_USD",
+        "FUNDED_MAX_TOTAL_OPEN_RISK_USD", "FUNDED_MAX_RISK_USD",
     }
     values = {}
     for node in tree.body:
@@ -76,6 +76,12 @@ class FundedRiskGate(unittest.TestCase):
     def test_existing_open_exposure_counts_toward_limit(self):
         self.assertIn("ACCOUNT RISK LIMIT", self.guard(other=8, risk=4))
         self.assertEqual(self.guard(other=6, risk=4), "")
+
+    def test_invalid_proposed_risk_fails_closed(self):
+        self.assertIn("ACCOUNT RISK LIMIT", self.guard(risk=-1))
+        self.assertIn("ACCOUNT RISK LIMIT", self.guard(risk=0))
+        self.assertIn("ACCOUNT RISK LIMIT", self.guard(risk=float("nan")))
+        self.assertIn("ACCOUNT RISK LIMIT", self.guard(risk=6))
 
     def test_missing_or_invalid_open_risk_blocks(self):
         self.assertIn("ACCOUNT RISK LIMIT", self.guard(other=-1))
