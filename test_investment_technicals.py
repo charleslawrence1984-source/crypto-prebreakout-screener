@@ -138,6 +138,52 @@ class TechnicalTests(unittest.TestCase):
             self.assertEqual(manifest["fresh_coverage_symbols"], 1)
             self.assertEqual(manifest["status"], "complete")
 
+    def test_active_exchange_scope_preserves_excluded_legacy_sources_and_caches(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src, dst = Path(tmp) / "source", Path(tmp) / "technical"
+            src.mkdir()
+            dst.mkdir()
+            pd.DataFrame([{"Ticker": "ACTIVE", "Action": "WAIT",
+                           "Hard gates": "PASS", "Price": 10}]).to_csv(
+                src / "nyse.csv.gz", index=False, compression="gzip"
+            )
+            # If the worker touches these excluded files it will encounter
+            # malformed data or overwrite retained historical evidence.
+            (src / "gettex.csv.gz").write_bytes(b"historical Gettex source")
+            legacy_cache = dst / "gettex.csv.gz"
+            legacy_cache.write_bytes(b"historical Gettex technical cache")
+            legacy_meta = {"status": "deferred_fundamentals",
+                           "eligible_symbols": 586, "remaining_symbols": 586}
+            (dst / "manifest.json").write_text(json.dumps({
+                "exchanges": {"gettex": legacy_meta}
+            }))
+            (src / "manifest.json").write_text(json.dumps({"exchanges": {
+                "nyse": {"status": "complete", "eligible_symbols": 1,
+                         "coverage_symbols": 1, "coverage_target_symbols": 1,
+                         "provider_deferred_symbols": 0, "remaining_symbols": 0},
+                "gettex": {"status": "partial"},
+                "otc": {"status": "partial"},
+            }}))
+            calls = []
+            def analyse(symbol):
+                calls.append(symbol)
+                return {"RSI": 48}
+            self.assertEqual(module.prepare(src, dst, 10, analyse, "v1",
+                                            active_kinds={"nyse", "nasdaq"}), 0)
+            self.assertEqual(calls, ["ACTIVE"])
+            self.assertEqual(legacy_cache.read_bytes(),
+                             b"historical Gettex technical cache")
+            report = json.loads((dst / "manifest.json").read_text())
+            self.assertEqual(report["exchanges"]["gettex"], legacy_meta)
+            self.assertEqual(report["active_exchange_keys"], ["nasdaq", "nyse"])
+            self.assertEqual(report["excluded_legacy_exchange_keys"], ["gettex", "otc"])
+            self.assertEqual(report["active_eligible_symbols"], 1)
+            self.assertEqual(report["active_coverage_symbols"], 1)
+            self.assertEqual(report["active_remaining_symbols"], 0)
+            # Missing active-market fundamentals must fail closed, not disappear.
+            self.assertEqual(report["exchanges"]["nasdaq"]["status"],
+                             "deferred_fundamentals")
+
     def test_missing_history_stays_partial(self):
         with tempfile.TemporaryDirectory() as tmp:
             src, dst = Path(tmp) / "source", Path(tmp) / "technical"
