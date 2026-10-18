@@ -83,6 +83,37 @@ class RiskResearchTests(unittest.TestCase):
         self.assertEqual(out["open_unique_paper_cases"], 0)
         self.assertGreater(out["modeled_realized_equity_proxy_usd"], 1000)
 
+    def test_stop_not_executable_ten_percent_shock_can_breach_970_floor(self):
+        # A mathematically sensible $3 planned stop can still fail a
+        # $30 fixed drawdown limit if no native Kraken Funded stop exists.
+        source = frozen("stress-without-native-stops", BASE, stop=99.5)
+        report = results(source, status="SHADOW OPEN")
+        result = self.model([source], [report])
+        stress = {
+            item["simultaneous_adverse_move_pct"]: item
+            for item in result["unprotected_simultaneous_adverse_move_stress"]
+        }
+        self.assertEqual(result["admitted_unique_paper_cases"], 1)
+        self.assertLessEqual(result["peak_planned_open_risk_usd"], 3)
+        self.assertEqual(result["modeled_realized_equity_proxy_usd"], 1000)
+        self.assertFalse(result["modeled_realized_threshold_breach"])
+        self.assertFalse(stress[5.0]["would_touch_fixed_970_floor_in_this_hypothesis"])
+        self.assertTrue(stress[10.0]["would_touch_fixed_970_floor_in_this_hypothesis"])
+        self.assertLess(stress[10.0]["lowest_model_equity_after_shock_usd"], 970)
+        self.assertFalse(result["native_kraken_funded_protective_stops_available"])
+        self.assertFalse(result["kraken_funded_challenge_pass_confirmed"])
+
+    def test_no_paper_exposure_yields_unknown_stress_not_a_safety_pass(self):
+        source = frozen("no-fake-safety", BASE, ticker="UNLISTED")
+        report = results(source, ticker="UNLISTED")
+        result = self.model([source], [report])
+        self.assertEqual(result["admitted_unique_paper_cases"], 0)
+        self.assertEqual(result["peak_simultaneous_paper_notional_usd"], 0)
+        for item in result["unprotected_simultaneous_adverse_move_stress"]:
+            self.assertIsNone(item["lowest_model_equity_after_shock_usd"])
+            self.assertIsNone(item["would_touch_fixed_970_floor_in_this_hypothesis"])
+        self.assertTrue(result["stress_is_hypothetical_not_observed_price_path"])
+
     def test_duplicate_observation_does_not_double_count_open_asset(self):
         a = frozen("run-one", BASE)
         b = frozen("run-two", BASE+timedelta(minutes=5))
