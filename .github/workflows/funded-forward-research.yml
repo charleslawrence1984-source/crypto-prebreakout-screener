@@ -1,7 +1,7 @@
 name: Funded forward research capture — STOCKS and CRYPTO
 
-# Scheduled events only run from the DEFAULT branch. This workflow is
-# deliberately dormant while present only in an unmerged draft PR.
+# Scheduled events run from the DEFAULT branch (already live on main).
+# This draft adds coverage evidence only; no new orders or trading authority.
 # No broker access, no funded-account credentials, no orders or strategy edits.
 on:
   workflow_dispatch:
