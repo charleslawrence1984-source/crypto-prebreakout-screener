@@ -168,6 +168,10 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
     peak_open_notional = 0.0
     stress_lowest_equity = {move: None for move in UNPROTECTED_SHOCKS_PCT}
     paper_exposure_observations = 0
+    # Separate from hypothetical shock losses: these are *realized-only*
+    # proxy equity changes that can consume the live UI's $10 reserve
+    # even while other synthetic positions remain open.
+    open_buffer_breach_events = []
     breach = False
     target = False
 
@@ -210,6 +214,21 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
             # Reassess remaining open exposure against now-lower booked
             # equity EVEN IF no further hypothetical entries are observed.
             record_unprotected_open_stress()
+            if active:
+                planned_open_risk = sum(v["planned_risk"] for v in active)
+                allowed_by_equity = equity - FAIL_EQUITY - MIN_EQUITY_BUFFER_ABOVE_FLOOR_USD
+                if planned_open_risk > allowed_by_equity + 1e-9:
+                    open_buffer_breach_events.append({
+                        "after_paper_exit_at": item["ended"].isoformat(),
+                        "realized_only_equity_proxy_usd": round(equity, 6),
+                        "remaining_open_planned_risk_usd": round(planned_open_risk, 6),
+                        "allowed_open_risk_after_buffer_usd": round(max(0.0, allowed_by_equity), 6),
+                        "remaining_open_assets": [
+                            v["kind"] + ":" + v["asset"] for v in active
+                        ],
+                        "condition": "EXISTING OPEN PAPER RISK EXCEEDS EQUITY AFTER $970 FLOOR AND $10 BUFFER",
+                        "not_an_observed_funded_account_event": True,
+                    })
 
     for case in cases:
         if case["opened"] > clock:
@@ -305,6 +324,8 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
         "duplicate_or_risk_vetoed_cases": len(vetoed),
         "peak_planned_open_risk_usd": round(peak_open_risk, 6),
         "peak_simultaneous_paper_notional_usd": round(peak_open_notional, 6),
+        "remaining_position_buffer_breach_after_booked_loss": bool(open_buffer_breach_events),
+        "remaining_position_buffer_breach_events": open_buffer_breach_events,
         "unprotected_simultaneous_adverse_move_stress": stress,
         "stress_is_hypothetical_not_observed_price_path": True,
         "native_kraken_funded_protective_stops_available": False,
