@@ -20,7 +20,11 @@ TARGET_EQUITY = 1120.0
 FAIL_EQUITY = 970.0
 MAX_SINGLE_RISK_USD = 5.0
 DEFAULT_REDUCED_RISK_USD = 3.0
+STANDARD_A_PLUS_RISK_USD = 4.0
 MAX_OPEN_PLANNED_RISK_USD = 10.0
+# The Kraken Funded UI _account_guard reserves $10 above the $970 floor.
+# Risk-room calculations here are deliberately stricter for overlapping cases.
+MIN_EQUITY_BUFFER_ABOVE_FLOOR_USD = 10.0
 MAX_POSITION_EQUITY_FRACTION = .35
 MAX_COMBINED_NOTIONAL_EQUITY_FRACTION = 1.0
 DEFAULT_COST_PCT = .5
@@ -167,6 +171,20 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
     breach = False
     target = False
 
+    def record_unprotected_open_stress():
+        nonlocal paper_exposure_observations
+        if not active:
+            return
+        paper_exposure_observations += 1
+        # This is an instantaneous simultaneous-loss WHAT-IF, not a path
+        # reconstructed from public OHLCV or a funded-app executable stop.
+        for shock in UNPROTECTED_SHOCKS_PCT:
+            loss = sum(v["notional"] * (shock + v["cost_pct"]) / 100 for v in active)
+            stressed = equity - loss
+            current = stress_lowest_equity[shock]
+            stress_lowest_equity[shock] = (stressed if current is None
+                                           else min(current, stressed))
+
     def complete_before(time):
         nonlocal equity, high, realized_peak_to_trough, breach, target
         due = sorted((item for item in active
@@ -189,6 +207,9 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
                 "exit": item["ended"].isoformat(),
                 "status": item["status"],
             })
+            # Reassess remaining open exposure against now-lower booked
+            # equity EVEN IF no further hypothetical entries are observed.
+            record_unprotected_open_stress()
 
     for case in cases:
         if case["opened"] > clock:
@@ -207,11 +228,24 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
             continue
         open_risk = sum(item["planned_risk"] for item in active)
         notional_open = sum(item["notional"] for item in active)
-        available_risk = MAX_OPEN_PLANNED_RISK_USD - open_risk
+        allowed_open_risk = min(
+            MAX_OPEN_PLANNED_RISK_USD,
+            equity - FAIL_EQUITY - MIN_EQUITY_BUFFER_ABOVE_FLOOR_USD,
+        )
+        # Respect the UI's *full requested budget* gate. Silently reducing
+        # a $3 budget to $1 near the failure floor would misrepresent READY.
+        # Reserve *all other open planned risk* from equity loss headroom,
+        # not only the $10 combined open-risk limit.
+        if allowed_open_risk < budget - 1e-9 or allowed_open_risk - open_risk < budget - 1e-9:
+            vetoed.append({
+                "asset": name,
+                "reason": "ACCOUNT RISK GUARD: $10 EQUITY BUFFER OR OPEN RISK LIMIT",
+            })
+            continue
         available_notional = MAX_COMBINED_NOTIONAL_EQUITY_FRACTION * equity - notional_open
         notional = min(budget/risk_fraction,
                        MAX_POSITION_EQUITY_FRACTION * equity,
-                       available_risk/risk_fraction, available_notional)
+                       available_notional)
         if notional <= 0.01:
             vetoed.append({"asset": name, "reason": "OPEN RISK OR NOTIONAL CAP EXHAUSTED"})
             continue
@@ -221,18 +255,7 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
         active.append(item)
         peak_open_risk = max(peak_open_risk, sum(v["planned_risk"] for v in active))
         peak_open_notional = max(peak_open_notional, sum(v["notional"] for v in active))
-        paper_exposure_observations += 1
-        # This shock assumes that all simultaneously open proxy assets move
-        # adversely together and that NO protective broker stop is available.
-        # Cost is still a scenario assumption, NOT a funded buy/sell quote.
-        # Compute at each admission with realized-only equity at THAT time;
-        # do not retroactively apply today's equity to past exposures.
-        for shock in UNPROTECTED_SHOCKS_PCT:
-            loss = sum(v["notional"] * (shock + v["cost_pct"]) / 100 for v in active)
-            stressed = equity - loss
-            current = stress_lowest_equity[shock]
-            stress_lowest_equity[shock] = (stressed if current is None
-                                           else min(current, stressed))
+        record_unprotected_open_stress()
         accepted.append({
             "asset": name, "source_run_id": case["source_run_id"],
             "entry_at": case["opened"].isoformat(),
@@ -271,6 +294,9 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
         "risk_budget_per_paper_position_usd": budget,
         "max_per_position_risk_usd": MAX_SINGLE_RISK_USD,
         "max_total_open_risk_usd": MAX_OPEN_PLANNED_RISK_USD,
+        "ui_equity_buffer_above_fixed_failure_floor_usd": MIN_EQUITY_BUFFER_ABOVE_FLOOR_USD,
+        "standard_a_plus_risk_usd": STANDARD_A_PLUS_RISK_USD,
+        "paper_budget_applies_only_to_original_eligible_signals": True,
         "max_position_notional_pct": 35,
         "max_total_notional_pct": 100,
         "admitted_unique_paper_cases": len(accepted),
