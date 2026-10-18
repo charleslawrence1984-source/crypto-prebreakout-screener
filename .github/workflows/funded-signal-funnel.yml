@@ -1,0 +1,54 @@
+name: Kraken Funded prospective signal-funnel evidence (READ ONLY)
+
+# Separate from stock/crypto producers and broker accounts.
+# Scheduled work is inert until this draft is independently approved/merged.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "funded_signal_funnel.py"
+      - "tests/test_funded_signal_funnel.py"
+      - ".github/workflows/funded-signal-funnel.yml"
+      - "KRAKEN_FUNDED_EXECUTION_REALITY.md"
+  schedule:
+    - cron: "14 3 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: funded-signal-funnel-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  authentic-original-signal-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install read-only Github requests (no market orders, no broker client)
+        run: python -m pip install requests
+      - name: Confirm immutable source and no synthetic WATCH-to-BUY promotion
+        run: |
+          python -m py_compile funded_signal_funnel.py
+          python -m unittest discover -s tests -p test_funded_signal_funnel.py -v
+      - name: Inspect only authentic previously archived main-branch Kraken Funded scans
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >
+          python funded_signal_funnel.py
+          --from-github
+          --window-days 30
+          --out-dir funded-funnel-artifacts
+      - name: Preserve dated audit evidence even when real archives are unavailable
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-funnel-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: funded-funnel-artifacts/*.json
+          if-no-files-found: warn
+          retention-days: 90
