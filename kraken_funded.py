@@ -172,9 +172,10 @@ def _account_guard(risk_usd: float) -> str:
     equity = safe_number(st.session_state.get("funded_account_equity"))
     other_risk = safe_number(st.session_state.get("funded_other_open_risk"))
     if (not np.isfinite(equity) or not np.isfinite(other_risk) or other_risk < 0
+            or not np.isfinite(risk_usd) or risk_usd <= 0
             or equity <= FUNDED_FAIL_BALANCE + 10
-            or equity - FUNDED_FAIL_BALANCE - 10 < risk_usd
-            or other_risk + risk_usd > FUNDED_MAX_TOTAL_OPEN_RISK_USD):
+            or other_risk + risk_usd > FUNDED_MAX_TOTAL_OPEN_RISK_USD
+            or other_risk + risk_usd > equity - FUNDED_FAIL_BALANCE - 10):
         return "🔴 FUNDED PASS · ACCOUNT RISK LIMIT"
     return ""
 
@@ -1218,7 +1219,8 @@ with st.expander("✅ Confirm funded account and stock earnings before READY", e
     )
     remaining = min(
         FUNDED_MAX_TOTAL_OPEN_RISK_USD - float(st.session_state["funded_other_open_risk"]),
-        float(st.session_state["funded_account_equity"]) - FUNDED_FAIL_BALANCE - 10,
+        float(st.session_state["funded_account_equity"]) - FUNDED_FAIL_BALANCE - 10
+        - float(st.session_state["funded_other_open_risk"]),
     )
     st.caption(
         f"Remaining planned risk allowance: ${max(0.0, remaining):.2f}. "
