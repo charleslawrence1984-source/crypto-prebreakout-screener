@@ -1,6 +1,6 @@
 # Kraken Funded — prospective Stocks + Crypto research capture
 
-**Implementation: DRAFT BRANCH ONLY. NOT ACTIVE ON THE LIVE PLATFORM.**
+**Status on 18 October 2026:** Original public-market **forward capture is already running on main** for funded Crypto, and weekdays for funded Stocks. The new **coverage-health and prospective outcome journal** are only staged in draft PR #31; their daily automated workflow is NOT yet deployed to main. No broker orders, funded account access, or strategy-performance claims.
 
 ## Scope
 The scheduled prototype captures **all assets** from the currently approved
@@ -21,7 +21,7 @@ The headless snapshot is a PUBLIC-MARKET research observation, **never** an
 equivalent to a confirmed green Kraken Funded READY label or a trade signal
 approved to execute.
 
-## Proposed collection schedule — UTC
+## Active frozen capture schedule — UTC
 
 - **Crypto:** every four hours, 00:35 / 04:35 / 08:35 / 12:35 / 16:35 / 20:35.
   Capture only completed 4h/daily/weekly Kraken public spot candles.
@@ -30,8 +30,13 @@ approved to execute.
 - Optional manual `workflow_dispatch` can run either or both.
 - GitHub scheduling is **best effort**; skipped/delayed runs are not represented
   as scans, and failed runs do not indicate no opportunities.
-- GitHub scheduled workflows run only when the workflow file is on the
-  **default branch**. The unmerged PR is NOT yet capturing automatically.
+- The capture workflow is already present on the default branch and has successfully
+  stored three full 33-coin Crypto runs as of 18 October. Stock public-provider
+  smoke on 17 October recorded 28/30 usable daily histories, with SPCX/CBRS
+  under the required 252 bars. A green workflow alone does not mean BUY.
+- The staged new read-only outcome journal is separate and is NOT yet scheduled
+  on main. Its PR preview has audited three original production Crypto
+  archives (99 coin observations), zero original BUYs and zero shadow fills.
 
 ## Frozen audit evidence
 
@@ -52,23 +57,72 @@ error (if a valid diagnostic file was generated). GitHub artifact retention is
 audit ledger in the forensic sense. Export a more durable archive later if
 longer-term forward evidence is needed.
 
-## What remains before the first unattended run is trustworthy
+## Prospective frozen outcome testing (draft PR #31 only)
 
-1. Review PR and confirm it introduces no broker credentials/order path.
-2. Run a controlled manual STOCK and CRYPTO collection against *current*
-   public providers on the audit branch; inspect actual 30/33 instrument
-   coverage, HTTP/CCXT failures, scores, start/end timestamps and artifacts.
-3. Confirm the results correspond to what the Streamlit interactive engine
-   reports on equivalent completed candles, and record any divergence.
-4. Verify rate-limit behavior, retry/backoff and job execution time. A
-   one-off mocked test does not prove public data sources will run reliably.
-5. After all above checks, separately approve/merge the research-capture
-   workflow; only then will its default-branch schedule become active.
-6. Add prospective **outcome assessment** based on later market prices and
-   pre-frozen entry/stop/target plans. Do not count WATCH, near-misses or
-   missing quotes as actual executed winning trades.
-7. Make drawdown, gaps, slippage, differences in Kraken Funded product quotes,
-   24/7 stock execution, earnings and funded challenge account-loss rules
-   explicit in the go/no-go analysis.
+New modules: `funded_forward_health.py`,
+`funded_forward_outcomes.py`, `funded_forward_outcome_runner.py`.
 
-**No live funded trades or pension investments are authorised.**
+- Every source snapshot is checked for the original canonical SHA-256, exact
+  approved 30/33 asset list, UTC provenance and research-only contract. A
+  missing archive or broken signature FAILS the audit, rather than silently
+  counting a no-trade.
+- Only **original Crypto BUY** or a specified original funded Stock entry
+  state qualifies for shadow-entry evaluation. A Crypto `PASS` means the
+  original engine **rejected** the setup; WATCH is not a trade.
+- Qualified rows still need immutable entry, stop, target, score and R:R >=2;
+  Crypto also needs original timing, eligibility, 80+ score and public Kraken
+  spot-liquidity confirmation. These are a **paper admission veto**, not a
+  modification or bypass of the live funded rulebook. No broker confirmation
+  is ever fabricated.
+- Research entry convention: hypothetical **buy-stop at the frozen entry**,
+  filled only if the **subsequently completed bar** trades up to it. If a
+  later bar opens above the level, use the worse open price; veto entries with
+  resulting R:R below 2. Entry may remain unfilled for 3 regular US stock
+  sessions or 6 Kraken 4h candles. No entry means no trade.
+- Shadow exits: frozen stop or first target; stop wins on a bar touching both.
+  Open below stop on a subsequent bar is filled at the worse open. Still-open
+  hypotheses can expire at completed-session/4h horizons of 20/42 bars and
+  close at the final proxy close. **0.5% roundtrip** is a *sensitivity cost
+  assumption*, NOT a confirmed funded spread, fee or financing charge.
+- Uses only **future completed candles** after the already-recorded UTC
+  snapshot. US stock Yahoo 1d after the regular market close; crypto public
+  Kraken 4h OHLCV. Missing/interrupted observations remain DATA UNVERIFIED;
+  incomplete current bars and the entry-signal candle can never affect returns.
+- Read-only action proposed as `funded-forward-outcomes.yml`, 23:37 UTC
+  daily *after separate approval to merge*. It reads up to 30 days of actual
+  default-branch frozen source artifacts and writes a new, unique output
+  artifact each run. GitHub schedule is BEST EFFORT; 30-day rolling history
+  and 90-day GitHub artifact retention are not long-term archival guarantees.
+  Existing snapshots are never rewritten.
+- Repeated signals across successive snapshots can refer to the SAME asset
+  and price move. They must NOT be compounded or presented as an independent
+  portfolio or strategy P&L. The first edition intentionally has NO funded
+  equity curve, challenge win-rate, claim of execution or broker fill data.
+
+## Real PR preview baseline (18 Oct 2026)
+
+The new prospective journal successfully read **three authentic production
+Crypto frozen archives, 99 original coin observations, zero original entry
+triggers and zero simulated fills**. This correctly means **no strategy P&L
+evidence yet**. Only future qualifying original signals can create shadow
+entries. Stock forward capture requires weekday regular-session data.
+
+## Still blocked before declaring the funded challenge trade-ready
+
+1. **Separately approve merging draft PR #31** only after latest regression
+   and public-provider preview results; no changes are authorised to
+   PR #20, #22 or #30 by this work.
+2. Verify the outcome daily job succeeds over several independent scheduled
+   runs, survives skipped GitHub schedules, and archives data beyond 90 days.
+3. Inspect future original BUY/entry candidates for actual funded UI parity
+   and account execution constraints. No signals currently exist to
+   performance-validate.
+4. Verify live funded account eligibility, exact product quotes, spreads,
+   24/7 equities conventions, official earnings windows, financing fees,
+   stop behaviour during gaps, and real permitted maximum account drawdowns.
+5. Establish prospective, distinct-trade paper portfolio/risk accounting,
+   including overlapping signals, maximum open risk, 12% target, and 3%
+   failure limit. Do not infer a challenge pass from an unconnected,
+   public-price-only research journal.
+
+**No live Kraken Funded transactions or pension transfers are authorised.**
