@@ -8,6 +8,8 @@ on:
     paths:
       - "funded_forward_capture.py"
       - "funded_forward_runner.py"
+      - "funded_forward_health.py"
+      - "tests/test_funded_forward_health.py"
       - "tests/test_funded_forward_capture.py"
       - "tests/test_funded_forward_runner.py"
       - ".github/workflows/funded-forward-provider-smoke.yml"
@@ -27,6 +29,9 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: Capture all funded crypto PUBLIC spot observations (NO trading)
         run: python funded_forward_runner.py --asset crypto --out-dir funded-forward-artifacts
+      - name: Audit frozen Crypto capture and rejected PASS meaning
+        if: success()
+        run: python funded_forward_health.py --asset crypto --path funded-forward-artifacts
       - name: Preserve review evidence even for partially failing provider
         if: always()
         uses: actions/upload-artifact@v4
@@ -47,6 +52,9 @@ jobs:
       - run: python -m pip install -r requirements.txt
       - name: Capture funded STOCK public daily-price observations (NO trading)
         run: python funded_forward_runner.py --asset stocks --out-dir funded-forward-artifacts
+      - name: Audit frozen Stock capture and distinguish missing history
+        if: success()
+        run: python funded_forward_health.py --asset stocks --path funded-forward-artifacts
       - name: Preserve review evidence even for partially failing provider
         if: always()
         uses: actions/upload-artifact@v4
