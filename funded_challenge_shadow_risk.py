@@ -11,7 +11,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 import math
 
-from funded_forward_health import validate_snapshot
+from funded_forward_health import (
+    RESEARCH_CRYPTO_TRIGGER, RESEARCH_STOCK_TRIGGERS, validate_snapshot,
+)
 
 START_EQUITY = 1000.0
 TARGET_EQUITY = 1120.0
@@ -83,11 +85,33 @@ def extract_cases(snapshots, reports):
             status = observed.get("shadow_status")
             if status not in ADMISSIBLE:
                 continue
-            entry = finite(observed.get("hypothetical_entry"))
+            engine_status = str(original.get("status") or "").upper()
+            if (engine_status != RESEARCH_CRYPTO_TRIGGER if snapshot["asset_type"] == "crypto"
+                    else engine_status not in RESEARCH_STOCK_TRIGGERS):
+                raise ValueError("Rejected original technical state cannot become a paper trade")
+            frozen_entry = finite(original.get("entry"))
             stop = finite(original.get("stop"))
+            target = finite(original.get("target"))
+            score = finite(original.get("score"))
+            rr = finite(original.get("rr"))
+            if (any(v is None for v in (frozen_entry, stop, target, score, rr))
+                    or not 0 < stop < frozen_entry < target
+                    or min(rr, (target-frozen_entry)/(frozen_entry-stop)) < 2):
+                raise ValueError("Invalid original trade bracket or reward:risk")
+            if snapshot["asset_type"] == "crypto":
+                meta = original.get("meta") or {}
+                if (score < 80 or meta.get("swing_eligible") is not True
+                        or meta.get("entry_timing_actionable") is not True
+                        or meta.get("execution_liquidity_pass_public_spot") is not True):
+                    raise ValueError("Original crypto score/timing/liquidity vetoed paper entry")
+            elif score < 75:
+                raise ValueError("Original stock score vetoed paper entry")
+            entry = finite(observed.get("hypothetical_entry"))
             exit_price = finite(observed.get("hypothetical_exit"))
-            if entry is None or stop is None or not 0 < stop < entry:
+            if entry is None or not 0 < stop < entry or entry < frozen_entry:
                 raise ValueError("Paper position entry/stop not internally consistent")
+            if (target - entry)/(entry - stop) < 2:
+                raise ValueError("Post-gap reward:risk below 2 cannot become a paper trade")
             start = utc(observed["entry_at"])
             if start < utc(snapshot["captured_at_utc"]):
                 raise ValueError("Paper entry is before original frozen observation")
