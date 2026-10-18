@@ -11,6 +11,8 @@ on:
     paths:
       - "funded_forward_outcomes.py"
       - "funded_forward_outcome_runner.py"
+      - "funded_forward_evidence.py"
+      - "tests/test_funded_forward_evidence.py"
       - "funded_forward_health.py"
       - "tests/test_funded_forward_outcomes.py"
       - "tests/test_funded_outcome_runner.py"
@@ -39,6 +41,7 @@ jobs:
         run: |
           python -m unittest discover -s tests -p test_funded_forward_outcomes.py -v
           python -m unittest discover -s tests -p test_funded_outcome_runner.py -v
+          python -m unittest discover -s tests -p test_funded_forward_evidence.py -v
       - name: Audit original frozen stock and crypto scans against LATER completed candles
         env:
           GITHUB_TOKEN: ${{ github.token }}
