@@ -7,6 +7,8 @@ on:
       - "funded_forward_runner.py"
       - "funded_forward_health.py"
       - "funded_forward_outcomes.py"
+      - "funded_forward_outcome_runner.py"
+      - "tests/test_funded_outcome_runner.py"
       - "tests/test_funded_forward_outcomes.py"
       - "tests/test_funded_forward_health.py"
       - "tests/test_funded_forward_capture.py"
@@ -29,7 +31,7 @@ jobs:
       - name: Install public research data dependencies
         run: python -m pip install -r requirements.txt
       - name: Check syntax of new collector and original funded source
-        run: python -m py_compile funded_forward_capture.py funded_forward_runner.py funded_forward_health.py funded_forward_outcomes.py kraken_funded.py
+        run: python -m py_compile funded_forward_capture.py funded_forward_runner.py funded_forward_health.py funded_forward_outcomes.py funded_forward_outcome_runner.py kraken_funded.py
       - name: Verify both immutable universe capture contracts
         run: python -m unittest discover -s tests -p test_funded_forward_capture.py -v
       - name: Verify mocked stock and crypto technical routing
@@ -38,3 +40,5 @@ jobs:
         run: python -m unittest discover -s tests -p test_funded_forward_health.py -v
       - name: Validate forward-only shadow fills, gap stops and zero fabricated wins
         run: python -m unittest discover -s tests -p test_funded_forward_outcomes.py -v
+      - name: Validate original GitHub artifact provenance and zero false trades
+        run: python -m unittest discover -s tests -p test_funded_outcome_runner.py -v
