@@ -1,0 +1,30 @@
+name: Kraken Funded shadow challenge-risk regression
+
+on:
+  pull_request:
+    paths:
+      - "funded_challenge_shadow_risk.py"
+      - "tests/test_funded_challenge_shadow_risk.py"
+      - "funded_forward_outcome_runner.py"
+      - "funded_forward_evidence.py"
+      - "tests/test_funded_forward_evidence.py"
+      - ".github/workflows/funded-challenge-shadow-risk.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-paper-risk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile original funded model and paper risk overlay
+        run: python -m py_compile funded_forward_capture.py funded_forward_health.py funded_forward_outcomes.py funded_challenge_shadow_risk.py funded_forward_evidence.py
+      - name: Test real source integrity, repeated setup dedupe, open-risk caps and loss stop
+        run: |
+          python -m unittest discover -s tests -p test_funded_challenge_shadow_risk.py -v
+          python -m unittest discover -s tests -p test_funded_forward_evidence.py -v

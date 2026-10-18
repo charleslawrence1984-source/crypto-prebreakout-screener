@@ -85,6 +85,10 @@ class ProspectiveArtifactRunner(unittest.TestCase):
         self.assertEqual(journal["source_assets_accounted"], 33)
         self.assertEqual(journal["original_technical_trigger_observations"], 0)
         self.assertEqual(journal["broker_trades_executed"], 0)
+        paper = journal["provisional_challenge_risk"]
+        self.assertEqual(paper["admitted_unique_paper_cases"], 0)
+        self.assertEqual(paper["modeled_realized_equity_proxy_usd"], 1000)
+        self.assertFalse(paper["kraken_funded_challenge_pass_confirmed"])
         self.assertTrue(journal["strategy_success_unproven"])
         self.assertEqual(journal["shadow_status_counts"]["NO RESEARCH ENTRY"], 33)
 
