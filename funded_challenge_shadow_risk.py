@@ -8,7 +8,7 @@ not multiple profitable independent trades.
 """
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import math
 
 from funded_forward_health import validate_snapshot
@@ -124,6 +124,8 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
     if budget is None or not 0 < budget <= MAX_SINGLE_RISK_USD:
         raise ValueError("Paper risk budget exceeds original funded per-position cap")
     cases = extract_cases(snapshots, reports)
+    if any(utc(report["evaluated_at_utc"]) > clock for report in reports):
+        raise ValueError("Risk model cannot settle future paper evaluations")
     equity = START_EQUITY
     high = START_EQUITY
     realized_peak_to_trough = 0.0
@@ -195,7 +197,7 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
             "planned_risk_including_cost_usd": round(risk, 6),
             "paper_only": True,
         })
-    complete_before(clock.replace(year=clock.year + 1) if clock.year < 9999 else clock)
+    complete_before(clock + timedelta(microseconds=1))
     # Open states always retain their reserved risk. Any unresolved closed
     # outcome whose end has not yet elapsed must be rejected, not credited.
     if any(v["ended"] is not None for v in active):
