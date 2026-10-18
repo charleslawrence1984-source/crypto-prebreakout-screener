@@ -98,14 +98,19 @@ def reconcile(frame, fingerprints, build):
     ].drop_duplicates("Ticker", keep="last")
 
 
-def prepare(source_dir, output_dir, limit, analyse, build):
+def prepare(source_dir, output_dir, limit, analyse, build, active_kinds=None):
     source = json.loads((source_dir / "manifest.json").read_text())
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = output_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text()) if manifest_path.exists() else {"exchanges": {}}
     failures = 0
-    kinds = set(source["exchanges"]) | set(manifest["exchanges"])
-    for kind in sorted(kinds):
+    # Only active primary/practical venues belong in the default Investment
+    # technical backfill. Never edit old Gettex/OTC sources or caches.
+    observed_kinds = set(source["exchanges"]) | set(manifest["exchanges"])
+    kinds = sorted(observed_kinds if active_kinds is None else set(active_kinds))
+    manifest["active_exchange_keys"] = kinds
+    manifest["excluded_legacy_exchange_keys"] = sorted(observed_kinds - set(kinds))
+    for kind in kinds:
         meta = source["exchanges"].get(kind, {})
         target = output_dir / f"{kind}.csv.gz"
         src = source_dir / f"{kind}.csv.gz"
@@ -210,6 +215,12 @@ def prepare(source_dir, output_dir, limit, analyse, build):
         manifest["updated_at"] = datetime.now(timezone.utc).isoformat()
         manifest["technical_build"] = build
         manifest["fundamental_coverage_mode"] = "completed-exchanges-only"
+        # Retained secondary-market records must not inflate live coverage.
+        for field in ("eligible_symbols", "coverage_symbols", "remaining_symbols"):
+            manifest["active_" + field] = sum(
+                int(manifest["exchanges"].get(k, {}).get(field, 0) or 0)
+                for k in kinds
+            )
         manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return int(failures > 0)
 
@@ -227,7 +238,8 @@ def main():
     # BUILD is bumped manually whenever the investment technical calculation changes.
     return prepare(Path(args.fundamentals_dir), Path(args.output_dir),
                    0 if args.reconcile_only else args.max_symbols_per_exchange,
-                   recovery_analysis, BUILD)
+                   recovery_analysis, BUILD,
+                   active_kinds=set(stock_app.INVESTMENT_UNIVERSES.values()))
 
 
 if __name__ == "__main__":

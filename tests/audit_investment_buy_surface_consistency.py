@@ -182,8 +182,10 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
             assert feed["Action"] == "BUY CANDIDATE", f"Valid feed suppressed: {kind} {ticker}"
 
     screen = {"checked": False}
+    primary_kinds = None
     if check_ui:
         import stock_app  # Runs Streamlit declarations in bare, read-only CI mode.
+        primary_kinds = set(stock_app.INVESTMENT_UNIVERSES.values())
 
         # This is the *production Streamlit backend loader*, not a duplicate
         # reproduction of its sector, FX, venue, and company-dedup logic.
@@ -249,6 +251,23 @@ def audit(root: Path, *, now: datetime | None = None, check_ui: bool = True) -> 
         "note": "Publication verification and cross-screen signal safety only; not financial advice or historical alpha evidence.",
     }
     assert len(passes) + len(unverified) == len(buy)
+    if primary_kinds is not None:
+        active = [item for item in buy if item.get("Prepared exchange") in primary_kinds]
+        excluded = [item for item in buy if item.get("Prepared exchange") not in primary_kinds]
+        active_passes = [item for item in passes if item["exchange"] in primary_kinds]
+        active_withheld = [item for item in unverified if item["exchange"] in primary_kinds]
+        assert len(active_passes) + len(active_withheld) == len(active)
+        assert len(active) + len(excluded) == len(buy)
+        report.update({
+            "active_primary_valuation_buy_rows": len(active),
+            "active_primary_verified_buy_rows": len(active_passes),
+            "active_primary_withheld_buy_rows": len(active_withheld),
+            "excluded_legacy_valuation_buy_rows": len(excluded),
+            "excluded_legacy_exchanges": sorted({
+                item.get("Prepared exchange") for item in excluded
+                if item.get("Prepared exchange")
+            }),
+        })
     return report
 
 
