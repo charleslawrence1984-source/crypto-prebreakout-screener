@@ -1,0 +1,85 @@
+name: Pension and Kraken funded safety regression
+
+on:
+  pull_request:
+    paths:
+      - "managed_pension.py"
+      - "pension_guardrails.py"
+      - "pension_fund_comparison.py"
+      - "pension_point_in_time.py"
+      - "pension_return_accounting.py"
+      - "pension_portfolio_replay.py"
+      - "stock_app_v2.py"
+      - "platform_home.py"
+      - "kraken_funded.py"
+      - "funded_scan_readiness.py"
+      - "funded_forward_capture.py"
+      - "funded_forward_runner.py"
+      - "funded_forward_outcomes.py"
+      - ".github/workflows/funded-forward-research.yml"
+      - "tests/test_pension_guardrails.py"
+      - "tests/test_pension_fund_comparison.py"
+      - "tests/test_pension_point_in_time.py"
+      - "tests/test_pension_return_accounting.py"
+      - "tests/test_pension_portfolio_replay.py"
+      - "tests/test_funded_account_contract.py"
+      - "tests/test_funded_scan_readiness.py"
+      - "tests/test_funded_forward_capture.py"
+      - "tests/test_funded_forward_runner.py"
+      - "tests/test_funded_forward_outcomes.py"
+      - "tests/test_managed_pension_ui.py"
+      - ".github/workflows/pension-and-funded-regression.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guardrails:
+    name: Python syntax and contract checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install funded diagnostic test dependency
+        run: python -m pip install "pandas>=2.1,<3"
+      - name: Compile all changed Python routes and rules
+        run: |
+          python -m py_compile stock_app_v2.py platform_home.py managed_pension.py pension_guardrails.py pension_fund_comparison.py pension_point_in_time.py pension_return_accounting.py pension_portfolio_replay.py kraken_funded.py funded_scan_readiness.py funded_forward_capture.py funded_forward_runner.py funded_forward_outcomes.py
+      - name: Pension diversification, freshness, and verification tests
+        run: python -m unittest discover -s tests -p test_pension_guardrails.py -v
+      - name: Validate matched return periods and fees before ranking pensions
+        run: python -m unittest discover -s tests -p test_pension_fund_comparison.py -v
+      - name: Reject look-ahead historical statements and survivor-only universes
+        run: python -m unittest discover -s tests -p test_pension_point_in_time.py -v
+      - name: Verify GBP return accounting and external cashflows
+        run: python -m unittest discover -s tests -p test_pension_return_accounting.py -v
+      - name: Verify portfolio replay never uses same-bar fills or missing price marks
+        run: python -m unittest discover -s tests -p test_pension_portfolio_replay.py -v
+      - name: Differentiate stale funded scans from real technical rejections
+        run: python -m unittest discover -s tests -p test_funded_scan_readiness.py -v
+      - name: Verify both stock and crypto prospective snapshot safeguards
+        run: python -m unittest discover -s tests -p test_funded_forward_capture.py -v
+      - name: Mocked stock and crypto headless runner smoke tests
+        run: python -m unittest discover -s tests -p test_funded_forward_runner.py -v
+      - name: Validate conservative prospective stop/target research outcomes
+        run: python -m unittest discover -s tests -p test_funded_forward_outcomes.py -v
+      - name: Existing Kraken Funded loss-floor regression tests
+        run: python -m unittest discover -s tests -p test_funded_account_contract.py -v
+
+  streamlit:
+    name: Managed Pension route smoke check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install UI smoke test dependencies
+        run: pip install "streamlit>=1.45,<2" pandas
+      - name: Test homepage and pension page navigation
+        run: python -m unittest discover -s tests -p test_managed_pension_ui.py -v
