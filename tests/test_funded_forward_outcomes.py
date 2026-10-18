@@ -89,7 +89,7 @@ class ProspectiveShadowOutcomes(unittest.TestCase):
 
     def test_gap_below_stop_is_worse_than_planned_stop(self):
         result = self.score_stock([
-            daily("2026-10-20", high=101, low=97),
+            daily("2026-10-20", high=101, low=97, close=100),
             daily("2026-10-21", open=90, high=91, low=89, close=90),
         ])
         self.assertEqual(result["shadow_status"], "SHADOW STOP (GAP)")
@@ -137,9 +137,9 @@ class ProspectiveShadowOutcomes(unittest.TestCase):
 
     def test_entry_window_expiry_requires_complete_future_bars(self):
         result = self.score_stock([
-            daily("2026-10-20", high=99, low=96),
-            daily("2026-10-21", high=99, low=96),
-            daily("2026-10-22", high=99, low=96),
+            daily("2026-10-20", high=99, low=96, close=98),
+            daily("2026-10-21", high=99, low=96, close=98),
+            daily("2026-10-22", high=99, low=96, close=98),
         ])
         self.assertEqual(result["shadow_status"], "EXPIRED WITHOUT ENTRY")
 
@@ -154,7 +154,7 @@ class ProspectiveShadowOutcomes(unittest.TestCase):
 
     def test_target_requires_completed_bar(self):
         result = evaluate_snapshot(crypto(), {"BTC": [
-            bar("2026-10-19T04:00:00+00:00", high=101, low=97),
+            bar("2026-10-19T04:00:00+00:00", high=101, low=97, close=100),
             bar("2026-10-19T08:00:00+00:00", high=120, low=99),
         ]}, evaluated_at=datetime(2026, 10, 19, 11, 0, tzinfo=timezone.utc),
         universe=CRYPTO_UNIVERSE)["rows"][0]
