@@ -1,7 +1,9 @@
 """Research-only funded 12%/3% reference risk tests. No broker fills."""
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 import ast
+import math
 import unittest
 
 from funded_forward_capture import create_snapshot, funded_universe
@@ -142,6 +144,42 @@ class RiskResearchTests(unittest.TestCase):
         self.assertEqual(original["FUNDED_MAX_POSITION_PCT"],
                          MAX_POSITION_EQUITY_FRACTION * 100)
         self.assertEqual(MIN_EQUITY_BUFFER_ABOVE_FLOOR_USD, 10)
+
+    def test_funded_ui_account_guard_blocks_combined_risk_into_10_dollar_buffer(self):
+        # Execute only the original pure UI guard using isolated AST,
+        # without importing Streamlit, account credentials or a broker.
+        tree = ast.parse(Path(__file__).resolve().parents[1]
+                         .joinpath("kraken_funded.py").read_text(encoding="utf-8"))
+        fn = next(n for n in tree.body
+                  if isinstance(n, ast.FunctionDef) and n.name == "_account_guard")
+        state = {
+            "funded_risk_verified": True,
+            "funded_account_equity": 985.0,
+            "funded_other_open_risk": 3.0,
+        }
+        scope = {
+            "st": SimpleNamespace(session_state=state),
+            "np": SimpleNamespace(isfinite=math.isfinite),
+            "safe_number": lambda x: float("nan") if x is None else float(x),
+            "FUNDED_FAIL_BALANCE": 970.0,
+            "FUNDED_MAX_TOTAL_OPEN_RISK_USD": 10.0,
+        }
+        exec(compile(ast.Module(body=[fn], type_ignores=[]),
+                     filename="kraken_funded.py", mode="exec"), scope)
+        guard = scope["_account_guard"]
+        # Old guard allowed this $3 new position because 985-980>=3
+        # and 3 existing + 3 new <= 10. Combined $6 breaches the buffer.
+        self.assertIn("ACCOUNT RISK LIMIT", guard(3.0))
+        state["funded_other_open_risk"] = 2.0
+        self.assertEqual(guard(3.0), "")  # exactly $5 remaining capacity
+        state["funded_account_equity"] = 1000.0
+        state["funded_other_open_risk"] = 8.0
+        self.assertIn("ACCOUNT RISK LIMIT", guard(3.0))
+        state["funded_other_open_risk"] = 0.0
+        state["funded_risk_verified"] = False
+        self.assertIn("VERIFY ACCOUNT", guard(3.0))
+        state["funded_risk_verified"] = True
+        self.assertIn("ACCOUNT RISK LIMIT", guard(float("nan")))
 
     def test_low_remaining_equity_blocks_new_paper_trade_before_970_failure(self):
         first = frozen("first-adverse-close", BASE, ticker="BTC")
