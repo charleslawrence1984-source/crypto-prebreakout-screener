@@ -24,6 +24,9 @@ MAX_OPEN_PLANNED_RISK_USD = 10.0
 MAX_POSITION_EQUITY_FRACTION = .35
 MAX_COMBINED_NOTIONAL_EQUITY_FRACTION = 1.0
 DEFAULT_COST_PCT = .5
+# Simultaneous adverse price shocks: RESEARCH sensitivity, not probability.
+# The consumer Funded app cannot place a native protective stop order.
+UNPROTECTED_SHOCKS_PCT = (3.0, 5.0, 10.0, 15.0)
 EXIT_STATUSES = frozenset({
     "SHADOW STOP", "SHADOW STOP (GAP)", "SHADOW TARGET", "SHADOW TIMEOUT",
 })
@@ -158,6 +161,9 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
     vetoed = []
     closed = []
     peak_open_risk = 0.0
+    peak_open_notional = 0.0
+    stress_lowest_equity = {move: None for move in UNPROTECTED_SHOCKS_PCT}
+    paper_exposure_observations = 0
     breach = False
     target = False
 
@@ -214,6 +220,19 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
         item = dict(case, units=units, notional=notional, planned_risk=risk)
         active.append(item)
         peak_open_risk = max(peak_open_risk, sum(v["planned_risk"] for v in active))
+        peak_open_notional = max(peak_open_notional, sum(v["notional"] for v in active))
+        paper_exposure_observations += 1
+        # This shock assumes that all simultaneously open proxy assets move
+        # adversely together and that NO protective broker stop is available.
+        # Cost is still a scenario assumption, NOT a funded buy/sell quote.
+        # Compute at each admission with realized-only equity at THAT time;
+        # do not retroactively apply today's equity to past exposures.
+        for shock in UNPROTECTED_SHOCKS_PCT:
+            loss = sum(v["notional"] * (shock + v["cost_pct"]) / 100 for v in active)
+            stressed = equity - loss
+            current = stress_lowest_equity[shock]
+            stress_lowest_equity[shock] = (stressed if current is None
+                                           else min(current, stressed))
         accepted.append({
             "asset": name, "source_run_id": case["source_run_id"],
             "entry_at": case["opened"].isoformat(),
@@ -226,6 +245,22 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
     # outcome whose end has not yet elapsed must be rejected, not credited.
     if any(v["ended"] is not None for v in active):
         raise ValueError("Paper exit is later than evaluation time")
+    stress = [
+        {
+            "simultaneous_adverse_move_pct": shock,
+            "lowest_model_equity_after_shock_usd": (
+                round(stress_lowest_equity[shock], 6)
+                if stress_lowest_equity[shock] is not None else None
+            ),
+            "would_touch_fixed_970_floor_in_this_hypothesis": (
+                stress_lowest_equity[shock] <= FAIL_EQUITY
+                if stress_lowest_equity[shock] is not None else None
+            ),
+            "tested_paper_exposure_count": paper_exposure_observations,
+            "not_actual_intrabar_data_or_funded_broker_protection": True,
+        }
+        for shock in UNPROTECTED_SHOCKS_PCT
+    ]
     return {
         "schema": "cl-signal-funded-paper-challenge-risk-v1",
         "as_of_utc": clock.isoformat(),
@@ -243,6 +278,10 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
         "open_unique_paper_cases": len(active),
         "duplicate_or_risk_vetoed_cases": len(vetoed),
         "peak_planned_open_risk_usd": round(peak_open_risk, 6),
+        "peak_simultaneous_paper_notional_usd": round(peak_open_notional, 6),
+        "unprotected_simultaneous_adverse_move_stress": stress,
+        "stress_is_hypothetical_not_observed_price_path": True,
+        "native_kraken_funded_protective_stops_available": False,
         "max_realized_only_peak_to_trough_drawdown_usd": round(realized_peak_to_trough, 6),
         "modeled_realized_threshold_breach": breach,
         "modeled_realized_target_threshold_seen": target,
@@ -256,6 +295,8 @@ def simulate_risk(snapshots, reports, *, evaluated_at, risk_usd=DEFAULT_REDUCED_
         "closed_paper_cases": closed,
         "open_assets": [v["kind"] + ":" + v["asset"] for v in active],
         "note": ("Public-market proxy only. Equity accounts for hypothetical closed "
-                 "cases and costs, NOT floating loss, funding, spreads, slippage, "
-                 "fees, margin, leverage, execution or actual challenge equity."),
+                 "cases and costs; scenario stress assumes no protective broker "
+                 "stop and simultaneous adverse moves. Neither demonstrates "
+                 "actual intrabar floating drawdown, Kraken Funded quotes, "
+                 "spread, slippage, execution or true challenge equity."),
     }
