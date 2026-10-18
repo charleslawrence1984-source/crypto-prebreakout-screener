@@ -221,5 +221,78 @@ class TechnicalTests(unittest.TestCase):
             self.assertEqual(json.loads((dst / "manifest.json").read_text())["exchanges"]["test"]["status"], "deferred_fundamentals")
 
 
+    def test_short_history_backoff_is_fail_closed_and_source_sensitive(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src, dst = Path(tmp) / "source", Path(tmp) / "technical"
+            src.mkdir()
+            rows = pd.DataFrame([
+                {"Ticker": "SHORT", "Action": "BUY CANDIDATE", "Hard gates": "PASS", "Price": 10},
+                {"Ticker": "GOOD", "Action": "WAIT", "Hard gates": "PASS", "Price": 20},
+            ])
+            source_file = src / "nyse.csv.gz"
+            source_manifest = src / "manifest.json"
+            def save():
+                rows.to_csv(source_file, index=False, compression="gzip")
+                source_manifest.write_text(json.dumps({"exchanges": {"nyse": {
+                    "status": "complete", "eligible_symbols": 2,
+                    "coverage_symbols": 2, "coverage_target_symbols": 2,
+                    "remaining_symbols": 0, "provider_deferred_symbols": 0,
+                }}}))
+            save()
+            calls = []
+            def analyse(symbol):
+                calls.append(symbol)
+                if symbol == "SHORT" and rows.loc[0, "Price"] == 10:
+                    raise ValueError("1y: 58 rows, insufficient usable history/indicators; "
+                                     "2y: 58 rows, insufficient usable history/indicators")
+                return {"RSI": 50}
+            module.prepare(src, dst, 10, analyse, "v1")
+            manifest = json.loads((dst / "manifest.json").read_text())["exchanges"]["nyse"]
+            self.assertEqual(manifest["status"], "partial")
+            self.assertEqual(manifest["remaining_symbols"], 1)
+            self.assertEqual(manifest["insufficient_history_deferred_symbols"], 1)
+            self.assertEqual(set(pd.read_csv(dst / "nyse.csv.gz").Ticker), {"GOOD"})
+            self.assertEqual(calls, ["GOOD", "SHORT"])  # alphabetical selection
+            module.prepare(src, dst, 10, analyse, "v1")
+            self.assertEqual(calls, ["GOOD", "SHORT"], "The same short-history candles must not be fetched hourly")
+            rows.loc[0, "Price"] = 11
+            save()
+            module.prepare(src, dst, 10, analyse, "v1")
+            self.assertEqual(calls, ["GOOD", "SHORT", "SHORT"], "A changed source fingerprint must bypass cooldown")
+            manifest = json.loads((dst / "manifest.json").read_text())["exchanges"]["nyse"]
+            self.assertEqual(manifest["status"], "complete")
+            self.assertEqual(manifest["insufficient_history_deferred_symbols"], 0)
+            self.assertEqual(set(pd.read_csv(dst / "nyse.csv.gz").Ticker), {"SHORT", "GOOD"})
+
+    def test_expired_history_backoff_retries_but_generic_failures_never_backoff(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            src, dst = Path(tmp) / "source", Path(tmp) / "technical"
+            src.mkdir()
+            pd.DataFrame([
+                {"Ticker": "A", "Action": "WAIT", "Hard gates": "PASS", "Price": 10}
+            ]).to_csv(src / "nasdaq.csv.gz", index=False, compression="gzip")
+            (src / "manifest.json").write_text(json.dumps({"exchanges": {"nasdaq": {
+                "status": "complete", "eligible_symbols": 1, "coverage_symbols": 1,
+                "remaining_symbols": 0,
+            }}}))
+            calls = []
+            def insufficient(symbol):
+                calls.append(symbol)
+                raise ValueError("1y: 27 rows, insufficient usable history/indicators; "
+                                 "2y: 27 rows, insufficient usable history/indicators")
+            module.prepare(src, dst, 1, insufficient, "v1")
+            path = dst / "manifest.json"
+            whole = json.loads(path.read_text())
+            whole["exchanges"]["nasdaq"]["insufficient_history_backoff"]["A"]["retry_after"] = (
+                datetime.now(timezone.utc) - timedelta(minutes=1)).isoformat()
+            path.write_text(json.dumps(whole))
+            module.prepare(src, dst, 1, lambda symbol: calls.append(symbol) or {"RSI": 48}, "v1")
+            self.assertEqual(calls, ["A", "A"], "Expired cooldown must not strand a valid listing")
+            self.assertEqual(json.loads(path.read_text())["exchanges"]["nasdaq"]["status"], "complete")
+            self.assertFalse(module.insufficient_price_history(RuntimeError("Too Many Requests")))
+            self.assertFalse(module.insufficient_price_history(
+                ValueError("1y: 250 rows, insufficient usable history/indicators; "
+                           "2y: 250 rows, insufficient usable history/indicators")))
+
 if __name__ == "__main__":
     unittest.main()
