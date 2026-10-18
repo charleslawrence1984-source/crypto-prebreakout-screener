@@ -19,7 +19,11 @@ def frozen(run, captured, ticker="BTC", stop=95):
                      "stop": stop if coin == ticker else None,
                      "target": 115 if coin == ticker else None,
                      "score": 90 if coin == ticker else None,
-                     "rr": 3 if coin == ticker else None})
+                     "rr": 3 if coin == ticker else None,
+                     "meta": ({"swing_eligible": True, "entry_timing_actionable": True,
+                               "execution_liquidity_pass_public_spot": True,
+                               "funded_bid_ask_verified": False}
+                              if coin == ticker else {})})
     return create_snapshot("crypto", rows, observed_at=captured,
                            run_id=run, universe={"crypto": COINS})
 
@@ -55,11 +59,18 @@ class RiskResearchTests(unittest.TestCase):
 
     def test_rejected_pass_and_watch_only_is_no_profit_evidence(self):
         s = frozen("no-trades", BASE, ticker="UNLISTED")
-        r = results(s)
+        r = results(s, ticker="UNLISTED")
         out = self.model([s], [r])
         self.assertEqual(out["admitted_unique_paper_cases"], 0)
         self.assertEqual(out["modeled_realized_equity_proxy_usd"], 1000)
         self.assertFalse(out["kraken_funded_challenge_pass_confirmed"])
+
+
+    def test_forged_paper_target_from_rejected_pass_is_blocked(self):
+        s = frozen("no-trades-reject", BASE, ticker="UNLISTED")
+        r = results(s)  # Fabricated TARGET on original engine PASS.
+        with self.assertRaisesRegex(ValueError, "Rejected original"):
+            self.model([s], [r])
 
     def test_entry_risk_and_notional_caps_hold_even_if_stop_near_entry(self):
         s = frozen("close-stop", BASE, stop=99.99)
