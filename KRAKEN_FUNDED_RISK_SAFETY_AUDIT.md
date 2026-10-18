@@ -62,7 +62,19 @@ It is not a promise that a manual trader can protect the funded loss floor.
    stress-tested against the reduced realized-equity proxy, even if
    there is no new entry afterward. Previously only admission
    instants were stress-tested.
-5. **Source/trade authorization integrity (tested).** Every admitted
+5. **Booked loss can exhaust the reserve on an EXISTING position (fixed in this
+   draft).** The risk admission check only runs when a *new* hypothetical
+   position is considered. A prior trade can subsequently close at an
+   unfavorable price while another trade stays open, so the combined
+   remaining planned risk can become too high for the now-lower modeled
+   equity even if no new trade is requested. The draft now reports an
+   explicit `remaining_position_buffer_breach_after_booked_loss` alert
+   with dated evidence and the remaining assets, rather than accidentally
+   implying the original entry-time approval remains sufficient.
+   In the synthetic scenario the realized-only proxy stays above $970;
+   the $10 safety reserve can nevertheless be consumed. This is
+   **research evidence, not a claim of an observed broker breach**.
+6. **Source/trade authorization integrity (tested).** Every admitted
    hypothetical position must reference an authentic full-universe,
    SHA-256-verified original Kraken Funded archive and a separate
    read-only outcome. Rejected Crypto `PASS`, WATCH, or a forged
