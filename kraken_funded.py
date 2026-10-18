@@ -1161,6 +1161,16 @@ st.info(
     "very little drawdown room."
 )
 
+st.warning(
+    "Kraken Funded in the standard Kraken app does NOT offer advanced order types. "
+    "CL Signal's breakout entry, invalidation/stop and target are RESEARCH LEVELS, "
+    "not automatically executable protective orders. A manual exit may be late "
+    "or impossible during a sharp move; the fixed $970 loss floor can be hit "
+    "even briefly. Check actual Funded-tab buy/sell prices, current account "
+    "equity and whether you can monitor/exit manually. Do not interpret READY "
+    "or a successful paper stop as guaranteed drawdown protection."
+)
+
 m1, m2, m3, m4 = st.columns(4)
 m1.metric("Starting balance", "$1,000")
 m2.metric("Pass target", "$1,120", "+12%")
@@ -1182,7 +1192,7 @@ with st.expander("Kraken Funded overlay rules", expanded=False):
         - Position size is calculated from **entry → invalidation/stop**, capped at **35% of current entered equity**.
         - Crypto marked **EXTENDED / TOO LATE** or failing execution/liquidity is still an automatic PASS.
         - READY requires confirmation of equity/open risk and dated manual company earnings evidence. Yahoo earnings dates are only unverified estimates; dates within 5 weekday sessions cause an automatic veto.
-        - This screener is **not linked to broker positions**. Stops are not guaranteed in gaps or slippage.
+        - This screener is **not linked to broker positions**. The consumer Kraken Funded app has **no advanced stop-loss orders**; paper invalidation is a manual risk reference, **not** an installed protective exit. Slippage and missed exits can breach the fixed $970 loss floor.
         - There is **no need to force trades** because the challenge has no time limit.
         """
     )
