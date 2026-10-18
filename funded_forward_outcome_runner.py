@@ -55,7 +55,7 @@ def restore_github_archives(*, repository: str, token: str, min_created: datetim
     endpoint = f"https://api.github.com/repos/{repository}/actions/artifacts"
     archives = []
     exhausted = False
-    for page in range(1, 6):
+    for page in range(1, 51):
         response = client.get(endpoint, params={"per_page": 100, "page": page}, timeout=30)
         response.raise_for_status()
         items = response.json().get("artifacts", [])
@@ -71,10 +71,12 @@ def restore_github_archives(*, repository: str, token: str, min_created: datetim
             if len(archives) >= max_artifacts:
                 raise RuntimeError("Frozen archive cap reached; fail closed rather than silently omit older observations")
             archives.append(item)
-        if exhausted or len(items) < 100:
+        if len(items) < 100:
+            exhausted = True
+        if exhausted:
             break
-    if not exhausted and len(archives) >= max_artifacts:
-        raise RuntimeError("Insufficient evidence window: archive list may have been truncated")
+    if not exhausted:
+        raise RuntimeError("GitHub archive pagination unbounded: source evidence could be incomplete")
     if not archives:
         raise RuntimeError("No authentic default-branch frozen Funded archives; zero is NOT a clean no-trade scan")
     snapshots = []
