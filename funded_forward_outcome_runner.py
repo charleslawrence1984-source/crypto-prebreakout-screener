@@ -22,6 +22,7 @@ from funded_forward_health import (
     RESEARCH_CRYPTO_TRIGGER, RESEARCH_STOCK_TRIGGERS, validate_snapshot,
 )
 from funded_forward_outcomes import evaluate_snapshot, write_outcome_once
+from funded_challenge_shadow_risk import simulate_risk
 
 NAME = re.compile(r"^funded-(crypto|stocks)-[0-9]+-[0-9]+$")
 MAX_ARCHIVE_BYTES = 3_000_000
@@ -222,7 +223,7 @@ def evaluate_archive_batch(snapshots, *, evaluated_at, prices=None):
         # Every evaluation references original SHA; no changed snapshot, no
         # hypothetical 'broker fills' added to its source evidence.
         results.append(report)
-    return {
+    journal = {
         "schema": "cl-signal-funded-forward-daily-journal-v1",
         "evaluated_at_utc": evaluated_at.isoformat(),
         "source_snapshot_count": len(snapshots),
@@ -239,6 +240,12 @@ def evaluate_archive_batch(snapshots, *, evaluated_at, prices=None):
         "research_only": True,
         "observations": results,
     }
+    # Distinct-asset, bounded-risk realized-only PAPER research overlay.
+    # No account connection, no actual pass claim and no double counting.
+    journal["provisional_challenge_risk"] = simulate_risk(
+        snapshots, results, evaluated_at=evaluated_at,
+    )
+    return journal
 
 
 def main():
@@ -271,6 +278,8 @@ def main():
         "original_research_triggers": journal["original_technical_trigger_observations"],
         "statuses": journal["shadow_status_counts"],
         "funded_trades": 0, "research_only": True,
+        "paper_distinct_positions": journal["provisional_challenge_risk"]["admitted_unique_paper_cases"],
+        "paper_realized_equity_proxy_usd": journal["provisional_challenge_risk"]["modeled_realized_equity_proxy_usd"],
     }, sort_keys=True))
     if os.getenv("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
@@ -282,6 +291,10 @@ def main():
                 f"**{journal['original_technical_trigger_observations']}**\n"
                 f"- Shadow states: **{journal['shadow_status_counts']}**\n"
                 "- Recorded broker trades: **0**; funded account equity/P&L: **NOT CONNECTED**\n"
+                f"- Distinct admitted PAPER positions: **{journal['provisional_challenge_risk']['admitted_unique_paper_cases']}** "
+                f"(duplicates/risk vetoes: {journal['provisional_challenge_risk']['duplicate_or_risk_vetoed_cases']})\n"
+                f"- Realized-only shadow equity proxy: **${journal['provisional_challenge_risk']['modeled_realized_equity_proxy_usd']}**; "
+                "FLOATING DRAWDOWN AND REAL ACCOUNT LOSS LIMIT UNVERIFIED\n"
                 "- Outcomes are correlated, public-market proxies with hypothetical "
                 "0.5% cost, not trade confirmations or an achieved challenge.\n"
             )
