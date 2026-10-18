@@ -1,5 +1,7 @@
 """Research-only funded 12%/3% reference risk tests. No broker fills."""
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
+import ast
 import unittest
 
 from funded_forward_capture import create_snapshot, funded_universe
@@ -114,6 +116,86 @@ class RiskResearchTests(unittest.TestCase):
             self.assertIsNone(item["would_touch_fixed_970_floor_in_this_hypothesis"])
         self.assertTrue(result["stress_is_hypothetical_not_observed_price_path"])
 
+    def test_original_ui_risk_rules_match_research_guard_constants(self):
+        from funded_challenge_shadow_risk import (
+            START_EQUITY, TARGET_EQUITY, FAIL_EQUITY,
+            MAX_SINGLE_RISK_USD, MAX_OPEN_PLANNED_RISK_USD,
+            DEFAULT_REDUCED_RISK_USD, STANDARD_A_PLUS_RISK_USD,
+            MAX_POSITION_EQUITY_FRACTION, MIN_EQUITY_BUFFER_ABOVE_FLOOR_USD,
+        )
+        tree = ast.parse(Path(__file__).resolve().parents[1]
+                         .joinpath("kraken_funded.py").read_text(encoding="utf-8"))
+        original = {}
+        for node in tree.body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id.startswith("FUNDED_"):
+                        if isinstance(node.value, ast.Constant):
+                            original[target.id] = node.value.value
+        self.assertEqual(original["FUNDED_START_BALANCE"], START_EQUITY)
+        self.assertEqual(original["FUNDED_TARGET_BALANCE"], TARGET_EQUITY)
+        self.assertEqual(original["FUNDED_FAIL_BALANCE"], FAIL_EQUITY)
+        self.assertEqual(original["FUNDED_MAX_RISK_USD"], MAX_SINGLE_RISK_USD)
+        self.assertEqual(original["FUNDED_MAX_TOTAL_OPEN_RISK_USD"], MAX_OPEN_PLANNED_RISK_USD)
+        self.assertEqual(original["FUNDED_REDUCED_RISK_USD"], DEFAULT_REDUCED_RISK_USD)
+        self.assertEqual(original["FUNDED_STANDARD_RISK_USD"], STANDARD_A_PLUS_RISK_USD)
+        self.assertEqual(original["FUNDED_MAX_POSITION_PCT"],
+                         MAX_POSITION_EQUITY_FRACTION * 100)
+        self.assertEqual(MIN_EQUITY_BUFFER_ABOVE_FLOOR_USD, 10)
+
+    def test_low_remaining_equity_blocks_new_paper_trade_before_970_failure(self):
+        first = frozen("first-adverse-close", BASE, ticker="BTC")
+        second = frozen("second-blocked", BASE+timedelta(minutes=2), ticker="ETH")
+        first_outcome = results(
+            first, ticker="BTC", status="SHADOW STOP (GAP)",
+            entry_time=BASE+timedelta(hours=4),
+            exit_time=BASE+timedelta(hours=4, minutes=1),
+            exit_price=67,
+        )
+        second_outcome = results(
+            second, ticker="ETH", status="SHADOW OPEN",
+            entry_time=BASE+timedelta(hours=4, minutes=2),
+        )
+        paper = self.model([first, second], [first_outcome, second_outcome])
+        self.assertGreater(paper["modeled_realized_equity_proxy_usd"], 970)
+        self.assertLess(paper["modeled_realized_equity_proxy_usd"], 983)
+        self.assertFalse(paper["modeled_realized_threshold_breach"])
+        self.assertEqual(paper["admitted_unique_paper_cases"], 1)
+        self.assertEqual(paper["duplicate_or_risk_vetoed_cases"], 1)
+        self.assertIn("EQUITY BUFFER", paper["vetoes"][0]["reason"])
+        self.assertEqual(paper["ui_equity_buffer_above_fixed_failure_floor_usd"], 10)
+
+    def test_four_dollar_a_plus_budget_and_combined_cap(self):
+        source = frozen("a-plus-model", BASE, ticker="BTC")
+        report = results(source, status="SHADOW OPEN")
+        model = self.model([source], [report], risk_usd=4)
+        self.assertEqual(model["risk_budget_per_paper_position_usd"], 4)
+        self.assertEqual(model["standard_a_plus_risk_usd"], 4)
+        self.assertLessEqual(model["admissions"][0]["planned_risk_including_cost_usd"], 4)
+
+    def test_booked_loss_recalculates_unprotected_stress_while_another_asset_is_open(self):
+        first = frozen("first-overlap-loss", BASE, ticker="BTC")
+        second = frozen("second-stays-open", BASE+timedelta(minutes=1), ticker="ETH")
+        r1 = results(
+            first, ticker="BTC", status="SHADOW STOP (GAP)",
+            entry_time=BASE+timedelta(hours=4),
+            exit_time=BASE+timedelta(hours=4, minutes=4),
+            exit_price=50,
+        )
+        r2 = results(
+            second, ticker="ETH", status="SHADOW OPEN",
+            entry_time=BASE+timedelta(hours=4, minutes=2),
+        )
+        out = self.model([first, second], [r1, r2])
+        stress = {x["simultaneous_adverse_move_pct"]: x
+                  for x in out["unprotected_simultaneous_adverse_move_stress"]}
+        self.assertEqual(out["admitted_unique_paper_cases"], 2)
+        self.assertGreater(out["modeled_realized_equity_proxy_usd"], 970)
+        self.assertLess(stress[10]["lowest_model_equity_after_shock_usd"], 970)
+        self.assertTrue(stress[10]["would_touch_fixed_970_floor_in_this_hypothesis"])
+        self.assertGreaterEqual(stress[10]["tested_paper_exposure_count"], 3)
+        self.assertFalse(out["kraken_funded_challenge_pass_confirmed"])
+
     def test_duplicate_observation_does_not_double_count_open_asset(self):
         a = frozen("run-one", BASE)
         b = frozen("run-two", BASE+timedelta(minutes=5))
@@ -137,7 +219,7 @@ class RiskResearchTests(unittest.TestCase):
             exit_at = entry_at+timedelta(minutes=5)
             reports.append(results(snap, ticker=coin,
                 entry_time=entry_at, exit_time=exit_at,
-                status="SHADOW STOP (GAP)", exit_price=50))
+                status="SHADOW STOP (GAP)", exit_price=40))
         out = self.model(stops,reports)
         self.assertTrue(out["modeled_realized_threshold_breach"])
         self.assertLessEqual(out["modeled_realized_equity_proxy_usd"], 970)
