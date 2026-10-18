@@ -23,6 +23,7 @@ from funded_forward_health import (
 )
 from funded_forward_outcomes import evaluate_snapshot, write_outcome_once
 from funded_challenge_shadow_risk import simulate_risk
+from funded_forward_evidence import summarize_forward_evidence
 
 NAME = re.compile(r"^funded-(crypto|stocks)-[0-9]+-[0-9]+$")
 MAX_ARCHIVE_BYTES = 3_000_000
@@ -245,6 +246,7 @@ def evaluate_archive_batch(snapshots, *, evaluated_at, prices=None):
     journal["provisional_challenge_risk"] = simulate_risk(
         snapshots, results, evaluated_at=evaluated_at,
     )
+    journal["performance_evidence"] = summarize_forward_evidence(journal)
     return journal
 
 
@@ -280,6 +282,9 @@ def main():
         "funded_trades": 0, "research_only": True,
         "paper_distinct_positions": journal["provisional_challenge_risk"]["admitted_unique_paper_cases"],
         "paper_realized_equity_proxy_usd": journal["provisional_challenge_risk"]["modeled_realized_equity_proxy_usd"],
+        "performance_closed_sample": journal["performance_evidence"]["distinct_closed_paper_positions"],
+        "paper_closed_win_rate_pct": journal["performance_evidence"]["paper_closed_case_win_rate_pct"],
+        "strategy_viability_proven": False,
     }, sort_keys=True))
     if os.getenv("GITHUB_STEP_SUMMARY"):
         with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
