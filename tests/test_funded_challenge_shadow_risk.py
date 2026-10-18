@@ -247,6 +247,44 @@ class RiskResearchTests(unittest.TestCase):
         self.assertEqual(out["open_unique_paper_cases"], 1)
         self.assertIn("REPEATED SIGNAL", out["vetoes"][0]["reason"])
 
+    def test_loss_can_violate_buffer_on_other_open_trade_without_new_entry(self):
+        # The first paper stop gaps enough to consume equity headroom, but
+        # has NOT yet touched the $970 floor. The second trade remains open.
+        # No third entry occurs to retrigger the normal entry-time UI guard.
+        first = frozen("buffer-loss-first", BASE, ticker="BTC")
+        second = frozen("buffer-left-open", BASE + timedelta(minutes=1), ticker="ETH")
+        closed = results(
+            first, ticker="BTC", status="SHADOW STOP (GAP)",
+            entry_time=BASE + timedelta(hours=4),
+            exit_time=BASE + timedelta(hours=4, minutes=4),
+            exit_price=67,
+        )
+        still_open = results(
+            second, ticker="ETH", status="SHADOW OPEN",
+            entry_time=BASE + timedelta(hours=4, minutes=2),
+        )
+        out = self.model([first, second], [closed, still_open])
+        self.assertEqual(out["admitted_unique_paper_cases"], 2)
+        self.assertEqual(out["open_unique_paper_cases"], 1)
+        self.assertFalse(out["modeled_realized_threshold_breach"])
+        self.assertGreater(out["modeled_realized_equity_proxy_usd"], 970)
+        self.assertTrue(out["remaining_position_buffer_breach_after_booked_loss"])
+        self.assertEqual(len(out["remaining_position_buffer_breach_events"]), 1)
+        event = out["remaining_position_buffer_breach_events"][0]
+        self.assertGreater(
+            event["remaining_open_planned_risk_usd"],
+            event["allowed_open_risk_after_buffer_usd"],
+        )
+        self.assertEqual(event["remaining_open_assets"], ["crypto:ETH"])
+        self.assertTrue(event["not_an_observed_funded_account_event"])
+        self.assertFalse(out["kraken_funded_challenge_pass_confirmed"])
+
+    def test_no_buffer_breach_on_zero_paper_positions(self):
+        s = frozen("empty-buffer-case", BASE, ticker="UNLISTED")
+        out = self.model([s], [results(s, ticker="UNLISTED")])
+        self.assertFalse(out["remaining_position_buffer_breach_after_booked_loss"])
+        self.assertEqual(out["remaining_position_buffer_breach_events"], [])
+
     def test_gap_stop_below_970_halts_new_entries(self):
         stops = [frozen(f"run-{i}", BASE+timedelta(hours=i),ticker=coin)
                  for i, coin in enumerate(COINS[:11])]
