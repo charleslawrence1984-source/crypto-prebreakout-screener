@@ -726,9 +726,9 @@
     "nasdaq": {
       "coverage_symbols": 363,
       "dispatch_counts": {
-        "IOND": 20,
-        "OIG": 20,
-        "SWRD": 20
+        "IOND": 21,
+        "OIG": 21,
+        "SWRD": 21
       },
       "eligible_symbols": 366,
       "errors": [
@@ -760,7 +760,7 @@
     "nyse": {
       "coverage_symbols": 481,
       "dispatch_counts": {
-        "VYLR": 17
+        "VYLR": 18
       },
       "eligible_symbols": 482,
       "errors": [
@@ -1282,5 +1282,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-18T22:30:57.980640+00:00"
+  "updated_at": "2026-10-19T00:24:15.042062+00:00"
 }
