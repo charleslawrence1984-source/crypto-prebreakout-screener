@@ -726,22 +726,22 @@
     "nasdaq": {
       "coverage_symbols": 363,
       "dispatch_counts": {
-        "IOND": 24,
-        "OIG": 24,
-        "SWRD": 24
+        "IOND": 25,
+        "OIG": 25,
+        "SWRD": 25
       },
       "eligible_symbols": 366,
       "errors": [
         {
-          "error": "1y: 58 rows, insufficient usable history/indicators; 2y: 58 rows, insufficient usable history/indicators",
+          "error": "1y: 59 rows, insufficient usable history/indicators; 2y: 59 rows, insufficient usable history/indicators",
           "symbol": "IOND"
         },
         {
-          "error": "1y: 21 rows, insufficient usable history/indicators; 2y: 21 rows, insufficient usable history/indicators",
+          "error": "1y: 22 rows, insufficient usable history/indicators; 2y: 22 rows, insufficient usable history/indicators",
           "symbol": "OIG"
         },
         {
-          "error": "1y: 27 rows, insufficient usable history/indicators; 2y: 27 rows, insufficient usable history/indicators",
+          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
           "symbol": "SWRD"
         }
       ],
@@ -760,12 +760,12 @@
     "nyse": {
       "coverage_symbols": 481,
       "dispatch_counts": {
-        "VYLR": 21
+        "VYLR": 22
       },
       "eligible_symbols": 482,
       "errors": [
         {
-          "error": "1y: 12 rows, insufficient usable history/indicators; 2y: 12 rows, insufficient usable history/indicators",
+          "error": "1y: 13 rows, insufficient usable history/indicators; 2y: 13 rows, insufficient usable history/indicators",
           "symbol": "VYLR"
         }
       ],
@@ -1282,5 +1282,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-19T11:01:43.853541+00:00"
+  "updated_at": "2026-10-19T17:37:37.699848+00:00"
 }
