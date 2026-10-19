@@ -3,12 +3,14 @@ name: Meme discovery pipeline
 on:
   workflow_dispatch:
   push:
+    branches: [main]
     paths:
       - "meme_market_pipeline.py"
       - "meme_discovery_utils.py"
       - ".github/workflows/meme-market-pipeline.yml"
   schedule:
-    - cron: "*/10 * * * *"
+    # Stagger away from :00 and from Crypto (:02/:07/...); best-effort only.
+    - cron: "4-59/10 * * * *"
 
 permissions:
   contents: write

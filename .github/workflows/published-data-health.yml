@@ -1,0 +1,104 @@
+name: CL Signal published data health — read-only
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Shift away from the top of the hour. GitHub schedule is best-effort.
+    - cron: "17 * * * *"
+  pull_request:
+    paths:
+      - "pipeline_publication_health.py"
+      - "tests/test_pipeline_publication_health.py"
+      - ".github/workflows/published-data-health.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cl-signal-published-feed-health-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publication-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check read-only pipeline publication contract
+        run: |
+          python -m py_compile pipeline_publication_health.py
+          python -m unittest discover -s tests -p test_pipeline_publication_health.py -v
+      - name: Check out real production main data for PR health diagnostics
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: _published_main
+          persist-credentials: false
+
+      - name: Restore most recent PUBLISHED Crypto and Meme branch data
+        # Test real publication history on PRs too; otherwise a green PR
+        # check proves only synthetic fixtures, not the live feed's health.
+        run: |
+          set -euo pipefail
+          git fetch origin crypto-data:refs/remotes/origin/crypto-data
+          git fetch origin meme-data:refs/remotes/origin/meme-data
+          git checkout origin/crypto-data -- prepared_crypto
+          git checkout origin/meme-data -- prepared_meme
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            cp -a prepared_crypto _published_main/
+            cp -a prepared_meme _published_main/
+            echo "PR diagnostic against production revision $(git -C _published_main rev-parse HEAD)"
+          fi
+      - name: Inspect actual published feeds on PR (report blockers, do not block fixes)
+        if: github.event_name == 'pull_request'
+        run: python pipeline_publication_health.py --root _published_main --output pipeline-publication-artifacts/health.json --no-fail
+      - name: Audit actual published feeds on schedule (fail if stale/partial)
+        if: github.event_name != 'pull_request'
+        run: python pipeline_publication_health.py --output pipeline-publication-artifacts/health.json
+      - name: Add clear publication status to GitHub check summary
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          path = Path("pipeline-publication-artifacts/health.json")
+          if not path.is_file():
+              print("::error::Publication health report was not produced")
+              raise SystemExit(1)
+          report=json.loads(path.read_text(encoding="utf-8"))
+          summary=[
+              "### Actual published CL Signal data feeds",
+              "",
+              "**This checks real manifests, not only unit tests.**",
+              "",
+              f"Overall feed condition: **{report['overall']}**",
+              "",
+              "| Feed | State | Age (minutes) | Main issue |",
+              "|---|---|---:|---|",
+          ]
+          for feed in report["datasets"]:
+              issues="; ".join(str(v) for v in feed["issues"]) or "None"
+              issues=issues.replace("|","/").replace("\n"," ")
+              summary.append(
+                  f"| {feed['feed']} | {feed['state']} | {feed['age_minutes']} | {issues[:300]} |"
+              )
+              if feed["state"] != "CURRENT":
+                  name=feed["feed"]
+                  print(f"::warning title=Unhealthy published data ({name})::{feed['state']}: {issues[:450]}")
+          with Path(os.environ["GITHUB_STEP_SUMMARY"]).open("a", encoding="utf-8") as out:
+              out.write("\n".join(summary)+"\n")
+          PY
+      - name: Preserve diagnostic report even if some feeds failed
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipeline-health-${{ github.run_id }}-${{ github.run_attempt }}
+          path: pipeline-publication-artifacts/health.json
+          if-no-files-found: warn
+          retention-days: 30
