@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   watchdog-tests:
@@ -25,7 +26,12 @@ jobs:
           python-version: "3.12"
       - name: Compile monitor-only Python
         run: python -m py_compile scripts/audit_funded_schedule.py scripts/funded_freshness_watchdog.py
-      - name: Execute original and expanded deterministic regressions (no network)
+      - name: Execute deterministic regressions (no network)
         run: |
           python -m unittest discover -s tests -p test_funded_schedule_audit.py -v
           python -m unittest discover -s tests -p test_funded_freshness_watchdog.py -v
+      - name: Replay real recent scheduled GitHub jobs (no writes)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/audit_funded_schedule.py --repo "${{ github.repository }}"
