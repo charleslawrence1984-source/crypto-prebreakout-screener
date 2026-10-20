@@ -1,41 +1,248 @@
 {
   "exchanges": {
-    "lse": {
-      "changed_count": 0,
-      "changed_symbols": [],
-      "label": "London Stock Exchange",
+    "euronext_amsterdam": {
+      "changed_count": 1,
+      "changed_symbols": [
+        "CMCOM.AS"
+      ],
+      "label": "Euronext Amsterdam",
       "new_count": 0,
       "new_symbols": []
     },
-    "lse_aim": {
+    "euronext_brussels": {
+      "changed_count": 2,
+      "changed_symbols": [
+        "KIN.BR",
+        "LOTB.BR"
+      ],
+      "label": "Euronext Brussels",
+      "new_count": 0,
+      "new_symbols": []
+    },
+    "euronext_lisbon": {
       "changed_count": 0,
       "changed_symbols": [],
+      "label": "Euronext Lisbon",
+      "new_count": 1,
+      "new_symbols": [
+        "MLRZE.LS"
+      ]
+    },
+    "euronext_paris": {
+      "changed_count": 9,
+      "changed_symbols": [
+        "ALGID.PA",
+        "ALGLD.PA",
+        "ALMCE.PA",
+        "BIG.PA",
+        "LOUP.PA",
+        "QDT.PA",
+        "SFCA.PA",
+        "VMX.PA",
+        "WAVE.PA"
+      ],
+      "label": "Euronext Paris",
+      "new_count": 3,
+      "new_symbols": [
+        "MLAEM.PA",
+        "MLAGI.PA",
+        "MLHOT.PA"
+      ]
+    },
+    "lse": {
+      "changed_count": 1,
+      "changed_symbols": [
+        "EDV.L"
+      ],
+      "label": "London Stock Exchange",
+      "new_count": 1,
+      "new_symbols": [
+        "CAS.L"
+      ]
+    },
+    "lse_aim": {
+      "changed_count": 5,
+      "changed_symbols": [
+        "BKS.L",
+        "FNX.L",
+        "GEM.L",
+        "ITM.L",
+        "TSTL.L"
+      ],
       "label": "LSE AIM",
       "new_count": 0,
       "new_symbols": []
     },
     "madrid": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 1,
+      "changed_symbols": [
+        "AMS.MC"
+      ],
       "label": "Bolsa de Madrid",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "YEUR.MC"
+      ]
+    },
+    "nasdaq": {
+      "changed_count": 44,
+      "changed_symbols": [
+        "AAME",
+        "ASST",
+        "ASTL",
+        "ATLO",
+        "BAOS",
+        "BFC",
+        "BIOT",
+        "BREZ",
+        "BVC",
+        "CAPS",
+        "CLPS",
+        "CRON",
+        "CTW",
+        "DRVN",
+        "FCFS",
+        "FRHC",
+        "HIFS",
+        "IMVT",
+        "INTR",
+        "KRYS",
+        "KTOS",
+        "LGND",
+        "LOOP",
+        "MNST",
+        "NB",
+        "NCNO",
+        "NGEN",
+        "NMIH",
+        "OPK",
+        "PBAM",
+        "PIII",
+        "RTAC",
+        "RTACU",
+        "SDGR",
+        "TCBK",
+        "TCXB",
+        "TDTH",
+        "TFSL",
+        "TLSA",
+        "TOWN",
+        "TSAT",
+        "UBSI",
+        "VRSN",
+        "ZNTL"
+      ],
+      "label": "NASDAQ",
+      "new_count": 2,
+      "new_symbols": [
+        "LCU",
+        "SRTM"
+      ]
     },
     "nyse": {
-      "changed_count": 0,
-      "changed_symbols": [],
+      "changed_count": 45,
+      "changed_symbols": [
+        "ACN",
+        "ARIS",
+        "ATI",
+        "AU",
+        "AVY",
+        "AXS",
+        "CARS",
+        "CBZ",
+        "CGAU",
+        "CLF",
+        "CLS",
+        "CMC",
+        "CNX",
+        "DX",
+        "FITB",
+        "FNV",
+        "GIL",
+        "HAFN",
+        "HBM",
+        "HDB",
+        "HOG",
+        "IBN",
+        "KB",
+        "KGC",
+        "KRG",
+        "LADR",
+        "LSPD",
+        "MGA",
+        "MKL",
+        "NVRI",
+        "NWN",
+        "ORA",
+        "P",
+        "PFGC",
+        "PLUN",
+        "RC",
+        "RLI",
+        "SLF",
+        "SSB",
+        "TFPM",
+        "TRV",
+        "TTE",
+        "VVX",
+        "WD",
+        "WFG"
+      ],
       "label": "NYSE",
       "new_count": 0,
       "new_symbols": []
     },
-    "tsx": {
+    "six": {
       "changed_count": 0,
       "changed_symbols": [],
+      "label": "SIX Swiss Exchange",
+      "new_count": 1,
+      "new_symbols": [
+        "LISNE.SW"
+      ]
+    },
+    "tsx": {
+      "changed_count": 9,
+      "changed_symbols": [
+        "ATRL.TO",
+        "DBM.TO",
+        "DOO.TO",
+        "GWO.TO",
+        "K.TO",
+        "LNR.TO",
+        "NWC.TO",
+        "POW.TO",
+        "SLF.TO"
+      ],
       "label": "Toronto Stock Exchange",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 1,
+      "new_symbols": [
+        "SNDY.TO"
+      ]
+    },
+    "vienna": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Wiener B\u00f6rse",
+      "new_count": 1,
+      "new_symbols": [
+        "WOLF.VI"
+      ]
+    },
+    "xetra": {
+      "changed_count": 2,
+      "changed_symbols": [
+        "HBH.DE",
+        "HFG.DE"
+      ],
+      "label": "Deutsche B\u00f6rse Xetra",
+      "new_count": 2,
+      "new_symbols": [
+        "1COV.DE",
+        "4A3.DE"
+      ]
     }
   },
-  "generated_at": "2026-10-18T23:25:00+01:00",
+  "generated_at": "2026-10-20T01:24:13+01:00",
   "rulebook_build": "2026.10.02.03"
 }
