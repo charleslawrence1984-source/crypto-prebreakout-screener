@@ -41,7 +41,7 @@ jobs:
       - name: Install public research dependencies (no brokerage)
         run: python -m pip install -r requirements.txt
       - name: Research original stock signals vs all eligible mover/non-mover anchors
-        run: python scripts/funded_missed_mover_pilot.py --symbols AAPL,MSFT,NVDA,TSLA,PLTR --period 3y --out-dir funded-backtest-pilot
+        run: PYTHONPATH=. python scripts/funded_missed_mover_pilot.py --symbols AAPL,MSFT,NVDA,TSLA,PLTR --period 3y --out-dir funded-backtest-pilot
       - name: Preserve CSV gate, holdout and research evidence
         if: always()
         uses: actions/upload-artifact@v4
