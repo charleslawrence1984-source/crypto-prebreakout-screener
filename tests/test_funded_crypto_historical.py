@@ -134,6 +134,23 @@ class CryptoAsOfTests(unittest.TestCase):
         self.assertEqual(a.set_index("Signal open UTC").loc[t.isoformat(),"Research class"],
                          a2.set_index("Signal open UTC").loc[t.isoformat(),"Research class"])
 
+    def test_sparse_42_bar_stride_is_non_overlapping_and_requires_mature_daily(self):
+        coin,btc,dates=fixture()
+        scores=[]
+        def scorer(c4,d,b4,cfg,dfw,btcd):
+            scores.append(c4["timestamp"].iloc[-1])
+            return {"score":60,"ready":False}
+        a,b,e=replay_coin(
+            coin,btc,coin_name="ETH",pair="ETH/USD",max_anchors=5,
+            anchor_stride=42,min_daily_bars=200,horizons=(5,10,20),
+            thresholds=(10,),scorer=scorer,flattener=mock_flat,
+        )
+        # Synthetic fixture has only 150 completed daily bars: fail closed,
+        # never pretend historical 200-day SMA was available.
+        self.assertTrue(a.empty)
+        self.assertEqual(len(e),5)
+        self.assertFalse(scores)
+
     def test_exit_same_bar_stop_and_target_always_stop_first(self):
         coin,btc,dates=fixture()
         history=coin["4h"].iloc[:7].copy()
