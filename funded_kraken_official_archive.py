@@ -29,7 +29,7 @@ def read_ohlcvt_member(archive_path, member_name, *, since=None, until=None):
     Only an explicitly identified member is accepted, not fuzzy pair symbols
     whose naming conventions might otherwise silently route to other assets.
     """
-    match = re.search(r"_(240|1440)\\.csv$", member_name, re.I)
+    match = re.search(r"_(240|1440)\.csv$", member_name, re.I)
     if not match:
         raise ValueError("Only explicit Kraken 240-minute or 1440-minute OHLCVT members")
     timeframe = {"240": "4h", "1440": "1d"}[match.group(1)]
