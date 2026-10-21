@@ -47,7 +47,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install stock test and earnings-parser dependencies
-        run: python -m pip install "numpy>=1.26,<3" "pandas>=2.2,<3" "beautifulsoup4>=4.12,<5" "html5lib>=1.1,<2" "lxml>=4.9,<7" "lxml_html_clean>=0.4,<1"
+        run: python -m pip install "numpy>=1.26,<3" "pandas>=2.2,<3" "beautifulsoup4>=4.12,<5" "html5lib>=1.1,<2" "lxml>=4.9,<7" "lxml_html_clean>=0.4,<1" "exchange-calendars>=4.9,<5"
       - name: Compile Kraken Funded and stock breakout modules
         run: python -m py_compile kraken_funded.py funded_stock_breakout.py funded_stock_data.py funded_stock_events.py funded_stock_backtest.py funded_stock_paper.py funded_crypto_checks.py
       - name: Run safety and stock breakout regression tests
