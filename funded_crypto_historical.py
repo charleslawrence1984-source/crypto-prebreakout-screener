@@ -58,7 +58,7 @@ def _asof(frame, timeframe, clock, *, min_bars):
 
 
 def score_asof(coin, btc, *, coin_name, pair, bar_open, universe_size=33,
-               scorer=score_setup, flattener=None):
+               min_daily_bars=35, scorer=score_setup, flattener=None):
     """Run *original* scoring and original BUY routing on exact historical data."""
     if coin_name not in {"BTC", "ETH", "LINK", "BCH", "DOGE", "SHIB", "ARB",
                          "BONK", "AAVE", "AVAX", "BNB", "CRV", "DOT", "FIL",
@@ -72,10 +72,10 @@ def score_asof(coin, btc, *, coin_name, pair, bar_open, universe_size=33,
     t = t.tz_convert("UTC")
     clock = t + DELTAS["4h"] + GRACE
     c4 = _asof(coin["4h"], "4h", clock, min_bars=70)
-    cd = _asof(coin["1d"], "1d", clock, min_bars=35)
+    cd = _asof(coin["1d"], "1d", clock, min_bars=min_daily_bars)
     cw = _asof(coin["1w"], "1w", clock, min_bars=8)
     b4 = _asof(btc["4h"], "4h", clock, min_bars=70)
-    bd = _asof(btc["1d"], "1d", clock, min_bars=35)
+    bd = _asof(btc["1d"], "1d", clock, min_bars=min_daily_bars)
     if c4["timestamp"].iloc[-1] != b4["timestamp"].iloc[-1]:
         raise ValueError("coin/BTC 4h clocks not aligned")
     if c4["timestamp"].iloc[-1] != t:
@@ -131,18 +131,21 @@ def score_asof(coin, btc, *, coin_name, pair, bar_open, universe_size=33,
 
 def replay_coin(coin, btc, *, coin_name, pair, max_anchors=120, horizons=(5,10,20),
                 thresholds=(10,20,30), scorer=score_setup,
-                flattener=None):
-    if not 1 <= max_anchors <= 2000:
-        raise ValueError("max_anchors outside research guard")
+                flattener=None, anchor_stride=1, min_daily_bars=35):
+    if not 1 <= max_anchors <= 2000 or not 1 <= anchor_stride <= 144:
+        raise ValueError("max_anchors/anchor_stride outside research guard")
+    if not 35 <= min_daily_bars <= 365:
+        raise ValueError("invalid daily warmup for historical rulebook")
     history = coin["4h"].reset_index(drop=True)
     end = len(history) - max(horizons)  # every anchor must have a complete horizon
-    begin = max(0, end-max_anchors)
+    begin = max(0, end-max_anchors*anchor_stride)
     audits, outcome_rows, errors = [], [], []
-    for i in range(begin,end):
+    for i in range(begin,end,anchor_stride):
         t = history["timestamp"].iloc[i]
         try:
             row = score_asof(coin,btc,coin_name=coin_name,pair=pair,bar_open=t,
-                             scorer=scorer,flattener=flattener)
+                             scorer=scorer,flattener=flattener,
+                             min_daily_bars=min_daily_bars)
         except (ValueError, KeyError, IndexError, ArithmeticError) as exc:
             errors.append({"Coin":coin_name,"Decision bar open":str(t),
                            "Reason":f"{type(exc).__name__}: {str(exc)[:150]}"})
