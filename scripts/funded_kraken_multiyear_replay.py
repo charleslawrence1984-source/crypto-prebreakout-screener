@@ -23,7 +23,7 @@ import pandas as pd
 
 from funded_kraken_official_archive import (
     merge_historic_segments, weekly_from_kraken_daily,
-    weekly_overlap_parity,
+    weekly_price_and_volume_parity,
 )
 from funded_crypto_historical import (
     normalize_bars, replay_coin, independent_mover_episodes, research_exit_proxy,
@@ -163,9 +163,10 @@ async def run(args):
                     pair,timeframe="1w",limit=120),timeout=45)
                 reference=completed_funded_crypto_candles(
                     ohlcv_frame(raw),"1w",pd.Timestamp.now(tz="UTC"))
-                count=weekly_overlap_parity(all_history[coin]["1w"],reference)
-                parity[coin]={"matched_weeks":count,"status":"PASS",
-                              "reference_pair":pair}
+                audit=weekly_price_and_volume_parity(
+                    all_history[coin]["1w"],reference,
+                    price_rtol=1e-7,max_volume_relative_difference=0.005)
+                parity[coin]={**audit,"reference_pair":pair}
                 a,o,e=replay_coin(
                     all_history[coin],all_history["BTC"],coin_name=coin,pair=pair,
                     max_anchors=args.max_anchors,
