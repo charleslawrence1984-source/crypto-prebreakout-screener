@@ -7,7 +7,7 @@ from zipfile import ZipFile
 from unittest.mock import patch
 
 from scripts.kraken_archive_range_probe import (
-    ArchiveUnavailable, HTTPRangeReader, catalog_quarter, ALLOWED,
+    ArchiveUnavailable, HTTPRangeReader, MultipartKrakenZIP, catalog_quarter, ALLOWED, FULL_PARTS,
 )
 
 
@@ -88,6 +88,34 @@ class KrakenArchiveHTTPRangeTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"only documented"):
             HTTPRangeReader("https://other.example/kraken.zip",
                             opener=make_provider(fixture_zip()))
+
+    def test_virtual_full_archive_reads_zip_across_exact_five_parts(self):
+        payload=fixture_zip()
+        b=len(payload)//5
+        chunks=[payload[i*b:(i+1)*b] for i in range(4)]+[payload[4*b:]]
+        sources={url:chunk for url,chunk in zip(FULL_PARTS,chunks)}
+        def opener(request, timeout):
+            url=request.full_url
+            chunk=sources[url]
+            if request.get_method()=="HEAD":
+                return FakeResponse(b"",code=200,
+                                    headers={"Content-Length":str(len(chunk))},url=url)
+            first,last=map(int,re.fullmatch(
+                r"bytes=(\\d+)-(\\d+)",request.get_header("Range")).groups())
+            return FakeResponse(chunk[first:last+1],code=206,
+                       headers={"Content-Range":f"bytes {first}-{last}/{len(chunk)}"},
+                       url=url)
+        remote=MultipartKrakenZIP(max_transfer=200000,opener=opener)
+        self.assertEqual(remote.size,len(payload))
+        with ZipFile(remote) as z:
+            self.assertIn("BTCUSD_240.csv",z.namelist())
+            self.assertIn(b"100,110,90",z.read("BTCUSD_240.csv"))
+        self.assertLess(remote.transferred,remote.limit)
+
+    def test_full_archive_part_order_cannot_be_modified(self):
+        with self.assertRaisesRegex(ValueError,"exact official"):
+            MultipartKrakenZIP(part_urls=tuple(reversed(FULL_PARTS)),
+                                opener=make_provider(fixture_zip()))
 
     def test_cumulative_range_cap(self):
         payload=fixture_zip()
