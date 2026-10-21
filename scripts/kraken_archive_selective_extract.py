@@ -130,7 +130,11 @@ def main():
     parser.add_argument("--output",default="funded-kraken-quarter-sample")
     parser.add_argument("--min-pairs",type=int,default=2)
     args=parser.parse_args()
-    bases=[x.strip().upper() for x in args.coins.split(",") if x.strip()]
+    if args.coins.strip().lower()=="all":
+        from funded_forward_capture import funded_universe
+        bases=list(funded_universe()["crypto"])
+    else:
+        bases=[x.strip().upper() for x in args.coins.split(",") if x.strip()]
     report=extract_quarter(args.quarter,bases,args.output,min_pairs=args.min_pairs)
     print(json.dumps({k:v for k,v in report.items()
                       if k not in {"selected_sources"}},sort_keys=True))
