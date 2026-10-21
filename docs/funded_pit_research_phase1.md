@@ -28,6 +28,44 @@ Kraken broker execution, portfolio edge, or an authorised live order.**
   manufacture them from the current WATCH/BUY snapshot. Thus no historical
   crypto signal accuracy is claimed by this phase.
 
+## First original-rule real data pilot — 21 Oct 2026 (preliminary)
+
+[One-time PR-only CI run 39598388677](../../actions/runs/39598388677) passed 11/11
+deterministic no-lookahead tests and executed the public provider pilot for
+AAPL, MSFT, NVDA, TSLA and PLTR. Five stocks had 751 completed daily price
+bars each (23 Oct 2023–20 Oct 2026), current-session price gate PASS.
+The audit used 252-bar warmup, so this is **not** three full years of eligible
+signals.
+
+- Original engine prefilter checked **171** candidate symbol/sessions:
+  **25 core**, **146 breakout** candidates.
+- **0 original qualified technical signals**, **0 modeled next-open entries**,
+  **0 completed simulated trades**. P&L $0 and no challenge pass/fail are
+  **not** evidence of strategy safety, profitability, or challenge success.
+- **171 full-rule rejections**. Top *overlapping* individual veto hits:
+  projected breakout reward:risk below 2 (**142**), resistance not tested
+  twice (**111**), approved structural stop-distance outside 0.4–8% (**104**),
+  and volume below 1.35× (**90**). These counts are NOT independent cases
+  or a list of rules to relax. Full per-event breakout reasons are enhanced
+  in this draft, with follow-up CI still required.
+- All-inclusive analysis recorded **21,975** 5/10/20-bar by threshold
+  anchor/outcome rows across these five stocks, including extensive
+  non-movers. The observations share overlapping windows; no independent
+  sample size or recall precision claim is justified.
+- Real ZIP artifact from that run: `funded-point-in-time-5-stock-pilot-39598388677`
+  (artifact ID `12344946782`). The 11 CSV/JSON files were independently
+  opened and sampled; include audited traces and original engine diagnostics.
+- Current branch adds finer authentic breakout-veto trace and paired
+  mover/non-mover counts **without changing the original decision path**.
+  New CI/replay outputs may differ in diagnostic detail, but original signal
+  decisions and frozen baseline should not.
+
+**Interpretation:** this small stock subset produced no actionable technical
+entries even while later upward closes occurred. This justifies diagnosis,
+not looser gates. Non-survivor membership, corporate actions, earnings
+calendar, broker execution and Kraken crypto multi-timeframe history remain
+unverified.
+
 ## Signal versus subsequent mover: no future leakage
 
 At time t (a completed bar close), original engine outputs are frozen
@@ -61,7 +99,7 @@ crosses the following split. No signal changes or threshold tuning on the
 holdout. Overlapping t anchor outcomes are correlated; these are NOT
 statistically independent wins, precise rates, or a performance guarantee.
 
-Reports include all-anchor CSV, original prefilter evaluation trace,
+Reports include all-anchor CSV, per-original-veto prospective mover/non-mover breakdown, original prefilter evaluation trace,
 qualified original technical signal list, mover vs non-mover counts by fold,
 availability and provider freshness, simulation output, and explicit JSON
 assumptions / baseline commit. High price excursions from stock splits and
