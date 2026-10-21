@@ -89,6 +89,11 @@ def _folds(audits, outcome, *, horizon=20):
         return audits,outcome
     audits=audits.copy()
     outcome=outcome.copy()
+    def decision_key(coin,stamp):
+        instant=pd.Timestamp(stamp)
+        if instant.tzinfo is None:
+            raise ValueError("historical decision timestamp lacks timezone")
+        return (str(coin),instant.tz_convert("UTC").isoformat())
     mapping={}
     for coin,idx in audits.groupby("Coin",sort=True).groups.items():
         positions=list(idx)
@@ -97,11 +102,11 @@ def _folds(audits, outcome, *, horizon=20):
         for ordinal,row_idx in enumerate(positions):
             fold=("TRAIN" if ordinal<b1 else
                   "VALIDATION" if ordinal<b2 else "UNTOUCHED HOLDOUT")
-            mapping[audits.loc[row_idx,"Signal open UTC"]+"|"+coin]=fold
+            mapping[decision_key(coin,audits.loc[row_idx,"Signal open UTC"])]=fold
             audits.loc[row_idx,"Research fold"]=fold
     if not outcome.empty:
         outcome["Research fold"]=[
-            mapping.get(str(t)+"|"+str(c),"UNKNOWN")
+            mapping.get(decision_key(c,t),"UNKNOWN")
             for t,c in zip(outcome["Decision bar open"],outcome["Coin"])
         ]
         # Decisions are sampled >=42 4h bars apart and horizons are <=20;
