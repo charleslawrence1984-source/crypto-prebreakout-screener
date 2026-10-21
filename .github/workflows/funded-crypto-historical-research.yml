@@ -1,0 +1,51 @@
+name: Kraken Funded authentic Kraken spot as-of crypto research (PR ONLY)
+
+# Not scheduled. NEVER authorizes broker trades, funded readiness or new rules.
+on:
+  pull_request:
+    paths:
+      - "funded_crypto_historical.py"
+      - "scripts/funded_crypto_historical_pilot.py"
+      - "tests/test_funded_crypto_historical.py"
+      - "docs/funded_crypto_historical_phase2.md"
+      - ".github/workflows/funded-crypto-historical-research.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  historical-crypto-time-integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deterministic-only dependencies
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3"
+      - name: Compile as-of and source-integrity code
+        run: python -m py_compile funded_crypto_historical.py scripts/funded_crypto_historical_pilot.py
+      - name: Execute as-of no-lookahead and risk-proxy invariants
+        run: python -m unittest discover -s tests -p test_funded_crypto_historical.py -v
+
+  historical-kraken-spot-data-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install public-provider research dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Reconstruct original funded crypto engine at recent historical 4h clocks
+        run: PYTHONPATH=. python scripts/funded_crypto_historical_pilot.py --coins BTC,ETH,SOL --max-anchors 90 --min-valid 2 --min-anchors 20 --out-dir funded-crypto-historical-pilot
+      - name: Preserve source OHLCV hashes, audited decisions, movers, controls, risk proxies
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-authentic-kraken-crypto-asof-pilot-${{ github.run_id }}
+          path: funded-crypto-historical-pilot/*
+          retention-days: 30
+          if-no-files-found: warn
