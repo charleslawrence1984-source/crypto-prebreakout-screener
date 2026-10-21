@@ -681,8 +681,8 @@
       "errors": [],
       "fresh_coverage_symbols": 87,
       "remaining_symbols": 0,
-      "requested_this_run": 37,
-      "returned_this_run": 37,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_coverage_target_symbols": 236,
       "source_fundamentals_updated_at": "2026-10-21T00:56:27+01:00",
       "source_provider_deferred_symbols": 1,
@@ -2072,8 +2072,8 @@
       "errors": [],
       "fresh_coverage_symbols": 77,
       "remaining_symbols": 0,
-      "requested_this_run": 25,
-      "returned_this_run": 25,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_coverage_target_symbols": 362,
       "source_fundamentals_updated_at": "2026-10-21T00:56:32+01:00",
       "source_provider_deferred_symbols": 2,
@@ -2119,5 +2119,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-21T00:38:47.315521+00:00"
+  "updated_at": "2026-10-21T00:47:24.521177+00:00"
 }
