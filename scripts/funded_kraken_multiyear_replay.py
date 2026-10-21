@@ -115,8 +115,10 @@ def _folds(audits, outcome, *, horizon=20):
 
 
 async def run(args):
-    coins=[x.strip().upper() for x in args.coins.split(",") if x.strip()]
-    allowed=set(funded_universe()["crypto"])
+    allowed_order=list(funded_universe()["crypto"])
+    coins=(allowed_order if args.coins.strip().lower()=="all" else
+           [x.strip().upper() for x in args.coins.split(",") if x.strip()])
+    allowed=set(allowed_order)
     if not coins or set(coins)-allowed or len(coins)!=len(set(coins)):
         raise ValueError("requested coins must be unique approved funded assets")
     if not 1<=args.min_coins<=len(coins):
