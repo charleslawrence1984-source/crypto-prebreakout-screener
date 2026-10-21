@@ -5,7 +5,7 @@ import pandas as pd
 import numpy as np
 
 from funded_historical_opportunities import (
-    opportunity_census, census_summary, _fold,
+    opportunity_census, census_summary, gate_outcome_comparison, _fold,
 )
 
 
@@ -85,6 +85,29 @@ class OpportunityCensusTests(unittest.TestCase):
         self.assertEqual(rec["Original gate class"], "PREFILTER_REJECTED")
         self.assertIn("actual rejection gate not supplied", rec["Original gate reason"])
         self.assertFalse(rec["Original technical signal"])
+
+    def test_real_veto_has_matched_future_mover_and_nonmover_controls(self):
+        raw=prices(spike_index=14,factor=1.20)
+        trace=[
+            {"Ticker":"AAPL","Signal date":raw.index[9],
+             "Core state":"BLOCKED","Core reason":"NO CURRENT CORE CROSS",
+             "Breakout trigger":True,"Breakout state":"FUNDED BREAKOUT REVIEW",
+             "Breakout reason":"PROJECTED R:R BELOW 2; LOW BREAKOUT VOLUME"},
+            {"Ticker":"AAPL","Signal date":raw.index[20],
+             "Core state":"BLOCKED","Core reason":"NO CURRENT CORE CROSS",
+             "Breakout trigger":True,"Breakout state":"FUNDED BREAKOUT REVIEW",
+             "Breakout reason":"PROJECTED R:R BELOW 2; LOW BREAKOUT VOLUME"},
+        ]
+        ledger,_=opportunity_census(
+            {"AAPL":raw},asset_type="stocks",audited_symbols={"AAPL"},
+            audit_trace=trace,windows=(5,),thresholds_pct=(10,),min_history=5,
+        )
+        out=gate_outcome_comparison(ledger)
+        rr=out[(out["Fold"]=="TRAIN")
+               & (out["Original veto"]=="BREAKOUT: PROJECTED R:R BELOW 2")].iloc[0]
+        self.assertEqual(int(rr["Candidate decision anchors with veto"]),2)
+        self.assertEqual(int(rr["Later mover anchors with veto"]),1)
+        self.assertEqual(int(rr["Later non-mover anchors with veto"]),1)
 
     def test_folds_purge_overlapping_outcome_windows(self):
         self.assertEqual(_fold(24, 50, 5), "TRAIN")
