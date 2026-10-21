@@ -134,6 +134,35 @@ class CryptoAsOfTests(unittest.TestCase):
         self.assertEqual(a.set_index("Signal open UTC").loc[t.isoformat(),"Research class"],
                          a2.set_index("Signal open UTC").loc[t.isoformat(),"Research class"])
 
+    def test_original_crypto_scorer_does_not_promote_on_weekly_volume_revision(self):
+        from crypto_rule_engine import score_setup, ScreenerConfig
+        coin,btc,dates=fixture()
+        t=dates[610]
+        cfg=ScreenerConfig(exchange_id="kraken",quote="USD",
+                           universe_size=33,min_quote_volume=0,score_threshold=80)
+        def run():
+            return score_asof(
+                coin,btc,coin_name="ETH",pair="ETH/USD",bar_open=t,
+                scorer=lambda c4,d,b4,configuration,dfw,btcd:
+                    score_setup(c4,d,b4,cfg,dfw=dfw,btcd=btcd),
+                flattener=lambda item,result: {
+                    "Swing status":"WATCH",
+                    "Swing score":result.get("score"),
+                    "Swing reason":result.get("reason"),
+                    "Entry timing":result.get("entry_timing"),
+                    "Swing eligible":result.get("eligible"),
+                    "Entry timing actionable":result.get("entry_timing_actionable"),
+                    "Current R:R":result.get("current_risk_reward"),
+                })
+        baseline=run()
+        coin["1w"]["volume"]*=1.004
+        revised=run()
+        for key in ("Original technical state","Original technical score",
+                    "Original reason","Original entry timing","Original eligible",
+                    "Original timing actionable","Original R:R"):
+            self.assertEqual(baseline[key],revised[key],
+                             f"weekly provider volume change altered {key}")
+
     def test_sparse_42_bar_stride_is_non_overlapping_and_requires_mature_daily(self):
         coin,btc,dates=fixture()
         scores=[]
