@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 from collections import Counter
+from bisect import bisect_right
 from hashlib import sha256
 import io
 import json
@@ -41,7 +42,7 @@ class HTTPRangeReader:
     and requests consume a fixed cumulative research byte budget.
     """
     def __init__(self, url, *, max_transfer=50_000_000, opener=urlopen):
-        if url not in ALLOWED.values():
+        if url not in ALLOWED.values() and url not in FULL_PARTS:
             raise ValueError("only documented Kraken official quarter archives")
         self.url = url
         self.opener = opener
@@ -114,6 +115,69 @@ class HTTPRangeReader:
         self.transferred += len(payload)
         self.position += len(payload)
         return payload
+
+
+class MultipartKrakenZIP:
+    """Read the logical >10GB Kraken full ZIP over five bounded HTTP ranges.
+
+    Strictly maps ZIP offsets to documented part files. Only tiny exact
+    ranges are read and never more than a global budget. Full ZIP integrity
+    SHA cannot be attested without all original bytes.
+    """
+    def __init__(self, *, max_transfer=60_000_000, opener=urlopen,
+                 part_urls=FULL_PARTS):
+        if tuple(part_urls) != FULL_PARTS:
+            raise ValueError("only exact official Kraken full-archive part list")
+        self.readers=[HTTPRangeReader(url,max_transfer=max_transfer,
+                                       opener=opener) for url in part_urls]
+        self.ends=[]
+        total=0
+        for reader in self.readers:
+            total+=reader.size
+            self.ends.append(total)
+        self.size=total
+        self.position=0
+        self.limit=max_transfer
+        self.transferred=0
+    def seekable(self):
+        return True
+    def readable(self):
+        return True
+    def tell(self):
+        return self.position
+    def seek(self, offset, whence=io.SEEK_SET):
+        p=(offset if whence==io.SEEK_SET
+           else self.position+offset if whence==io.SEEK_CUR
+           else self.size+offset if whence==io.SEEK_END
+           else None)
+        if p is None or p<0:
+            raise ValueError("bad multipart ZIP seek")
+        self.position=p
+        return p
+    def read(self,count=-1):
+        if self.position>=self.size:
+            return b""
+        count=(self.size-self.position if count is None or count<0
+               else min(count,self.size-self.position))
+        if count>self.limit-self.transferred:
+            raise ArchiveUnavailable("Multipart source exceeds global byte budget")
+        chunks=[]
+        remaining=count
+        while remaining>0:
+            part=bisect_right(self.ends,self.position)
+            begin=self.ends[part-1] if part else 0
+            limit=self.ends[part]
+            take=min(remaining,limit-self.position)
+            reader=self.readers[part]
+            reader.seek(self.position-begin)
+            segment=reader.read(take)
+            if len(segment)!=take:
+                raise ArchiveUnavailable("Incomplete multipart HTTP range")
+            chunks.append(segment)
+            self.position+=take
+            self.transferred+=take
+            remaining-=take
+        return b"".join(chunks)
 
 
 def catalog_quarter(quarter, *, max_transfer=20_000_000, opener=urlopen):
