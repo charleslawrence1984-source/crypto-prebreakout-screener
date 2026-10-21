@@ -104,8 +104,9 @@ def score_asof(coin, btc, *, coin_name, pair, bar_open, universe_size=33,
         "Decision UTC":clock.isoformat(),
         "Original technical state":status,
         "Research class":("PROXY_BUY_UNVERIFIED" if status == "BUY"
-                          else ("WATCH" if status == "WATCH" else "REJECTED_PASS")
-                          if status == "PASS" else "UNKNOWN"),
+                          else "WATCH" if status == "WATCH"
+                          else "REJECTED_PASS" if status == "PASS"
+                          else "UNKNOWN"),
         "Original technical score":flat.get("Swing score"),
         "Original reason":str(flat.get("Swing reason") or "")[:450],
         "Original entry timing":flat.get("Entry timing"),
@@ -218,9 +219,12 @@ def research_exit_proxy(c4, audits, *, cost_pct=0.8, max_hold_bars=20):
         future=history.loc[history.index>t].head(max_hold_bars)
         if len(future)<max_hold_bars:
             continue
-        entry=float(future["open"].iloc[0])*(1+cost_pct/200)
-        stop=float(item["Stop proxy"])
-        target=float(item["Target proxy"])
+        try:
+            entry=float(future["open"].iloc[0])*(1+cost_pct/200)
+            stop=float(item["Stop proxy"])
+            target=float(item["Target proxy"])
+        except (TypeError,ValueError,OverflowError):
+            continue
         if not math.isfinite(entry+stop+target) or stop>=entry or stop<=0 or target<=entry:
             continue
         close_price=None;why=None
