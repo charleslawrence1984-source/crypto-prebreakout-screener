@@ -40,6 +40,18 @@ class OfficialKrakenArchiveTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"SHA-256 mismatch"):
                 verify_archive_checksum(file,"0"*64)
 
+    def test_daily_archive_member_parses_at_one_day_without_four_hour_heuristics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            file=Path(tmp)/"day.zip"
+            ts=pd.Timestamp("2026-07-01T00:00:00Z").timestamp()
+            with ZipFile(file,"w") as z:
+                z.writestr("NEARUSD_1440.csv",f"{int(ts)},1,2,0.8,1.5,500,21\\n")
+            result=read_ohlcvt_member(file,"NEARUSD_1440.csv")
+            self.assertEqual(len(result),1)
+            self.assertAlmostEqual(result.iloc[0]["close"],1.5)
+            with self.assertRaisesRegex(ValueError,"240-minute or 1440-minute"):
+                read_ohlcvt_member(file,"NEARUSD_60.csv")
+
     def test_full_week_thursday_anchor_only(self):
         d=make_daily()
         w=weekly_from_kraken_daily(d)
