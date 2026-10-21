@@ -121,9 +121,18 @@ async def run(args):
     pd.DataFrame(coverage).to_csv(out/"crypto_coverage.csv",index=False)
     decisions.to_csv(out/"asof_original_crypto_decisions.csv",index=False)
     mover.to_csv(out/"all_mover_and_nonmover_anchors.csv",index=False)
-    unavailable.to_csv(out/"unscored_asof_clocks.csv",index=False)
-    episodes.to_csv(out/"cooldown_separated_mover_episodes.csv",index=False)
-    simulated.to_csv(out/"unverified_next_open_proxy_outcomes.csv",index=False)
+    unavailable.reindex(columns=["Coin","Decision bar open","Reason"]).to_csv(
+        out/"unscored_asof_clocks.csv",index=False)
+    episodes.reindex(columns=[
+        "Coin","Window 4h bars","Threshold %","Episode anchor","Original class",
+        "Original reason","Max subsequent CLOSE %",
+        "Not an independently executed trade",
+    ]).to_csv(out/"cooldown_separated_mover_episodes.csv",index=False)
+    simulated.reindex(columns=[
+        "Coin","Signal bar open","Next 4h ask proxy","Exit bid proxy",
+        "Outcome reason","Net R proxy","Modeled roundtrip friction %",
+        "Kraken Funded fill verified",
+    ]).to_csv(out/"unverified_next_open_proxy_outcomes.csv",index=False)
     metadata={
         "captured_at_utc":start.isoformat(),
         "mode":"READ_ONLY_KRAKEN_SPOT_ORIGINAL_RULES_CRYPTO_RESEARCH",
@@ -133,6 +142,8 @@ async def run(args):
         "original_status_engine":"crypto_market_pipeline.flatten_deep_score",
         "original_funded_crypto_universe_size":len(allow),
         "selected_current_symbols":coins,
+        "min_audited_per_coin":args.min_anchors,
+        "max_decision_anchors_per_coin":args.max_anchors,
         "market_selection":"Kraken spot USD, fallback USDT if listed now; not historical listing proof",
         "asof": "4h close+1min; completed 4h/daily/weekly/BTC bars only",
         "score_lookbacks":"original engine 180x4h/365x1d/220x1w caps",
@@ -158,7 +169,11 @@ async def run(args):
     }
     (out/"source_manifest.json").write_text(
         json.dumps(metadata,indent=2,sort_keys=True,allow_nan=False)+"\n",encoding="utf-8")
-    valid=sorted(decisions["Coin"].unique()) if not decisions.empty else []
+    valid=sorted(
+        coin for coin,count in (
+            decisions.groupby("Coin").size().items() if not decisions.empty else []
+        ) if count>=args.min_anchors
+    )
     summary={
         "complete_audit_coins":valid,"requested_coins":coins,
         "historical_decision_clocks":len(decisions),
