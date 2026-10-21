@@ -101,7 +101,7 @@ class KrakenArchiveHTTPRangeTests(unittest.TestCase):
                 return FakeResponse(b"",code=200,
                                     headers={"Content-Length":str(len(chunk))},url=url)
             first,last=map(int,re.fullmatch(
-                r"bytes=(\\d+)-(\\d+)",request.get_header("Range")).groups())
+                r"bytes=(\d+)-(\d+)",request.get_header("Range")).groups())
             return FakeResponse(chunk[first:last+1],code=206,
                        headers={"Content-Range":f"bytes {first}-{last}/{len(chunk)}"},
                        url=url)
