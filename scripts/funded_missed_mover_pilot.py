@@ -37,14 +37,18 @@ def safe_metadata(value):
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("--out-dir", default="funded-backtest-pilot")
-    p.add_argument("--symbols", default="AAPL,MSFT,NVDA,TSLA,PLTR")
+    p.add_argument("--symbols", default="AAPL,MSFT,NVDA,TSLA,PLTR",
+                   help="Comma-separated approved stocks, or 'all' for the current 30-stock universe")
+    p.add_argument("--min-valid", type=int, default=1,
+                   help="Fail closed if fewer distinct fresh symbol histories are usable")
     p.add_argument("--period", default="3y", choices=("3y",))
     args = p.parse_args()
     from time import monotonic
     import yfinance as yf
 
-    selected = [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
     universe = funded_universe()["stocks"]
+    selected = (list(universe) if args.symbols.strip().lower() == "all" else
+                [s.strip().upper() for s in args.symbols.split(",") if s.strip()])
     if len(selected) != len(set(selected)) or not selected or any(s not in universe for s in selected):
         raise ValueError("Symbols must be distinct members of the original 30-stock funded universe")
     now = pd.Timestamp.now(tz="America/New_York")
@@ -80,8 +84,11 @@ def main():
                          "Last completed bar":"" if clean is None else str(clean.index[-1].date())})
         if clean is not None:
             histories[symbol] = clean
-    if not histories:
-        raise RuntimeError("No history passed completed-session freshness; refusing pilot")
+    if len(histories) < args.min_valid:
+        raise RuntimeError(
+            f"Fresh historical sample {len(histories)}/{len(selected)} below required "
+            f"minimum {args.min_valid}; refusing misleading pilot"
+        )
 
     audit_trace = []
     start = monotonic()
@@ -123,7 +130,7 @@ def main():
         "train_validate_holdout": "per-symbol chronological 60/20/20 with horizon-boundary purge",
         "non_independence": "overlapping decision windows; reported proportions are descriptive",
         "caveats": [
-            "Five currently-listed stocks do not establish historical survivor-free results.",
+            "Present-day selected stocks do not establish historical survivor-free results.",
             "Audits are restricted to original technical prefilter candidates.",
             "No lookahead used for signal qualification; future prices label outcomes only.",
             "Funded account/earnings and real broker execution gating unavailable.",
