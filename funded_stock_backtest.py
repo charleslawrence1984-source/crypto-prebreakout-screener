@@ -113,18 +113,21 @@ def signal_candidates(histories, benchmark, first_date=None, audit_trace=None):
             past = data.iloc[:i+1]
             past_benchmark = benchmark.loc[:date]
             core = evaluate_price_setup(past, past_benchmark)
+            audit_entry = None
             if audit_trace is not None:
-                # Research ONLY: distinguish the original trigger from
-                # subsequent core-first route suppression on exact dates.
-                # Capture diagnostics; never change a live trading decision.
-                audit_trace.append({
+                # Point-in-time research diagnostics ONLY; the returned
+                # technical signal and priority route are unchanged.
+                audit_entry = {
                     "Ticker": symbol,
                     "Signal date": str(date.date()),
                     "Breakout trigger": bool(breakout_prefilter.iloc[i]),
                     "Core trigger": bool(core_prefilter.iloc[i]),
                     "Core state": str(core.get("technical_state", "")),
                     "Core reason": str(core.get("technical_reason", "")),
-                })
+                    "Breakout state": "NOT EVALUATED BY ORIGINAL ROUTE",
+                    "Breakout reason": "",
+                }
+                audit_trace.append(audit_entry)
             route = None
             if core.get("technical_state") == "AWAITING NEXT OPEN":
                 route = "CORE RSI/MACD"
@@ -143,6 +146,13 @@ def signal_candidates(histories, benchmark, first_date=None, audit_trace=None):
                         "zone_top": zone_top, "signal_date": date}
             elif core.get("technical_state") == "BLOCKED" and bool(breakout_prefilter.iloc[i]):
                 brk = evaluate_funded_breakout(past, past_benchmark)
+                if audit_entry is not None:
+                    audit_entry["Breakout state"] = (
+                        str(brk.get("technical_state") or "") if brk else "NOT DETECTED"
+                    )
+                    audit_entry["Breakout reason"] = (
+                        str(brk.get("technical_reason") or "") if brk else "NOT DETECTED"
+                    )
                 if brk is not None:
                     brk_reasons = {
                         x.strip() for x in str(brk.get("technical_reason", "")).split(";")
@@ -228,6 +238,9 @@ def signal_candidates(histories, benchmark, first_date=None, audit_trace=None):
                     # can prevent a parallel breakout evaluation. Report this
                     # separately rather than incorrectly call it a failed gate.
                     breakout_suppressed_by_core += 1
+                    if audit_entry is not None:
+                        audit_entry["Breakout state"] = "NOT EVALUATED - CORE PRIORITY"
+                        audit_entry["Breakout reason"] = "ORIGINAL CORE ROUTING SUPPRESSED BREAKOUT"
                 continue
 
             turnover = float((past["Close"] * past["Volume"]).tail(20).median())
