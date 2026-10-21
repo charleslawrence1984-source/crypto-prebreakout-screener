@@ -12,7 +12,7 @@ from __future__ import annotations
 import argparse
 from datetime import datetime, timezone
 import json
-import os
+import math
 from pathlib import Path
 
 import pandas as pd
@@ -21,6 +21,17 @@ from funded_forward_capture import funded_universe
 from funded_stock_data import clean_stock_daily_frame, get_validated_stock_history
 from funded_stock_backtest import signal_candidates, simulate_portfolio
 from funded_historical_opportunities import opportunity_census, census_summary, export_research
+
+
+def safe_metadata(value):
+    """Do not export NaN or Infinity as valid backtest statistics."""
+    if isinstance(value, dict):
+        return {str(k): safe_metadata(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [safe_metadata(v) for v in value]
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 
 def main():
@@ -40,10 +51,14 @@ def main():
     captured_at = datetime.now(timezone.utc)
     benchmark_batch = yf.download("^GSPC", period=args.period, interval="1d",
                                   auto_adjust=False, progress=False, threads=False)
+    if isinstance(benchmark_batch.columns, pd.MultiIndex):
+        benchmark_batch.columns = benchmark_batch.columns.get_level_values(0)
     bench, benchmark_reason = clean_stock_daily_frame(benchmark_batch, now)
     if bench is None:
         benchmark_batch = yf.download("^GSPC", period=args.period, interval="1d",
                                       auto_adjust=False, progress=False, threads=False)
+        if isinstance(benchmark_batch.columns, pd.MultiIndex):
+            benchmark_batch.columns = benchmark_batch.columns.get_level_values(0)
         bench, benchmark_reason = clean_stock_daily_frame(benchmark_batch, now)
     if bench is None:
         raise RuntimeError("No completed-session-valid benchmark; refusing pilot: " + benchmark_reason)
@@ -113,14 +128,14 @@ def main():
             "Funded account/earnings and real broker execution gating unavailable.",
             "No strategy profit, candidate precision or challenge pass-rate claim from this pilot.",
         ],
-        "portfolio_proxy_metrics": result.get("metrics", {}),
+        "portfolio_proxy_metrics": safe_metadata(result.get("metrics", {})),
     }
     export_research(out, ledger, ledger_coverage, summary, metadata)
     pd.DataFrame(coverage).to_csv(out/"provider_price_coverage.csv",index=False)
     pd.DataFrame(diagnostics).to_csv(out/"technical_replay_diagnostics.csv",index=False)
     pd.DataFrame(audit_trace).to_csv(out/"original_prefilter_trace.csv",index=False)
     pd.DataFrame(signals).to_csv(out/"qualified_original_signal_candidates.csv",index=False)
-    for name in ("trades", "skips", "equity_curve"):
+    for name in ("trades", "skipped", "equity_curve"):
         report = result.get(name)
         if isinstance(report, pd.DataFrame):
             report.to_csv(out/f"portfolio_{name}.csv",index=False)
