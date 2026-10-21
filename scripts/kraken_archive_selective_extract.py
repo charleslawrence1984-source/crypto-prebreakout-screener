@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 from zipfile import ZipFile
 
 from scripts.kraken_archive_range_probe import (
-    HTTPRangeReader, ALLOWED, ArchiveUnavailable,
+    HTTPRangeReader, MultipartKrakenZIP, FULL_PARTS, ALLOWED, ArchiveUnavailable,
 )
 
 ALIASES = {
@@ -51,8 +51,8 @@ def _members_for_coin(all_members, coin):
 
 def extract_quarter(quarter, coins, destination, *, opener=None,
                     byte_budget=60_000_000, min_pairs=1):
-    if quarter not in ALLOWED:
-        raise ValueError("unsupported official Kraken quarter")
+    if quarter not in ALLOWED and quarter != "FULL":
+        raise ValueError("unsupported official Kraken quarter/full archive")
     if not coins or len(coins)!=len(set(coins)):
         raise ValueError("coins must be unique")
     output=Path(destination)
@@ -60,7 +60,8 @@ def extract_quarter(quarter, coins, destination, *, opener=None,
     kwargs={"max_transfer":byte_budget}
     if opener is not None:
         kwargs["opener"]=opener
-    remote=HTTPRangeReader(ALLOWED[quarter],**kwargs)
+    remote=(MultipartKrakenZIP(**kwargs) if quarter=="FULL"
+            else HTTPRangeReader(ALLOWED[quarter],**kwargs))
     coverage=[]
     sources={}
     with ZipFile(remote) as z:
@@ -99,7 +100,9 @@ def extract_quarter(quarter, coins, destination, *, opener=None,
                              "pair_source_member":details["240"]["archive_member"]})
     valid=sum(x["status"]=="BOTH_INTERVALS_CAPTURED" for x in coverage)
     report={
-        "quarter":quarter,"official_url":ALLOWED[quarter],
+        "quarter":quarter,
+        "official_url":ALLOWED.get(quarter),
+        "official_full_part_urls":list(FULL_PARTS) if quarter=="FULL" else None,
         "total_archive_object_bytes":remote.size,
         "http_range_bytes_transferred":remote.transferred,
         "byte_budget":byte_budget,"requested_coins":list(coins),
@@ -121,7 +124,7 @@ def extract_quarter(quarter, coins, destination, *, opener=None,
 
 def main():
     parser=argparse.ArgumentParser()
-    parser.add_argument("--quarter",choices=tuple(ALLOWED),default="2026Q3")
+    parser.add_argument("--quarter",choices=tuple(ALLOWED)+("FULL",),default="2026Q3")
     parser.add_argument("--coins",default="BTC,ETH,SOL,NEAR,HBAR")
     parser.add_argument("--output",default="funded-kraken-quarter-sample")
     parser.add_argument("--min-pairs",type=int,default=2)
