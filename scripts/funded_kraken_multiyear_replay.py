@@ -153,10 +153,13 @@ async def run(args):
         for coin in coins:
             if coin not in all_history:
                 continue
-            pair=next((name for name in (f"{coin}/USD",f"{coin}/USDT")
-                       if name in markets and markets[name].get("spot",True)),None)
+            # Archived Kraken members selected here are USD-only. Do NOT
+            # relabel old USD bars as a different present-day USDT market.
+            pair=f"{coin}/USD"
+            if pair not in markets or not markets[pair].get("spot",True):
+                pair=None
             if not pair:
-                coverage.append({"coin":coin,"status":"NO CURRENT SPOT PAIR FOR PARITY"})
+                coverage.append({"coin":coin,"status":"NO CURRENT USD SPOT PAIR FOR PARITY"})
                 continue
             try:
                 raw=await asyncio.wait_for(exchange.fetch_ohlcv(
