@@ -19,6 +19,7 @@ from scripts.kraken_archive_range_probe import (
 ALIASES = {
     "BTC": ("BTCUSD","XBTUSD","XXBTZUSD"),
     "ETH": ("ETHUSD","XETHZUSD"),
+    "DOGE": ("DOGEUSD","XDGUSD","XXDGZUSD"),
 }
 INTERVALS = {"240": "4h","1440":"1d"}
 
