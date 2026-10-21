@@ -10,6 +10,7 @@ on:
       - "tests/test_kraken_archive_selective_extract.py"
       - "scripts/funded_kraken_multiyear_replay.py"
       - "tests/test_funded_kraken_multiyear_replay.py"
+      - "scripts/kraken_archive_33_coverage.py"
       - "docs/funded_kraken_official_archive_phase3.md"
       - ".github/workflows/funded-kraken-official-archive-probe.yml"
 
@@ -120,5 +121,27 @@ jobs:
         with:
           name: funded-kraken-verified-multiyear-asof-5coins-${{ github.run_id }}
           path: funded-kraken-multiyear-report/*
+          if-no-files-found: warn
+          retention-days: 30
+
+  inventory-current-33-coin-archive-coverage:
+    needs: [verify-range-client]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install only public research dependencies
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3"
+      - name: Compare exact available FULL/Q3 240m and 1440m members for all 33 approved coins
+        run: PYTHONPATH=. python scripts/kraken_archive_33_coverage.py
+      - name: Preserve current-universe archive index and explicit unavailable entries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-kraken-33-coin-archive-coverage-${{ github.run_id }}
+          path: funded-kraken-33-coin-coverage/*
           if-no-files-found: warn
           retention-days: 30
