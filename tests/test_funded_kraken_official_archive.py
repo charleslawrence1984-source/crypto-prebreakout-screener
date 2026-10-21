@@ -10,6 +10,7 @@ import pandas as pd
 from funded_kraken_official_archive import (
     read_ohlcvt_member, verify_archive_checksum,
     merge_historic_segments, weekly_from_kraken_daily, weekly_overlap_parity,
+    weekly_price_and_volume_parity,
 )
 
 
@@ -75,6 +76,29 @@ class OfficialKrakenArchiveTests(unittest.TestCase):
         bad.loc[0,"close"]=101
         with self.assertRaisesRegex(ValueError,"disagrees"):
             weekly_overlap_parity(w,bad)
+
+    def test_weekly_strict_ohlc_but_source_volume_variance_is_reported(self):
+        w=weekly_from_kraken_daily(make_daily())
+        native=w.copy()
+        native.loc[0,"volume"]*=1.002
+        with self.assertRaisesRegex(ValueError,"volume"):
+            weekly_overlap_parity(w,native)
+        comparison=weekly_price_and_volume_parity(
+            w,native,max_volume_relative_difference=.005,min_overlap=2)
+        self.assertTrue(comparison["weekly_ohlc_price_parity_strict"])
+        self.assertEqual(comparison["weekly_volume_discrepancy_weeks"],1)
+        self.assertGreater(comparison["max_weekly_volume_relative_difference_pct"],.1)
+
+    def test_weekly_large_volume_or_price_discrepancy_fails_closed(self):
+        w=weekly_from_kraken_daily(make_daily())
+        changed=w.copy()
+        changed.loc[0,"volume"]*=1.02
+        with self.assertRaisesRegex(ValueError,"quarantine"):
+            weekly_price_and_volume_parity(w,changed,min_overlap=2)
+        changed=w.copy()
+        changed.loc[0,"high"]+=.1
+        with self.assertRaisesRegex(ValueError,"price"):
+            weekly_price_and_volume_parity(w,changed,min_overlap=2)
 
     def test_duplicate_archive_segments_must_be_identical(self):
         x=make_daily(3)
