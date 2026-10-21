@@ -66,3 +66,23 @@ jobs:
           path: funded-kraken-q3-selected/*
           if-no-files-found: warn
           retention-days: 30
+
+  extract-selected-full-history-pairs:
+    needs: [verify-range-client]
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Extract selected official full-history 4h/daily from virtual five-part ZIP
+        run: PYTHONPATH=. python scripts/kraken_archive_selective_extract.py --quarter FULL --coins BTC,ETH,SOL,NEAR,HBAR --min-pairs 2 --output funded-kraken-full-selected
+      - name: Preserve historical source CSV and partial-range provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-kraken-full-selected-5coins-${{ github.run_id }}
+          path: funded-kraken-full-selected/*
+          if-no-files-found: warn
+          retention-days: 30
