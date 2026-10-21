@@ -145,3 +145,75 @@ jobs:
           path: funded-kraken-33-coin-coverage/*
           if-no-files-found: warn
           retention-days: 30
+
+  extract-selected-full-history-all-33:
+    needs: [verify-range-client]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Select full-archive 240m/daily CSV for all original Kraken Funded coins
+        run: PYTHONPATH=. python scripts/kraken_archive_selective_extract.py --quarter FULL --coins all --min-pairs 30 --output funded-kraken-full-all
+      - name: Freeze exact source CSVs and partial-range provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-kraken-official-full-33coin-selected-${{ github.run_id }}
+          path: funded-kraken-full-all/*
+          if-no-files-found: warn
+          retention-days: 30
+
+  extract-selected-q3-history-all-33:
+    needs: [verify-range-client]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Select Q3 240m/daily CSV for all original Kraken Funded coins
+        run: PYTHONPATH=. python scripts/kraken_archive_selective_extract.py --quarter 2026Q3 --coins all --min-pairs 30 --output funded-kraken-q3-all
+      - name: Freeze Q3 source CSVs and partial-range provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-kraken-official-q3-33coin-selected-${{ github.run_id }}
+          path: funded-kraken-q3-all/*
+          if-no-files-found: warn
+          retention-days: 30
+
+  original-rules-official-multiyear-33coin-replay:
+    needs: [original-rules-official-multiyear-5coin-replay, extract-selected-full-history-all-33, extract-selected-q3-history-all-33]
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install original research scorer dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Retrieve full-archive selected OHLCVT for all 33 approved coins
+        uses: actions/download-artifact@v4
+        with:
+          name: funded-kraken-official-full-33coin-selected-${{ github.run_id }}
+          path: kraken-full-selected
+      - name: Retrieve Q3-archive selected OHLCVT for all 33 approved coins
+        uses: actions/download-artifact@v4
+        with:
+          name: funded-kraken-official-q3-33coin-selected-${{ github.run_id }}
+          path: kraken-q3-selected
+      - name: Run original as-of crypto rules at spaced four-hour decision clocks for 33 assets
+        run: PYTHONPATH=. python scripts/funded_kraken_multiyear_replay.py --full-dir kraken-full-selected --q3-dir kraken-q3-selected --coins all --max-anchors 180 --stride-4h 42 --min-coins 15 --out-dir funded-kraken-multiyear-33-report
+      - name: Archive truthful full-population replay, unavailable coins and matched negative controls
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-kraken-official-multiyear-33coin-research-${{ github.run_id }}
+          path: funded-kraken-multiyear-33-report/*
+          if-no-files-found: warn
+          retention-days: 30
