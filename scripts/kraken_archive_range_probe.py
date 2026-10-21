@@ -25,6 +25,7 @@ ALLOWED = {
     "2026Q2": BASE + "Kraken_OHLCVT_2026Q2.zip",
     "2026Q3": BASE + "Kraken_OHLCVT_2026Q3.zip",
 }
+FULL_PARTS = tuple(BASE + f"Kraken_OHLCVT_Full.zip.part{i:02d}" for i in range(5))
 CONTENT_RANGE = re.compile(r"^bytes (\d+)-(\d+)/(\d+)$")
 SIZES = {"240": "4h", "1440": "1d"}
 TARGET_BASES = ("BTC", "ETH", "SOL", "NEAR", "HBAR")
