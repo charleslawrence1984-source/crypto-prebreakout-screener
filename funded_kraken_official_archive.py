@@ -132,3 +132,56 @@ def weekly_overlap_parity(derived,spot_weekly,*,rtol=1e-7):
         if not ((a-b).abs()<=rtol*b.abs().clip(lower=1e-9)).all():
             raise ValueError(f"weekly reconstructed {field} disagrees with Kraken native 1w")
     return len(merged)
+
+
+def weekly_price_and_volume_parity(derived, spot_weekly, *,
+                                   price_rtol=1e-7,
+                                   max_volume_relative_difference=0.005,
+                                   min_overlap=8):
+    """Research-only OHLC-perfect weekly parity with separately audited volume.
+
+    Prices must match native Kraken's weekly candles to 1e-7 relative error.
+    Volume discrepancies <=0.5% are *reported* as data-vintage uncertainty,
+    not concealed. This tolerance is not a trading rule and is NEVER proof
+    that historic bid/ask, fills, or ticker volumes were available.
+
+    The frozen original crypto_rule_engine.score_setup uses dfw timestamps,
+    high/low/close and weekly ATR, but does not use dfw.volume for swing
+    qualification. If that changes, re-audit before allowing any mismatch.
+    """
+    if not 0 <= max_volume_relative_difference <= 0.005:
+        raise ValueError("weekly volume discrepancy must not exceed 0.5%")
+    left=normalize_bars(derived,"1w")
+    right=normalize_bars(spot_weekly,"1w")
+    joined=left.merge(right,on="timestamp",how="inner",
+                      suffixes=("_archive","_kraken")).sort_values("timestamp")
+    if len(joined)<min_overlap:
+        raise ValueError(f"only {len(joined)}/{min_overlap} overlap weeks")
+    for name in ("open","high","low","close"):
+        a=joined[name+"_archive"]
+        b=joined[name+"_kraken"]
+        error=(a-b).abs()/b.abs().clip(lower=1e-9)
+        if (error>price_rtol).any():
+            raise ValueError(f"weekly price {name} diverges from Kraken native 1w")
+    a=joined["volume_archive"]
+    b=joined["volume_kraken"]
+    rel=(a-b).abs()/b.abs().clip(lower=1e-9)
+    max_rel=float(rel.max())
+    if max_rel>max_volume_relative_difference:
+        raise ValueError(
+            "weekly volume divergence exceeds research quarantine threshold: "
+            f"{max_rel*100:.4f}% > {max_volume_relative_difference*100:.4f}%"
+        )
+    discrep=joined.loc[rel>price_rtol,["timestamp"]].copy()
+    return {
+        "status":"PRICE MATCH / VOLUME RECONCILED WITH WARNINGS",
+        "matched_weeks":len(joined),
+        "weekly_ohlc_price_parity_strict":True,
+        "weekly_volume_exact_weeks":int((rel<=price_rtol).sum()),
+        "weekly_volume_discrepancy_weeks":int((rel>price_rtol).sum()),
+        "max_weekly_volume_relative_difference_pct":round(max_rel*100,6),
+        "volume_difference_limit_pct":round(max_volume_relative_difference*100,3),
+        "discrepant_week_opens_utc":[str(t) for t in discrep["timestamp"].tolist()[:10]],
+        "assessed_as_data_source_vintage_uncertainty":True,
+        "native_1w_eligibility_and_broker_execution_unverified":True,
+    }
