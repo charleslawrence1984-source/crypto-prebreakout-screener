@@ -14,7 +14,6 @@ import pandas as pd
 
 from funded_crypto_checks import completed_funded_crypto_candles
 from crypto_rule_engine import ScreenerConfig, score_setup
-from crypto_market_pipeline import flatten_deep_score
 
 DELTAS = {"4h": pd.Timedelta(hours=4), "1d": pd.Timedelta(days=1),
           "1w": pd.Timedelta(days=7)}
@@ -59,7 +58,7 @@ def _asof(frame, timeframe, clock, *, min_bars):
 
 
 def score_asof(coin, btc, *, coin_name, pair, bar_open, universe_size=33,
-               scorer=score_setup, flattener=flatten_deep_score):
+               scorer=score_setup, flattener=None):
     """Run *original* scoring and original BUY routing on exact historical data."""
     if coin_name not in {"BTC", "ETH", "LINK", "BCH", "DOGE", "SHIB", "ARB",
                          "BONK", "AAVE", "AVAX", "BNB", "CRV", "DOT", "FIL",
@@ -95,6 +94,9 @@ def score_asof(coin, btc, *, coin_name, pair, bar_open, universe_size=33,
         "Execution liquidity pass":vol_proxy>=1_000_000,
         "Execution reason":"research OHLCV proxy only",
     }
+    if flattener is None:
+        from crypto_market_pipeline import flatten_deep_score
+        flattener = flatten_deep_score
     flat = flattener(item, result)
     status = str(flat.get("Swing status") or "UNKNOWN")
     return {
@@ -128,7 +130,7 @@ def score_asof(coin, btc, *, coin_name, pair, bar_open, universe_size=33,
 
 def replay_coin(coin, btc, *, coin_name, pair, max_anchors=120, horizons=(5,10,20),
                 thresholds=(10,20,30), scorer=score_setup,
-                flattener=flatten_deep_score):
+                flattener=None):
     if not 1 <= max_anchors <= 2000:
         raise ValueError("max_anchors outside research guard")
     history = coin["4h"].reset_index(drop=True)
