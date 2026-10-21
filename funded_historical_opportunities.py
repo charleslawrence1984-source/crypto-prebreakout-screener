@@ -174,7 +174,13 @@ def opportunity_census(
                         "Signal date": str(t), "Window bars": horizon,
                         "Threshold %": threshold, "Fold": fold,
                         "Original gate class": state,
-                        "Original gate reason": gate[:220],
+                        "Original gate reason": gate[:500],
+                        "Original core veto": (str(audit.get("Core reason") or "")
+                                               if audit is not None else ""),
+                        "Original breakout vetoes": (str(audit.get("Breakout reason") or "")
+                                                     if audit is not None and
+                                                     not str(audit.get("Breakout state") or "")
+                                                     .startswith("NOT EVALUATED") else ""),
                         "Original technical signal": bool(signal is not None),
                         "Gate audited": audited,
                         "Starting close proxy": round(float(values[i]), 8),
@@ -222,12 +228,60 @@ def census_summary(ledger: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(summary)
 
 
-def export_research(out_dir: str | Path, ledger, diagnostics, summary, metadata):
+def gate_outcome_comparison(ledger: pd.DataFrame) -> pd.DataFrame:
+    """Compare authentic point-in-time vetoes with future movers AND non-movers.
+
+    Multi-veto dates are counted in each matching gate, intentionally; gate
+    totals cannot be summed as independent sessions. Only audited original
+    prefilter candidates and purged-fold-excluded observations are included.
+    """
+    if ledger.empty:
+        return pd.DataFrame()
+    df = ledger[ledger["Gate audited"]
+                & ledger["Fold"].isin(("TRAIN","VALIDATION","HOLDOUT"))
+                & ledger["Original gate class"].isin(("PREFILTER_REJECTED","WATCH_ONLY"))]
+    rows = []
+    for _, row in df.iterrows():
+        vetoes = []
+        core = str(row["Original core veto"] or "").strip()
+        if core:
+            vetoes.append("CORE: " + core)
+        brk = str(row["Original breakout vetoes"] or "").strip()
+        if brk:
+            vetoes.extend("BREAKOUT: " + x.strip() for x in brk.split(";") if x.strip())
+        for veto in sorted(set(vetoes)):
+            rows.append({
+                "Fold": row["Fold"], "Window bars": row["Window bars"],
+                "Threshold %": row["Threshold %"], "Veto": veto,
+                "Mover": bool(row["Mover"]),
+            })
+    if not rows:
+        return pd.DataFrame()
+    frames = pd.DataFrame(rows)
+    groups = []
+    for (fold, horizon, threshold, veto), group in frames.groupby(
+            ["Fold","Window bars","Threshold %","Veto"], sort=True):
+        movers = int(group["Mover"].sum())
+        groups.append({
+            "Fold": fold, "Window bars": int(horizon),
+            "Threshold %": float(threshold), "Original veto": veto,
+            "Candidate decision anchors with veto": len(group),
+            "Later mover anchors with veto": movers,
+            "Later non-mover anchors with veto": len(group) - movers,
+            "Later mover proportion %": round(100 * movers / len(group), 2),
+            "Warning": "Vetoes overlap within a decision; repeated windows are not independent",
+        })
+    return pd.DataFrame(groups)
+
+
+def export_research(out_dir: str | Path, ledger, diagnostics, summary, metadata, gate_comparison=None):
     path = Path(out_dir)
     path.mkdir(parents=True, exist_ok=True)
     ledger.to_csv(path / "all_anchor_outcomes.csv", index=False)
     diagnostics.to_csv(path / "universe_coverage.csv", index=False)
     summary.to_csv(path / "mover_vs_nonmover_by_fold.csv", index=False)
+    if gate_comparison is not None:
+        gate_comparison.to_csv(path / "original_veto_vs_movers_and_nonmovers.csv", index=False)
     (path / "assumptions.json").write_text(
         json.dumps(metadata, indent=2, sort_keys=True, allow_nan=False) + "\n",
         encoding="utf-8",
