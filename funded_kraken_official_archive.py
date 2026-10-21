@@ -12,7 +12,7 @@ from __future__ import annotations
 from hashlib import sha256
 from pathlib import Path
 from zipfile import ZipFile
-import io
+import re
 
 import pandas as pd
 
@@ -29,8 +29,10 @@ def read_ohlcvt_member(archive_path, member_name, *, since=None, until=None):
     Only an explicitly identified member is accepted, not fuzzy pair symbols
     whose naming conventions might otherwise silently route to other assets.
     """
-    if not member_name.lower().endswith(".csv"):
-        raise ValueError("explicit historical OHLCVT CSV filename required")
+    match = re.search(r"_(240|1440)\\.csv$", member_name, re.I)
+    if not match:
+        raise ValueError("Only explicit Kraken 240-minute or 1440-minute OHLCVT members")
+    timeframe = {"240": "4h", "1440": "1d"}[match.group(1)]
     with ZipFile(archive_path) as z:
         if member_name not in z.namelist():
             raise ValueError("selected member absent in official Kraken archive")
@@ -54,7 +56,7 @@ def read_ohlcvt_member(archive_path, member_name, *, since=None, until=None):
     if not chunks:
         raise ValueError("no pair candles exist in selected historical interval")
     data=pd.concat(chunks,ignore_index=True)
-    return normalize_bars(data[list(COLS[:6])], "4h")
+    return normalize_bars(data[list(COLS[:6])], timeframe)
 
 
 def verify_archive_checksum(archive_path, expected_sha256):
@@ -71,7 +73,7 @@ def verify_archive_checksum(archive_path, expected_sha256):
     return True
 
 
-def merge_historic_segments(*frames):
+def merge_historic_segments(*frames, timeframe="4h"):
     """Overlap only when exact source bars agree; no fabricated missing bars."""
     if not frames:
         raise ValueError("at least one complete history segment required")
@@ -83,7 +85,7 @@ def merge_historic_segments(*frames):
             if not part.drop(columns=["timestamp"]).eq(part.iloc[0].drop("timestamp")).all().all():
                 raise ValueError("conflicting historical overlap candles")
     result=result.drop_duplicates("timestamp",keep="first").sort_values("timestamp")
-    return normalize_bars(result.reset_index(drop=True),"4h")
+    return normalize_bars(result.reset_index(drop=True),timeframe)
 
 
 def weekly_from_kraken_daily(daily):
