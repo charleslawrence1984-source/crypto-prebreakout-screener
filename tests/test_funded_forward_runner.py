@@ -130,6 +130,34 @@ class RunnerReadOnlyTests(unittest.TestCase):
         self.assertEqual(rows[0]["status"], "BLOCKED")
         self.assertNotIn("DATA UNAVAILABLE", [r["status"] for r in rows])
 
+    def test_all_unavailable_stocks_freeze_artifact_before_nonzero_exit(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from funded_forward_health import validate_snapshot
+        with tempfile.TemporaryDirectory() as tempdir:
+            reasons=[
+                {"asset":"NVDA","status":"DATA UNAVAILABLE",
+                 "reason":"NO VALID BENCHMARK ^GSPC — STALE PRICE DATA"},
+                {"asset":"AAPL","status":"DATA UNAVAILABLE",
+                 "reason":"NO VALID BENCHMARK ^GSPC — STALE PRICE DATA"},
+            ]
+            universe={"stocks":("NVDA","AAPL"),"crypto":("BTC",)}
+            with patch.object(runner,"funded_universe",return_value=universe):
+                with patch.object(runner,"collect_stocks",return_value=reasons):
+                    with patch.object(sys,"argv",[
+                        "funded_forward_runner.py","--asset","stocks",
+                        "--out-dir",tempdir]):
+                        with self.assertRaisesRegex(RuntimeError,"All assets are unavailable"):
+                            runner.main()
+            saved=list(Path(tempdir).glob("funded-stocks-*.json"))
+            self.assertEqual(len(saved),1)
+            snapshot=json.loads(saved[0].read_text(encoding="utf-8"))
+            report=validate_snapshot(snapshot,universe=universe)
+            self.assertEqual(report["unavailable_or_error"],2)
+            self.assertEqual(report["research_trigger_candidates_NOT_funded_ready"],[])
+            self.assertEqual(report["funded_trade_ready_confirmed"],0)
+
     def test_crypto_collector_uses_original_scoring_but_never_claims_broker_quote(self):
         market=MockKraken()
         fake_market_module=types.SimpleNamespace(
