@@ -143,9 +143,16 @@ def opportunity_census(
                 core = str(audit.get("Core state") or "UNKNOWN")
                 state = ("WATCH_ONLY" if "WATCH" in core or "REVIEW" in core
                          else "PREFILTER_REJECTED")
-                gate = str(audit.get("Core reason") or core)
+                gate = "CORE: " + str(audit.get("Core reason") or core)
                 if audit.get("Breakout trigger"):
-                    gate += " | BREAKOUT PREFILTER: true (actual rejection gate not supplied)"
+                    brk_state = str(audit.get("Breakout state") or "UNKNOWN")
+                    brk_reason = str(audit.get("Breakout reason") or "")
+                    if brk_state.startswith("NOT EVALUATED"):
+                        gate += " | BREAKOUT: NOT EVALUATED BY ORIGINAL CORE ROUTING"
+                    elif brk_reason:
+                        gate += " | BREAKOUT: " + brk_reason
+                    else:
+                        gate += " | BREAKOUT PREFILTER: true (actual rejection gate not supplied)"
             else:
                 state = "NO_PREFILTER_TRIGGER"
                 gate = "NO ELIGIBLE TECHNICAL PREFILTER; FULL ENGINE NOT EVALUATED"
