@@ -40,7 +40,7 @@ jobs:
       - name: Install public-provider research dependencies
         run: python -m pip install -r requirements.txt
       - name: Reconstruct original funded crypto engine at recent historical 4h clocks
-        run: PYTHONPATH=. python scripts/funded_crypto_historical_pilot.py --coins BTC,ETH,SOL --max-anchors 90 --min-valid 2 --min-anchors 20 --out-dir funded-crypto-historical-pilot
+        run: PYTHONPATH=. python scripts/funded_crypto_historical_pilot.py --coins BTC,ETH,SOL,NEAR,HBAR --max-anchors 300 --min-valid 4 --min-anchors 100 --out-dir funded-crypto-historical-pilot
       - name: Preserve source OHLCV hashes, audited decisions, movers, controls, risk proxies
         if: always()
         uses: actions/upload-artifact@v4
