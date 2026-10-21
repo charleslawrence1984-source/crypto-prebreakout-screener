@@ -8,7 +8,7 @@ from zipfile import ZipFile
 
 from scripts.kraken_archive_selective_extract import extract_quarter, _members_for_coin
 from scripts.kraken_archive_range_probe import ArchiveUnavailable
-from tests.test_kraken_archive_range_probe import make_provider
+from test_kraken_archive_range_probe import make_provider
 
 
 def sample_zip(*, missing=False, conflicting=False):
