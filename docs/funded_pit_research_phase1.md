@@ -66,6 +66,47 @@ not looser gates. Non-survivor membership, corporate actions, earnings
 calendar, broker execution and Kraken crypto multi-timeframe history remain
 unverified.
 
+## Expanded complete current 30-stock universe pilot — 21 Oct 2026
+
+**Second GitHub PR-only public research run [39599738314](../../actions/runs/39599738314) passed BOTH jobs.** Original artifact `funded-point-in-time-30-stock-pilot-39599738314` (ID `12345482149`) was independently downloaded and decoded.
+
+- 30 approved current ticker IDs checked; **28 histories usable**, 2 exclusions:
+  SPCX 90/252 and CBRS 110/252 completed daily bars, NOT counted as rejections
+  or lack of trading opportunity. All 28 usable prices end on **20 Oct 2026**,
+  the completed NYSE session available at capture.
+- Current original technical prefilter: **931** candidate symbol/sessions.
+  **145 core**, **787 breakout**, with one date meeting both technical
+  prefilters. **931 full-rule rejections, zero qualified original technical
+  entries, zero modeled proxy trades.** This is a confirmed *rule scarcity*
+  observation for the surviving funded-stock universe, not broker profit/loss.
+- Distinct gates overlap: projected reward:risk below 2 **773**,
+  structural stop outside 0.4–8% **702**, resistance not tested twice **611**,
+  breakout too weak/extended **410**, volume below 1.35× **388**.
+  These veto totals are not additive.
+- **784 actual breakout-plan review records**: **769** have one or more
+  *other* failed technical gates beyond RR and structural stop. The remaining
+  **15** failed **BOTH** RR and stop-distance, with zero examples failing
+  *only* RR or *only* stop-distance. Changing one of these two thresholds
+  in isolation would therefore **not qualify any of these 784 historic plans**
+  when other original gates remain frozen.
+- The full price-outcome analysis produced **113,241** correlated
+  window/threshold decision anchor rows and **495** individual veto
+  mover/non-mover comparison rows.
+- Illustrative TRAIN-only +10% within 10 NYSE sessions: **344** decision
+  anchors vetoed by projected RR<2; **110** later met the price-mover label
+  and **234** did not. These are not 344 independent trades, and
+  neither outcome confirms realistic filled returns or a safe stop.
+- Original strategy engine was **not loosened or altered**; only optional
+  audit tracing now preserves per-date authentic breakout reasons.
+  Historical corporate-action/survivorship/earnings/funded-execution caveats
+  still prevent an unbiased profitability or funded pass-rate claim.
+
+**Next research phase:** design separate valid Kraken spot 4h/1d/1w market
+and BTC-relative historical as-of replay; non-overlapping mover episodes;
+holdout untouched for rule-development decisions; split/earnings and delisting
+validation. Never treat crypto PASS as an entry or relax stops based on
+upward-price-only outcomes.
+
 ## Signal versus subsequent mover: no future leakage
 
 At time t (a completed bar close), original engine outputs are frozen
