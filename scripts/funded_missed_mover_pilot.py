@@ -20,7 +20,7 @@ import pandas as pd
 from funded_forward_capture import funded_universe
 from funded_stock_data import clean_stock_daily_frame, get_validated_stock_history
 from funded_stock_backtest import signal_candidates, simulate_portfolio
-from funded_historical_opportunities import opportunity_census, census_summary, export_research
+from funded_historical_opportunities import opportunity_census, census_summary, gate_outcome_comparison, export_research
 
 
 def safe_metadata(value):
@@ -94,6 +94,7 @@ def main():
         min_history=252,
     )
     summary = census_summary(ledger)
+    veto_comparison = gate_outcome_comparison(ledger)
     result = simulate_portfolio(histories, signals,
                                 roundtrip_cost_pct=0.5,max_hold_sessions=20)
     out = Path(args.out_dir)
@@ -130,7 +131,8 @@ def main():
         ],
         "portfolio_proxy_metrics": safe_metadata(result.get("metrics", {})),
     }
-    export_research(out, ledger, ledger_coverage, summary, metadata)
+    export_research(out, ledger, ledger_coverage, summary, metadata,
+                    gate_comparison=veto_comparison)
     pd.DataFrame(coverage).to_csv(out/"provider_price_coverage.csv",index=False)
     pd.DataFrame(diagnostics).to_csv(out/"technical_replay_diagnostics.csv",index=False)
     pd.DataFrame(audit_trace).to_csv(out/"original_prefilter_trace.csv",index=False)
@@ -146,6 +148,7 @@ def main():
         "prefilter_rows":len(audit_trace),
         "eligible_anchor_rows":len(ledger),
         "mover_summary_rows":len(summary),
+        "veto_comparison_rows":len(veto_comparison),
         "research_runtime_s":elapsed,
         "output_dir":str(out),
         "funded_trade_ready_confirmed":0,
