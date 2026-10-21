@@ -63,10 +63,72 @@ class RunnerReadOnlyTests(unittest.TestCase):
         self.assertFalse(result[0]["meta"]["funded_bid_ask_verified"])
 
     def test_stocks_provider_failures_are_rows_not_hidden(self):
-        yahoo=types.SimpleNamespace(download=lambda *args,**kwargs:pd.DataFrame())
+        calls=[]
+        def download(*args,**kwargs):
+            calls.append(args[0])
+            return pd.DataFrame()
+        yahoo=types.SimpleNamespace(download=download)
         with patch.dict(sys.modules,{"yfinance":yahoo}):
-            with self.assertRaisesRegex(RuntimeError,"benchmark"):
-                runner.collect_stocks(("NVDA",))
+            records=runner.collect_stocks(("NVDA","AAPL"))
+        self.assertEqual(calls, ["^GSPC", "^GSPC"])
+        self.assertEqual([r["asset"] for r in records], ["NVDA","AAPL"])
+        self.assertTrue(all(r["status"]=="DATA UNAVAILABLE" for r in records))
+        self.assertTrue(all("BENCHMARK" in r["reason"] for r in records))
+
+    def test_stale_benchmark_retries_and_never_falsely_scores(self):
+        from funded_stock_data import clean_stock_daily_frame
+        monday=pd.Timestamp("2026-10-19 18:00",tz="America/New_York")
+        stale=pd.DataFrame({
+            "Open":[100.]*280,"High":[102.]*280,"Low":[99.]*280,
+            "Close":[101.]*280,"Volume":[1_000_000]*280,
+        },index=pd.bdate_range(end="2026-10-16",periods=280))
+        calls=[]
+        def download(*args,**kwargs):
+            calls.append(args[0])
+            return stale.copy()
+        yahoo=types.SimpleNamespace(download=download)
+        def validate(frame,now):
+            return clean_stock_daily_frame(frame,monday)
+        with patch.dict(sys.modules,{"yfinance":yahoo}):
+            with patch.object(runner,"clean_stock_daily_frame",side_effect=validate):
+                with patch.object(runner,"evaluate_price_setup",
+                                  side_effect=AssertionError("stale benchmark must not score")):
+                    rows=runner.collect_stocks(("NVDA","AAPL"))
+        self.assertEqual(calls, ["^GSPC","^GSPC"])
+        self.assertEqual([r["asset"] for r in rows], ["NVDA","AAPL"])
+        self.assertTrue(all(r["status"]=="DATA UNAVAILABLE" for r in rows))
+        self.assertTrue(all("STALE PRICE DATA" in r["reason"] for r in rows))
+
+    def test_benchmark_retry_can_restore_fresh_research(self):
+        from funded_stock_data import clean_stock_daily_frame
+        monday=pd.Timestamp("2026-10-19 18:00",tz="America/New_York")
+        dates=pd.bdate_range(end="2026-10-19",periods=280)
+        candles=pd.DataFrame({
+            "Open":[100.]*280,"High":[102.]*280,"Low":[99.]*280,
+            "Close":[101.]*280,"Volume":[1_000_000]*280,
+        },index=dates)
+        attempts=[]
+        def download(*args,**kwargs):
+            attempts.append(args[0])
+            if args[0]=="^GSPC" and attempts.count("^GSPC")==1:
+                return pd.DataFrame()
+            return candles.copy()
+        yahoo=types.SimpleNamespace(download=download)
+        technical={"technical_state":"BLOCKED",
+                   "technical_reason":"mocked technical evaluation"}
+        with patch.dict(sys.modules,{"yfinance":yahoo}):
+            with patch.object(runner,"clean_stock_daily_frame",
+                              side_effect=lambda frame,now:clean_stock_daily_frame(frame,monday)):
+                with patch.object(runner,"get_validated_stock_history",
+                                  return_value=(candles,"BATCH","PASS")):
+                    with patch.object(runner,"evaluate_price_setup",return_value=technical):
+                        with patch.object(runner,"evaluate_funded_breakout",return_value=None):
+                            with patch.object(runner,"_trend_watch_from_original_source",
+                                              return_value=lambda *args:None):
+                                rows=runner.collect_stocks(("NVDA",))
+        self.assertEqual(attempts[:2], ["^GSPC","^GSPC"])
+        self.assertEqual(rows[0]["status"], "BLOCKED")
+        self.assertNotIn("DATA UNAVAILABLE", [r["status"] for r in rows])
 
     def test_crypto_collector_uses_original_scoring_but_never_claims_broker_quote(self):
         market=MockKraken()
