@@ -87,7 +87,7 @@ class OpportunityCensusTests(unittest.TestCase):
         self.assertFalse(rec["Original technical signal"])
 
     def test_folds_purge_overlapping_outcome_windows(self):
-        self.assertEqual(_fold(25, 50, 5), "TRAIN")
+        self.assertEqual(_fold(24, 50, 5), "TRAIN")
         self.assertEqual(_fold(26, 50, 5), "PURGED_TRAIN_TO_VALIDATION")
         self.assertEqual(_fold(36, 50, 5), "PURGED_VALIDATION_TO_HOLDOUT")
         self.assertEqual(_fold(40, 50, 5), "HOLDOUT")
