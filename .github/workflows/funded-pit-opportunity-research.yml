@@ -1,0 +1,52 @@
+name: Kraken Funded historical point-in-time opportunity research (PR ONLY)
+
+# No scheduled scans, no broker access and no orders.
+# This is a five-stock current-survivor PILOT, not a strategy performance claim.
+on:
+  pull_request:
+    paths:
+      - "funded_historical_opportunities.py"
+      - "scripts/funded_missed_mover_pilot.py"
+      - "tests/test_funded_historical_opportunities.py"
+      - "docs/funded_pit_research_phase1.md"
+      - ".github/workflows/funded-pit-opportunity-research.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-pit-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install mocked-test dependencies
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3"
+      - name: Verify no-lookahead and analysis code compiles
+        run: python -m py_compile funded_historical_opportunities.py scripts/funded_missed_mover_pilot.py
+      - name: Run honest missed-mover and untouched-holdout invariants
+        run: python -m unittest discover -s tests -p test_funded_historical_opportunities.py -v
+
+  original-stock-signal-pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install public research dependencies (no brokerage)
+        run: python -m pip install -r requirements.txt
+      - name: Research original stock signals vs all eligible mover/non-mover anchors
+        run: python scripts/funded_missed_mover_pilot.py --symbols AAPL,MSFT,NVDA,TSLA,PLTR --period 3y --out-dir funded-backtest-pilot
+      - name: Preserve CSV gate, holdout and research evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-point-in-time-5-stock-pilot-${{ github.run_id }}
+          path: funded-backtest-pilot/*
+          if-no-files-found: warn
+          retention-days: 30
