@@ -24,7 +24,7 @@ import pandas as pd
 
 from funded_forward_capture import SOURCE, create_snapshot, funded_universe, write_snapshot_once
 from funded_crypto_checks import completed_funded_crypto_candles
-from funded_stock_data import get_validated_stock_history
+from funded_stock_data import get_validated_stock_history, clean_stock_daily_frame
 from funded_stock_breakout import evaluate_funded_breakout
 from trade_rules import evaluate_price_setup, _wilder_rsi
 
@@ -66,7 +66,10 @@ def collect_stocks(tickers):
         raise RuntimeError("No benchmark history — refusing to score stocks")
     if isinstance(benchmark_raw.columns,pd.MultiIndex):
         benchmark_raw.columns = benchmark_raw.columns.get_level_values(0)
-    benchmark = benchmark_raw
+    ny_now = pd.Timestamp.now(tz="America/New_York")
+    benchmark, benchmark_reason = clean_stock_daily_frame(benchmark_raw, ny_now)
+    if benchmark is None:
+        raise RuntimeError("Stale or invalid public US-stock benchmark — " + benchmark_reason)
 
     try:
         batch = yf.download(
@@ -75,7 +78,6 @@ def collect_stocks(tickers):
         )
     except Exception:
         batch = pd.DataFrame()
-    ny_now = pd.Timestamp.now(tz="America/New_York")
     trend_watch = _trend_watch_from_original_source()
     observations = []
     for symbol in tickers:
