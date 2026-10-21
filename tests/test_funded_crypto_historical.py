@@ -160,6 +160,25 @@ class CryptoAsOfTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"duplicate"):
             normalize_bars(f,"4h")
 
+    def test_original_watch_pass_and_proxy_buy_remain_distinct(self):
+        coin,btc,dates=fixture()
+        clock=dates[610]
+        for source,expected in (
+            ("WATCH","WATCH"),("PASS","REJECTED_PASS"),
+            ("BUY","PROXY_BUY_UNVERIFIED"),("BOGUS","UNKNOWN")
+        ):
+            def flat(item, result):
+                return {"Swing status":source,"Swing score":65.0,
+                        "Swing reason":"synthetic",
+                        "Swing eligible":False}
+            row=score_asof(
+                coin,btc,coin_name="ETH",pair="ETH/USD",bar_open=clock,
+                scorer=lambda *a,**kw:{"score":65},
+                flattener=flat,
+            )
+            self.assertEqual(row["Research class"],expected)
+            self.assertFalse(row["Historical Kraken Funded broker eligible"])
+
     def test_mover_episode_cooldown_limits_repeated_winner_anchors(self):
         coin,btc,dates=fixture()
         t=dates[610]
