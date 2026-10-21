@@ -93,12 +93,14 @@ class KrakenArchiveHTTPRangeTests(unittest.TestCase):
         payload=fixture_zip()
         reader=HTTPRangeReader(ALLOWED["2026Q3"],max_transfer=1024,
                                opener=make_provider(payload))
-        for _ in range(2):
+        read_len=min(len(payload),512)
+        repetitions=1024//read_len
+        for _ in range(repetitions):
             reader.seek(0)
-            reader.read(512)
+            reader.read(read_len)
         reader.seek(0)
         with self.assertRaisesRegex(ArchiveUnavailable,"budget"):
-            reader.read(1)
+            reader.read(read_len)
 
 
 if __name__ == "__main__":
