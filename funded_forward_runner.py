@@ -24,7 +24,7 @@ import pandas as pd
 
 from funded_forward_capture import SOURCE, create_snapshot, funded_universe, write_snapshot_once
 from funded_crypto_checks import completed_funded_crypto_candles
-from funded_stock_data import get_validated_stock_history
+from funded_stock_data import get_validated_stock_history, clean_stock_daily_frame
 from funded_stock_breakout import evaluate_funded_breakout
 from trade_rules import evaluate_price_setup, _wilder_rsi
 
@@ -58,15 +58,38 @@ def _trend_watch_from_original_source():
 def collect_stocks(tickers):
     import yfinance as yf
 
-    benchmark_raw = yf.download(
-        "^GSPC",period="3y",interval="1d",auto_adjust=False,
-        threads=False,progress=False,
-    )
-    if benchmark_raw is None or benchmark_raw.empty:
-        raise RuntimeError("No benchmark history — refusing to score stocks")
-    if isinstance(benchmark_raw.columns,pd.MultiIndex):
-        benchmark_raw.columns = benchmark_raw.columns.get_level_values(0)
-    benchmark = benchmark_raw
+    # Benchmark freshness failure means NO technically valid stock signals.
+    # Still preserve one explicit DATA UNAVAILABLE diagnostic for every asset;
+    # main() will freeze that evidence before failing the research refresh.
+    ny_now = pd.Timestamp.now(tz="America/New_York")
+    benchmark = None
+    benchmark_reason = "BENCHMARK DOWNLOAD NOT ATTEMPTED"
+    for attempt in range(2):
+        try:
+            benchmark_raw = yf.download(
+                "^GSPC", period="3y", interval="1d", auto_adjust=False,
+                threads=False, progress=False,
+            )
+            if benchmark_raw is None or benchmark_raw.empty:
+                benchmark_reason = "BENCHMARK PRICE DATA MISSING"
+                continue
+            if isinstance(benchmark_raw.columns, pd.MultiIndex):
+                benchmark_raw.columns = benchmark_raw.columns.get_level_values(0)
+            benchmark, benchmark_reason = clean_stock_daily_frame(benchmark_raw, ny_now)
+            if benchmark is not None:
+                break
+        except Exception as err:
+            benchmark_reason = "BENCHMARK DOWNLOAD ERROR: " + type(err).__name__
+    if benchmark is None:
+        return [
+            {
+                "asset": symbol,
+                "status": "DATA UNAVAILABLE",
+                "reason": f"NO VALID BENCHMARK ^GSPC — {benchmark_reason}",
+                "source": "Yahoo Finance PUBLIC benchmark ^GSPC",
+            }
+            for symbol in tickers
+        ]
 
     try:
         batch = yf.download(
@@ -75,7 +98,6 @@ def collect_stocks(tickers):
         )
     except Exception:
         batch = pd.DataFrame()
-    ny_now = pd.Timestamp.now(tz="America/New_York")
     trend_watch = _trend_watch_from_original_source()
     observations = []
     for symbol in tickers:

@@ -1,15 +1,52 @@
-"""Validated daily OHLCV retrieval for the Kraken Funded stocks tab only.
+"""Fail-closed daily OHLCV for the Kraken Funded stock research and UI.
 
-Batch downloads can omit otherwise valid tickers. Retry the affected symbol
-individually, then fail closed if price candles remain missing or stale.
+Validate against the LAST COMPLETED NYSE SESSION (with a conservative 45-minute
+vendor-publication grace), not a five-calendar-day threshold. A clean but
+previous-session batch triggers a direct per-symbol retry. Public Yahoo prices
+do not establish Kraken Funded bid/ask or order eligibility.
 """
 from __future__ import annotations
 
+from functools import lru_cache
+
+import exchange_calendars as xcals
 import pandas as pd
 
 REQUIRED = ("Open", "High", "Low", "Close", "Volume")
 MIN_BARS = 252
-MAX_LAST_BAR_AGE_DAYS = 5
+PRICE_PUBLICATION_GRACE_MINUTES = 45
+
+
+@lru_cache(maxsize=1)
+def _nyse():
+    """Exchange calendar handles weekends, holidays, DST and early closes."""
+    return xcals.get_calendar("XNYS")
+
+
+def _new_york_now(now: pd.Timestamp) -> pd.Timestamp:
+    value = pd.Timestamp(now)
+    return (value.tz_localize("America/New_York") if value.tzinfo is None
+            else value.tz_convert("America/New_York"))
+
+
+def expected_completed_nyse_session(now: pd.Timestamp):
+    """Return the latest NYSE session whose actual close + grace has passed.
+
+    Fail closed if the calendar is unavailable or a completed session cannot
+    be established; no calendar-day substitute that might bless stale bars.
+    """
+    ny_now = _new_york_now(now)
+    utc_now = ny_now.tz_convert("UTC")
+    cal = _nyse()
+    start = pd.Timestamp(ny_now.date()) - pd.Timedelta(days=21)
+    end = pd.Timestamp(ny_now.date())
+    sessions = cal.sessions_in_range(start, end)
+    completed = [session.date() for session in sessions
+                 if utc_now >= cal.session_close(session)
+                 + pd.Timedelta(minutes=PRICE_PUBLICATION_GRACE_MINUTES)]
+    if not completed:
+        raise ValueError("No verified completed NYSE session in calendar window")
+    return completed[-1]
 
 
 def _extract_stock_frame(batch: pd.DataFrame, symbol: str) -> pd.DataFrame | None:
@@ -49,34 +86,44 @@ def clean_stock_daily_frame(frame: pd.DataFrame | None, now: pd.Timestamp) -> tu
     ]
     if data.empty:
         return None, "NO VALID OHLCV ROWS"
-    # Do not let a developing US regular-session candle become a confirmed breakout.
-    ny_now = pd.Timestamp(now)
-    if ny_now.tzinfo is None:
-        ny_now = ny_now.tz_localize("America/New_York")
-    else:
-        ny_now = ny_now.tz_convert("America/New_York")
+
+    ny_now = _new_york_now(now)
+    try:
+        expected = expected_completed_nyse_session(ny_now)
+    except (ValueError, KeyError, RuntimeError, OverflowError) as exc:
+        return None, f"NYSE SESSION CALENDAR UNAVAILABLE — {type(exc).__name__}"
+
     last_date = pd.Timestamp(data.index[-1]).date()
-    if last_date == ny_now.date() and (ny_now.hour, ny_now.minute) < (16, 15):
+    if last_date > ny_now.date():
+        return None, f"FUTURE-DATED PRICE BAR {last_date}"
+
+    if last_date > expected:
+        # A genuine today's NYSE candle cannot be used until close+grace.
+        # Never accept made-up nontrading-day candles.
+        if last_date != ny_now.date() or not _nyse().is_session(pd.Timestamp(last_date)):
+            return None, f"NON-COMPLETED OR NON-SESSION PRICE BAR {last_date}"
         data = data.iloc[:-1]
     if data.empty:
         return None, "NO COMPLETED PRICE BARS"
     if len(data) < MIN_BARS:
         return None, f"PRICE HISTORY {len(data)}/{MIN_BARS} COMPLETED BARS"
+
     last_date = pd.Timestamp(data.index[-1]).date()
-    age_days = (ny_now.date() - last_date).days
-    if age_days < 0:
-        return None, f"FUTURE-DATED PRICE BAR {last_date}"
-    if age_days > MAX_LAST_BAR_AGE_DAYS:
-        return None, f"STALE PRICE DATA — LAST COMPLETED {last_date}"
+    if last_date < expected:
+        return None, (f"STALE PRICE DATA — LAST COMPLETED {last_date}; "
+                      f"EXPECTED COMPLETED NYSE SESSION {expected}")
+    if last_date > expected:
+        return None, f"NON-COMPLETED PRICE BAR {last_date}; EXPECTED {expected}"
     return data, "PASS"
 
 
 def get_validated_stock_history(
     batch: pd.DataFrame | None, symbol: str, downloader, now: pd.Timestamp
 ) -> tuple[pd.DataFrame | None, str, str]:
-    """Return (clean_frame, source, reason), always checking the latest full bar.
+    """Return (clean_frame, source, reason); retry a stale batch independently.
 
-    downloader(symbol) should request independent unadjusted 3-year daily data.
+    The independent downloader must obtain the SAME unadjusted three-year
+    daily-history series, not interpolate a missing completed session.
     """
     batch_frame = _extract_stock_frame(batch, symbol)
     clean, reason = clean_stock_daily_frame(batch_frame, now)

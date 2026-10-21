@@ -1,11 +1,14 @@
-"""Data-integrity regression tests for Kraken Funded's live STOCK scan only."""
+"""Kraken Funded stock OHLCV/NYSE-completed-session guard regression tests."""
 import unittest
+from unittest.mock import patch
+
 import numpy as np
 import pandas as pd
-from funded_stock_data import (
-    clean_stock_daily_frame, get_validated_stock_history,
-)
 
+from funded_stock_data import (
+    clean_stock_daily_frame, expected_completed_nyse_session,
+    get_validated_stock_history,
+)
 
 NOW = pd.Timestamp("2026-10-12 11:00", tz="America/New_York")
 
@@ -88,6 +91,115 @@ class FundedStockDataTests(unittest.TestCase):
         self.assertIsNone(frame)
         self.assertEqual(source, "NO VALID PRICE DATA")
         self.assertIn("RETRY ERROR: RuntimeError", reason)
+
+    def test_monday_after_close_rejects_friday_stale_bar(self):
+        monday = pd.Timestamp("2026-10-19 17:30", tz="America/New_York")
+        old, reason = clean_stock_daily_frame(bars(end="2026-10-16"), monday)
+        self.assertIsNone(old)
+        self.assertIn("STALE PRICE DATA", reason)
+        self.assertIn("2026-10-19", reason)
+
+    def test_tuesday_after_close_rejects_monday_stale_bar(self):
+        tuesday = pd.Timestamp("2026-10-20 19:00", tz="America/New_York")
+        old, reason = clean_stock_daily_frame(bars(end="2026-10-19"), tuesday)
+        self.assertIsNone(old)
+        self.assertIn("EXPECTED COMPLETED NYSE SESSION 2026-10-20", reason)
+
+    def test_last_completed_session_after_normal_close_with_grace(self):
+        monday = pd.Timestamp("2026-10-19 17:00", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(monday)), "2026-10-19")
+        good, reason = clean_stock_daily_frame(bars(end="2026-10-19"), monday)
+        self.assertEqual(reason, "PASS")
+        self.assertEqual(str(good.index[-1].date()), "2026-10-19")
+
+    def test_preclose_current_day_bar_never_scored(self):
+        monday = pd.Timestamp("2026-10-19 13:00", tz="America/New_York")
+        data = bars(end="2026-10-19")
+        frame, reason = clean_stock_daily_frame(data, monday)
+        self.assertEqual(reason, "PASS")
+        self.assertEqual(str(frame.index[-1].date()), "2026-10-16")
+
+    def test_after_close_inside_vendor_grace_still_uses_friday(self):
+        monday = pd.Timestamp("2026-10-19 16:20", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(monday)), "2026-10-16")
+        frame, reason = clean_stock_daily_frame(bars(end="2026-10-19"), monday)
+        self.assertEqual(reason, "PASS")
+        self.assertEqual(str(frame.index[-1].date()), "2026-10-16")
+
+    def test_stale_batch_retries_to_fresh_monday(self):
+        now = pd.Timestamp("2026-10-19 17:30", tz="America/New_York")
+        calls = []
+        def retry(symbol):
+            calls.append(symbol)
+            return bars(end="2026-10-19")
+        data, origin, reason = get_validated_stock_history(
+            pd.concat({"MSFT": bars(end="2026-10-16")}, axis=1),
+            "MSFT", retry, now,
+        )
+        self.assertEqual((origin, reason), ("SINGLE-TICKER RETRY", "PASS"))
+        self.assertEqual(calls, ["MSFT"])
+        self.assertEqual(str(data.index[-1].date()), "2026-10-19")
+
+    def test_stale_batch_and_stale_single_retry_fail_closed(self):
+        now = pd.Timestamp("2026-10-19 17:30", tz="America/New_York")
+        data, origin, reason = get_validated_stock_history(
+            bars(end="2026-10-16"), "MSFT",
+            lambda _: bars(end="2026-10-16"), now,
+        )
+        self.assertIsNone(data)
+        self.assertEqual(origin, "NO VALID PRICE DATA")
+        self.assertIn("BATCH: STALE PRICE DATA", reason)
+        self.assertIn("RETRY: STALE PRICE DATA", reason)
+
+    def test_weekend_uses_friday_session(self):
+        sunday = pd.Timestamp("2026-10-18 20:00", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(sunday)), "2026-10-16")
+        data, reason = clean_stock_daily_frame(bars(end="2026-10-16"), sunday)
+        self.assertEqual(reason, "PASS")
+        self.assertIsNotNone(data)
+
+    def test_labor_day_holiday_skips_monday(self):
+        labor_day = pd.Timestamp("2026-09-07 20:00", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(labor_day)), "2026-09-04")
+        data, reason = clean_stock_daily_frame(bars(end="2026-09-04"), labor_day)
+        self.assertEqual(reason, "PASS")
+        self.assertIsNotNone(data)
+
+    def test_good_friday_is_closed(self):
+        good_friday = pd.Timestamp("2026-04-03 20:00", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(good_friday)), "2026-04-02")
+
+    def test_columbus_day_is_open_despite_federal_holiday(self):
+        columbus_day = pd.Timestamp("2026-10-12 17:00", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(columbus_day)), "2026-10-12")
+        data, reason = clean_stock_daily_frame(bars(end="2026-10-09"), columbus_day)
+        self.assertIsNone(data)
+        self.assertIn("STALE PRICE DATA", reason)
+
+    def test_thanksgiving_early_close_has_actual_market_close(self):
+        early = pd.Timestamp("2026-11-27 13:50", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(early)), "2026-11-27")
+        before = pd.Timestamp("2026-11-27 13:20", tz="America/New_York")
+        self.assertEqual(str(expected_completed_nyse_session(before)), "2026-11-25")
+
+    def test_nontrading_holiday_bar_is_not_silently_used(self):
+        holiday = pd.Timestamp("2026-09-07 20:00", tz="America/New_York")
+        data, reason = clean_stock_daily_frame(bars(end="2026-09-07"), holiday)
+        self.assertIsNone(data)
+        self.assertIn("NON-COMPLETED OR NON-SESSION", reason)
+
+    def test_new_york_time_crosses_utc_midnight(self):
+        instant = pd.Timestamp("2026-10-21 01:00:00", tz="UTC")
+        self.assertEqual(str(expected_completed_nyse_session(instant)), "2026-10-20")
+        good, reason = clean_stock_daily_frame(bars(end="2026-10-19"), instant)
+        self.assertIsNone(good)
+        self.assertIn("STALE PRICE DATA", reason)
+
+    def test_exchange_calendar_failure_does_not_fall_back_to_five_days(self):
+        with patch("funded_stock_data._nyse", side_effect=ValueError("unavailable")):
+            good, reason = clean_stock_daily_frame(bars(), NOW)
+        self.assertIsNone(good)
+        self.assertIn("NYSE SESSION CALENDAR UNAVAILABLE", reason)
 
 
 if __name__ == "__main__":
