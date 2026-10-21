@@ -6,6 +6,8 @@ on:
     paths:
       - "scripts/kraken_archive_range_probe.py"
       - "tests/test_kraken_archive_range_probe.py"
+      - "scripts/kraken_archive_selective_extract.py"
+      - "tests/test_kraken_archive_selective_extract.py"
       - "docs/funded_kraken_official_archive_phase3.md"
       - ".github/workflows/funded-kraken-official-archive-probe.yml"
 
@@ -23,6 +25,8 @@ jobs:
           python-version: "3.12"
       - name: Validate strict read-only range ZIP reader
         run: python -m unittest discover -s tests -p test_kraken_archive_range_probe.py -v
+      - name: Validate exact archived pair selection and missing-interval reporting
+        run: python -m unittest discover -s tests -p test_kraken_archive_selective_extract.py -v
 
   catalog-official-q3-increment:
     runs-on: ubuntu-latest
@@ -40,5 +44,25 @@ jobs:
         with:
           name: funded-kraken-official-q3-range-catalog-${{ github.run_id }}
           path: funded-archive-catalog/*
+          if-no-files-found: warn
+          retention-days: 30
+
+  extract-selected-q3-pairs:
+    needs: [verify-range-client]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Extract at most 5 Kraken Q3 spot USD pairs by 60MB byte-range budget
+        run: PYTHONPATH=. python scripts/kraken_archive_selective_extract.py --quarter 2026Q3 --coins BTC,ETH,SOL,NEAR,HBAR --min-pairs 2 --output funded-kraken-q3-selected
+      - name: Preserve selected raw official source CSV and manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-kraken-q3-selected-public-candles-${{ github.run_id }}
+          path: funded-kraken-q3-selected/*
           if-no-files-found: warn
           retention-days: 30
