@@ -17,6 +17,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: funded-kraken-archive-research-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   verify-range-client:
     runs-on: ubuntu-latest
