@@ -138,6 +138,8 @@ def main():
     if not 1<=args.max_per_coin<=300:raise ValueError("unbounded gate evidence research")
     with ZipFile(args.original_zip) as z:
         saved=pd.read_csv(BytesIO(z.read("multi_year_original_asof_decisions.csv")))
+        original_outcomes=pd.read_csv(BytesIO(
+            z.read("multi_year_mover_vs_nonmover_controls.csv")))
     allow=set(funded_universe()["crypto"])
     if set(saved["Coin"])-allow:raise ValueError("unknown original crypto universe")
     result=[];failed=[];coverage=[]
@@ -171,9 +173,41 @@ def main():
     df=pd.DataFrame(result)
     df.to_csv(out/"exact_original_rule_numeric_gates.csv",index=False)
     pd.DataFrame(coverage).to_csv(out/"original_gate_trace_coverage.csv",index=False)
-    pd.DataFrame(failed).to_csv(out/"original_gate_trace_failclosed.csv",index=False)
+    pd.DataFrame(failed).reindex(columns=["Coin","Date","Reason"]).to_csv(
+        out/"original_gate_trace_failclosed.csv",index=False)
+    audit_groups=[]
+    if not df.empty:
+        labels=original_outcomes.loc[
+            (original_outcomes["Horizon 4h bars"]==20)
+            & (original_outcomes["Mover threshold %"]==10),
+            ["Coin","Decision bar open","Later mover"]].copy()
+        labels["when"]=pd.to_datetime(labels["Decision bar open"],utc=True)
+        if labels.duplicated(["Coin","when"]).any():
+            raise ValueError("duplicate future original-archive outcome labels")
+        df["when"]=pd.to_datetime(df["Historical 4h open UTC"],utc=True)
+        merged=df.merge(labels[["Coin","when","Later mover"]],on=["Coin","when"],
+                        validate="one_to_one",how="left")
+        if merged["Later mover"].isna().any():
+            raise ValueError("original feature record has no matched future mover/nonmover label")
+        features=("4h MACD histogram improving","4h MACD histogram above zero",
+                  "Number of resistance tests >=2","Shape original true",
+                  "Timing original actionable","RSI >80")
+        for field in features:
+            for (fold,state),g in merged.groupby(
+                    ["Original research fold",field],sort=True):
+                audit_groups.append({
+                    "Measured original feature":field,"Feature value":bool(state),
+                    "Research fold":fold,"Historical decisions":len(g),
+                    "Later +10% CLOSE movers in 20x4h":int(g["Later mover"].sum()),
+                    "Later non-movers":int((~g["Later mover"].astype(bool)).sum()),
+                    "Not an isolated gate change":True,
+                    "Not account-executable return":True,
+                })
+    pd.DataFrame(audit_groups).to_csv(
+        out/"numeric_features_vs_matched_movers_and_nonmovers.csv",index=False)
     meta={"research_only":True,"numeric_trace_evidence":len(df),
           "original_decisions":len(saved),"errors":len(failed),
+          "numeric_feature_control_groups":len(audit_groups),
           "original_rule_changed":False,"no_backfill_of_live_triggers":True,
           "single_gate_causal_analysis_complete":False}
     (out/"metadata.json").write_text(json.dumps(meta,indent=2)+"\n",encoding="utf-8")
