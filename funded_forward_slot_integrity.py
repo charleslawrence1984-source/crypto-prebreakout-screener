@@ -40,6 +40,7 @@ def source_candle_clock(row, observed):
     Report first unexpected stale/future source, preserving missing/zero-trade
     upstream candles rather than manufacturing an observation.
     """
+    observed=parse_utc(observed)
     if str(row.get("status") or "").upper() in BAD_DATA:
         return "SOURCE_UNAVAILABLE"
     raw=row.get("bar_timestamp")
