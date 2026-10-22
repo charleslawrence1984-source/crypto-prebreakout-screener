@@ -1,0 +1,67 @@
+name: Kraken Funded original forward 4h slot and outcome quality (PR ONLY)
+
+# Read-only CI: NO schedule, orders, backfilled signals, rule edits or broker auth.
+on:
+  pull_request:
+    paths:
+      - "funded_forward_slot_integrity.py"
+      - "funded_forward_prospective_reconcile.py"
+      - "tests/test_funded_forward_slot_integrity.py"
+      - "tests/test_funded_forward_prospective_reconcile.py"
+      - "docs/funded_forward_slot_phase5.md"
+      - ".github/workflows/funded-forward-slot-integrity.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  prove-4h-capture-identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify native prospective immutable capture and paper quality invariants
+        run: |
+          python -m py_compile funded_forward_slot_integrity.py funded_forward_prospective_reconcile.py
+          python -m unittest discover -s tests -p 'test_funded_forward_slot_integrity.py' -v
+          python -m unittest discover -s tests -p 'test_funded_forward_prospective_reconcile.py' -v
+
+  actual-new-crypto-coverage-and-paper:
+    needs: prove-4h-capture-identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install original PUBLIC Kraken/Yahoo forward-only research requirements
+        run: python -m pip install -r requirements.txt
+      - name: Read original SHA-verified capture snapshots and report genuine 4h gaps
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python funded_forward_slot_integrity.py --from-github --window-days 14 --max-artifacts 240 --out-dir funded-current-4h-coverage
+      - name: Separately evaluate authentic frozen triggers against LATER public candles only
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python funded_forward_outcome_runner.py --from-github --window-days 14 --max-artifacts 240 --out-dir funded-current-public-paper
+      - name: Compare fully observed original source evidence to current public-paper outcomes
+        run: |
+          python funded_forward_prospective_reconcile.py --coverage-json funded-current-4h-coverage/slot_integrity_and_trigger_episodes.json --paper-json funded-current-public-paper --out-dir funded-current-validation
+      - name: Preserve exact new original source scan coverage and ALL fail-closed warnings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-forward-4h-original-source-and-paper-${{ github.run_id }}
+          path: |
+            funded-current-4h-coverage/*
+            funded-current-public-paper/*
+            funded-current-validation/*
+          retention-days: 30
+          if-no-files-found: warn
