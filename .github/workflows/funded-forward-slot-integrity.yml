@@ -6,8 +6,10 @@ on:
     paths:
       - "funded_forward_slot_integrity.py"
       - "funded_forward_prospective_reconcile.py"
+      - "funded_gha_schedule_forensics.py"
       - "tests/test_funded_forward_slot_integrity.py"
       - "tests/test_funded_forward_prospective_reconcile.py"
+      - "tests/test_funded_gha_schedule_forensics.py"
       - "docs/funded_forward_slot_phase5.md"
       - ".github/workflows/funded-forward-slot-integrity.yml"
 
@@ -26,9 +28,10 @@ jobs:
           python-version: '3.12'
       - name: Verify native prospective immutable capture and paper quality invariants
         run: |
-          python -m py_compile funded_forward_slot_integrity.py funded_forward_prospective_reconcile.py
+          python -m py_compile funded_forward_slot_integrity.py funded_forward_prospective_reconcile.py funded_gha_schedule_forensics.py
           python -m unittest discover -s tests -p 'test_funded_forward_slot_integrity.py' -v
           python -m unittest discover -s tests -p 'test_funded_forward_prospective_reconcile.py' -v
+          python -m unittest discover -s tests -p 'test_funded_gha_schedule_forensics.py' -v
 
   actual-new-crypto-coverage-and-paper:
     needs: prove-4h-capture-identity
@@ -65,3 +68,28 @@ jobs:
             funded-current-validation/*
           retention-days: 30
           if-no-files-found: warn
+
+  inspect-original-gha-creation-versus-frozen-captures:
+    needs: prove-4h-capture-identity
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install read-only public GitHub schedule provenance client
+        run: python -m pip install requests
+      - name: Compare original scheduled Kraken crypto jobs to signed research captures
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python funded_gha_schedule_forensics.py --window-days 7 --out-dir funded-gha-schedule-provenance
+      - name: Keep full scheduler event evidence with all unknown associations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-gha-true-cron-vs-capture-provenance-${{ github.run_id }}
+          path: funded-gha-schedule-provenance/*
+          if-no-files-found: warn
+          retention-days: 30
