@@ -48,3 +48,18 @@ Tracking: roadmap #35, Kraken Funded #36, historical research #43, funded risk #
 ### What must happen before release
 
 The immediate risk to CL Signal here is unreliable coverage, not evidence the current rules should be loosened. Preserve unobserved bins as UNKNOWN; inspect existing schedule-resilience drafts #34/#47 without merging, and propose an evidence-based scheduler/remote-job remediation only after independently validating original event timing, auth, duplicate snapshots, provider outage behavior, safe budget and operation. Do **not** create an extra recurring scan or alter original cron in this research-only PR. New independent closed forward cases and verified Funded app quote/account eligibility remain necessary to infer strategy edge.
+
+
+## Real independent schedule-event forensics — final source-backed checkpoint
+
+[Current GitHub PR head research run 39765413598](../../actions/runs/39765413598) **ALL THREE JOBS SUCCESS** (source-clock invariants + actual new public-candle paper evaluation + independent read-only GitHub scheduled-job audit). Exact source ZIPs: **12420795038** forward/capture and **12420495658** schedule. Both independently downloaded/unzipped and every ZIP member passed CRC integrity verification.
+
+The authenticated GitHub REST metadata confirms **18 genuine completed scheduled crypto jobs** within this bounded historical period, and **18/18** map one-to-one to an actual original content-hash-verified crypto research archive. **Zero** scheduled jobs lacked an archived research capture among the examined records; zero archived captures lacked a matched examined scheduled job. All 18 jobs' recorded conclusion was SUCCESS.
+
+**GitHub run creation delay proxy:** 11/18 occurred **more than 60 minutes** after the most recent preceding *nominal* crypto cron, and **7/18 more than 120 minutes**. The repo's crypto cron remains 00:35,04:35,08:35,12:35,16:35,20:35 UTC. For example 21 Oct run 39694191860 created 23:33 UTC against latest prior 20:35 nominal cron (~179 minutes). Run 39669317990 created 20:19 UTC against latest prior 16:35 nominal cron (~225 minutes). **The original intended scheduled occurrence is NOT available from GitHub REST run metadata**; a run may have been delayed from an EVEN EARLIER cron. These are *heuristic minimum nominal-creation-time offsets*, not guaranteed exact queue delays. The 12 unobserved 4h capture-clock bins do not themselves prove precisely which 12 scheduled invocations failed or were skipped.
+
+The user-facing operational conclusion is nonetheless evidence-based: **the immediate reliability shortfall is 4h capture timing/coverage, not silent Kraken candle staleness in successful captures, not failed research jobs and not evidence to loosen BUY criteria**. GitHub best-effort cron starts are unsuitable as a proven clock-precise 4-hour signal capture service without further schedule hardening.
+
+Next issue #42 development must propose **one** reliable primary cadence mechanism with proven run/event identity, idempotent immutable capture keys by intended market candle, provider failure transparency, safe manual dispatch recovery limited to NEW observations (never backfill a historical BUY), visibility of the existing schedule, and explicit owner approval for any production cron/source change. Do not add independent recurring monitoring from this read-only PR.
+
+The actual CRV forward result is unchanged: one distinct original 4h BUY signal seen twice, one deduplicated stopped-out PAPER position at assumed 0.5% costs, -1.08246R/-$3 on $1k, $997 hypothetical closed equity, **no Funded account fills and no actual challenge outcome**.
