@@ -58,7 +58,7 @@ jobs:
           zip -q -j paper.zip frozen-paper/*
       - name: Compare all original signal reasons to movers/nonmovers and costs
         run: |
-          python scripts/funded_four_priorities_study.py --original-zip original.zip --risk-zip risk.zip --funnel-zip funnel.zip --paper-zip paper.zip --out-dir funded-four-research
+          PYTHONPATH=. python scripts/funded_four_priorities_study.py --original-zip original.zip --risk-zip risk.zip --funnel-zip funnel.zip --paper-zip paper.zip --out-dir funded-four-research
       - name: Preserve joined gate statistics, static challenge scenarios and forward coverage
         if: always()
         uses: actions/upload-artifact@v4
