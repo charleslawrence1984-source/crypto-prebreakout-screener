@@ -71,7 +71,7 @@ class FrozenCounterfactualTests(unittest.TestCase):
 
     def test_adverse_stop_gap_uses_actual_next_open(self):
         f=series()
-        f.loc[f.index[1],["open","low","high","close"]]=[94.,93.,97.,95.]
+        f.loc[f.index[2],["open","low","high","close"]]=[94.,93.,97.,95.]
         res=hypothetical_exit(record(),f)
         self.assertEqual(res["Exit reason"],"STOP GAP")
         # An open through stop has negative realised R, not filled at stop.
