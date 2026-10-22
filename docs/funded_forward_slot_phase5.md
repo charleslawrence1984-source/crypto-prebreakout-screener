@@ -25,3 +25,26 @@ This is a new PR-only workflow. No added cron, changes to the one existing daily
 - [ ] Remain draft and unmerged without explicit user approval
 
 Tracking: roadmap #35, Kraken Funded #36, historical research #43, funded risk #44 and stale NYSE vendor #45.
+
+
+## Actual read-only forward research: 22 October 2026
+
+[PR #52 original GitHub research Actions run 39764239730](../../actions/runs/39764239730) **BOTH JOBS SUCCESS** after a unit-test-discovered timestamp coercion bug was corrected. Real-artifact evidence **12419506421** independently downloaded/unzipped. Every row from the 21 archived main-branch scans (18 crypto, 3 stocks) was validated against immutable source SHA-256.
+
+### Capture reliability and data truth
+
+- The range BETWEEN the first and last observed crypto scan contained **28 consecutive possible UTC four-hour capture bins**. **16/28 bins captured** (57.14%), **12/28 unobserved** (42.86%). **Two bins had extra captures**, producing 18 distinct frozen crypto scan snapshots; *no outside-window coverage claim*.
+- All **594** source-price row observations (18 x 33) showed the exact most recent **completed** UTC four-hour Kraken bar open for their actual observation clock; **zero** stale/misaligned/future/invalid source candle timestamps in those true captures. This validates bar timestamp finality, **not spot-liquidity coverage, Funded quote availability or broker eligibility**.
+- Unobserved UTC bin starts: **18 Oct 00:00, 08:00; 19 Oct 00:00, 08:00, 16:00; 20 Oct 00:00, 08:00, 16:00; 21 Oct 00:00, 08:00, 16:00; 22 Oct 00:00**. UTC, 2026. **UNKNOWN market signal states**, not verified no opportunities or confirmed missed cron executions.
+- Fresh GitHub schedule-run creation timestamps indicate material possible schedule lag: nominal crypto 04:35 UTC 22 Oct vs visible run **39726987720** created 05:15 (~40 min); nominal crypto 20:35 UTC 21 Oct vs visible **39694191860** created 23:33 (~2h59m). Original run **39669317990** was created 20:19 UTC on 21 Oct (compatible with ~3h44m delay from the *preceding* 16:35 crypto cron, but the exact intended cron slot is **NOT** exposed in run metadata). **Do not label these as proven scheduler misses without event-schedule identity**. Existing schedule-resilience issue #42 remains open.
+
+### Actual newer prospective CRV paper outcome
+
+- Two immutable original Kraken technical **CRV BUY** research observations at **21 Oct 20:22:23 UTC** and **21 Oct 23:36:29 UTC**, both referencing **the same original completed CRV 16:00 UTC four-hour candle**. Precisely **one distinct coin+bar signal episode**, two observed scans, **ZERO Kraken APP Funded broker-approved BUY or real trade orders**.
+- The unchanged later Kraken public-candle shadow evaluator produced **2 shadow-stop observations**, but its original funded shadow risk account correctly deduplicated them into **1 eligible paper position**, vetoing the repeated setup as already open.
+- Hypothetical entry: **22 October 00:00 UTC** at public OHLC proxy **$0.40268**. Hypothetical stop exit: **22 October 04:00 UTC** at **$0.37826457**. Modeled **0.5% round-trip costs**, approximately **−1.08246R**, **−$3** at the existing $1,000/$3 paper-risk reference. **Realized-only paper equity proxy = $997.00**, unchanged static loss line $970. Paper sample **1** is nowhere near 30 descriptive cases and no estimate of live performance is justified.
+- Fresh read-only paper journal summary: **21 frozen research scan archives, 2 original technical BUY observations, 1 deduplicated closed loser, 0 funded broker fills, 682 other no-research-entry asset rows**. Neither public spot candle nor hypothetical stop-first ordering confirms genuine Funded in-app bid/ask or discretionary stop execution. Account continuous-equity risk remains unknown.
+
+### What must happen before release
+
+The immediate risk to CL Signal here is unreliable coverage, not evidence the current rules should be loosened. Preserve unobserved bins as UNKNOWN; inspect existing schedule-resilience drafts #34/#47 without merging, and propose an evidence-based scheduler/remote-job remediation only after independently validating original event timing, auth, duplicate snapshots, provider outage behavior, safe budget and operation. Do **not** create an extra recurring scan or alter original cron in this research-only PR. New independent closed forward cases and verified Funded app quote/account eligibility remain necessary to infer strategy edge.
