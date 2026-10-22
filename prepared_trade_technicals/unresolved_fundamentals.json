@@ -62,14 +62,16 @@
       "symbols": []
     },
     "nyse": {
-      "count": 5,
+      "count": 7,
       "label": "NYSE",
       "symbols": [
         "AQNB",
         "BEPJ",
         "BIPI",
         "BNJ",
-        "DCBG"
+        "DCBG",
+        "MSGK-V",
+        "MSGR-V"
       ]
     },
     "six": {
@@ -171,8 +173,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-21T00:58:06+01:00",
+  "recorded_at": "2026-10-22T01:04:33+01:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-21T00:55:48+01:00",
-  "total_unresolved": 100
+  "source_fundamentals_updated_at": "2026-10-22T01:01:59+01:00",
+  "total_unresolved": 102
 }
