@@ -1,0 +1,91 @@
+name: Kraken Funded four P1 priorities original-rule research (PR ONLY)
+
+# No schedule, workflow dispatch, broker credentials, orders or production changes.
+on:
+  pull_request:
+    paths:
+      - funded_app_challenge_scenarios.py
+      - funded_gate_reason_evidence.py
+      - funded_stock_vendor_probe.py
+      - funded_forward_evidence_qa.py
+      - scripts/funded_four_priorities_study.py
+      - tests/test_funded_four_priorities.py
+      - docs/funded_four_priorities_20261022.md
+      - .github/workflows/funded-four-priorities-research.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  four-priorities-deterministic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install transparent research dependencies only
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3" "exchange_calendars>=4.5,<5"
+      - name: Verify frozen-gate, official Funded floor, vendor, prospective guards
+        run: |
+          python -m py_compile funded_app_challenge_scenarios.py funded_gate_reason_evidence.py funded_stock_vendor_probe.py funded_forward_evidence_qa.py scripts/funded_four_priorities_study.py
+          python -m unittest discover -s tests -p test_funded_four_priorities.py -v
+
+  frozen-history-and-forward-reconcile:
+    needs: four-priorities-deterministic
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install immutable evidence research dependencies
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3"
+      - name: Read original historical crypto decisions and paper exits from explicit past runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 39622003287 --repo "${{ github.repository }}" --name funded-kraken-official-multiyear-33coin-research-39622003287 --dir frozen-original
+          gh run download 39751661912 --repo "${{ github.repository }}" --name funded-33coin-stop-aware-counterfactual-39751661912 --dir frozen-risk
+          gh run download 39748452647 --repo "${{ github.repository }}" --name funded-funnel-evidence-39748452647-1 --dir frozen-funnel
+          gh run download 39707516054 --repo "${{ github.repository }}" --name funded-forward-paper-39707516054-1 --dir frozen-paper
+          zip -q -j original.zip frozen-original/*
+          zip -q -j risk.zip frozen-risk/*
+          zip -q -j funnel.zip frozen-funnel/*
+          zip -q -j paper.zip frozen-paper/*
+      - name: Compare all original signal reasons to movers/nonmovers and costs
+        run: |
+          python scripts/funded_four_priorities_study.py --original-zip original.zip --risk-zip risk.zip --funnel-zip funnel.zip --paper-zip paper.zip --out-dir funded-four-research
+      - name: Preserve joined gate statistics, static challenge scenarios and forward coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-four-priorities-source-frozen-${{ github.run_id }}
+          path: funded-four-research/*
+          retention-days: 30
+          if-no-files-found: warn
+
+  independent-eod-public-provider-observation:
+    needs: four-priorities-deterministic
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install public Yahoo, stock calendar, Stooq comparator requirements
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3" "exchange_calendars>=4.5,<5" "yfinance>=0.2.65"
+      - name: Probe independent prices versus last completed NYSE session, NEVER switch live feed
+        run: python funded_stock_vendor_probe.py --out-dir funded-stock-independent-provider
+      - name: Archive both vendor states including stale/unavailable
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-stock-eod-provider-comparison-${{ github.run_id }}
+          path: funded-stock-independent-provider/*
+          retention-days: 30
+          if-no-files-found: warn
