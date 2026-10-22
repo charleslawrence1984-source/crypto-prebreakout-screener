@@ -25,10 +25,12 @@ def freshness_result(source, symbol, rows, *, expected):
         return {"Source":source,"Symbol":symbol,"State":"DATA UNAVAILABLE",
                 "Reason":"No provider OHLCV","Expected session":str(expected)}
     value=rows.copy()
-    if "Date" in value:
-        times=pd.to_datetime(value["Date"],errors="raise")
-    else:
+    if "Date" in value.columns:
+        times=pd.to_datetime(value["Date"].astype(str),errors="raise")
+    elif isinstance(value.index,pd.DatetimeIndex):
         times=pd.to_datetime(value.index,errors="raise")
+    else:
+        raise ValueError("provider missing Date column and indexed sessions; unsupported CSV shape")
     if isinstance(times,pd.Series):
         latest=times.max()
     else:
@@ -65,7 +67,14 @@ def stooq_history(symbol, *, start, end, opener=urlopen):
         raw=r.read(2_000_000)
     if not raw or len(raw)>=2_000_000:
         raise ValueError("Stooq CSV absent/too large")
-    return pd.read_csv(io.BytesIO(raw))
+    header=raw.splitlines()[0].decode("utf-8","replace").strip() if raw.splitlines() else ""
+    required=("Date","Open","High","Low","Close","Volume")
+    if header.split(",")!=list(required):
+        raise ValueError("Provider did not return canonical EOD CSV; header="+repr(header[:80]))
+    frame=pd.read_csv(io.BytesIO(raw))
+    if not set(required).issubset(frame.columns):
+        raise ValueError("Provider returned inconsistent EOD column schema")
+    return frame
 
 
 def yahoo_history(symbol):
