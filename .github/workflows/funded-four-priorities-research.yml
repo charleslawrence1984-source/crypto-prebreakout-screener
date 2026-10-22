@@ -111,7 +111,7 @@ jobs:
           zip -q -j original-source-gates.zip source-gates/*
           zip -q -j frozen-decision-gates.zip original-gates/*
       - name: Compare authentic scorer RSI MACD volume resistance and timing to frozen signal-score decisions
-        run: PYTHONPATH=. python scripts/funded_original_numeric_gates.py --source-zip original-source-gates.zip --original-zip frozen-decision-gates.zip --max-per-coin 160 --out-dir funded-original-numeric-gates
+        run: PYTHONPATH=. python scripts/funded_original_numeric_gates.py --source-zip original-source-gates.zip --original-zip frozen-decision-gates.zip --max-per-coin 300 --out-dir funded-original-numeric-gates
       - name: Preserve original numeric features and all parity failures
         if: always()
         uses: actions/upload-artifact@v4
