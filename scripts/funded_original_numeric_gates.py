@@ -18,7 +18,7 @@ from zipfile import ZipFile
 
 import pandas as pd
 
-from crypto_rule_engine import ScreenerConfig, score_setup
+from crypto_rule_engine import ScreenerConfig, score_setup, ema
 from funded_forward_capture import funded_universe
 
 COLS=["timestamp","open","high","low","close","volume","trades"]
@@ -105,13 +105,18 @@ def trace_one(row, data, btc, scorer=score_setup):
     if str(original["entry_timing"])!=str(row["Original entry timing"]):
         raise ValueError("original entry stage divergence")
     # Raw feature diagnostics as-of original time; none modifies original state.
+    hist_macd = ema(x["close"],12)-ema(x["close"],26)
+    hist_macd = hist_macd-ema(hist_macd,9)
+    macd_change=float(hist_macd.iloc[-1]-hist_macd.iloc[-4])
     result={key:original.get(key) for key in FIELDS}
     result.update({
         "Coin":row["Coin"],"Historical 4h open UTC":stamp.isoformat(),
         "Original historical research class":row["Research class"],
         "Original research fold":row["Research fold"],
         "Original watch reason":row["Original reason"],
-        "MACD histogram improving (research feature only)":None,
+        "4h MACD histogram slope 4 bars":round(macd_change,8),
+        "4h MACD histogram improving":bool(macd_change>0),
+        "4h MACD histogram above zero":bool(hist_macd.iloc[-1]>0),
         "RSI >80":float(original["rsi"])>80,
         "Number of resistance tests >=2":int(original["resistance_tests"])>=2,
         "Shape original true":bool(original["shape_eligible"]),
