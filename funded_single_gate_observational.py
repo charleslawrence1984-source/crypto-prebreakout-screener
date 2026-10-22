@@ -8,6 +8,7 @@ reconstruct causality, or tune the exposed holdout.
 from __future__ import annotations
 
 import math
+import numpy as np
 import pandas as pd
 
 BOOLEAN_DIAGNOSTICS={
@@ -21,7 +22,7 @@ COSTS=(.4,.8,1.6)
 
 
 def _bool_value(value):
-    if isinstance(value,bool):return value
+    if isinstance(value,(bool,np.bool_)):return bool(value)
     if isinstance(value,str) and value.lower() in ("true","false"):
         return value.lower()=="true"
     raise ValueError("research gate boolean must be true/false, not a missing truthy string")
