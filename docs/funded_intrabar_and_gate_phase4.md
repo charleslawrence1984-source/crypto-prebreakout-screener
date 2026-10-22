@@ -32,3 +32,30 @@ Compare original as-of single feature PASS versus FAIL while preserving other te
 - [ ] Original frozen source artifacts fetched in PR-only GitHub CI; whole source manifest SHA validated for each coin before simulated 4h lows read
 - [ ] All historical results archived and audited with source/quote caveats, denominators and fail-closed gaps
 - [ ] No merges, automatic monitoring changes, signal rule tuning, broker actions or live orders
+
+
+## Verified results from 22 October 2026 (PR-only)
+
+**[Current-head research GitHub Actions run 39762237753](../../actions/runs/39762237753): BOTH jobs SUCCESS**, including synthetic cash-only/static-floor and immutable source replay. Independently downloaded research ZIP **artifact 12419041026**, verified ZIP integrity and five output objects. **4,514/4,514 original numeric trigger decisions remain intact; 1,341 joined original stopped/targeted hypothetical entry-cost observations** (= 447 at each of three cost scenarios); 150 conditional-gate/fold/cost summary strata, 18 account-cash-risk scenarios.
+
+**Original BUY at 0.5% of initial $1k as nominal risk, 0.8% modeled roundtrip costs:** all **11** source research entries appear in serial order, account closed-equity proxy **$975.443325**, modeled public 4h unprotected price lows produced **zero hypothetical static $970 crossing** in the modeled holding intervals. No +12% goal, and NO verified continuous Funded quote history.
+
+**Broad WATCH_READY_BYPASS at the same 0.5% and 0.8% costs:** **six** hypothetical serial entries before reaching modeled closed-equity **$964.053605**, below static $970, with **two possible 4h public-low crossing observations**. Ten overlapping alternative WATCH candidate start times were skipped while a previous hypothetical position remained open. Across all three WATCH paper cost levels x three assumed risk allocations, the serial closed-equity model crossed $970; **not evidence that any real Funded account breached**.
+
+**Risk sensitivity / unlevered cap:** Original BUY at 0.25% initial risk / 0.4–1.6% costs remained above $970 in this small sample, while original BUY at 1% / any tested costs fell below $970 in the *paper* account model. The current model caps notional position size at 100% of pre-trade cash. These are static historical examples, NOT recommended account position sizing or funded challenge pass estimates.
+
+**Single-feature gate evidence (observation only):** Among the original eligible WATCH hypothetical cohort at 0.8% modeled cost:
+- MACD histogram positive in original TRAIN: **172 cases mean +0.02934R**, vs histogram nonpositive: **83 cases mean −0.74865R**.
+- VALIDATION: positive **67 cases −0.48515R**, nonpositive **32 cases −0.63314R**.
+- Previously examined HOLDOUT: positive **56 cases −0.57455R**, nonpositive **26 cases +0.12927R**.
+The apparent favorable TRAIN association **reverses in historical holdout**, demonstrating precisely why cherry-picking an indicator from retrospective winners is unsafe. Historic fold has been consulted and is not a fresh test-set for changing live rules. **Do not increase trading frequency or change MACD/resistance rules** on these comparisons.
+
+### Still not demonstrated
+
+- Real Kraken Funded app quote vintage, asset list available for this user, quote spreads, in-app execution latency or stop fills
+- Timestamped intra-candle execution sequence or current Funded account equity trajectory, even though public four-hour lows are checked
+- Statistical independence across correlated altcoin moves, reproducible genuine out-of-sample returns, equity-level probability of passing the challenge
+- A **causal** per-indicator historical ablation (only original as-of observed feature / original risky entry controls tested)
+- Repair of overnight US Yahoo stock data publication latency or actual prospective closed paper positions
+
+**Decision: Keep live rules unchanged.** Continue evidence gathering from NEW prospectively archived 4h candles and official app instrument/quote availability before any trigger proposal.
