@@ -46,8 +46,8 @@ jobs:
         run: |
           gh run download 39622003287 --repo "${{ github.repository }}" --name funded-kraken-official-full-33coin-selected-39622003287 --dir source-snapshots
           gh run download 39622003287 --repo "${{ github.repository }}" --name funded-kraken-official-multiyear-33coin-research-39622003287 --dir original-decisions
-          python -m zipfile -c frozen-33coin-source.zip source-snapshots/*
-          python -m zipfile -c frozen-asof-decisions.zip original-decisions/*
+          zip -q -j frozen-33coin-source.zip source-snapshots/*
+          zip -q -j frozen-asof-decisions.zip original-decisions/*
       - name: Re-evaluate only FROZEN original BUY and eligible WATCH cohorts
         run: |
           python funded_counterfactual_risk.py --original-results-zip frozen-asof-decisions.zip --full-source-zip frozen-33coin-source.zip --out-dir funded-counterfactual-report
