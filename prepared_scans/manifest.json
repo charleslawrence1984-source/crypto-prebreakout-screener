@@ -3,8 +3,8 @@
     "euronext_amsterdam": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 1,
-      "completed_at": "2026-10-21T00:56:42+01:00",
+      "chunk_symbols": 2,
+      "completed_at": "2026-10-23T01:01:59+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -15,10 +15,13 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 1,
-        "returned": 1,
+        "requested": 2,
+        "returned": 2,
         "symbol_outcomes": {
-          "EXO.AS": {
+          "AKZA.AS": {
+            "status": "row"
+          },
+          "RAND.AS": {
             "status": "row"
           }
         }
@@ -33,16 +36,16 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 3,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refresh_updated": 5,
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 1,
+      "requested_this_run": 2,
       "result_rows": 43,
-      "returned_this_run": 1,
-      "started_at": "2026-10-21T00:56:40+01:00",
+      "returned_this_run": 2,
+      "started_at": "2026-10-23T01:01:57+01:00",
       "status": "complete",
       "universe_symbols": 76
     },
@@ -50,7 +53,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-22T01:02:55+01:00",
+      "completed_at": "2026-10-23T01:01:54+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -83,7 +86,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 4,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -91,7 +94,7 @@
       "requested_this_run": 2,
       "result_rows": 49,
       "returned_this_run": 2,
-      "started_at": "2026-10-22T01:02:52+01:00",
+      "started_at": "2026-10-23T01:01:52+01:00",
       "status": "complete",
       "universe_symbols": 103
     },
@@ -135,7 +138,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 3,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -151,7 +154,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-22T01:02:49+01:00",
+      "completed_at": "2026-10-23T01:01:50+01:00",
       "coverage_pct": 98.8,
       "coverage_symbols": 158,
       "coverage_target_symbols": 160,
@@ -187,7 +190,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 14,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "ALPRG.PA": {
           "attempts": 1,
@@ -208,9 +211,9 @@
       "requested_this_run": 3,
       "result_rows": 158,
       "returned_this_run": 3,
-      "started_at": "2026-10-22T01:02:48+01:00",
+      "started_at": "2026-10-23T01:01:48+01:00",
       "status": "partial",
-      "universe_symbols": 544
+      "universe_symbols": 543
     },
     "gettex": {
       "analysed_limit": 0,
@@ -10389,11 +10392,11 @@
     "lse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 1,
-      "completed_at": "2026-10-22T01:02:42+01:00",
-      "coverage_pct": 99.2,
+      "chunk_symbols": 4,
+      "completed_at": "2026-10-23T01:01:41+01:00",
+      "coverage_pct": 98.7,
       "coverage_symbols": 235,
-      "coverage_target_symbols": 237,
+      "coverage_target_symbols": 238,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10401,15 +10404,24 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 1,
-        "returned": 1,
+        "requested": 4,
+        "returned": 4,
         "symbol_outcomes": {
+          "BARC.L": {
+            "status": "row"
+          },
+          "BMY.L": {
+            "status": "row"
+          },
           "EDV.L": {
+            "status": "row"
+          },
+          "SBRY.L": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 238,
+      "eligible_symbols": 239,
       "gap_fill_dispatch_counts": {
         "YNGN.L": 3
       },
@@ -10422,7 +10434,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 234,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "YNGN.L": {
           "attempts": 3,
@@ -10433,11 +10445,11 @@
       },
       "provider_deferred_symbols": 1,
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 2,
-      "requested_this_run": 1,
+      "remaining_symbols": 3,
+      "requested_this_run": 4,
       "result_rows": 235,
-      "returned_this_run": 1,
-      "started_at": "2026-10-22T01:02:40+01:00",
+      "returned_this_run": 4,
+      "started_at": "2026-10-23T01:01:39+01:00",
       "status": "partial",
       "universe_symbols": 472
     },
@@ -10474,7 +10486,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 5,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "SCLP.L": {
           "attempts": 0,
@@ -10496,8 +10508,8 @@
     "madrid": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 2,
-      "completed_at": "2026-10-22T01:02:52+01:00",
+      "chunk_symbols": 3,
+      "completed_at": "2026-10-23T01:01:52+01:00",
       "coverage_pct": 98.6,
       "coverage_symbols": 72,
       "coverage_target_symbols": 73,
@@ -10508,13 +10520,16 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 2,
-        "returned": 2,
+        "requested": 3,
+        "returned": 3,
         "symbol_outcomes": {
           "AMS.MC": {
             "status": "row"
           },
-          "ENG.MC": {
+          "BKT.MC": {
+            "status": "row"
+          },
+          "IBE.MC": {
             "status": "row"
           }
         }
@@ -10532,8 +10547,8 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 24,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refresh_updated": 25,
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "EDR.MC": {
           "attempts": 1,
@@ -10545,21 +10560,21 @@
       "provider_deferred_symbols": 1,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 1,
-      "requested_this_run": 2,
+      "requested_this_run": 3,
       "result_rows": 72,
-      "returned_this_run": 2,
-      "started_at": "2026-10-22T01:02:51+01:00",
+      "returned_this_run": 3,
+      "started_at": "2026-10-23T01:01:50+01:00",
       "status": "partial",
-      "universe_symbols": 272
+      "universe_symbols": 274
     },
     "nasdaq": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 35,
-      "completed_at": "2026-10-22T01:02:19+01:00",
-      "coverage_pct": 98.6,
-      "coverage_symbols": 1240,
-      "coverage_target_symbols": 1257,
+      "chunk_symbols": 58,
+      "completed_at": "2026-10-23T01:01:10+01:00",
+      "coverage_pct": 98.3,
+      "coverage_symbols": 1238,
+      "coverage_target_symbols": 1260,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10567,25 +10582,49 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 35,
-        "returned": 35,
+        "requested": 58,
+        "returned": 58,
         "symbol_outcomes": {
-          "BFC": {
+          "BANF": {
             "status": "row"
           },
-          "BWB": {
+          "BANR": {
             "status": "row"
           },
-          "CME": {
+          "CASH": {
+            "status": "row"
+          },
+          "CATY": {
+            "status": "row"
+          },
+          "CCNE": {
+            "status": "row"
+          },
+          "CMCSA": {
             "status": "row"
           },
           "CRON": {
             "status": "row"
           },
+          "CSX": {
+            "status": "row"
+          },
+          "CTBI": {
+            "status": "row"
+          },
+          "CVBF": {
+            "status": "row"
+          },
           "DRVN": {
             "status": "row"
           },
-          "EWBC": {
+          "EFSC": {
+            "status": "row"
+          },
+          "EGBN": {
+            "status": "row"
+          },
+          "FBNC": {
             "status": "row"
           },
           "FCFS": {
@@ -10594,19 +10633,34 @@
           "FRHC": {
             "status": "row"
           },
-          "HAS": {
+          "FRME": {
             "status": "row"
           },
-          "HTLD": {
+          "FULT": {
             "status": "row"
           },
-          "HWC": {
+          "GSBC": {
+            "status": "row"
+          },
+          "HBNC": {
+            "status": "row"
+          },
+          "HCSG": {
+            "status": "row"
+          },
+          "IART": {
             "status": "row"
           },
           "INTR": {
             "status": "row"
           },
+          "IRDM": {
+            "status": "row"
+          },
           "ISRG": {
+            "status": "row"
+          },
+          "KALU": {
             "status": "row"
           },
           "KRYS": {
@@ -10618,66 +10672,96 @@
           "LGND": {
             "status": "row"
           },
+          "LRCX": {
+            "status": "row"
+          },
+          "MEDP": {
+            "status": "row"
+          },
+          "META": {
+            "status": "row"
+          },
           "MNST": {
+            "status": "row"
+          },
+          "MPB": {
             "status": "row"
           },
           "NCNO": {
             "status": "row"
           },
-          "NTRS": {
-            "status": "row"
-          },
-          "ONB": {
+          "NDAQ": {
             "status": "row"
           },
           "OPK": {
             "status": "row"
           },
-          "ORRF": {
+          "OSBC": {
             "status": "row"
           },
-          "PEGA": {
-            "status": "row"
-          },
-          "PENG": {
-            "status": "row"
-          },
-          "QCRH": {
+          "QS": {
             "status": "row"
           },
           "SDGR": {
             "status": "row"
           },
-          "SFST": {
+          "SEIC": {
             "status": "row"
           },
-          "SPCX": {
+          "SMBC": {
             "status": "row"
           },
           "TCBK": {
             "status": "row"
           },
+          "THRM": {
+            "status": "row"
+          },
           "TOWN": {
+            "status": "row"
+          },
+          "TRST": {
             "status": "row"
           },
           "TSAT": {
             "status": "row"
           },
+          "TSCO": {
+            "status": "row"
+          },
+          "TSLA": {
+            "status": "row"
+          },
+          "TTMI": {
+            "status": "row"
+          },
+          "TXN": {
+            "status": "row"
+          },
+          "UAL": {
+            "status": "row"
+          },
           "UBSI": {
             "status": "row"
           },
-          "VICR": {
+          "VLY": {
             "status": "row"
           },
           "VRSN": {
             "status": "row"
           },
+          "WDFC": {
+            "status": "row"
+          },
           "WFRD": {
+            "status": "row"
+          },
+          "WSBC": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 1263,
+      "eligible_symbols": 1266,
       "gap_fill_dispatch_counts": {
         "AGCC": 51,
         "AIFU": 1,
@@ -10694,8 +10778,8 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 1236,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refresh_updated": 1234,
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "AGCC": {
           "attempts": 51,
@@ -10708,12 +10792,6 @@
           "deferred_at": "2026-10-17T00:01:43+01:00",
           "reason": "below_market_cap",
           "until": "2026-10-24T00:01:43+01:00"
-        },
-        "AMRO": {
-          "attempts": 0,
-          "deferred_at": "2026-10-16T00:42:48+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-23T00:42:48+01:00"
         },
         "FBYD": {
           "attempts": 51,
@@ -10748,22 +10826,22 @@
       },
       "provider_deferred_symbols": 6,
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 17,
-      "requested_this_run": 35,
-      "result_rows": 1240,
-      "returned_this_run": 35,
-      "started_at": "2026-10-22T01:02:06+01:00",
+      "remaining_symbols": 22,
+      "requested_this_run": 58,
+      "result_rows": 1238,
+      "returned_this_run": 58,
+      "started_at": "2026-10-23T01:00:50+01:00",
       "status": "partial",
       "universe_symbols": 3328
     },
     "nyse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 64,
-      "completed_at": "2026-10-22T01:02:40+01:00",
-      "coverage_pct": 99.3,
+      "chunk_symbols": 92,
+      "completed_at": "2026-10-23T01:01:39+01:00",
+      "coverage_pct": 99.2,
       "coverage_symbols": 1426,
-      "coverage_target_symbols": 1436,
+      "coverage_target_symbols": 1438,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10771,22 +10849,19 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 64,
-        "returned": 64,
+        "requested": 92,
+        "returned": 92,
         "symbol_outcomes": {
-          "ACI": {
-            "status": "row"
-          },
-          "ADC": {
-            "status": "row"
-          },
-          "ALK": {
-            "status": "row"
-          },
-          "ALLY": {
+          "ABT": {
             "status": "row"
           },
           "ARIS": {
+            "status": "row"
+          },
+          "ARR": {
+            "status": "row"
+          },
+          "ASIC": {
             "status": "row"
           },
           "ATI": {
@@ -10795,25 +10870,28 @@
           "AU": {
             "status": "row"
           },
-          "AUB": {
-            "status": "row"
-          },
           "AVY": {
             "status": "row"
           },
-          "BKU": {
+          "BBT": {
+            "status": "row"
+          },
+          "BDN": {
+            "status": "row"
+          },
+          "BX": {
+            "status": "row"
+          },
+          "CACI": {
             "status": "row"
           },
           "CARS": {
             "status": "row"
           },
-          "CB": {
+          "CCI": {
             "status": "row"
           },
           "CGAU": {
-            "status": "row"
-          },
-          "CLF": {
             "status": "row"
           },
           "CLS": {
@@ -10822,37 +10900,49 @@
           "CNX": {
             "status": "row"
           },
-          "COF": {
+          "CURB": {
             "status": "row"
           },
-          "EFX": {
+          "DGX": {
             "status": "row"
           },
-          "ELS": {
+          "DHR": {
             "status": "row"
           },
-          "ELV": {
+          "DOW": {
             "status": "row"
           },
-          "FDS": {
+          "EGP": {
+            "status": "row"
+          },
+          "EPRT": {
+            "status": "row"
+          },
+          "ESI": {
+            "status": "row"
+          },
+          "FAF": {
             "status": "row"
           },
           "FNV": {
             "status": "row"
           },
+          "FR": {
+            "status": "row"
+          },
+          "GGG": {
+            "status": "row"
+          },
           "GIL": {
             "status": "row"
           },
-          "GM": {
+          "GL": {
             "status": "row"
           },
-          "GPC": {
+          "GTY": {
             "status": "row"
           },
           "HAFN": {
-            "status": "row"
-          },
-          "HAL": {
             "status": "row"
           },
           "HBM": {
@@ -10861,10 +10951,40 @@
           "HOG": {
             "status": "row"
           },
+          "HTB": {
+            "status": "row"
+          },
+          "HXL": {
+            "status": "row"
+          },
+          "IBM": {
+            "status": "row"
+          },
+          "IIIN": {
+            "status": "row"
+          },
+          "JNJ": {
+            "status": "row"
+          },
+          "KMI": {
+            "status": "row"
+          },
+          "KNX": {
+            "status": "row"
+          },
           "KRG": {
             "status": "row"
           },
-          "LAD": {
+          "LAZ": {
+            "status": "row"
+          },
+          "LBRT": {
+            "status": "row"
+          },
+          "LMT": {
+            "status": "row"
+          },
+          "LOB": {
             "status": "row"
           },
           "LRN": {
@@ -10873,7 +10993,10 @@
           "LSPD": {
             "status": "row"
           },
-          "MCB": {
+          "LUV": {
+            "status": "row"
+          },
+          "LVS": {
             "status": "row"
           },
           "MCO": {
@@ -10882,37 +11005,28 @@
           "MGA": {
             "status": "row"
           },
-          "MHO": {
-            "status": "row"
-          },
           "MKL": {
             "status": "row"
           },
           "MLI": {
             "status": "row"
           },
-          "MMM": {
+          "MOH": {
             "status": "row"
           },
-          "MSCI": {
+          "NEE": {
             "status": "row"
           },
-          "NIC": {
-            "status": "row"
-          },
-          "NLY": {
-            "status": "row"
-          },
-          "NOC": {
-            "status": "row"
-          },
-          "NP": {
-            "status": "row"
-          },
-          "NPB": {
+          "NTST": {
             "status": "row"
           },
           "NWN": {
+            "status": "row"
+          },
+          "OFG": {
+            "status": "row"
+          },
+          "OII": {
             "status": "row"
           },
           "ORA": {
@@ -10924,34 +11038,73 @@
           "PFGC": {
             "status": "row"
           },
-          "RTX": {
+          "PG": {
             "status": "row"
           },
-          "SF": {
+          "PHM": {
+            "status": "row"
+          },
+          "PKG": {
+            "status": "row"
+          },
+          "PM": {
+            "status": "row"
+          },
+          "PNFP": {
+            "status": "row"
+          },
+          "RLI": {
+            "status": "row"
+          },
+          "ROL": {
+            "status": "row"
+          },
+          "RS": {
+            "status": "row"
+          },
+          "SCCO": {
+            "status": "row"
+          },
+          "SLF": {
+            "status": "row"
+          },
+          "SLG": {
+            "status": "row"
+          },
+          "SNA": {
+            "status": "row"
+          },
+          "SON": {
             "status": "row"
           },
           "SSB": {
             "status": "row"
           },
-          "SYF": {
+          "STC": {
             "status": "row"
           },
-          "TDY": {
+          "T": {
+            "status": "row"
+          },
+          "TCBX": {
+            "status": "row"
+          },
+          "TFIN": {
             "status": "row"
           },
           "TFPM": {
             "status": "row"
           },
-          "TMO": {
-            "status": "row"
-          },
           "TTE": {
             "status": "row"
           },
-          "UCB": {
+          "UNF": {
             "status": "row"
           },
-          "VMI": {
+          "URI": {
+            "status": "row"
+          },
+          "VLO": {
             "status": "row"
           },
           "VVX": {
@@ -10960,15 +11113,24 @@
           "WAB": {
             "status": "row"
           },
+          "WCN": {
+            "status": "row"
+          },
           "WD": {
             "status": "row"
           },
           "WFG": {
             "status": "row"
+          },
+          "WGO": {
+            "status": "row"
+          },
+          "WH": {
+            "status": "row"
           }
         }
       },
-      "eligible_symbols": 1440,
+      "eligible_symbols": 1442,
       "gap_fill_dispatch_counts": {
         "FUBO": 50,
         "INR": 50,
@@ -10979,12 +11141,12 @@
       "label": "NYSE",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
+      "price_refresh_missing": 2,
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 1420,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refresh_status": "partial",
+      "price_refresh_updated": 1418,
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "FUBO": {
           "attempts": 50,
@@ -11013,11 +11175,11 @@
       },
       "provider_deferred_symbols": 4,
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 10,
-      "requested_this_run": 64,
+      "remaining_symbols": 12,
+      "requested_this_run": 92,
       "result_rows": 1426,
-      "returned_this_run": 64,
-      "started_at": "2026-10-22T01:02:19+01:00",
+      "returned_this_run": 92,
+      "started_at": "2026-10-23T01:01:10+01:00",
       "status": "partial",
       "universe_symbols": 1862
     },
@@ -11750,7 +11912,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 92,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -11765,8 +11927,8 @@
     "tsx": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 8,
-      "completed_at": "2026-10-22T01:02:48+01:00",
+      "chunk_symbols": 12,
+      "completed_at": "2026-10-23T01:01:48+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 362,
       "coverage_target_symbols": 362,
@@ -11777,12 +11939,9 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 8,
-        "returned": 8,
+        "requested": 12,
+        "returned": 12,
         "symbol_outcomes": {
-          "ALC.TO": {
-            "status": "row"
-          },
           "ATRL.TO": {
             "status": "row"
           },
@@ -11795,13 +11954,28 @@
           "FFH.TO": {
             "status": "row"
           },
+          "GWO.TO": {
+            "status": "row"
+          },
+          "IAG.TO": {
+            "status": "row"
+          },
           "LNR.TO": {
             "status": "row"
           },
           "NWC.TO": {
             "status": "row"
           },
-          "TSU.TO": {
+          "POW.TO": {
+            "status": "row"
+          },
+          "SLF.TO": {
+            "status": "row"
+          },
+          "SVI.TO": {
+            "status": "row"
+          },
+          "WCN.TO": {
             "status": "row"
           }
         }
@@ -11820,7 +11994,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 360,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "ACT.TO": {
           "attempts": 0,
@@ -11844,10 +12018,10 @@
       "provider_deferred_symbols": 2,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 8,
+      "requested_this_run": 12,
       "result_rows": 362,
-      "returned_this_run": 8,
-      "started_at": "2026-10-22T01:02:44+01:00",
+      "returned_this_run": 12,
+      "started_at": "2026-10-23T01:01:44+01:00",
       "status": "complete",
       "universe_symbols": 601
     },
@@ -11855,7 +12029,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-19T01:30:20+01:00",
+      "completed_at": "2026-10-23T01:01:57+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 39,
       "coverage_target_symbols": 39,
@@ -11869,7 +12043,7 @@
         "requested": 1,
         "returned": 1,
         "symbol_outcomes": {
-          "ADKO.VI": {
+          "TKA.VI": {
             "status": "row"
           }
         }
@@ -11884,27 +12058,27 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 13,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refresh_updated": 14,
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
-      "refresh_mode": "gap_fill",
+      "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
       "requested_this_run": 1,
       "result_rows": 39,
       "returned_this_run": 1,
-      "started_at": "2026-10-17T12:11:20+01:00",
+      "started_at": "2026-10-23T01:01:54+01:00",
       "status": "complete",
-      "universe_symbols": 63
+      "universe_symbols": 65
     },
     "xetra": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 2,
-      "completed_at": "2026-10-22T01:02:43+01:00",
-      "coverage_pct": 100.0,
+      "chunk_symbols": 5,
+      "completed_at": "2026-10-23T01:01:44+01:00",
+      "coverage_pct": 99.4,
       "coverage_symbols": 161,
-      "coverage_target_symbols": 161,
+      "coverage_target_symbols": 162,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -11912,18 +12086,27 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 2,
-        "returned": 2,
+        "requested": 5,
+        "returned": 5,
         "symbol_outcomes": {
           "4A3.DE": {
             "status": "row"
           },
           "HBH.DE": {
             "status": "row"
+          },
+          "SAP.DE": {
+            "status": "row"
+          },
+          "SRT.DE": {
+            "status": "row"
+          },
+          "VOS.DE": {
+            "status": "row"
           }
         }
       },
-      "eligible_symbols": 162,
+      "eligible_symbols": 163,
       "gap_fill_dispatch_counts": {
         "BYW6.DE": 20
       },
@@ -11936,7 +12119,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 144,
-      "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "BYW6.DE": {
           "attempts": 20,
@@ -11947,18 +12130,18 @@
       },
       "provider_deferred_symbols": 1,
       "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 0,
-      "requested_this_run": 2,
+      "remaining_symbols": 1,
+      "requested_this_run": 5,
       "result_rows": 161,
-      "returned_this_run": 2,
-      "started_at": "2026-10-22T01:02:42+01:00",
-      "status": "complete",
+      "returned_this_run": 5,
+      "started_at": "2026-10-23T01:01:41+01:00",
+      "status": "partial",
       "universe_symbols": 394
     }
   },
-  "last_completed_exchange": "euronext_brussels",
+  "last_completed_exchange": "euronext_amsterdam",
   "price_refresh_timezone": "Europe/London",
-  "price_refreshed_at": "2026-10-22T01:04:42+01:00",
+  "price_refreshed_at": "2026-10-23T01:03:26+01:00",
   "schema_version": 1,
-  "updated_at": "2026-10-22T01:02:55+01:00"
+  "updated_at": "2026-10-23T01:01:59+01:00"
 }
