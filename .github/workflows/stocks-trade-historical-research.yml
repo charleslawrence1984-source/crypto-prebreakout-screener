@@ -1,0 +1,59 @@
+name: Stocks Trade original-rule historical research (read-only)
+
+on:
+  pull_request:
+    paths:
+      - "trade_historical_research.py"
+      - "trade_rules.py"
+      - "tests/test_trade_historical_research.py"
+      - ".github/workflows/stocks-trade-historical-research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trade-history-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install research requirements
+        run: pip install -r requirements.txt
+      - name: Regression on historical decisions and fills
+        run: python -m unittest discover -s tests -p test_trade_historical_research.py -v
+      - name: Record trade-cache manifest health
+        run: python trade_historical_research.py --audit-only --output trade_manifest_audit.json
+      - name: Fetch real public bars and run current-survivor pilot
+        run: |
+          python trade_historical_research.py \
+            --tickers AAPL MSFT NVDA \
+            --period 5y \
+            --horizon 252 \
+            --cost-bps 50 \
+            --output trade_historical_pilot.json
+      - name: Summarise diagnostic counts
+        run: |
+          python - <<'PY'
+          import json
+          r = json.load(open("trade_historical_pilot.json"))
+          for s in r["symbols"]:
+              print(s["symbol"], s.get("error", ""),
+                    s.get("counters", {}).get("evaluated_decision_closes", 0),
+                    s.get("counters", {}).get("confirmed_daily_close_candidates", 0),
+                    s.get("counters", {}).get("completed_research_trades", 0))
+          print("Research only:", r["live_trade_readiness"])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-research-pilot
+          path: |
+            trade_manifest_audit.json
+            trade_historical_pilot.json
+          if-no-files-found: warn
+          retention-days: 30
