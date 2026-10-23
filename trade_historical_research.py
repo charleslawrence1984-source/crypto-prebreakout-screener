@@ -139,6 +139,19 @@ def research_symbol(symbol: str, frame: pd.DataFrame, benchmark: pd.DataFrame | 
         tech = evaluator(asof, asof_bench)
         state = str(tech.get("technical_state") or "BLOCKED")
         counters["state_" + state] += 1
+        # Original reason is computed from completed as-of bars, never from
+        # the future outcome label. All rejected anchors are retained.
+        counters["reason_" + str(tech.get("technical_reason") or "UNAVAILABLE")] += 1
+        for label_horizon in (5, 10, 20):
+            if i + label_horizon >= len(bars):
+                counters[f"mover_{label_horizon}bar_CENSORED"] += 1
+                continue
+            later_closes = bars["Close"].iloc[i + 1:i + 1 + label_horizon]
+            later_max_gain = float(later_closes.max()) / float(asof["Close"].iloc[-1]) - 1
+            counters[f"mover_{label_horizon}bar_ANCHORS"] += 1
+            for threshold_pct in (5, 10, 20):
+                outcome = "MOVER" if later_max_gain >= threshold_pct / 100 else "NONMOVER"
+                counters[f"paired_{label_horizon}bar_{threshold_pct}pct_{state}_{outcome}"] += 1
         if state != "AWAITING NEXT OPEN":
             continue
         counters["confirmed_daily_close_candidates"] += 1
