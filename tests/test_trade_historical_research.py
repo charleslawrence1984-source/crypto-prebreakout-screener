@@ -119,6 +119,24 @@ class ResearchTests(unittest.TestCase):
         self.assertEqual(result["counters"]["next_open_OPENING_GAP_OVER_0_5_ATR"], 1)
         self.assertEqual(result["events"], [])
 
+    def test_historical_mover_and_nonmover_controls_are_paired(self):
+        df = sample_bars()
+        # Future close outcome +6% is observable only AFTER the signal.
+        df.iloc[260, df.columns.get_loc("High")] = 107
+        df.iloc[260, df.columns.get_loc("Close")] = 106
+        result = research_symbol("FIXTURE", df, horizon=3, evaluator=known_signal)
+        counters = result["counters"]
+        self.assertEqual(counters["paired_5bar_5pct_AWAITING NEXT OPEN_MOVER"], 1)
+        self.assertGreater(counters["paired_5bar_5pct_BLOCKED_NONMOVER"], 0)
+        self.assertGreater(counters["mover_5bar_ANCHORS"], 0)
+        self.assertEqual(counters["confirmed_daily_close_candidates"], 1)
+        # A larger future move must not promote an original blocked decision.
+        altered = df.copy()
+        altered.iloc[266, altered.columns.get_loc("High")] = 120
+        altered.iloc[266, altered.columns.get_loc("Close")] = 119
+        again = research_symbol("FIXTURE", altered, horizon=3, evaluator=known_signal)
+        self.assertEqual(again["counters"]["confirmed_daily_close_candidates"], 1)
+
     def test_manifest_audit_detects_old_build_and_incomplete_venue(self):
         old = {
             "rulebook_build": "2026.10.02.03",
