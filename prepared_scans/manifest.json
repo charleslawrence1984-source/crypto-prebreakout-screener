@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T20:32:40+01:00",
+      "completed_at": "2026-10-23T23:38:40+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -53,7 +53,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:39+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -102,7 +102,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-23T20:32:40+01:00",
+      "completed_at": "2026-10-23T23:38:40+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 14,
       "coverage_target_symbols": 14,
@@ -154,7 +154,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:39+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 160,
       "coverage_target_symbols": 160,
@@ -10371,7 +10371,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:37+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 237,
       "coverage_target_symbols": 237,
@@ -10420,7 +10420,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:37+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 20,
       "coverage_target_symbols": 20,
@@ -10467,7 +10467,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:39+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 72,
       "coverage_target_symbols": 72,
@@ -10599,216 +10599,99 @@
     "nasdaq": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 58,
-      "completed_at": "2026-10-23T01:01:10+01:00",
-      "coverage_pct": 98.3,
-      "coverage_symbols": 1238,
-      "coverage_target_symbols": 1260,
+      "chunk_symbols": 20,
+      "completed_at": "2026-10-23T23:38:28+01:00",
+      "coverage_pct": 100.0,
+      "coverage_symbols": 1253,
+      "coverage_target_symbols": 1253,
       "diagnostics": {
-        "below_min_market_cap": 0,
+        "below_min_market_cap": 3,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 58,
-        "returned": 58,
+        "requested": 20,
+        "returned": 17,
         "symbol_outcomes": {
-          "BANF": {
+          "ACRS": {
             "status": "row"
           },
-          "BANR": {
+          "ANGO": {
             "status": "row"
           },
-          "CASH": {
+          "AQST": {
             "status": "row"
           },
-          "CATY": {
+          "ASTL": {
             "status": "row"
           },
-          "CCNE": {
+          "COFS": {
             "status": "row"
           },
-          "CMCSA": {
+          "CTMX": {
             "status": "row"
           },
-          "CRON": {
+          "DCTH": {
             "status": "row"
           },
-          "CSX": {
+          "ENTX": {
             "status": "row"
           },
-          "CTBI": {
+          "ENVX": {
             "status": "row"
           },
-          "CVBF": {
+          "FMAO": {
             "status": "row"
           },
-          "DRVN": {
+          "LPTH": {
             "status": "row"
           },
-          "EFSC": {
+          "MYGN": {
             "status": "row"
           },
-          "EGBN": {
+          "NHP": {
             "status": "row"
           },
-          "FBNC": {
+          "NNNN": {
+            "status": "below_market_cap"
+          },
+          "OBT": {
             "status": "row"
           },
-          "FCFS": {
+          "PANL": {
             "status": "row"
           },
-          "FRHC": {
+          "PASW": {
+            "status": "below_market_cap"
+          },
+          "USGO": {
+            "status": "below_market_cap"
+          },
+          "WTBA": {
             "status": "row"
           },
-          "FRME": {
-            "status": "row"
-          },
-          "FULT": {
-            "status": "row"
-          },
-          "GSBC": {
-            "status": "row"
-          },
-          "HBNC": {
-            "status": "row"
-          },
-          "HCSG": {
-            "status": "row"
-          },
-          "IART": {
-            "status": "row"
-          },
-          "INTR": {
-            "status": "row"
-          },
-          "IRDM": {
-            "status": "row"
-          },
-          "ISRG": {
-            "status": "row"
-          },
-          "KALU": {
-            "status": "row"
-          },
-          "KRYS": {
-            "status": "row"
-          },
-          "KTOS": {
-            "status": "row"
-          },
-          "LGND": {
-            "status": "row"
-          },
-          "LRCX": {
-            "status": "row"
-          },
-          "MEDP": {
-            "status": "row"
-          },
-          "META": {
-            "status": "row"
-          },
-          "MNST": {
-            "status": "row"
-          },
-          "MPB": {
-            "status": "row"
-          },
-          "NCNO": {
-            "status": "row"
-          },
-          "NDAQ": {
-            "status": "row"
-          },
-          "OPK": {
-            "status": "row"
-          },
-          "OSBC": {
-            "status": "row"
-          },
-          "QS": {
-            "status": "row"
-          },
-          "SDGR": {
-            "status": "row"
-          },
-          "SEIC": {
-            "status": "row"
-          },
-          "SMBC": {
-            "status": "row"
-          },
-          "TCBK": {
-            "status": "row"
-          },
-          "THRM": {
-            "status": "row"
-          },
-          "TOWN": {
-            "status": "row"
-          },
-          "TRST": {
-            "status": "row"
-          },
-          "TSAT": {
-            "status": "row"
-          },
-          "TSCO": {
-            "status": "row"
-          },
-          "TSLA": {
-            "status": "row"
-          },
-          "TTMI": {
-            "status": "row"
-          },
-          "TXN": {
-            "status": "row"
-          },
-          "UAL": {
-            "status": "row"
-          },
-          "UBSI": {
-            "status": "row"
-          },
-          "VLY": {
-            "status": "row"
-          },
-          "VRSN": {
-            "status": "row"
-          },
-          "WDFC": {
-            "status": "row"
-          },
-          "WFRD": {
-            "status": "row"
-          },
-          "WSBC": {
+          "YORW": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 1266,
+      "eligible_symbols": 1262,
       "gap_fill_dispatch_counts": {
         "AGCC": 51,
         "AIFU": 1,
         "FBYD": 51,
         "HMH": 51,
+        "NNNN": 1,
+        "PASW": 1,
         "RMR": 51,
-        "TWFG": 51
+        "TWFG": 51,
+        "USGO": 1
       },
-      "gap_fill_last_dispatched_at": "2026-10-17T12:11:12+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-23T23:38:14+01:00",
       "label": "NASDAQ",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_stale_candles": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 1234,
-      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "AGCC": {
           "attempts": 51,
@@ -10834,6 +10717,18 @@
           "reason": "repeated_unresolved",
           "until": "2026-10-24T00:01:43+01:00"
         },
+        "NNNN": {
+          "attempts": 1,
+          "deferred_at": "2026-10-23T23:38:14+01:00",
+          "reason": "below_market_cap",
+          "until": "2026-10-30T23:38:14+00:00"
+        },
+        "PASW": {
+          "attempts": 1,
+          "deferred_at": "2026-10-23T23:38:14+01:00",
+          "reason": "below_market_cap",
+          "until": "2026-10-30T23:38:14+00:00"
+        },
         "QH": {
           "attempts": 1,
           "deferred_at": "2026-10-17T12:11:12+01:00",
@@ -10851,26 +10746,32 @@
           "deferred_at": "2026-10-17T00:01:43+01:00",
           "reason": "repeated_unresolved",
           "until": "2026-10-24T00:01:43+01:00"
+        },
+        "USGO": {
+          "attempts": 1,
+          "deferred_at": "2026-10-23T23:38:14+01:00",
+          "reason": "below_market_cap",
+          "until": "2026-10-30T23:38:14+00:00"
         }
       },
-      "provider_deferred_symbols": 6,
-      "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 22,
-      "requested_this_run": 58,
-      "result_rows": 1238,
-      "returned_this_run": 58,
-      "started_at": "2026-10-23T01:00:50+01:00",
-      "status": "partial",
-      "universe_symbols": 3328
+      "provider_deferred_symbols": 9,
+      "refresh_mode": "gap_fill",
+      "remaining_symbols": 0,
+      "requested_this_run": 20,
+      "result_rows": 1253,
+      "returned_this_run": 17,
+      "started_at": "2026-10-23T23:38:14+01:00",
+      "status": "complete",
+      "universe_symbols": 3329
     },
     "nyse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 92,
-      "completed_at": "2026-10-23T01:01:39+01:00",
-      "coverage_pct": 99.2,
-      "coverage_symbols": 1426,
-      "coverage_target_symbols": 1438,
+      "chunk_symbols": 11,
+      "completed_at": "2026-10-23T23:38:37+01:00",
+      "coverage_pct": 100.0,
+      "coverage_symbols": 1436,
+      "coverage_target_symbols": 1436,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10878,304 +10779,55 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 92,
-        "returned": 92,
+        "requested": 11,
+        "returned": 11,
         "symbol_outcomes": {
-          "ABT": {
+          "ABR": {
             "status": "row"
           },
-          "ARIS": {
+          "ASBH": {
             "status": "row"
           },
-          "ARR": {
+          "DDD": {
             "status": "row"
           },
-          "ASIC": {
+          "ETD": {
             "status": "row"
           },
-          "ATI": {
+          "FBRT": {
             "status": "row"
           },
-          "AU": {
+          "FVR": {
             "status": "row"
           },
-          "AVY": {
+          "HY": {
             "status": "row"
           },
-          "BBT": {
+          "OIS": {
             "status": "row"
           },
-          "BDN": {
+          "ONT": {
             "status": "row"
           },
-          "BX": {
+          "TAP-A": {
             "status": "row"
           },
-          "CACI": {
-            "status": "row"
-          },
-          "CARS": {
-            "status": "row"
-          },
-          "CCI": {
-            "status": "row"
-          },
-          "CGAU": {
-            "status": "row"
-          },
-          "CLS": {
-            "status": "row"
-          },
-          "CNX": {
-            "status": "row"
-          },
-          "CURB": {
-            "status": "row"
-          },
-          "DGX": {
-            "status": "row"
-          },
-          "DHR": {
-            "status": "row"
-          },
-          "DOW": {
-            "status": "row"
-          },
-          "EGP": {
-            "status": "row"
-          },
-          "EPRT": {
-            "status": "row"
-          },
-          "ESI": {
-            "status": "row"
-          },
-          "FAF": {
-            "status": "row"
-          },
-          "FNV": {
-            "status": "row"
-          },
-          "FR": {
-            "status": "row"
-          },
-          "GGG": {
-            "status": "row"
-          },
-          "GIL": {
-            "status": "row"
-          },
-          "GL": {
-            "status": "row"
-          },
-          "GTY": {
-            "status": "row"
-          },
-          "HAFN": {
-            "status": "row"
-          },
-          "HBM": {
-            "status": "row"
-          },
-          "HOG": {
-            "status": "row"
-          },
-          "HTB": {
-            "status": "row"
-          },
-          "HXL": {
-            "status": "row"
-          },
-          "IBM": {
-            "status": "row"
-          },
-          "IIIN": {
-            "status": "row"
-          },
-          "JNJ": {
-            "status": "row"
-          },
-          "KMI": {
-            "status": "row"
-          },
-          "KNX": {
-            "status": "row"
-          },
-          "KRG": {
-            "status": "row"
-          },
-          "LAZ": {
-            "status": "row"
-          },
-          "LBRT": {
-            "status": "row"
-          },
-          "LMT": {
-            "status": "row"
-          },
-          "LOB": {
-            "status": "row"
-          },
-          "LRN": {
-            "status": "row"
-          },
-          "LSPD": {
-            "status": "row"
-          },
-          "LUV": {
-            "status": "row"
-          },
-          "LVS": {
-            "status": "row"
-          },
-          "MCO": {
-            "status": "row"
-          },
-          "MGA": {
-            "status": "row"
-          },
-          "MKL": {
-            "status": "row"
-          },
-          "MLI": {
-            "status": "row"
-          },
-          "MOH": {
-            "status": "row"
-          },
-          "NEE": {
-            "status": "row"
-          },
-          "NTST": {
-            "status": "row"
-          },
-          "NWN": {
-            "status": "row"
-          },
-          "OFG": {
-            "status": "row"
-          },
-          "OII": {
-            "status": "row"
-          },
-          "ORA": {
-            "status": "row"
-          },
-          "P": {
-            "status": "row"
-          },
-          "PFGC": {
-            "status": "row"
-          },
-          "PG": {
-            "status": "row"
-          },
-          "PHM": {
-            "status": "row"
-          },
-          "PKG": {
-            "status": "row"
-          },
-          "PM": {
-            "status": "row"
-          },
-          "PNFP": {
-            "status": "row"
-          },
-          "RLI": {
-            "status": "row"
-          },
-          "ROL": {
-            "status": "row"
-          },
-          "RS": {
-            "status": "row"
-          },
-          "SCCO": {
-            "status": "row"
-          },
-          "SLF": {
-            "status": "row"
-          },
-          "SLG": {
-            "status": "row"
-          },
-          "SNA": {
-            "status": "row"
-          },
-          "SON": {
-            "status": "row"
-          },
-          "SSB": {
-            "status": "row"
-          },
-          "STC": {
-            "status": "row"
-          },
-          "T": {
-            "status": "row"
-          },
-          "TCBX": {
-            "status": "row"
-          },
-          "TFIN": {
-            "status": "row"
-          },
-          "TFPM": {
-            "status": "row"
-          },
-          "TTE": {
-            "status": "row"
-          },
-          "UNF": {
-            "status": "row"
-          },
-          "URI": {
-            "status": "row"
-          },
-          "VLO": {
-            "status": "row"
-          },
-          "VVX": {
-            "status": "row"
-          },
-          "WAB": {
-            "status": "row"
-          },
-          "WCN": {
-            "status": "row"
-          },
-          "WD": {
-            "status": "row"
-          },
-          "WFG": {
-            "status": "row"
-          },
-          "WGO": {
-            "status": "row"
-          },
-          "WH": {
+          "WNC": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 1442,
+      "eligible_symbols": 1440,
       "gap_fill_dispatch_counts": {
         "FUBO": 50,
         "INR": 50,
         "SDHC": 1,
         "SMC": 50
       },
-      "gap_fill_last_dispatched_at": "2026-10-17T00:01:48+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-23T23:38:28+01:00",
       "label": "NYSE",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 2,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_stale_candles": 0,
-      "price_refresh_status": "partial",
-      "price_refresh_updated": 1418,
-      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "FUBO": {
           "attempts": 50,
@@ -11203,14 +10855,14 @@
         }
       },
       "provider_deferred_symbols": 4,
-      "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 12,
-      "requested_this_run": 92,
-      "result_rows": 1426,
-      "returned_this_run": 92,
-      "started_at": "2026-10-23T01:01:10+01:00",
-      "status": "partial",
-      "universe_symbols": 1862
+      "refresh_mode": "gap_fill",
+      "remaining_symbols": 0,
+      "requested_this_run": 11,
+      "result_rows": 1436,
+      "returned_this_run": 11,
+      "started_at": "2026-10-23T23:38:28+01:00",
+      "status": "complete",
+      "universe_symbols": 1861
     },
     "otc": {
       "analysed_limit": 0,
@@ -11908,7 +11560,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:39+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 146,
       "coverage_target_symbols": 146,
@@ -11956,74 +11608,39 @@
     "tsx": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 12,
-      "completed_at": "2026-10-23T01:01:48+01:00",
+      "chunk_symbols": 2,
+      "completed_at": "2026-10-23T23:38:39+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 362,
-      "coverage_target_symbols": 362,
+      "coverage_symbols": 359,
+      "coverage_target_symbols": 359,
       "diagnostics": {
-        "below_min_market_cap": 0,
+        "below_min_market_cap": 1,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 12,
-        "returned": 12,
+        "requested": 2,
+        "returned": 1,
         "symbol_outcomes": {
-          "ATRL.TO": {
-            "status": "row"
+          "TCL-A.TO": {
+            "status": "below_market_cap"
           },
-          "DBM.TO": {
-            "status": "row"
-          },
-          "DOO.TO": {
-            "status": "row"
-          },
-          "FFH.TO": {
-            "status": "row"
-          },
-          "GWO.TO": {
-            "status": "row"
-          },
-          "IAG.TO": {
-            "status": "row"
-          },
-          "LNR.TO": {
-            "status": "row"
-          },
-          "NWC.TO": {
-            "status": "row"
-          },
-          "POW.TO": {
-            "status": "row"
-          },
-          "SLF.TO": {
-            "status": "row"
-          },
-          "SVI.TO": {
-            "status": "row"
-          },
-          "WCN.TO": {
+          "TCL-B.TO": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 364,
+      "eligible_symbols": 362,
       "gap_fill_dispatch_counts": {
         "BAMI.TO": 3,
-        "FFH-U.TO": 53
+        "FFH-U.TO": 53,
+        "TCL-A.TO": 1
       },
-      "gap_fill_last_dispatched_at": "2026-10-17T12:11:17+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-23T23:38:37+01:00",
       "label": "Toronto Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_stale_candles": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 360,
-      "price_refreshed_at": "2026-10-23T01:03:26+01:00",
       "provider_backoff": {
         "ACT.TO": {
           "attempts": 0,
@@ -12042,15 +11659,21 @@
           "deferred_at": "2026-10-17T00:01:43+01:00",
           "reason": "repeated_unresolved",
           "until": "2026-10-24T00:01:43+01:00"
+        },
+        "TCL-A.TO": {
+          "attempts": 1,
+          "deferred_at": "2026-10-23T23:38:14+01:00",
+          "reason": "below_market_cap",
+          "until": "2026-10-30T23:38:14+00:00"
         }
       },
-      "provider_deferred_symbols": 2,
-      "refresh_mode": "changed_fundamentals",
+      "provider_deferred_symbols": 3,
+      "refresh_mode": "gap_fill",
       "remaining_symbols": 0,
-      "requested_this_run": 12,
-      "result_rows": 362,
-      "returned_this_run": 12,
-      "started_at": "2026-10-23T01:01:44+01:00",
+      "requested_this_run": 2,
+      "result_rows": 359,
+      "returned_this_run": 1,
+      "started_at": "2026-10-23T23:38:37+01:00",
       "status": "complete",
       "universe_symbols": 601
     },
@@ -12058,7 +11681,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:39+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 39,
       "coverage_target_symbols": 39,
@@ -12104,7 +11727,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-23T20:32:39+01:00",
+      "completed_at": "2026-10-23T23:38:37+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 162,
       "coverage_target_symbols": 162,
@@ -12150,9 +11773,9 @@
       "universe_symbols": 394
     }
   },
-  "last_completed_exchange": "lse",
+  "last_completed_exchange": "tsx",
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-10-23T01:03:26+01:00",
   "schema_version": 1,
-  "updated_at": "2026-10-23T20:32:40+01:00"
+  "updated_at": "2026-10-23T23:38:40+01:00"
 }
