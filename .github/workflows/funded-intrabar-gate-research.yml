@@ -1,0 +1,65 @@
+name: Kraken Funded true-static-floor intrabar research and original-gate strata (PR ONLY)
+
+# No schedule, remote orders, broker credentials or live trading rule changes.
+on:
+  pull_request:
+    paths:
+      - funded_intrabar_risk_research.py
+      - funded_single_gate_observational.py
+      - scripts/funded_intrabargate_audit.py
+      - tests/test_funded_intrabar_gate_research.py
+      - docs/funded_intrabar_and_gate_phase4.md
+      - .github/workflows/funded-intrabar-gate-research.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  intrabar-synthetic-guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install no-broker research dependencies
+        run: python -m pip install 'numpy>=2,<3' 'pandas>=2.2,<3'
+      - name: Check code and no-hindsight strict risk constraints
+        run: |
+          python -m py_compile funded_intrabar_risk_research.py funded_single_gate_observational.py scripts/funded_intrabargate_audit.py
+          python -m unittest discover -s tests -p test_funded_intrabar_gate_research.py -v
+
+  source-verified-33coin-intrabar-risk-and-gates:
+    needs: intrabar-synthetic-guardrails
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install no-broker research dependencies
+        run: python -m pip install 'numpy>=2,<3' 'pandas>=2.2,<3'
+      - name: Fetch immutable FULL Kraken 4h, original risk and numeric gate archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 39622003287 --repo "${{ github.repository }}" --name funded-kraken-official-full-33coin-selected-39622003287 --dir source-artifact
+          gh run download 39751661912 --repo "${{ github.repository }}" --name funded-33coin-stop-aware-counterfactual-39751661912 --dir risk-artifact
+          gh run download 39758188734 --repo "${{ github.repository }}" --name funded-original-numeric-gate-trace-39758188734 --dir trace-artifact
+          zip -q -j source.zip source-artifact/*
+          zip -q -j risk.zip risk-artifact/*
+          zip -q -j trace.zip trace-artifact/*
+      - name: Replay fixed -3 percent equity exposure on genuine archived 4h lows
+        run: |
+          PYTHONPATH=. python scripts/funded_intrabargate_audit.py --source-zip source.zip --risk-zip risk.zip --trace-zip trace.zip --output-dir funded-intrabar-gate-results
+      - name: Retain per-position loss low, historic state-specific gates and all warning fields
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-intrabar-and-original-gate-risk-${{ github.run_id }}
+          path: funded-intrabar-gate-results/*
+          if-no-files-found: warn
+          retention-days: 30
