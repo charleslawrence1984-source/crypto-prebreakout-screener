@@ -260,14 +260,20 @@ class FundedStockBacktestTests(unittest.TestCase):
                 index=future.index,
             ),
         ])
+        audit_trace = []
         _, diagnostics = signal_candidates(
             {"AAPL": extended}, new_benchmark,
-            first_date=prices.index[-1],
+            first_date=prices.index[-1], audit_trace=audit_trace,
         )
         row = diagnostics.iloc[0]
         gates = json.loads(row["Individual gate hits JSON"])
         self.assertGreater(int(row["Full-rule rejections"]), 0)
         self.assertIn("BREAKOUT: BREAKOUT VOLUME BELOW 1.35X", gates)
+        self.assertTrue(audit_trace)
+        self.assertEqual(audit_trace[-1]["Core state"], "BLOCKED")
+        self.assertIn("BREAKOUT VOLUME BELOW 1.35X", audit_trace[-1]["Breakout reason"])
+        self.assertIn(audit_trace[-1]["Breakout state"],
+                      {"FUNDED BREAKOUT REVIEW", "FUNDED BREAKOUT PENDING OPEN"})
 
     def test_breakout_plan_diagnostics_separate_only_vetoes_from_overlap(self):
         details = pd.DataFrame([
