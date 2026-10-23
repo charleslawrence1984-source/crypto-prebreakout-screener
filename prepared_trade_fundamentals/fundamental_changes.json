@@ -4,20 +4,17 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "Euronext Paris",
-      "new_count": 2,
+      "new_count": 1,
       "new_symbols": [
-        "BGO.PA",
-        "MLCMG.PA"
+        "MLHPE.PA"
       ]
     },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
       "label": "London Stock Exchange",
-      "new_count": 1,
-      "new_symbols": [
-        "PNNF.L"
-      ]
+      "new_count": 0,
+      "new_symbols": []
     },
     "lse_aim": {
       "changed_count": 0,
@@ -32,17 +29,8 @@
       "label": "Bolsa de Madrid",
       "new_count": 0,
       "new_symbols": []
-    },
-    "six": {
-      "changed_count": 0,
-      "changed_symbols": [],
-      "label": "SIX Swiss Exchange",
-      "new_count": 1,
-      "new_symbols": [
-        "ELMN.SW"
-      ]
     }
   },
-  "generated_at": "2026-10-23T12:33:44+01:00",
+  "generated_at": "2026-10-23T18:03:29+01:00",
   "rulebook_build": "2026.10.02.03"
 }
