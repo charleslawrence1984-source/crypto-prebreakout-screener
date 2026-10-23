@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T06:23:36+01:00",
+      "completed_at": "2026-10-23T11:32:06+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -53,7 +53,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T06:23:35+01:00",
+      "completed_at": "2026-10-23T11:32:06+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -102,7 +102,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-23T06:23:36+01:00",
+      "completed_at": "2026-10-23T11:32:06+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 14,
       "coverage_target_symbols": 14,
@@ -154,7 +154,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T06:23:34+01:00",
+      "completed_at": "2026-10-23T11:32:05+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 160,
       "coverage_target_symbols": 160,
@@ -182,14 +182,7 @@
       "label": "Euronext Paris",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "provider_backoff": {
-        "ALPRG.PA": {
-          "attempts": 1,
-          "deferred_at": "2026-10-16T07:22:54+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-23T07:22:54+01:00"
-        }
-      },
+      "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "gap_fill",
       "remaining_symbols": 0,
@@ -10377,11 +10370,11 @@
     "lse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 3,
-      "completed_at": "2026-10-23T06:23:30+01:00",
+      "chunk_symbols": 1,
+      "completed_at": "2026-10-23T11:32:05+01:00",
       "coverage_pct": 100.0,
-      "coverage_symbols": 236,
-      "coverage_target_symbols": 236,
+      "coverage_symbols": 237,
+      "coverage_target_symbols": 237,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -10389,25 +10382,19 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 3,
-        "returned": 3,
+        "requested": 1,
+        "returned": 1,
         "symbol_outcomes": {
-          "ALFA.L": {
-            "status": "row"
-          },
-          "FSG.L": {
-            "status": "row"
-          },
-          "WIX.L": {
+          "PNNF.L": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 237,
+      "eligible_symbols": 238,
       "gap_fill_dispatch_counts": {
         "YNGN.L": 3
       },
-      "gap_fill_last_dispatched_at": "2026-10-23T06:23:28+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-23T11:32:03+01:00",
       "label": "London Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
@@ -10422,18 +10409,18 @@
       "provider_deferred_symbols": 1,
       "refresh_mode": "gap_fill",
       "remaining_symbols": 0,
-      "requested_this_run": 3,
-      "result_rows": 236,
-      "returned_this_run": 3,
-      "started_at": "2026-10-23T06:23:28+01:00",
+      "requested_this_run": 1,
+      "result_rows": 237,
+      "returned_this_run": 1,
+      "started_at": "2026-10-23T11:32:03+01:00",
       "status": "complete",
-      "universe_symbols": 472
+      "universe_symbols": 473
     },
     "lse_aim": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-23T06:23:33+01:00",
+      "completed_at": "2026-10-23T11:32:05+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 20,
       "coverage_target_symbols": 20,
@@ -10474,13 +10461,13 @@
       "returned_this_run": 1,
       "started_at": "2026-10-23T06:23:32+01:00",
       "status": "complete",
-      "universe_symbols": 445
+      "universe_symbols": 444
     },
     "madrid": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-23T06:23:35+01:00",
+      "completed_at": "2026-10-23T11:32:06+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 72,
       "coverage_target_symbols": 72,
@@ -10607,7 +10594,7 @@
       "returned_this_run": 0,
       "started_at": "2026-10-23T01:01:50+01:00",
       "status": "complete",
-      "universe_symbols": 274
+      "universe_symbols": 270
     },
     "nasdaq": {
       "analysed_limit": 0,
@@ -11921,7 +11908,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-23T06:23:34+01:00",
+      "completed_at": "2026-10-23T11:32:05+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 146,
       "coverage_target_symbols": 146,
@@ -11964,7 +11951,7 @@
       "returned_this_run": 2,
       "started_at": "2026-10-22T01:02:49+01:00",
       "status": "complete",
-      "universe_symbols": 210
+      "universe_symbols": 211
     },
     "tsx": {
       "analysed_limit": 0,
@@ -12071,7 +12058,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-23T06:23:35+01:00",
+      "completed_at": "2026-10-23T11:32:06+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 39,
       "coverage_target_symbols": 39,
@@ -12117,7 +12104,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-23T06:23:32+01:00",
+      "completed_at": "2026-10-23T11:32:05+01:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 162,
       "coverage_target_symbols": 162,
@@ -12163,9 +12150,9 @@
       "universe_symbols": 394
     }
   },
-  "last_completed_exchange": "euronext_paris",
+  "last_completed_exchange": "lse",
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-10-23T01:03:26+01:00",
   "schema_version": 1,
-  "updated_at": "2026-10-23T06:23:36+01:00"
+  "updated_at": "2026-10-23T11:32:06+01:00"
 }
