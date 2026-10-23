@@ -57,9 +57,12 @@
       ]
     },
     "nasdaq": {
-      "count": 0,
+      "count": 2,
       "label": "NASDAQ",
-      "symbols": []
+      "symbols": [
+        "LYCA",
+        "PAXG"
+      ]
     },
     "nyse": {
       "count": 7,
@@ -173,8 +176,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-23T06:57:34+01:00",
+  "recorded_at": "2026-10-23T13:35:11+01:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-23T05:44:39+01:00",
-  "total_unresolved": 102
+  "source_fundamentals_updated_at": "2026-10-23T12:33:44+01:00",
+  "total_unresolved": 104
 }
