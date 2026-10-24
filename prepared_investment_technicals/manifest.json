@@ -726,9 +726,9 @@
     "nasdaq": {
       "coverage_symbols": 365,
       "dispatch_counts": {
-        "IOND": 28,
-        "OIG": 28,
-        "SWRD": 28
+        "IOND": 29,
+        "OIG": 29,
+        "SWRD": 29
       },
       "eligible_symbols": 368,
       "errors": [
@@ -758,46 +758,26 @@
       "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed"
     },
     "nyse": {
-      "coverage_symbols": 450,
+      "coverage_symbols": 479,
       "dispatch_counts": {
-        "ASBH": 1,
-        "VLTO": 0,
-        "VMI": 0,
-        "VMRK": 0,
-        "VNO": 0,
-        "VNT": 0,
-        "VRTS": 0,
-        "VTR": 0,
-        "VYLR": 23,
-        "WAL": 0,
-        "WAT": 0,
-        "WD": 0,
-        "WEX": 0,
-        "WFC": 0,
-        "WHD": 0,
-        "WPC": 0,
-        "WRB": 0,
-        "WSM": 0,
-        "WSO": 0,
-        "WSO-B": 0,
-        "WST": 0,
-        "WT": 0,
-        "WTM": 0,
-        "WTS": 0,
-        "WU": 0,
-        "WY": 0,
-        "XHR": 0,
-        "XZO": 0,
-        "YELP": 0,
-        "YETI": 0,
-        "ZTS": 0
+        "ASBH": 2,
+        "VYLR": 24
       },
       "eligible_symbols": 481,
-      "errors": [],
-      "fresh_coverage_symbols": 450,
-      "remaining_symbols": 31,
-      "requested_this_run": 50,
-      "returned_this_run": 50,
+      "errors": [
+        {
+          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
+          "symbol": "ASBH"
+        },
+        {
+          "error": "1y: 17 rows, insufficient usable history/indicators; 2y: 17 rows, insufficient usable history/indicators",
+          "symbol": "VYLR"
+        }
+      ],
+      "fresh_coverage_symbols": 479,
+      "remaining_symbols": 2,
+      "requested_this_run": 31,
+      "returned_this_run": 29,
       "source_coverage_target_symbols": 1436,
       "source_fundamentals_updated_at": "2026-10-24T19:22:25+01:00",
       "source_provider_deferred_symbols": 4,
@@ -1307,5 +1287,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-24T18:23:48.225534+00:00"
+  "updated_at": "2026-10-24T21:02:00.892079+00:00"
 }
