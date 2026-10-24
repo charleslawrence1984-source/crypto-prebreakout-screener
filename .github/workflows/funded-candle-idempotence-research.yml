@@ -1,0 +1,55 @@
+name: Kraken Funded source candle idempotence P0 — PR ONLY
+
+# Never schedules jobs, orders, broker connections or live rule/source changes.
+on:
+  pull_request:
+    paths:
+      - funded_capture_candle_identity.py
+      - tests/test_funded_capture_candle_identity.py
+      - docs/funded_capture_candle_idempotence_20261024.md
+      - .github/workflows/funded-candle-idempotence-research.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  strict-candle-identity-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Reject stale/future source signals, identical historical runs and conflicting original BUYs
+        run: |
+          python -m py_compile funded_capture_candle_identity.py
+          python -m unittest discover -s tests -p test_funded_capture_candle_identity.py -v
+
+  authentic-main-branch-kraken-capture-forensics:
+    needs: strict-candle-identity-safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install GitHub read-only source artifact loader
+        run: python -m pip install requests
+      - name: Re-audit latest original source snapshots, no fabricated missed positions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >
+          python funded_capture_candle_identity.py
+          --from-github --window-days 14
+          --out-dir funded-capture-idempotence-evidence
+      - name: Retain approved BUY episodes and original 4h source quality conflicts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-original-candle-identity-${{ github.run_id }}
+          path: funded-capture-idempotence-evidence/*.json
+          retention-days: 30
+          if-no-files-found: warn
