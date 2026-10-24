@@ -1,0 +1,29 @@
+{
+  "dex_surface_tokens": 79,
+  "errors": [],
+  "gecko_calls": 7,
+  "gecko_new_pool_tokens": 114,
+  "max_tokens": 2000,
+  "page_cursor": {
+    "arbitrum": 3,
+    "base": 10,
+    "bsc": 10,
+    "ethereum": 2,
+    "polygon": 6,
+    "robinhood": 1,
+    "solana": 1
+  },
+  "pages_used": {
+    "arbitrum": 2,
+    "base": 9,
+    "bsc": 9,
+    "ethereum": 1,
+    "polygon": 5,
+    "robinhood": 10,
+    "solana": 10
+  },
+  "previous_tokens": 2000,
+  "status": "CURRENT",
+  "universe_tokens": 2000,
+  "updated_at": "2026-10-24T17:13:47.384829+00:00"
+}
