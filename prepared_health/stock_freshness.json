@@ -2,56 +2,56 @@
   "datasets": {
     "investment_fundamentals": {
       "complete_exchanges": 13,
-      "coverage_symbols": 9625,
+      "coverage_symbols": 9627,
       "duplicate_tickers": 0,
-      "eligible_symbols": 10251,
+      "eligible_symbols": 10254,
       "exchange_count": 15,
       "files_checked": 0,
-      "manifest_age_hours": 3.8,
-      "manifest_updated_at": "2026-10-18T06:09:41+01:00",
+      "manifest_age_hours": 0.5,
+      "manifest_updated_at": "2026-10-25T12:47:00+00:00",
       "partial_or_failed_exchanges": 2
     },
     "investment_technicals": {
-      "complete_exchanges": 6,
-      "coverage_symbols": 1124,
+      "complete_exchanges": 7,
+      "coverage_symbols": 1129,
       "duplicate_tickers": 0,
-      "eligible_symbols": 2126,
+      "eligible_symbols": 2132,
       "exchange_count": 15,
       "files_checked": 0,
-      "manifest_age_hours": 3.8,
-      "manifest_updated_at": "2026-10-18T05:10:51.321728+00:00",
-      "partial_or_failed_exchanges": 9
+      "manifest_age_hours": 0.5,
+      "manifest_updated_at": "2026-10-25T12:48:17.343550+00:00",
+      "partial_or_failed_exchanges": 8
     },
     "trade_fundamentals": {
       "complete_exchanges": 10,
-      "coverage_symbols": 21850,
+      "coverage_symbols": 21844,
       "duplicate_tickers": 0,
       "eligible_symbols": 0,
       "exchange_count": 15,
       "files_checked": 0,
-      "manifest_age_hours": 4.5,
-      "manifest_updated_at": "2026-10-18T05:26:31+01:00",
+      "manifest_age_hours": 0.1,
+      "manifest_updated_at": "2026-10-25T13:10:29+00:00",
       "partial_or_failed_exchanges": 5
     },
     "trade_technicals": {
       "complete_exchanges": 14,
-      "coverage_symbols": 1309,
+      "coverage_symbols": 1300,
       "duplicate_tickers": 0,
-      "eligible_symbols": 1429,
+      "eligible_symbols": 1420,
       "exchange_count": 15,
       "files_checked": 0,
-      "manifest_age_hours": 3.2,
-      "manifest_updated_at": "2026-10-18T06:46:05+01:00",
+      "manifest_age_hours": 0.8,
+      "manifest_updated_at": "2026-10-25T12:31:18+00:00",
       "partial_or_failed_exchanges": 1
     }
   },
   "fundamental_change_detector": {
-    "age_hours": 4.5,
+    "age_hours": 0.1,
     "changed_companies": 0,
-    "generated_at": "2026-10-18T05:26:31+01:00",
+    "generated_at": "2026-10-25T13:10:29+00:00",
     "new_companies": 0
   },
-  "generated_at": "2026-10-18T08:55:58.020306+00:00",
+  "generated_at": "2026-10-25T13:18:41.715925+00:00",
   "issues": [],
   "mode": "weekly"
 }
