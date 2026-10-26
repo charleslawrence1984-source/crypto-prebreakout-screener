@@ -1,0 +1,61 @@
+name: Kraken Funded stop-aware rejection counterfactual — PR ONLY
+
+# No cron, broker API, orders, state writes to main or rule changes.
+on:
+  pull_request:
+    paths:
+      - funded_counterfactual_risk.py
+      - tests/test_funded_counterfactual_risk.py
+      - docs/funded_rejected_counterfactual_risk.md
+      - .github/workflows/funded-counterfactual-risk.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  causal-risk-invariants:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install no-broker research dependencies
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3"
+      - name: Validate analytic-only code
+        run: python -m py_compile funded_counterfactual_risk.py
+      - name: Validate stop-first, gaps, source-hash and frozen original classifications
+        run: python -m unittest discover -s tests -p test_funded_counterfactual_risk.py -v
+
+  frozen-33-coin-rejection-counterfactual:
+    needs: causal-risk-invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install read-only evidence analysis dependencies
+        run: python -m pip install "pandas>=2.2,<3" "numpy>=2,<3"
+      - name: Retrieve frozen source OHLCVT from approved research PR #48 run
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 39622003287 --repo "${{ github.repository }}" --name funded-kraken-official-full-33coin-selected-39622003287 --dir source-snapshots
+          gh run download 39622003287 --repo "${{ github.repository }}" --name funded-kraken-official-multiyear-33coin-research-39622003287 --dir original-decisions
+          zip -q -j frozen-33coin-source.zip source-snapshots/*
+          zip -q -j frozen-asof-decisions.zip original-decisions/*
+      - name: Re-evaluate only FROZEN original BUY and eligible WATCH cohorts
+        run: |
+          python funded_counterfactual_risk.py --original-results-zip frozen-asof-decisions.zip --full-source-zip frozen-33coin-source.zip --out-dir funded-counterfactual-report
+      - name: Preserve prospective plan/outcome negatives, invalid/gapped cases and costs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-33coin-stop-aware-counterfactual-${{ github.run_id }}
+          path: funded-counterfactual-report/*
+          if-no-files-found: warn
+          retention-days: 30
