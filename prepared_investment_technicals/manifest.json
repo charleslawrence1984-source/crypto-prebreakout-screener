@@ -726,22 +726,22 @@
     "nasdaq": {
       "coverage_symbols": 365,
       "dispatch_counts": {
-        "IOND": 47,
-        "OIG": 47,
-        "SWRD": 47
+        "IOND": 48,
+        "OIG": 48,
+        "SWRD": 48
       },
       "eligible_symbols": 368,
       "errors": [
         {
-          "error": "1y: 63 rows, insufficient usable history/indicators; 2y: 63 rows, insufficient usable history/indicators",
+          "error": "1y: 64 rows, insufficient usable history/indicators; 2y: 64 rows, insufficient usable history/indicators",
           "symbol": "IOND"
         },
         {
-          "error": "1y: 26 rows, insufficient usable history/indicators; 2y: 26 rows, insufficient usable history/indicators",
+          "error": "1y: 27 rows, insufficient usable history/indicators; 2y: 27 rows, insufficient usable history/indicators",
           "symbol": "OIG"
         },
         {
-          "error": "1y: 32 rows, insufficient usable history/indicators; 2y: 32 rows, insufficient usable history/indicators",
+          "error": "1y: 33 rows, insufficient usable history/indicators; 2y: 33 rows, insufficient usable history/indicators",
           "symbol": "SWRD"
         }
       ],
@@ -760,17 +760,17 @@
     "nyse": {
       "coverage_symbols": 479,
       "dispatch_counts": {
-        "ASBH": 20,
-        "VYLR": 42
+        "ASBH": 21,
+        "VYLR": 43
       },
       "eligible_symbols": 481,
       "errors": [
         {
-          "error": "1y: 28 rows, insufficient usable history/indicators; 2y: 28 rows, insufficient usable history/indicators",
+          "error": "1y: 29 rows, insufficient usable history/indicators; 2y: 29 rows, insufficient usable history/indicators",
           "symbol": "ASBH"
         },
         {
-          "error": "1y: 17 rows, insufficient usable history/indicators; 2y: 17 rows, insufficient usable history/indicators",
+          "error": "1y: 18 rows, insufficient usable history/indicators; 2y: 18 rows, insufficient usable history/indicators",
           "symbol": "VYLR"
         }
       ],
@@ -1287,5 +1287,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-26T06:39:36.069257+00:00"
+  "updated_at": "2026-10-26T14:27:32.637437+00:00"
 }
