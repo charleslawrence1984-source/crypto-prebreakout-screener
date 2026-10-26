@@ -1,0 +1,96 @@
+name: Kraken Funded source candle idempotence P0 — PR ONLY
+
+# Never schedules jobs, orders, broker connections or live rule/source changes.
+on:
+  pull_request:
+    paths:
+      - funded_capture_candle_identity.py
+      - funded_forward_signal_safety.py
+      - tests/test_funded_forward_signal_safety.py
+      - docs/funded_forward_signal_safety_20261026.md
+      - funded_stock_publication_recheck.py
+      - tests/test_funded_capture_candle_identity.py
+      - docs/funded_capture_candle_idempotence_20261024.md
+      - .github/workflows/funded-candle-idempotence-research.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  strict-candle-identity-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Reject stale/future source signals, identical historical runs and conflicting original BUYs
+        run: |
+          python -m py_compile funded_capture_candle_identity.py
+          python -m unittest discover -s tests -p test_funded_capture_candle_identity.py -v
+          python -m py_compile funded_forward_signal_safety.py
+          python -m unittest discover -s tests -p test_funded_forward_signal_safety.py -v
+
+  authentic-main-branch-kraken-capture-forensics:
+    needs: strict-candle-identity-safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install GitHub read-only source artifact loader
+        run: python -m pip install requests
+      - name: Re-audit latest original source snapshots, no fabricated missed positions
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >
+          python funded_capture_candle_identity.py
+          --from-github --window-days 14
+          --out-dir funded-capture-idempotence-evidence
+      - name: Audit first actually observed original BUY source-bar lag — no orders
+        run: >
+          python funded_forward_signal_safety.py
+          --identity-report funded-capture-idempotence-evidence/latest_original_candle_and_signal_identity.json
+          --out-file funded-capture-idempotence-evidence/funded_forward_signal_safety.json
+      - name: Retain approved BUY episodes and original 4h source quality conflicts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-original-candle-identity-${{ github.run_id }}
+          path: funded-capture-idempotence-evidence/*.json
+          retention-days: 30
+          if-no-files-found: warn
+
+  independent-after-hours-stock-publication-recheck:
+    needs: strict-candle-identity-safety
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install ORIGINAL public Yahoo / NYSE calendar research dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Download EXACT immutable failed 24 Oct stock research artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download 40048440026 --repo "${{ github.repository }}" --name funded-stocks-40048440026-1 --dir frozen-failed-stock-source
+          zip -q -j prior-failed-frozen-stock.zip frozen-failed-stock-source/*
+      - name: Recheck same 30 stocks against last completed NYSE session WITHOUT new technical BUY analysis
+        run: |
+          python -m py_compile funded_stock_publication_recheck.py
+          python funded_stock_publication_recheck.py --frozen-stock-zip prior-failed-frozen-stock.zip --out-dir funded-yahoo-prior-session-publication
+      - name: Preserve recovered/missing source data and exact original row reasons
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-yahoo-friday-source-republication-${{ github.run_id }}
+          path: funded-yahoo-prior-session-publication/*
+          retention-days: 30
+          if-no-files-found: warn
