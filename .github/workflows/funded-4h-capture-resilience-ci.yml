@@ -38,8 +38,9 @@ jobs:
           assert "funded_capture_schedule_admission.py" in w
           assert "actions: read" in w
           ci = Path(".github/workflows/funded-4h-capture-resilience-ci.yml").read_text()
-          assert "  schedule:" not in ci
-          assert "workflow_dispatch:" not in ci
+          import re
+          assert not re.search(r"(?m)^  schedule:", ci)
+          assert not re.search(r"(?m)^  workflow_dispatch:", ci)
           print("PASS: candidate scan guarded; stock schedule preserved; validation is PR-only")
           PY
 
