@@ -1,0 +1,82 @@
+name: Kraken Funded 4h capture resilience CANDIDATE — PR ONLY
+
+# This workflow has NO schedule or workflow_dispatch: read-only evidence only.
+on:
+  pull_request:
+    paths:
+      - funded_capture_schedule_admission.py
+      - tests/test_funded_capture_schedule_admission.py
+      - docs/funded_four_hour_capture_resilience_20261026.md
+      - .github/workflows/funded-forward-research.yml
+      - .github/workflows/funded-4h-capture-resilience-ci.yml
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate-scheduler-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile and run conservative scan-admission tests
+        run: |
+          python -m py_compile funded_capture_schedule_admission.py
+          python -m unittest discover -s tests -p test_funded_capture_schedule_admission.py -v
+      - name: Confirm candidate backup remains staged, with unchanged stock schedule
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          w = Path(".github/workflows/funded-forward-research.yml").read_text()
+          assert '35 0,4,8,12,16,20 * * *' in w
+          assert '55 0,4,8,12,16,20 * * *' in w
+          assert '45 22 * * 1-5' in w
+          assert "funded_capture_schedule_admission.py" in w
+          assert "actions: read" in w
+          ci = Path(".github/workflows/funded-4h-capture-resilience-ci.yml").read_text()
+          assert "  schedule:" not in ci
+          assert "workflow_dispatch:" not in ci
+          print("PASS: candidate scan guarded; stock schedule preserved; validation is PR-only")
+          PY
+
+  actual-original-main-source-archive-probe:
+    needs: validate-scheduler-candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Read original SHA-validated source archives and simulate admission ONLY
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          from datetime import datetime, timezone
+          import json, os
+          from pathlib import Path
+          from funded_capture_schedule_admission import read_recent_original_sources, decide
+          now = datetime.now(timezone.utc)
+          original = read_recent_original_sources(
+              os.environ["GITHUB_REPOSITORY"], os.environ["GITHUB_TOKEN"], now)
+          report = decide(now, original)
+          report["real_read_only_source_archives_validated"] = len(original)
+          report["this_ci_job_did_not_invoke_actual_runner"] = True
+          Path("funded-capture-pr-only-evidence").mkdir(exist_ok=True)
+          Path("funded-capture-pr-only-evidence/redundant_scan_admission.json").write_text(
+              json.dumps(report, indent=2, sort_keys=True) + "\n")
+          print(json.dumps(report, sort_keys=True))
+          PY
+      - name: Retain actual source admission dry-run findings even if API probe fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: funded-4h-candidate-readonly-${{ github.run_id }}
+          path: funded-capture-pr-only-evidence/*.json
+          if-no-files-found: warn
+          retention-days: 30
