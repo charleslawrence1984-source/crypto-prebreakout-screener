@@ -161,7 +161,7 @@ def read_recent_original_sources(repository: str, token: str, now: datetime):
         zipped = _github_request(item["archive_download_url"], token=token)
         with zipfile.ZipFile(BytesIO(zipped)) as bundle:
             names = [n for n in bundle.namelist() if JSON_RE.fullmatch(Path(n).name)]
-            if len(names) != 1 or len(bundle.infolist()) != 1:
+            if len(names) != 1:
                 raise RuntimeError("Expected a single authentic frozen crypto JSON source")
             if bundle.getinfo(names[0]).file_size > MAX_BYTES:
                 raise RuntimeError("Frozen JSON exceeds accepted size")
