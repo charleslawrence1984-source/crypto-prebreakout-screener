@@ -109,17 +109,28 @@ def decide(now: datetime, snapshots, *, universe=None,
 
 
 def _github_request(url: str, *, token: str) -> bytes:
-    request = urllib.request.Request(url, headers={
-        "Authorization": "Bearer " + token,
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "User-Agent": "cl-signal-funded-admission-read-only",
-    })
-    with urllib.request.urlopen(request, timeout=25) as stream:
-        data = stream.read(MAX_BYTES + 1)
-    if len(data) > MAX_BYTES:
-        raise RuntimeError("GitHub artifact/source response over size budget")
-    return data
+    """Drop private auth on GitHub's cross-host signed ZIP redirect."""
+    import requests
+    if not url.startswith("https://api.github.com/repos/"):
+        raise ValueError("Original artifact download URL is not GitHub API")
+    with requests.Session() as session:
+        # requests strips bearer Authorization when GitHub redirects to
+        # signed external artifact storage; urllib default leaked it there.
+        with session.get(url, headers={
+            "Authorization": "Bearer " + token,
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+            "User-Agent": "cl-signal-funded-admission-read-only",
+        }, timeout=35, allow_redirects=True, stream=True) as response:
+            response.raise_for_status()
+            data = bytearray()
+            for piece in response.iter_content(chunk_size=65536):
+                if not piece:
+                    continue
+                data.extend(piece)
+                if len(data) > MAX_BYTES:
+                    raise RuntimeError("GitHub artifact/source response over size budget")
+    return bytes(data)
 
 
 def read_recent_original_sources(repository: str, token: str, now: datetime):
