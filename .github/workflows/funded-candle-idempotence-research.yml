@@ -5,6 +5,9 @@ on:
   pull_request:
     paths:
       - funded_capture_candle_identity.py
+      - funded_forward_signal_safety.py
+      - tests/test_funded_forward_signal_safety.py
+      - docs/funded_forward_signal_safety_20261026.md
       - funded_stock_publication_recheck.py
       - tests/test_funded_capture_candle_identity.py
       - docs/funded_capture_candle_idempotence_20261024.md
@@ -27,6 +30,8 @@ jobs:
         run: |
           python -m py_compile funded_capture_candle_identity.py
           python -m unittest discover -s tests -p test_funded_capture_candle_identity.py -v
+          python -m py_compile funded_forward_signal_safety.py
+          python -m unittest discover -s tests -p test_funded_forward_signal_safety.py -v
 
   authentic-main-branch-kraken-capture-forensics:
     needs: strict-candle-identity-safety
@@ -46,6 +51,11 @@ jobs:
           python funded_capture_candle_identity.py
           --from-github --window-days 14
           --out-dir funded-capture-idempotence-evidence
+      - name: Audit first actually observed original BUY source-bar lag — no orders
+        run: >
+          python funded_forward_signal_safety.py
+          --identity-report funded-capture-idempotence-evidence/latest_original_candle_and_signal_identity.json
+          --out-file funded-capture-idempotence-evidence/funded_forward_signal_safety.json
       - name: Retain approved BUY episodes and original 4h source quality conflicts
         if: always()
         uses: actions/upload-artifact@v4
