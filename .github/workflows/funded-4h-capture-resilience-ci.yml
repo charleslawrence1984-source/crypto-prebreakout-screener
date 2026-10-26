@@ -53,6 +53,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Install read-only artifact redirect client
+        run: python -m pip install requests
       - name: Read original SHA-validated source archives and simulate admission ONLY
         env:
           GITHUB_TOKEN: ${{ github.token }}
