@@ -1,0 +1,34 @@
+name: Kraken Funded read-only scheduling resilience shadow
+
+# PR validation and explicitly invoked diagnostics ONLY.
+# Do not add a production schedule or recovery dispatch without approval.
+on:
+  pull_request:
+    paths:
+      - "scripts/funded_schedule_shadow.py"
+      - "tests/test_funded_schedule_shadow.py"
+      - "docs/kraken_funded_schedule_resilience_plan.md"
+      - ".github/workflows/funded-schedule-resilience-shadow.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  observe-scheduled-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile read-only shadow
+        run: python -m py_compile scripts/funded_schedule_shadow.py tests/test_funded_schedule_shadow.py
+      - name: Validate failure-closed schedule and artifact attribution
+        run: python -m unittest discover -s tests -p test_funded_schedule_shadow.py -v
+      - name: Read-only scheduled run and archive-metadata replay
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python scripts/funded_schedule_shadow.py --repo "${{ github.repository }}" --days 3
