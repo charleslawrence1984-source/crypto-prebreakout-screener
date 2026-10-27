@@ -726,9 +726,9 @@
     "nasdaq": {
       "coverage_symbols": 365,
       "dispatch_counts": {
-        "IOND": 50,
-        "OIG": 50,
-        "SWRD": 50
+        "IOND": 51,
+        "OIG": 51,
+        "SWRD": 51
       },
       "eligible_symbols": 368,
       "errors": [
@@ -760,8 +760,8 @@
     "nyse": {
       "coverage_symbols": 479,
       "dispatch_counts": {
-        "ASBH": 23,
-        "VYLR": 45
+        "ASBH": 24,
+        "VYLR": 46
       },
       "eligible_symbols": 481,
       "errors": [
@@ -1223,8 +1223,8 @@
       "errors": [],
       "fresh_coverage_symbols": 52,
       "remaining_symbols": 0,
-      "requested_this_run": 0,
-      "returned_this_run": 0,
+      "requested_this_run": 4,
+      "returned_this_run": 4,
       "source_coverage_target_symbols": 146,
       "source_fundamentals_updated_at": "2026-10-26T01:43:49+00:00",
       "source_provider_deferred_symbols": 0,
@@ -1240,8 +1240,8 @@
       "errors": [],
       "fresh_coverage_symbols": 77,
       "remaining_symbols": 0,
-      "requested_this_run": 0,
-      "returned_this_run": 0,
+      "requested_this_run": 1,
+      "returned_this_run": 1,
       "source_coverage_target_symbols": 357,
       "source_fundamentals_updated_at": "2026-10-25T22:49:05+00:00",
       "source_provider_deferred_symbols": 3,
@@ -1287,5 +1287,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-26T23:58:45.859289+00:00"
+  "updated_at": "2026-10-27T00:29:33.260085+00:00"
 }
