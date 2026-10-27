@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
-"""Offline missed-mover episode census. Research only; never creates BUY or orders.
+"""Offline descriptive, ex-ante source-bar episode census; never places orders.
 
-CSV columns: asset,bar_utc,source_bar_utc,original_label,outcome,
-             horizon_bars,fold,eligible,reason
-outcome: MOVER, NONMOVER or UNKNOWN. Input labels must already be frozen as-of
-and outcome horizons fully completed; this module never downloads future data.
-An episode is the first eligible anchor of the same asset/fold/horizon/outcome
-within horizon_bars * 4 hours of the previous retained anchor. This is a
-descriptive non-overlap convention, not an execution simulation.
+CSV: asset,bar_utc,source_bar_utc,original_label,outcome,horizon_bars,
+     fold,eligible,reason
+Future outcomes are attached AFTER episode membership is decided. UNKNOWN
+means missing/censored and is never treated as a rejected trade. An episode
+is anchored at the first eligible observation; the next episode starts only
+after the prior horizon's fixed 4-hour interval. This is a descriptive
+cooldown, not a trade simulator or an independent causal estimator.
 """
 import argparse
 import csv
 import json
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
-
 
 LABELS = {"BUY", "WATCH", "PASS"}
 OUTCOMES = {"MOVER", "NONMOVER", "UNKNOWN"}
@@ -23,7 +22,7 @@ OUTCOMES = {"MOVER", "NONMOVER", "UNKNOWN"}
 def utc(value):
     d = datetime.fromisoformat(value.replace("Z", "+00:00"))
     if d.tzinfo is None or d.utcoffset() != timedelta(0):
-        raise ValueError("bar timestamps must be UTC")
+        raise ValueError("timestamps must be UTC")
     return d.astimezone(timezone.utc)
 
 
@@ -36,37 +35,43 @@ def episodes(rows):
         if row["eligible"].lower() != "true":
             excluded[row.get("reason") or "INELIGIBLE"] += 1
             continue
-        h = int(row["horizon_bars"])
-        if h <= 0:
+        horizon = int(row["horizon_bars"])
+        if horizon <= 0:
             raise ValueError("positive horizon required")
-        stamp = utc(row["bar_utc"])
-        source = utc(row["source_bar_utc"])
+        stamp, source = utc(row["bar_utc"]), utc(row["source_bar_utc"])
         if source > stamp:
             raise ValueError("source bar later than observation")
-        grouped[(row["asset"], row["fold"], h, row["outcome"])].append((stamp, source, row))
+        # Deliberately exclude both original classification and future outcome
+        # from the grouping key: neither can create additional episodes.
+        grouped[(row["asset"], row["fold"], horizon)].append((stamp, source, row))
     result = []
-    for (asset, fold, horizon, outcome), anchors in sorted(grouped.items()):
+    for (asset, fold, horizon), anchors in sorted(grouped.items()):
         previous = None
         seen = set()
-        for stamp, source, row in sorted(anchors, key=lambda item: (item[0], item[1])):
+        for stamp, source, row in sorted(anchors, key=lambda x: (x[0], x[1])):
             if source in seen:
                 continue
             seen.add(source)
             if previous is not None and stamp < previous + timedelta(hours=4*horizon):
                 continue
             previous = stamp
-            result.append({"asset": asset, "fold": fold, "horizon_bars": horizon,
-                           "outcome": outcome, "first_anchor_utc": stamp.isoformat(),
-                           "source_bar_utc": source.isoformat(),
-                           "original_label": row["original_label"]})
+            result.append({
+                "asset": asset, "fold": fold, "horizon_bars": horizon,
+                "first_anchor_utc": stamp.isoformat(), "source_bar_utc": source.isoformat(),
+                "original_label": row["original_label"], "outcome": row["outcome"],
+                "outcome_scope": "FIRST_ANCHOR_ONLY",
+            })
     matrix = Counter((r["fold"], r["horizon_bars"], r["original_label"], r["outcome"])
                      for r in result)
-    return {"research_only": True, "episode_definition": "first eligible anchor, 4h horizon cooldown per asset/fold/horizon/outcome",
-            "episodes": result, "matrix": [
-                {"fold": k[0], "horizon_bars": k[1], "original_label": k[2],
-                 "outcome": k[3], "count": v} for k, v in sorted(matrix.items())],
-            "excluded": dict(excluded),
-            "warning": "MOVER is future price movement, not a filled or profitable trade; separate MOVER/NONMOVER episode groups are descriptive, not independent trade controls."}
+    return {
+        "research_only": True,
+        "episode_definition": "first eligible source-bar observation; fixed 4h horizon cooldown by asset/fold/horizon, before outcome",
+        "episodes": result,
+        "matrix": [{"fold": k[0], "horizon_bars": k[1], "original_label": k[2],
+                    "outcome": k[3], "count": v} for k, v in sorted(matrix.items())],
+        "excluded": dict(excluded),
+        "warning": "Only first-anchor future outcome is attached; mixed outcomes inside a window do not create new episodes. No execution, profit or funded readiness inference.",
+    }
 
 
 def main():
