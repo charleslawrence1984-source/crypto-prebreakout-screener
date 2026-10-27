@@ -21,16 +21,17 @@ class MissedEpisodesTests(unittest.TestCase):
     def test_repeated_source_bar_deduplicated(self):
         self.assertEqual(len(episodes([row(0), row(4, source_bar_utc=row(0)["source_bar_utc"])])["episodes"]), 1)
 
-    def test_original_labels_preserved(self):
+    def test_original_labels_preserved_at_first_anchor(self):
         result = episodes([row(0, original_label="PASS"), row(12, original_label="BUY")])
         self.assertEqual([r["original_label"] for r in result["episodes"]], ["PASS", "BUY"])
 
-    def test_nonmovers_not_discarded(self):
-        result = episodes([row(0), row(4, outcome="NONMOVER")])
+    def test_nonmovers_not_discarded_when_nonoverlap(self):
+        result = episodes([row(0), row(12, outcome="NONMOVER")])
         self.assertEqual(len(result["episodes"]), 2)
 
-    def test_unknown_kept_separate(self):
-        self.assertEqual(len(episodes([row(0), row(4, outcome="UNKNOWN")])["episodes"]), 2)
+    def test_unknown_retained_at_first_anchor(self):
+        result = episodes([row(0, outcome="UNKNOWN"), row(12)])
+        self.assertEqual([x["outcome"] for x in result["episodes"]], ["UNKNOWN", "MOVER"])
 
     def test_ineligible_is_not_a_rejected_pass(self):
         r = episodes([row(0, eligible="false", reason="PRELISTING")])
@@ -48,6 +49,22 @@ class MissedEpisodesTests(unittest.TestCase):
     def test_invalid_label_rejected(self):
         with self.assertRaises(ValueError):
             episodes([row(0, original_label="READY")])
+
+    def test_future_outcome_cannot_split_episode(self):
+        result = episodes([row(0, outcome="NONMOVER"), row(4, outcome="MOVER")])
+        self.assertEqual(len(result["episodes"]), 1)
+        self.assertEqual(result["episodes"][0]["outcome"], "NONMOVER")
+
+    def test_later_buy_cannot_split_first_watch_episode(self):
+        result = episodes([row(0), row(4, original_label="BUY")])
+        self.assertEqual(len(result["episodes"]), 1)
+        self.assertEqual(result["episodes"][0]["original_label"], "WATCH")
+
+    def test_future_outcome_does_not_change_boundaries(self):
+        a = [row(0), row(4), row(12)]
+        b = [dict(x, outcome="NONMOVER") for x in a]
+        self.assertEqual([r["first_anchor_utc"] for r in episodes(a)["episodes"]],
+                         [r["first_anchor_utc"] for r in episodes(b)["episodes"]])
 
 
 if __name__ == "__main__":
