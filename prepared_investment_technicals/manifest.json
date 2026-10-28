@@ -2039,8 +2039,8 @@
       "errors": [],
       "fresh_coverage_symbols": 52,
       "remaining_symbols": 0,
-      "requested_this_run": 5,
-      "returned_this_run": 5,
+      "requested_this_run": 0,
+      "returned_this_run": 0,
       "source_coverage_target_symbols": 146,
       "source_fundamentals_updated_at": "2026-10-27T01:30:24+00:00",
       "source_provider_deferred_symbols": 0,
@@ -2103,5 +2103,5 @@
   },
   "fundamental_coverage_mode": "completed-exchanges-only",
   "technical_build": "investment-technicals-2026.09.19.1-6d6fd387c691f8ed",
-  "updated_at": "2026-10-28T00:33:09.090681+00:00"
+  "updated_at": "2026-10-28T00:37:37.767296+00:00"
 }
