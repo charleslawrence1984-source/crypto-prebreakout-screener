@@ -1,0 +1,37 @@
+name: Kraken Funded read-only schedule watchdog regression
+
+on:
+  pull_request:
+    paths:
+      - "scripts/audit_funded_schedule.py"
+      - "scripts/funded_freshness_watchdog.py"
+      - "tests/test_funded_schedule_audit.py"
+      - "tests/test_funded_freshness_watchdog.py"
+      - ".github/workflows/funded-monitor-regression.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  watchdog-tests:
+    name: Read-only deterministic watchdog and scheduled-slot tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile monitor-only Python
+        run: python -m py_compile scripts/audit_funded_schedule.py scripts/funded_freshness_watchdog.py
+      - name: Execute deterministic regressions (no network)
+        run: |
+          python -m unittest discover -s tests -p test_funded_schedule_audit.py -v
+          python -m unittest discover -s tests -p test_funded_freshness_watchdog.py -v
+      - name: Replay real recent scheduled GitHub jobs (no writes)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/audit_funded_schedule.py --repo "${{ github.repository }}"
