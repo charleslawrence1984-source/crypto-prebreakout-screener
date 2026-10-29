@@ -1,0 +1,127 @@
+name: Stocks TRADE four-gate integrated draft release-readiness audit
+
+on:
+  pull_request:
+    paths:
+      - "trade_*"
+      - "scheduled_trade_technicals.py"
+      - "stock_app.py"
+      - "stocks_page.py"
+      - "two_strategy.py"
+      - "tests/test_trade_*"
+      - "tests/test_stocks_trade_rendered_actions.py"
+      - ".github/workflows/stocks-trade-four-gate-integration.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  combined-draft-trade-readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install original Stocks engine and QA requirements
+        run: pip install -r requirements.txt
+      - name: Check combined source syntax
+        run: |
+          python -m py_compile trade_release_integration.py trade_integrated_release_audit.py trade_completed_bar_guard.py trade_action_contract.py trade_pit_evidence.py trade_forward_paper_observation.py trade_forward_cohort_compare.py trade_historical_research.py trade_missed_mover_diagnostics.py trade_lse_reference_contract.py
+      - name: Job 1 - approved Trade engine, conflicting BUY and real Streamlit route/cards
+        run: |
+          python -m unittest discover -s tests -p test_trade_publication_guard.py -v
+          python -m unittest discover -s tests -p test_stocks_trade_rendered_actions.py -v
+          python -m unittest -v test_trade_rules test_trade_watch_scan
+          python -m unittest discover -s tests -p test_trade_release_integration.py -v
+      - name: Job 2 - venue daily candles, UK independent reference and as-of historical receipts
+        run: |
+          python -m unittest discover -s tests -p test_trade_completed_bar_guard.py -v
+          python -m unittest discover -s tests -p test_trade_lse_reference_contract.py -v
+          python -m unittest discover -s tests -p test_trade_pit_evidence.py -v
+          python -m unittest discover -s tests -p test_trade_historical_research.py -v
+          python -m unittest discover -s tests -p test_trade_missed_mover_diagnostics.py -v
+          python trade_pit_evidence.py --output integrated_trade_pit_audit.json
+          python trade_lse_reference_contract.py --output integrated_lse_authentic_source_gate.json
+      - name: Expand public technical-only historical matched mover/nonmover pilot
+        run: |
+          python trade_historical_research.py --tickers AAPL MSFT NVDA GOOGL --period 5y --horizon 252 --cost-bps 50 --output integrated_trade_historical_pilot.json
+          python trade_missed_mover_diagnostics.py --pilot integrated_trade_historical_pilot.json --output integrated_trade_mover_nonmover_pairs.json
+      - name: Job 3 - prospective source observation and immutable cohort controls
+        run: |
+          python -m unittest discover -s tests -p test_trade_forward_paper_observation.py -v
+          python -m unittest discover -s tests -p test_trade_forward_cohort_compare.py -v
+          python trade_forward_paper_observation.py --output integrated_trade_new_forward_source_snapshot.json
+      - name: Download exact earlier 29 Oct prospective source snapshot (run 40894667798)
+        uses: actions/download-artifact@v4
+        with:
+          name: stocks-trade-prospective-source-snapshot
+          run-id: 40894667798
+          github-token: ${{ github.token }}
+          path: earlier_immutable_observation
+      - name: Compare only actual later-captured observations, never claim Trade P&L
+        run: |
+          python trade_forward_cohort_compare.py \
+            --prior earlier_immutable_observation/trade_forward_prospective_source_snapshot.json \
+            --prior-sha256 302ba6a8a38a34c0b783030d7758dd90064a42731ae04461a75632b05cd20efa \
+            --later integrated_trade_new_forward_source_snapshot.json \
+            --output integrated_trade_forward_cohort_comparison.json
+      - name: Job 4 - inspect actual saved cache and all integrated blockers
+        run: |
+          python -m unittest discover -s tests -p test_trade_integrated_release_audit.py -v
+          python trade_integrated_release_audit.py --output integrated_trade_release_audit.json
+          python - <<'PY'
+          import json,pathlib,hashlib
+          files={
+            "historical":json.loads(pathlib.Path("integrated_trade_historical_pilot.json").read_text()),
+            "forward":json.loads(pathlib.Path("integrated_trade_forward_cohort_comparison.json").read_text()),
+            "release":json.loads(pathlib.Path("integrated_trade_release_audit.json").read_text()),
+            "pit":json.loads(pathlib.Path("integrated_trade_pit_audit.json").read_text()),
+            "official_reference":json.loads(pathlib.Path("integrated_lse_authentic_source_gate.json").read_text()),
+          }
+          assert files["release"]["decision"]=="BLOCKED_NOT_LIVE_READY"
+          assert files["forward"]["readiness"]=="NOT_VERIFIED"
+          assert files["forward"]["approved_paper_trades"]==0
+          assert files["pit"]["readiness"]=="NOT_VERIFIED"
+          assert files["official_reference"]["live_trade_readiness"]=="NOT_VERIFIED"
+          report={
+            "scope":"DRAFT_UNMERGED_FOUR_JOB_STOCKS_TRADE_INTEGRATION",
+            "status":"NOT_LIVE_READY",
+            "historical_original_engine_technical_only":True,
+            "approved_paper_entries":0,
+            "all_four_jobs_tested":True,
+            "production_deployed":False,
+            "trade_order_permission":False,
+            "source_sha256":{
+              path:hashlib.sha256(pathlib.Path(path).read_bytes()).hexdigest()
+              for path in ["trade_release_integration.py","trade_integrated_release_audit.py",
+                           "trade_pit_evidence.py","trade_forward_cohort_compare.py",
+                           "trade_completed_bar_guard.py","trade_action_contract.py",
+                           "trade_historical_research.py","trade_missed_mover_diagnostics.py"]
+            },
+            "release_blockers":files["release"]["blocked_gates"],
+          }
+          pathlib.Path("integrated_trade_four_job_evidence_receipt.json").write_text(
+            json.dumps(report,indent=2,sort_keys=True)+"\n")
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Archive full four-job research audits without orders or price modifications
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stocks-trade-four-gate-draft-evidence
+          path: |
+            integrated_trade_pit_audit.json
+            integrated_lse_authentic_source_gate.json
+            integrated_trade_historical_pilot.json
+            integrated_trade_mover_nonmover_pairs.json
+            integrated_trade_new_forward_source_snapshot.json
+            integrated_trade_forward_cohort_comparison.json
+            integrated_trade_release_audit.json
+            integrated_trade_four_job_evidence_receipt.json
+          if-no-files-found: warn
+          retention-days: 90
