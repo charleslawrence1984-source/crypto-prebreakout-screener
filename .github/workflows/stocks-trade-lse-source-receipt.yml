@@ -1,0 +1,76 @@
+name: Stocks Trade LSE evidence qualification and window impact (DRAFT PR only)
+
+on:
+  pull_request:
+    paths:
+      - "trade_lse_reference_contract.py"
+      - "trade_lse_window_impact_research.py"
+      - "tests/test_trade_lse_reference_contract.py"
+      - "tests/test_trade_lse_window_impact_research.py"
+      - ".github/workflows/stocks-trade-lse-source-receipt.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lse-reference-evidence-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install read-only source-analysis dependencies
+        run: pip install "pandas>=2.2,<3" "numpy>=2,<3" "yfinance>=0.2.54,<1" "exchange-calendars>=4.9,<5"
+      - name: Compile independent source intake and OHLCV-window audit
+        run: python -m py_compile trade_lse_reference_contract.py trade_lse_window_impact_research.py
+      - name: Synthetic authoritative-reference receipt regression (NO licensed files)
+        run: python -m unittest discover -s tests -p test_trade_lse_reference_contract.py -v
+      - name: Source historical-window contamination regression
+        run: python -m unittest discover -s tests -p test_trade_lse_window_impact_research.py -v
+      - name: Prove source-absent certification remains blocked
+        run: |
+          python trade_lse_reference_contract.py --output lse_reference_contract_report.json
+          python - <<'PY'
+          import json
+          report=json.load(open("lse_reference_contract_report.json"))
+          assert report["status"]=="BLOCKED_MISSING_SOURCE"
+          assert report["live_trade_readiness"]=="NOT_VERIFIED"
+          assert report["reference_source_authenticated"] is False
+          assert report["automatic_history_repair_authorised"] is False
+          PY
+      - name: Real Yahoo six-symbol old-vs-recent OHLCV geometry diagnostic only
+        run: python trade_lse_window_impact_research.py --output lse_window_impact_research.json
+      - name: Store source SHA and explicit no-production receipt
+        run: |
+          python - <<'PY'
+          import json,hashlib,pathlib
+          files=("trade_lse_reference_contract.py","trade_lse_window_impact_research.py",
+                 "tests/test_trade_lse_reference_contract.py",
+                 "tests/test_trade_lse_window_impact_research.py")
+          result={
+            "readiness":"NOT_VERIFIED",
+            "licensed_official_eod_supplied":False,
+            "production_price_or_trade_rule_changes":False,
+            "historical_price_replacements":0,
+            "real_money_orders":0,
+            "source_sha256":{p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+                             for p in files},
+            "next_gate":"Obtain authorized LSE dated source plus instrument/venue/GBX mapping; independent manual reconciliation of 2024-05-01 prices; no silent price repair, preserve full-rule historical as-of gates",
+          }
+          pathlib.Path("lse_evidence_qualification_receipt.json").write_text(
+              json.dumps(result,indent=2)+"\n")
+          print(json.dumps(result,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-lse-evidence-qualification
+          path: |
+            lse_reference_contract_report.json
+            lse_window_impact_research.json
+            lse_evidence_qualification_receipt.json
+          retention-days: 30
+          if-no-files-found: warn
