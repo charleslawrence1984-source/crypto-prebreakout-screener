@@ -84,5 +84,20 @@ class RenderedTradeActionTests(unittest.TestCase):
         self.assertGreaterEqual(len(app.tabs), 7)
 
 
+    def test_actual_stocks_route_renders_under_offline_no_source_conditions(self):
+        # stocks_page dynamically executes the mixed legacy base. This checks
+        # the actual deployed route entrypoint, not only a synthetic card.
+        with (
+            patch("streamlit.page_link", lambda *args, **kwargs: None),
+            patch("streamlit_local_storage.LocalStorage", StorageStub),
+            patch("streamlit_cookies_controller.CookieController", StorageStub),
+            patch.object(yf, "download", return_value=pd.DataFrame()),
+            patch.object(yf, "Ticker", side_effect=RuntimeError("offline source fixture")),
+        ):
+            ui = AppTest.from_file(str(ROOT / "stocks_page.py"), default_timeout=50).run()
+        self.assertFalse(ui.exception, [str(e.message) for e in ui.exception])
+        self.assertGreaterEqual(len(ui.tabs), 7)
+
+
 if __name__ == "__main__":
     unittest.main()
