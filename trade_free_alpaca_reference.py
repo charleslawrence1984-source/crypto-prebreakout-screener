@@ -196,7 +196,7 @@ def cross_check_yahoo(alpaca_raw: pd.DataFrame, yahoo_raw:pd.DataFrame,
             return result
         largest=max(largest,gap)
         if gap>max_close_diff_bps:
-            discrepant.append(date.isoformat())
+            discrepant.append(pd.Timestamp(date).date().isoformat())
     result["max_abs_close_difference_bps"]=round(largest,4)
     result["mismatched_sessions"]=discrepant[:30]
     result["status"]=(
