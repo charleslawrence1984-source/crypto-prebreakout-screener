@@ -68,13 +68,30 @@ def rows_in_window(frame: pd.DataFrame) -> list[dict]:
     return rows
 
 
+def invalid_dates_in_history(frame: pd.DataFrame) -> list[dict]:
+    """Census invalid dates in full original source; do not repair."""
+    if frame is None or frame.empty or not isinstance(frame.index, pd.DatetimeIndex):
+        return []
+    bad = []
+    for stamp, values in frame.iterrows():
+        fields = {}
+        for key in COLS:
+            value = pd.to_numeric(values.get(key), errors="coerce")
+            fields[key] = float(value) if pd.notna(value) else None
+        reason = invalid_ohlcv_reason(fields)
+        if reason:
+            bad.append({"date": pd.Timestamp(stamp).date().isoformat(),
+                        "geometry_issue": reason})
+    return bad
+
+
 def yahoo_result(symbol: str, fetcher) -> dict:
     result = {
         "ticker": symbol, "provider": "YAHOO_VIA_YFINANCE",
         "requested_period": "3y", "requested_auto_adjust": False,
         "status": "UNKNOWN", "raw_bars": 0,
         "anomaly_day_ohlcv": None, "anomaly_day_issue": None,
-        "window": [], "source_response_sha256": None,
+        "window": [], "invalid_dates_full_history": [], "source_response_sha256": None,
     }
     try:
         frame = fetcher(symbol)
@@ -95,6 +112,7 @@ def yahoo_result(symbol: str, fetcher) -> dict:
         result["raw_bars"] = int(len(frame))
         rows = rows_in_window(frame)
         result["window"] = rows
+        result["invalid_dates_full_history"] = invalid_dates_in_history(frame)
         raw = json.dumps(rows, sort_keys=True, separators=(",", ":")).encode()
         result["source_response_sha256"] = hashlib.sha256(raw).hexdigest()
         day = next((r for r in rows if r["date"] == ANOMALY_DAY), None)
@@ -190,8 +208,15 @@ def run_audit(now=None, yahoo_fetch=None, stooq_fetch=None) -> dict:
     source = [yahoo_result(symbol, yahoo_fetch) for symbol in SAMPLES]
     secondary = {symbol: stooq_result(ticker, stooq_fetch)
                  for symbol, ticker in SECONDARY.items()}
+    repeated_dates = {}
+    for record in source:
+        for anomaly in record["invalid_dates_full_history"]:
+            day = anomaly["date"]
+            repeated_dates.setdefault(day, []).append(record["ticker"])
     return {
-        "observed_utc": now.isoformat(), "source": source,
+        "observed_utc": now.isoformat(),
+        "yahoo_cross_section_invalid_dates": dict(sorted(repeated_dates.items())),
+        "source": source,
         "secondary": secondary,
         "comparison": [
             summarize(next(x for x in source if x["ticker"] == symbol),
@@ -227,6 +252,7 @@ def main():
                        "issue": r["anomaly_day_issue"], "error": r.get("error")}
                       for r in result["secondary"].values()],
         "comparison": result["comparison"],
+        "yahoo_cross_section_invalid_dates": result["yahoo_cross_section_invalid_dates"],
     }, indent=2))
 
 
