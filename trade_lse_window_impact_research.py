@@ -55,14 +55,14 @@ def inspect_frame(frame: pd.DataFrame | None, symbol: str) -> dict:
         result["recent_window_first"] = tail.index[0].date().isoformat()
         result["recent_window_last"] = tail.index[-1].date().isoformat()
     for date, row in frame.iterrows():
-        geometry = geometry_problem(row)
+        geometry = geometry_problem({key.lower(): row[key] for key in REQUIRED})
         if geometry:
             result["all_bad_sessions"].append({
                 "date": pd.Timestamp(date).date().isoformat(),
                 "issue": geometry,
             })
     for date, row in tail.iterrows():
-        geometry = geometry_problem(row)
+        geometry = geometry_problem({key.lower(): row[key] for key in REQUIRED})
         if geometry:
             result["recent_bad_sessions"].append({
                 "date": pd.Timestamp(date).date().isoformat(),
