@@ -131,6 +131,12 @@ def validate_completed_trade_frame(
                  & (data["High"] >= data[["Open", "Low", "Close"]].max(axis=1))
                  & (data["Low"] <= data[["Open", "High", "Close"]].min(axis=1)))
         if not clean.all():
+            # Diagnostic only: never repair/massage a bad historical candle
+            # into technical eligibility without a source-authentic review.
+            invalid = data.loc[~clean]
+            result["invalid_ohlcv_rows"] = len(invalid)
+            result["first_invalid_ohlcv_session"] = invalid.index[0].date().isoformat()
+            result["last_invalid_ohlcv_session"] = invalid.index[-1].date().isoformat()
             raise ValueError("INVALID_OHLCV_PRICE_OR_VOLUME")
         today = utc_now.tz_convert(cal.tz).date()
         last = data.index[-1].date()
