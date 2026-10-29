@@ -2,6 +2,7 @@ from pathlib import Path
 from stock_backtest import run_trade_backtest, run_basket_backtest
 from strategy_scores_v3 import long_term_analysis, long_term_entry_score, strategy_label
 from two_strategy import trade_decision, investment_decision
+from trade_action_contract import guarded_trade_publication
 
 src = Path("stock_app.py").read_text(encoding="utf-8")
 
@@ -431,15 +432,9 @@ src = src.replace(
     '''st.subheader("Two-strategy rankings")
                     trade_ranked = ranked.copy()
                     trade_ranked["Trade Action"] = trade_ranked.apply(
-                        lambda r: "BUY" if (
-                            r["Trade"] >= 85 and
-                            r["R:R"] >= 2 and
-                            r["Upside %"] >= 10 and
-                            (bool(r["Preferred now"]) or bool(r["Strong now"])) and
-                            r["1Y Hold"] >= 70 and
-                            r["Valuation"] >= 10 and
-                            r.get("Candle caution", "CLEAR") != "CAUTION"
-                        ) else "WAIT",
+                        # The legacy ranked rows have no full original
+                        # as-of Trade receipts: never promote them to BUY.
+                        lambda r: guarded_trade_publication(r.to_dict())["action"],
                         axis=1,
                     )
                     def _stock_channel_rank(r):

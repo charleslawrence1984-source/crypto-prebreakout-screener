@@ -1,0 +1,65 @@
+name: Stocks Trade legacy BUY publication guard (DRAFT PR only)
+
+on:
+  pull_request:
+    paths:
+      - "trade_action_contract.py"
+      - "two_strategy.py"
+      - "stock_app.py"
+      - "stocks_page.py"
+      - "tests/test_trade_publication_guard.py"
+      - "tests/stocks_trade_ui_fixture_app.py"
+      - "tests/test_stocks_trade_rendered_actions.py"
+      - ".github/workflows/stocks-trade-publication-guard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  trade-publication-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install dependencies for real Trade engine tests
+        run: pip install -r requirements.txt
+      - name: Check safe source syntax
+        run: python -m py_compile trade_action_contract.py two_strategy.py stock_app.py stocks_page.py tests/test_trade_publication_guard.py
+      - name: Prove legacy publication paths fail closed
+        run: python -m unittest discover -s tests -p test_trade_publication_guard.py -v
+      - name: Render actual real Streamlit action cards on identical fixtures (offline)
+        run: python -m unittest discover -s tests -p test_stocks_trade_rendered_actions.py -v
+      - name: Existing approved Trade engine and orchestration regressions
+        run: python -m unittest -v test_trade_rules test_trade_watch_scan
+      - name: Machine-readable review-only scope receipt
+        run: |
+          python - <<'PY'
+          import hashlib, json, pathlib
+          files=["trade_action_contract.py","two_strategy.py","stock_app.py","stocks_page.py",
+                 "tests/test_trade_publication_guard.py"]
+          receipt={
+            "readiness":"NOT_VERIFIED",
+            "scope":"DRAFT_ONLY_LEGACY_TRADE_BUY_FAIL_CLOSED",
+            "no_full_trade_pit_backtest":True,
+            "no_pension_route_migration":True,
+            "no_production_deployment":True,
+            "sources_sha256":{p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+                              for p in files},
+            "next_gate":"Independent rendered identical-fixture UI checks, source-verified bar/PIT/event/FX/liquidity evidence, historical membership, risk and paper-forward testing plus owner-approved release",
+          }
+          pathlib.Path("trade_publication_guard_receipt.json").write_text(
+              json.dumps(receipt,indent=2)+"\n")
+          print(json.dumps(receipt,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-publication-guard-receipt
+          path: trade_publication_guard_receipt.json
+          retention-days: 30
+          if-no-files-found: warn

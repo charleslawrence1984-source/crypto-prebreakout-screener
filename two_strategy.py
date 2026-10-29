@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import math
 
+from trade_action_contract import guarded_trade_publication
+
 
 def _f(v, default=0.0):
     try:
@@ -24,7 +26,8 @@ def trade_decision(res: dict, owned: bool = False, average_buy_price: float | No
 
     technical_ok = trade_score >= 85 and rr >= 2.0 and in_zone and upside >= 10.0
     hold_ok = hold_score >= 70 and valuation >= 10
-    qualifies = technical_ok and hold_ok
+    legacy_score_qualifies = technical_ok and hold_ok
+    qualifies = legacy_score_qualifies
 
     reasons = []
     if trade_score < 85:
@@ -50,7 +53,14 @@ def trade_decision(res: dict, owned: bool = False, average_buy_price: float | No
         else:
             action = "REASSESS"
     else:
-        action = "BUY" if qualifies else "WAIT"
+        # Legacy scores alone cannot authorise BUY. The complete approved
+        # Trade screener also requires source, event and opening checks.
+        gate = guarded_trade_publication(res) if legacy_score_qualifies else None
+        action = str(gate["action"]) if gate else "WAIT"
+        if gate:
+            reasons.append(str(gate["reason"]))
+        # A manual review state is not permission to execute an order.
+        qualifies = False
 
     actual_roi = None
     target_roi_from_cost = None
@@ -62,6 +72,7 @@ def trade_decision(res: dict, owned: bool = False, average_buy_price: float | No
     return {
         "action": action,
         "qualifies": qualifies,
+        "legacy_score_qualifies": legacy_score_qualifies,
         "technical_ok": technical_ok,
         "hold_ok": hold_ok,
         "reasons": reasons,

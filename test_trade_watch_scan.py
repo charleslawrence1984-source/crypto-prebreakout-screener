@@ -30,6 +30,9 @@ class WatchScanTests(TestCase):
         namespace = dict(
             pd=pd, np=np, math=math, List=List, Dict=Dict,
             TRADE_MARKET_CONTEXT={"test": dict(currency="GBP", price_scale=1, benchmark="INDEX")},
+            TRADE_RULEBOOK_BUILD="TEST-BUILD",
+            prepared_trade_path=lambda _kind: SimpleNamespace(exists=lambda: False),
+            trade_tradingview_snapshots=Mock(return_value={"TEST": snapshot}),
             trade_fx_to_gbp=lambda: {"GBP": 1}, trade_benchmark_frame=lambda _: frame,
             yf=SimpleNamespace(download=lambda **_: frame, Ticker=lambda _: object()),
             extract_ticker_frame=lambda *_: frame,
@@ -44,7 +47,7 @@ class WatchScanTests(TestCase):
         function.decorator_list = []
         exec(compile(ast.Module(body=[function], type_ignores=[]), "stock_app.py", "exec"), namespace)
         result = namespace["approved_trade_market_scan"](("TEST",), 0, "test", "TEST-BUILD")
-        namespace["build_fundamental_snapshot"].assert_called_once()
+        namespace["trade_tradingview_snapshots"].assert_called_once()
         return result.iloc[0]
 
     def test_financial_and_real_estate_watch_setups_are_blocked(self):
@@ -57,11 +60,11 @@ class WatchScanTests(TestCase):
     def test_missing_company_data_does_not_bypass_gate(self):
         row = self.scan(missing=["three annual FCF periods"])
         self.assertEqual(row["Status"], "BLOCKED")
-        self.assertIn("FUNDAMENTAL DATA INCOMPLETE", row["Reason"])
+        self.assertIn("FUNDAMENTAL SAFETY DATA INCOMPLETE", row["Reason"])
 
     def test_watch_remains_subject_to_event_gate_and_labels_pending_score(self):
         row = self.scan()
-        self.assertIn("FAIL-SAFE EVENT BLOCK", row["Reason"])
+        self.assertEqual(row["Event check"], "UNVERIFIED — FAIL-SAFE BLOCK")
         self.assertEqual(row["Score status"], "PENDING CROSSOVER")
         self.assertEqual(row["Signal date"], "PENDING")
         self.assertGreaterEqual(row["Fundamental score"], 65)
