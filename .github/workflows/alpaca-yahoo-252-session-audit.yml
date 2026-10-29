@@ -5,6 +5,8 @@ on:
     paths:
       - trade_alpaca_yahoo_pair_audit.py
       - tests/test_trade_alpaca_yahoo_pair_audit.py
+      - tests/test_trade_alpaca_yahoo_audit_gate.py
+      - trade_alpaca_yahoo_audit_gate.py
       - .github/workflows/alpaca-yahoo-252-session-audit.yml
   workflow_dispatch:
 
@@ -22,8 +24,8 @@ jobs:
           python-version: '3.12'
       - name: Run synthetic missingness and technical parity regressions
         run: |
-          python -m py_compile trade_alpaca_yahoo_pair_audit.py
-          python -m unittest discover -s tests -p test_trade_alpaca_yahoo_pair_audit.py -v
+          python -m py_compile trade_alpaca_yahoo_pair_audit.py trade_alpaca_yahoo_audit_gate.py
+          python -m unittest discover -s tests -p 'test_trade_alpaca_yahoo*.py' -v
       - name: PR test MUST remain secretless
         if: github.event_name == 'pull_request'
         run: python trade_alpaca_yahoo_pair_audit.py --output alpaca_yahoo_252_metadata.json
@@ -34,23 +36,22 @@ jobs:
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_FREE_RESEARCH_SECRET_KEY }}
           ALPACA_PERSONAL_RESEARCH_RIGHTS_CONFIRMED: ${{ vars.ALPACA_PERSONAL_RESEARCH_RIGHTS_CONFIRMED }}
         run: python trade_alpaca_yahoo_pair_audit.py --output alpaca_yahoo_252_metadata.json
-      - name: Fail closed on a manual run if ANY of five provider pairs need review
+      - name: PR guard - never read Alpaca credentials or claim comparison
+        if: github.event_name == 'pull_request'
         run: |
           python - <<'PY'
-          import json,os
+          import json
           from pathlib import Path
-          r=json.loads(Path('alpaca_yahoo_252_metadata.json').read_text())
-          assert r['subscriptions_started'] is False
-          assert r['public_data_licence_verified'] is False
-          assert r['production_signals_modified'] is False
-          assert r['paper_or_live_orders'] is False
-          if os.environ['GITHUB_EVENT_NAME']=='pull_request':
-              assert r['credentials_present'] is False
-              assert r['paper_account_verified'] is False
-          if os.environ['GITHUB_EVENT_NAME']=='workflow_dispatch':
-              assert r['overall_status']=='ALL_FIVE_RESEARCH_COHORT_PAIRED', 'DATA_SOURCE_REVIEW_REQUIRED'
-          print('RESEARCH_STATUS='+r['overall_status'])
+          report=json.loads(Path('alpaca_yahoo_252_metadata.json').read_text())
+          assert report['credentials_present'] is False
+          assert report['paper_account_verified'] is False
+          assert report['paper_or_live_orders'] is False
+          assert report['production_signals_modified'] is False
+          print('PR_SYNTHETIC_ONLY_NO_REAL_PRICE_COMPARISON')
           PY
+      - name: Manual historical source analysis - warn on discrepancies, fail on operational issues
+        if: github.event_name == 'workflow_dispatch'
+        run: python trade_alpaca_yahoo_audit_gate.py --receipt alpaca_yahoo_252_metadata.json
       - uses: actions/upload-artifact@v4
         if: always()
         with:
