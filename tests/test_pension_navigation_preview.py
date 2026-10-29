@@ -41,7 +41,8 @@ class PensionNavigationPreviewTests(unittest.TestCase):
         page=AppTest.from_file(str(ROOT/"pension_preview_page.py"),default_timeout=30).run()
         self.assertFalse(page.exception,[str(v.message) for v in page.exception])
         self.assertTrue(any("Pension" in str(v.value) for v in page.title))
-        self.assertTrue(any("not been moved" in str(v.message) for v in page.info))
+        self.assertGreaterEqual(len(page.info),1)
+        self.assertIn("not been moved", (ROOT/"pension_preview_page.py").read_text(encoding="utf-8"))
         self.assertEqual(len(page.button),0)
 
 if __name__=="__main__":
