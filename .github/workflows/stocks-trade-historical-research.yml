@@ -6,6 +6,8 @@ on:
       - "trade_historical_research.py"
       - "trade_rules.py"
       - "tests/test_trade_historical_research.py"
+      - "trade_pit_evidence.py"
+      - "tests/test_trade_pit_evidence.py"
       - ".github/workflows/stocks-trade-historical-research.yml"
   workflow_dispatch:
 
@@ -26,6 +28,17 @@ jobs:
         run: pip install -r requirements.txt
       - name: Regression on historical decisions and fills
         run: python -m unittest discover -s tests -p test_trade_historical_research.py -v
+      - name: Prove historical PIT receipts fail closed without genuine as-of sources
+        run: |
+          python -m unittest discover -s tests -p test_trade_pit_evidence.py -v
+          python trade_pit_evidence.py --output trade_pit_evidence_audit.json
+          python - <<'PY'
+          import json
+          r=json.load(open("trade_pit_evidence_audit.json"))
+          assert r["readiness"]=="NOT_VERIFIED"
+          assert r["input_rows"]==0
+          assert r["blocking_reason"]=="NO_AUTHENTIC_POINT_IN_TIME_SOURCE_RECEIPT_MANIFEST"
+          PY
       - name: Record trade-cache manifest health
         run: python trade_historical_research.py --audit-only --output trade_manifest_audit.json
       - name: Fetch real public bars and run current-survivor pilot
@@ -55,5 +68,6 @@ jobs:
           path: |
             trade_manifest_audit.json
             trade_historical_pilot.json
+            trade_pit_evidence_audit.json
           if-no-files-found: warn
           retention-days: 30
