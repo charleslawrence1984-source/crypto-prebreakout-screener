@@ -17,6 +17,7 @@ logging.getLogger("streamlit").setLevel(logging.CRITICAL)
 logging.getLogger("streamlit.runtime").setLevel(logging.CRITICAL)
 
 import stock_app
+from trade_completed_bar_guard import validate_completed_trade_frame
 
 
 def save_json(path: Path, value: dict) -> None:
@@ -50,7 +51,35 @@ def reconcile_cached(frame: pd.DataFrame, eligible_symbols: set[str]) -> pd.Data
     ].drop_duplicates(subset=["Ticker"], keep="last")
 
 
-def technical_row(symbol: str, technical: dict, turnover_gbp: float, source_timestamp: str) -> dict:
+def persist_prepared_trade_rows(
+    combined: pd.DataFrame, target: Path, source_timestamp: str,
+    eligible_set: set[str], refresh_existing: bool,
+) -> pd.DataFrame:
+    """Never preserve a prior disk cache when a requested full refresh fails.
+
+    A zero-row but header-bearing gzip is intentional: no stale row can be
+    mistaken for an approved current candidate if all provider bars fail.
+    """
+    if not combined.empty:
+        combined = combined.copy()
+        combined["Fundamental source updated at"] = source_timestamp
+        combined = reconcile_cached(combined, eligible_set)
+        combined.to_csv(target, index=False, compression="gzip")
+    elif refresh_existing and target.exists():
+        # Keep the schema readable. Do not leave previously cached BUY-like
+        # technical rows on disk if the refreshed source was unavailable.
+        columns = list(combined.columns)
+        if "Ticker" not in columns:
+            columns.insert(0, "Ticker")
+        pd.DataFrame(columns=columns).to_csv(
+            target, index=False, compression="gzip",
+        )
+    return combined
+
+
+def technical_row(symbol: str, technical: dict, turnover_gbp: float, source_timestamp: str,
+                  price_evidence: dict | None = None) -> dict:
+    price_evidence = price_evidence or {}
     return {
         "Ticker": symbol,
         "Technical state": technical.get("technical_state", "BLOCKED"),
@@ -102,6 +131,15 @@ def technical_row(symbol: str, technical: dict, turnover_gbp: float, source_time
         "Rulebook build": stock_app.TRADE_RULEBOOK_BUILD,
         "Fundamental source updated at": source_timestamp,
         "Technical calculated at": datetime.now(ZoneInfo("Europe/London")).isoformat(timespec="seconds"),
+        # Yahoo-source bar receipt, NOT independently exchange certified.
+        "Last completed exchange session": price_evidence.get("last_completed_session"),
+        "Expected completed exchange session": price_evidence.get("expected_completed_session"),
+        "Price source": price_evidence.get("price_source", "UNVERIFIED"),
+        "Price source observed at UTC": price_evidence.get("source_observed_at_utc"),
+        "Completed bar OHLCV SHA256": price_evidence.get("last_completed_ohlcv_sha256"),
+        "Price session calendar": price_evidence.get("exchange_calendar", "UNVERIFIED"),
+        "Price session status": price_evidence.get("status", "BLOCKED"),
+        "Price independently exchange verified": False,
     }
 
 
@@ -237,11 +275,19 @@ def main() -> int:
                     frame = stock_app.extract_ticker_frame(data, symbol)
                     if frame is None:
                         continue
-                    technical = stock_app.evaluate_price_setup(frame, benchmark)
-                    clean = frame.dropna(subset=["Close", "Volume"])
+                    # Validate the correct completed exchange session first.
+                    # Incomplete today bars must never reach the indicators.
+                    validated, price_evidence = validate_completed_trade_frame(frame, kind)
+                    if validated is None:
+                        continue
+                    technical = stock_app.evaluate_price_setup(validated, benchmark)
+                    clean = validated.dropna(subset=["Close", "Volume"])
                     raw_turnover = (clean["Close"] * clean["Volume"]).tail(20).median()
                     turnover_gbp = raw_turnover * context["price_scale"] * quote_to_gbp
-                    row = technical_row(symbol, technical, turnover_gbp, source_timestamp)
+                    row = technical_row(
+                        symbol, technical, turnover_gbp, source_timestamp,
+                        price_evidence=price_evidence,
+                    )
                     row["Fundamental score"] = fundamental_score_by_symbol[symbol]
                     row["Fundamental tier"] = fundamental_tier_by_symbol.get(symbol, "FAIL")
                     rows.append(row)
@@ -265,10 +311,9 @@ def main() -> int:
             combined = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True)
         else:
             combined = existing
-        if not combined.empty:
-            combined["Fundamental source updated at"] = source_timestamp
-            combined = reconcile_cached(combined, eligible_set)
-            combined.to_csv(target, index=False, compression="gzip")
+        combined = persist_prepared_trade_rows(
+            combined, target, source_timestamp, eligible_set, args.refresh_existing,
+        )
 
         covered = int(combined["Ticker"].nunique()) if not combined.empty else 0
         remaining = max(len(eligible) - covered, 0)
