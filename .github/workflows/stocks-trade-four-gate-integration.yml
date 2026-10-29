@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "trade_*"
+      - "scheduled_trade_technicals.py"
       - "stock_app.py"
       - "stocks_page.py"
       - "two_strategy.py"
