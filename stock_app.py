@@ -6340,15 +6340,26 @@ with tab3:
                 watch_states = int(state_counts.get("WATCH", 0))
                 ready_states = int(state_counts.get("ENTRY READY", 0)) + int(state_counts.get("AWAITING NEXT OPEN", 0))
 
-                st.warning(
-                    "No current WATCH or confirmed crossover setups met the approved Trade rules."
-                )
-                st.info(
-                    f"This was a completed scan, not a failed search: "
-                    f"{fundamental_pass:,} of {selected:,} selected shares passed the prepared fundamental gates; "
-                    f"{technical_evaluated:,} had usable liquid price history and were technically evaluated; "
-                    f"{watch_states:,} reached WATCH and {ready_states:,} reached an entry-ready/next-open state."
-                )
+                benchmark_issue = diag.get("benchmark_price_session_failure")
+                if benchmark_issue:
+                    st.error(
+                        "Trade Search BLOCKED: the benchmark is not verified as the latest "
+                        "completed exchange session. Source reason: " + str(benchmark_issue)
+                    )
+                else:
+                    st.warning(
+                        "No research setups could qualify for an approved Trade action. "
+                        "Source and point-in-time evidence remain mandatory."
+                    )
+                    st.info(
+                        f"Research scan: {fundamental_pass:,} of {selected:,} selected "
+                        f"shares passed prepared fundamentals; {technical_evaluated:,} "
+                        f"had liquid source histories to evaluate. "
+                        f"{int(diag.get('price_source_failures',0)):,} histories failed "
+                        f"completed-price checks. Raw technical states: "
+                        f"{watch_states:,} WATCH and {ready_states:,} near entry. "
+                        "These are not independently verified BUY signals."
+                    )
 
                 reason_counts = diag.get("technical_reason_counts", {}) or {}
                 if reason_counts:
@@ -6365,14 +6376,14 @@ with tab3:
                         if liquidity_failures:
                             st.write(f"**{liquidity_failures:,}** — below the £500k median traded-value hard floor")
             else:
-                paper_count = int((pre["Status"] == "PAPER CANDIDATE").sum())
-                watch_count = int((pre["Status"] == "WATCH").sum())
+                wait_count = int((pre["Status"] == "WAIT").sum())
                 blocked_count = int((pre["Status"] == "BLOCKED").sum())
                 retry_count = int((pre["Status"] == "RETRY").sum())
-                st.success(
-                    f"Trade Search complete: {paper_count} paper candidates, "
-                    f"{watch_count} watch setups, {blocked_count} blocked setups "
-                    f"and {retry_count} provider retries."
+                st.info(
+                    f"Research scan complete: {wait_count} WAIT (unverified source/issuer) "
+                    f"setups, {blocked_count} blocked by original rules, "
+                    f"and {retry_count} provider retries. "
+                    "No approved BUY or paper candidates are published."
                 )
                 if retry_count:
                     st.warning(
