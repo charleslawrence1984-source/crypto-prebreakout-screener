@@ -27,7 +27,12 @@ jobs:
         run: |
           python -m py_compile trade_free_alpaca_reference.py
           python -m unittest discover -s tests -p test_trade_free_alpaca_reference.py -v
-      - name: Research provider after user explicitly sets FREE account secrets and personal rights
+      - name: PR-only free source test without exposing any private API credentials
+        if: github.event_name == 'pull_request'
+        run: |
+          python trade_free_alpaca_reference.py --output free_alpaca_delayed_sip_source_access.json
+      - name: Opt-in credentialed FREE research only after reviewed manual dispatch
+        if: github.event_name == 'workflow_dispatch'
         env:
           ALPACA_KEY_ID: ${{ secrets.ALPACA_FREE_RESEARCH_KEY_ID }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_FREE_RESEARCH_SECRET_KEY }}
