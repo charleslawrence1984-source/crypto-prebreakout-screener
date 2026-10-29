@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from trade_lse_anomaly_research import (
-    ANOMALY_DAY, SAMPLES, invalid_ohlcv_reason, rows_in_window,
+    ANOMALY_DAY, SAMPLES, invalid_ohlcv_reason, rows_in_window, invalid_dates_in_history,
     run_audit, stooq_result, summarize, yahoo_result,
 )
 
@@ -82,6 +82,23 @@ class LondonAnomalyTests(unittest.TestCase):
         self.assertFalse(result["automatic_replacement_or_repair_authorized"])
         self.assertFalse(result["independent_exchange_verified"])
 
+    def test_full_history_detects_anomalous_date_without_price_repair(self):
+        frame = window_frame()
+        original = frame.copy(deep=True)
+        bad = invalid_dates_in_history(frame)
+        self.assertEqual(bad, [{"date": ANOMALY_DAY,
+                                "geometry_issue": "HIGH_BELOW_OPEN_LOW_OR_CLOSE"}])
+        pd.testing.assert_frame_equal(frame, original)
+
+    def test_cross_section_lists_repeated_day_for_all_control_symbols(self):
+        report = run_audit(
+            now=datetime(2026, 10, 29, 10, tzinfo=timezone.utc),
+            yahoo_fetch=lambda _: window_frame(),
+            stooq_fetch=lambda _: "No data",
+        )
+        self.assertCountEqual(
+            report["yahoo_cross_section_invalid_dates"][ANOMALY_DAY], SAMPLES,
+        )
     def test_entire_report_preserves_all_six_and_never_readiness(self):
         report = run_audit(
             now=datetime(2026, 10, 29, 10, tzinfo=timezone.utc),
