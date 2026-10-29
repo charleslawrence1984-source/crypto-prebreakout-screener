@@ -1,0 +1,64 @@
+name: Stocks Trade completed session/source evidence (DRAFT PR ONLY)
+
+on:
+  pull_request:
+    paths:
+      - "trade_completed_bar_guard.py"
+      - "trade_completed_bar_shadow_pilot.py"
+      - "scheduled_trade_technicals.py"
+      - "tests/test_trade_completed_bar_guard.py"
+      - ".github/workflows/stocks-trade-completed-bar-gate.yml"
+      - "requirements.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stocks-trade-source-session:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install existing requirements
+        run: pip install -r requirements.txt
+      - name: Validate original-score unchanged candidate syntax
+        run: python -m py_compile trade_completed_bar_guard.py trade_completed_bar_shadow_pilot.py scheduled_trade_technicals.py
+      - name: Venue calendar, DST, unfinished OHLCV and cache receipt regressions
+        run: python -m unittest discover -s tests -p test_trade_completed_bar_guard.py -v
+      - name: Existing Trade calculation and scheduled cache utility tests
+        run: python -m unittest -v test_trade_rules test_scheduled_trade_technicals
+      - name: Fetch real public 6-venue bars without publishing signals
+        run: python trade_completed_bar_shadow_pilot.py --output trade_completed_bar_shadow_pilot.json
+      - name: Save auditable source SHA and NOT_VERIFIED receipt
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          files=["trade_completed_bar_guard.py","trade_completed_bar_shadow_pilot.py",
+                 "scheduled_trade_technicals.py","tests/test_trade_completed_bar_guard.py"]
+          pilot=json.loads(pathlib.Path("trade_completed_bar_shadow_pilot.json").read_text())
+          result={
+            "status":"NOT_VERIFIED",
+            "trade_rulebook_touched":False,
+            "production":False,
+            "ticker_data_statuses":{x["symbol"]:x["session_check"]["status"] for x in pilot["tickers"]},
+            "source_sha256":{p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+                             for p in files},
+            "next_gate":"No production until exact venue membership, independently captured last session, actual UI contract, issuer PIT events, FX and execution/paper testing, plus explicit owner approval",
+          }
+          pathlib.Path("trade_completed_bar_release_blockers.json").write_text(json.dumps(result,indent=2)+"\n")
+          print(json.dumps(result,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-completed-session-shadow
+          path: |
+            trade_completed_bar_shadow_pilot.json
+            trade_completed_bar_release_blockers.json
+          if-no-files-found: warn
+          retention-days: 30
