@@ -66,7 +66,8 @@ class RenderedTradeActionTests(unittest.TestCase):
             )
             for label, action in cases:
                 with self.subTest(label=label):
-                    app.radio[0].set_value(label).run()
+                    radio = next(w for w in app.radio if w.label == "Trade publication evidence")
+                    radio.set_value(label).run()
                     self.assert_actions(app, action)
         self.assertIn("Fixture-only display", " ".join(m.value for m in app.caption))
 
