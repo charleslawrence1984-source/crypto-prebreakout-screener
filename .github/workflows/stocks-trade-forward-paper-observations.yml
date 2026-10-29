@@ -1,0 +1,64 @@
+name: Stocks Trade prospective no-order source observations (DRAFT only)
+
+on:
+  pull_request:
+    paths:
+      - "trade_forward_paper_observation.py"
+      - "trade_completed_bar_guard.py"
+      - "tests/test_trade_forward_paper_observation.py"
+      - ".github/workflows/stocks-trade-forward-paper-observations.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prospective-source-journal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install original Trade+Yahoo dependencies
+        run: pip install -r requirements.txt
+      - name: Compile research and original untouched Trade engine
+        run: python -m py_compile trade_forward_paper_observation.py trade_completed_bar_guard.py trade_rules.py
+      - name: No-lookahead paper baseline regressions
+        run: python -m unittest discover -s tests -p test_trade_forward_paper_observation.py -v
+      - name: Read-only first real timestamped source snapshot (NO BROKER)
+        run: python trade_forward_paper_observation.py --output trade_forward_prospective_source_snapshot.json
+      - name: Guard against fabricated entries/returns and record receipt
+        run: |
+          python - <<'PY'
+          import json,hashlib,pathlib
+          source=pathlib.Path("trade_forward_prospective_source_snapshot.json")
+          data=json.loads(source.read_text())
+          assert data["approved_trade_entries"]==0
+          assert data["simulated_trade_entries"]==0
+          assert data["live_trade_readiness"]=="NOT_VERIFIED"
+          assert all(not row["approved_paper_entry"] for row in data["observations"])
+          assert all("observation_id" in row for row in data["observations"])
+          receipt={
+            "scope":"FIRST_FROZEN_FORWARD_SOURCE_OBSERVATION_NOT_PAPER_TRADE",
+            "candidate_not_live_ready":True,
+            "capture_utc":data["capture_created_utc"],
+            "source_capture_sha256":hashlib.sha256(source.read_bytes()).hexdigest(),
+            "original_trade_rules_sha256":hashlib.sha256(pathlib.Path("trade_rules.py").read_bytes()).hexdigest(),
+            "no_historical_paper_backfill":True,
+            "next_gate":"Use this original CI artifact only for strictly later session observations; collect authentic PIT issuer/event/FX/liquidity and broker open/close fills before calling anything a paper trade",
+          }
+          pathlib.Path("trade_forward_provenance_receipt.json").write_text(json.dumps(receipt,indent=2)+"\n")
+          print(json.dumps(receipt,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-prospective-source-snapshot
+          path: |
+            trade_forward_prospective_source_snapshot.json
+            trade_forward_provenance_receipt.json
+          if-no-files-found: warn
+          retention-days: 90
