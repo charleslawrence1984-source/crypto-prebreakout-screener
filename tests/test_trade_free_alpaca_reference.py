@@ -130,6 +130,31 @@ class FreeSIPSourceTests(unittest.TestCase):
         self.assertFalse(answer["licensed_for_publication"])
         self.assertEqual(answer["cross_source_comparison_sessions"],252)
 
+    def test_five_year_fixture_provider_history_is_actually_cross_checked_with_yahoo(self):
+        source=history()
+        comparison=normalize_daily_bars(source)
+        result=read_one_symbol("MSFT",key_id="TEST_KEY",secret="TEST_SECRET",at=NOW,
+            session=FakeAlpaca([FakeResponse({"bars":source,"next_page_token":None})]),
+            reference_history=comparison)
+        self.assertEqual(
+            result["cross_vendor_check"]["status"],
+            "PAIRWISE_CLOSES_WITHIN_TOLERANCE_NOT_EXCHANGE_CERTIFICATION")
+        self.assertEqual(result["cross_vendor_check"]["cross_source_comparison_sessions"],252)
+        self.assertFalse(result["cross_vendor_check"]["licensed_for_publication"])
+        self.assertFalse(result["live_trade_buy_authorized"])
+
+    def test_cross_vendor_large_difference_remains_review_only(self):
+        source=history()
+        reference=normalize_daily_bars(source)
+        reference.iloc[-1,reference.columns.get_loc("Close")]=90.0
+        result=read_one_symbol("MSFT",key_id="TEST_KEY",secret="TEST_SECRET",at=NOW,
+            session=FakeAlpaca([FakeResponse({"bars":source,"next_page_token":None})]),
+            reference_history=reference)
+        self.assertEqual(
+            result["cross_vendor_check"]["status"],
+            "SOURCE_MISMATCH_REQUIRES_HUMAN_REVIEW")
+        self.assertEqual(result["paper_order_authorized"],False)
+
     def test_large_mismatch_quarantines_without_patching(self):
         a=normalize_daily_bars(history())
         b=a.copy(deep=True)
