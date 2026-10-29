@@ -1,0 +1,55 @@
+name: Stocks Trade London original source anomalous OHLCV (research only)
+
+on:
+  pull_request:
+    paths:
+      - "trade_lse_anomaly_research.py"
+      - "tests/test_trade_lse_anomaly_research.py"
+      - ".github/workflows/stocks-trade-lse-anomaly-research.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  london-source-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install read-only existing data dependencies
+        run: pip install "pandas>=2.2,<3" "numpy>=2,<3" "yfinance>=0.2.54,<1" "requests>=2.32,<3"
+      - name: Deterministic anomalous bar and secondary-source fail-closed regression
+        run: python -m unittest discover -s tests -p test_trade_lse_anomaly_research.py -v
+      - name: Collect raw Yahoo current-retrospective anomaly-window OHLCV and independently query Stooq
+        run: python trade_lse_anomaly_research.py --output lse_history_anomaly_research.json
+      - name: Save NOT_VERIFIED source/run SHA receipt
+        run: |
+          python - <<'PY'
+          import json,hashlib,pathlib
+          audit=json.loads(pathlib.Path("lse_history_anomaly_research.json").read_text())
+          receipt={
+            "production_readiness":"NOT_VERIFIED",
+            "research_only":True,
+            "yahoo_observed":{r["ticker"]:r["anomaly_day_issue"] for r in audit["source"]},
+            "stooq_status":{k:r["status"] for k,r in audit["secondary"].items()},
+            "no_repaired_market_bars":True,
+            "source_sha256":{p:hashlib.sha256(pathlib.Path(p).read_bytes()).hexdigest()
+                             for p in ("trade_lse_anomaly_research.py","tests/test_trade_lse_anomaly_research.py")},
+          }
+          pathlib.Path("lse_source_audit_receipt.json").write_text(json.dumps(receipt,indent=2)+"\n")
+          print(json.dumps(receipt,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-lse-source-research
+          path: |
+            lse_history_anomaly_research.json
+            lse_source_audit_receipt.json
+          retention-days: 30
+          if-no-files-found: warn
