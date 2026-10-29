@@ -60,11 +60,11 @@ class WatchScanTests(TestCase):
     def test_missing_company_data_does_not_bypass_gate(self):
         row = self.scan(missing=["three annual FCF periods"])
         self.assertEqual(row["Status"], "BLOCKED")
-        self.assertIn("FUNDAMENTAL DATA INCOMPLETE", row["Reason"])
+        self.assertIn("FUNDAMENTAL SAFETY DATA INCOMPLETE", row["Reason"])
 
     def test_watch_remains_subject_to_event_gate_and_labels_pending_score(self):
         row = self.scan()
-        self.assertIn("FAIL-SAFE EVENT BLOCK", row["Reason"])
+        self.assertEqual(row["Event check"], "UNVERIFIED — FAIL-SAFE BLOCK")
         self.assertEqual(row["Score status"], "PENDING CROSSOVER")
         self.assertEqual(row["Signal date"], "PENDING")
         self.assertGreaterEqual(row["Fundamental score"], 65)
