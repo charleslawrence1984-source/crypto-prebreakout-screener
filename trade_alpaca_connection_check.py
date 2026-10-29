@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 HOST = "https://data.alpaca.markets"
+PAPER_ACCOUNT_URL = "https://paper-api.alpaca.markets/v2/account"
 PATH = "/v2/stocks/AAPL/bars"
 MAX_BODY_BYTES = 1_000_000
 
@@ -87,8 +88,37 @@ def check_free_paper_source(now=None, environ=None, opener=None):
         },
         method="GET",
     )
-    # No trading URL or POST exists in this script.
+    # Verify the keys belong to the PAPER environment first. The account
+    # endpoint is GET-only; no account identity, balances or buying power
+    # are retained in logs, reports or artifacts.
     open_request = opener or urllib.request.build_opener(NoCrossHostRedirect()).open
+    paper_req = urllib.request.Request(
+        PAPER_ACCOUNT_URL,
+        headers={
+            "APCA-API-KEY-ID": key,
+            "APCA-API-SECRET-KEY": secret,
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+    try:
+        with open_request(paper_req, timeout=15) as account_response:
+            if account_response.status != 200:
+                report["status"] = "BLOCKED_NOT_VERIFIED_AS_PAPER_KEYS"
+                return report
+            account_data = account_response.read(100_000)
+        account = json.loads(account_data)
+        if not isinstance(account, dict) or not account.get("id"):
+            report["status"] = "BLOCKED_UNRECOGNISED_PAPER_ACCOUNT_RESPONSE"
+            return report
+        report["paper_account_verified"] = True
+    except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError,
+            OSError, ValueError, TypeError):
+        report["status"] = "BLOCKED_PAPER_ACCOUNT_CREDENTIALS_UNVERIFIED"
+        return report
+
+    # Only the historical market-data GET after paper verification.
+    # NO POST, live API trading URL, balances or order endpoint exists.
     try:
         with open_request(req, timeout=15) as response:
             status = response.status
