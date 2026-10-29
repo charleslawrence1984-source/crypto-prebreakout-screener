@@ -19,6 +19,7 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+import yfinance as yf
 
 from trade_completed_bar_guard import validate_completed_trade_frame
 
@@ -62,7 +63,8 @@ def normalize_daily_bars(bars:list[dict]) -> pd.DataFrame:
     return out.set_index("timestamp").sort_index()
 
 
-def read_one_symbol(symbol:str, *, key_id:str,secret:str, at, session=None)->dict:
+def read_one_symbol(symbol:str, *, key_id:str,secret:str, at, session=None,
+                    reference_history:pd.DataFrame|None=None)->dict:
     """Provider-authenticated read only; authorization/rights still not asserted."""
     now=_utc(at)
     result={
@@ -154,6 +156,19 @@ def read_one_symbol(symbol:str, *, key_id:str,secret:str, at, session=None)->dic
     # NOT mean exchange-certified NOCP, commercial licence or a Trade BUY.
     result["status"]="PROVIDER_SIP_SESSION_STRUCTURALLY_VALID_PENDING_COMPARISON"
     result["authorized_price_research_authenticated"]=True
+    if reference_history is not None:
+        try:
+            result["cross_vendor_check"]=cross_check_yahoo(complete,reference_history)
+        except (ValueError,TypeError,KeyError):
+            result["cross_vendor_check"]={
+                "status":"BLOCKED_INVALID_YAHOO_REFERENCE",
+                "same_venue_session_prices_proven":False,
+            }
+    else:
+        result["cross_vendor_check"]={
+            "status":"BLOCKED_NO_SECOND_VENDOR_COMPARISON",
+            "same_venue_session_prices_proven":False,
+        }
     return result
 
 
@@ -211,8 +226,29 @@ def run():
     secret=os.environ.get("ALPACA_SECRET_KEY","")
     enabled=os.environ.get("ALPACA_PERSONAL_RESEARCH_RIGHTS_CONFIRMED","")=="1"
     if enabled and key_id and secret:
-        rows=[read_one_symbol(symbol,key_id=key_id,secret=secret,at=now)
-              for symbol in SYMBOLS]
+        rows=[]
+        for symbol in SYMBOLS:
+            reference=None
+            try:
+                raw=yf.download(tickers=symbol,period="3y",interval="1d",
+                                auto_adjust=False,progress=False,threads=False)
+                if isinstance(raw.columns,pd.MultiIndex):
+                    if symbol in raw.columns.get_level_values(0):
+                        raw=raw[symbol]
+                    elif symbol in raw.columns.get_level_values(1):
+                        raw=raw.xs(symbol,level=1,axis=1)
+                    else:
+                        raise ValueError("YAHOO_SYMBOL_NOT_FOUND")
+                raw=raw.rename(columns={str(col):str(col).title() for col in raw.columns})
+                if len(raw)>252 and all(col in raw for col in ("Open","High","Low","Close","Volume")):
+                    yahoo_completed, yahoo_receipt=validate_completed_trade_frame(
+                        raw,"nasdaq",now)
+                    if yahoo_completed is not None:
+                        reference=yahoo_completed
+            except (ValueError,TypeError,KeyError,AttributeError):
+                reference=None
+            rows.append(read_one_symbol(symbol,key_id=key_id,secret=secret,at=now,
+                                        reference_history=reference))
     else:
         rows=[read_one_symbol(symbol,key_id="",secret="",at=now) for symbol in SYMBOLS]
     return {
