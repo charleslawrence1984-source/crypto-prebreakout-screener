@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import unittest
+import tempfile
+from pathlib import Path
 from unittest.mock import patch
 
 import numpy as np
@@ -156,6 +158,48 @@ class TradeBarGuardTests(unittest.TestCase):
         row = technical_row("MSFT", {}, 1_000_000, "UNAVAILABLE")
         self.assertEqual(row["Price session status"], "BLOCKED")
         self.assertIsNone(row["Last completed exchange session"])
+
+    def test_full_refresh_with_all_failed_prices_erases_prior_disk_rows(self):
+        from scheduled_trade_technicals import persist_prepared_trade_rows
+        with tempfile.TemporaryDirectory() as folder:
+            cache = Path(folder) / "nyse.csv.gz"
+            prior = pd.DataFrame([{"Ticker": "TEST", "Price session status": "UNKNOWN",
+                                   "Technical state": "ENTRY READY"}])
+            prior.to_csv(cache, index=False, compression="gzip")
+            cleared = prior.head(0).copy()
+            written = persist_prepared_trade_rows(
+                cleared, cache, "2026-10-29T00:00:00Z", {"TEST"}, True,
+            )
+            self.assertTrue(written.empty)
+            saved = pd.read_csv(cache, compression="gzip")
+            self.assertTrue(saved.empty)
+            self.assertIn("Ticker", saved.columns)
+
+    def test_missing_only_scan_does_not_delete_unattempted_cache(self):
+        from scheduled_trade_technicals import persist_prepared_trade_rows
+        with tempfile.TemporaryDirectory() as folder:
+            cache = Path(folder) / "nyse.csv.gz"
+            original = pd.DataFrame([{"Ticker": "TEST", "Technical state": "WATCH"}])
+            original.to_csv(cache, index=False, compression="gzip")
+            persist_prepared_trade_rows(
+                original.head(0), cache, "unknown", {"TEST"}, False,
+            )
+            self.assertEqual(pd.read_csv(cache, compression="gzip")["Ticker"].tolist(),
+                             ["TEST"])
+
+    def test_completed_data_carries_provenance_to_saved_cache(self):
+        from scheduled_trade_technicals import persist_prepared_trade_rows
+        with tempfile.TemporaryDirectory() as folder:
+            cache = Path(folder) / "nyse.csv.gz"
+            original = pd.DataFrame([{"Ticker": "TEST", "Price session status": "PASS",
+                                      "Last completed exchange session": "2026-10-29"}])
+            persist_prepared_trade_rows(
+                original, cache, "2026-10-29", {"TEST"}, True,
+            )
+            saved = pd.read_csv(cache, compression="gzip")
+            self.assertEqual(saved.loc[0, "Last completed exchange session"], "2026-10-29")
+            self.assertEqual(saved.loc[0, "Price session status"], "PASS")
+
 
 if __name__ == "__main__":
     unittest.main()
