@@ -17,7 +17,7 @@ import yfinance as yf
 from trade_completed_bar_guard import validate_completed_trade_frame
 
 SAMPLES = (
-    ("AAPL", "nasdaq"), ("MSFT", "nyse"), ("AZN.L", "lse"),
+    ("AAPL", "nasdaq"), ("MSFT", "nyse"), ("AZN.L", "lse"), ("SHEL.L", "lse"),
     ("SHOP.TO", "tsx"), ("SAP.DE", "xetra"), ("ASML.AS", "euronext_amsterdam"),
 )
 
@@ -62,7 +62,7 @@ def run_pilot(now=None, fetch=None):
             entry["scorable_completed_bars"] = 0
         examples.append(entry)
     return {
-        "research_scope": "SIX_PRESENT_DAY_SURVIVORS_YAHOO_PROVENANCE_ONLY",
+        "research_scope": "SEVEN_PRESENT_DAY_SURVIVORS_SIX_VENUES_YAHOO_PROVENANCE_ONLY",
         "observed_utc": observed.isoformat(),
         "decision": "NO_TRADE_DECISIONS",
         "production_release_readiness": "NOT_VERIFIED",
