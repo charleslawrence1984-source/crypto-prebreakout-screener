@@ -46,19 +46,28 @@ class RenderedTradeActionTests(unittest.TestCase):
             self.assertNotIn(">BUY<", html)
 
     def test_three_actual_rendered_trade_cards_never_emit_legacy_buy(self):
-        app = AppTest.from_file(
-            str(ROOT / "tests/stocks_trade_ui_fixture_app.py"), default_timeout=45,
-        ).run()
-        self.assert_actions(app, "WAIT")
-        cases = (
-            ("Claimed source status, missing receipt", "WAIT"),
-            ("All claimed receipts (still manual review)", "READY TO VERIFY"),
-            ("Approved engine BLOCKED", "WAIT"),
-        )
-        for label, action in cases:
-            with self.subTest(label=label):
-                app.radio[0].set_value(label).run()
-                self.assert_actions(app, action)
+        # The imported stock_app executes its real page when loaded.
+        # Mock its unrelated navigation/browser APIs, not action rendering.
+        with (
+            patch("streamlit.page_link", lambda *args, **kwargs: None),
+            patch("streamlit_local_storage.LocalStorage", StorageStub),
+            patch("streamlit_cookies_controller.CookieController", StorageStub),
+            patch.object(yf, "download", return_value=pd.DataFrame()),
+            patch.object(yf, "Ticker", side_effect=RuntimeError("offline source fixture")),
+        ):
+            app = AppTest.from_file(
+                str(ROOT / "tests/stocks_trade_ui_fixture_app.py"), default_timeout=45,
+            ).run()
+            self.assert_actions(app, "WAIT")
+            cases = (
+                ("Claimed source status, missing receipt", "WAIT"),
+                ("All claimed receipts (still manual review)", "READY TO VERIFY"),
+                ("Approved engine BLOCKED", "WAIT"),
+            )
+            for label, action in cases:
+                with self.subTest(label=label):
+                    app.radio[0].set_value(label).run()
+                    self.assert_actions(app, action)
         self.assertIn("Fixture-only display", " ".join(m.value for m in app.caption))
 
     def test_offline_real_stocks_base_script_renders_without_ui_exceptions(self):
