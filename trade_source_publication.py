@@ -125,10 +125,16 @@ def protect_scan_result_rows(frame: pd.DataFrame, source_checks: dict,
         })
     else:
         out["Status"] = "WAIT"
-    out["Reason"] = (
-        "RESEARCH ONLY — source session is vendor-observed, not independently "
-        "authenticated; issuer, official event, FX and broker opening-risk "
-        "evidence remain unverified. No Trade BUY authorized."
-    )
+    out["Reason"] = [
+        ("RESEARCH " + original_status + " — " + str(original_reason)
+         + ". Price/event evidence not independently authenticated.")
+        if original_status in {"BLOCKED", "RETRY"}
+        else ("RESEARCH ONLY — source session is vendor-observed, not independently "
+              "authenticated; issuer, official event, FX and broker opening-risk "
+              "evidence remain unverified. No Trade BUY authorized.")
+        for original_status, original_reason in zip(
+            out["Original technical outcome (research)"], out["Research-only original reason"]
+        )
+    ]
     out["Approved Trade action"] = "WAIT"
     return out
