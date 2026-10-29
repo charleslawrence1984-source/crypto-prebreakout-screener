@@ -50,6 +50,27 @@ class WindowImpactTests(unittest.TestCase):
         self.assertEqual(result["live_trade_readiness"], "NOT_VERIFIED")
         self.assertFalse(result["historical_asof_backtest_allowed"])
 
+    def test_intraday_2026_session_is_excluded_from_last_252(self):
+        from trade_lse_window_impact_research import expected_completed_lse_session
+        now = pd.Timestamp("2026-10-29 11:30", tz="Europe/London")
+        self.assertEqual(expected_completed_lse_session(now), "2026-10-28")
+        data = frame()
+        data.loc[pd.Timestamp("2026-10-29")] = [100, 106, 95, 101, 10000]
+        result = inspect_frame(data, "AZN.L", now=now)
+        self.assertEqual(result["recent_window_last"], "2026-10-28")
+        self.assertEqual(result["excluded_uncompleted_source_rows"], 1)
+        self.assertEqual(result["live_trade_readiness"], "NOT_VERIFIED")
+
+    def test_after_lse_close_plus_grace_includes_today(self):
+        from trade_lse_window_impact_research import expected_completed_lse_session
+        later = pd.Timestamp("2026-10-29 17:45", tz="Europe/London")
+        self.assertEqual(expected_completed_lse_session(later), "2026-10-29")
+        data = frame()
+        data.loc[pd.Timestamp("2026-10-29")] = [100, 106, 95, 101, 10000]
+        result = inspect_frame(data, "AZN.L", now=later)
+        self.assertEqual(result["recent_window_last"], "2026-10-29")
+        self.assertEqual(result["excluded_uncompleted_source_rows"], 0)
+
     def test_provider_errors_stay_unknown(self):
         result = run(fetch=lambda _: (_ for _ in ()).throw(RuntimeError("outage")))
         self.assertTrue(all(x["status"] == "PROVIDER_UNKNOWN" for x in result["reports"]))
