@@ -109,6 +109,8 @@ class TradeBarGuardTests(unittest.TestCase):
             sample, "nyse", ny("2026-10-19 17:00"))
         self.assertIsNone(data)
         self.assertEqual(receipt["reason"], "INVALID_OHLCV_PRICE_OR_VOLUME")
+        self.assertEqual(receipt["invalid_ohlcv_rows"], 1)
+        self.assertEqual(receipt["last_invalid_ohlcv_session"], "2026-10-19")
 
     def test_source_checksum_is_deterministic_and_date_bound(self):
         now = ny("2026-10-19 17:00")
