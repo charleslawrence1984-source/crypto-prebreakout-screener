@@ -1,0 +1,62 @@
+name: Alpaca FREE PAPER credentials and delayed SIP connection check (READ ONLY)
+
+on:
+  pull_request:
+    paths:
+      - "trade_alpaca_connection_check.py"
+      - "tests/test_trade_alpaca_connection_check.py"
+      - ".github/workflows/alpaca-free-paper-connection.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  paper-data-connection-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Test paper-account identity before delayed SIP and no order APIs
+        run: |
+          python -m py_compile trade_alpaca_connection_check.py
+          python -m unittest discover -s tests -p test_trade_alpaca_connection_check.py -v
+      - name: Secretless PR tests must never contact Alpaca
+        if: github.event_name == 'pull_request'
+        run: |
+          python trade_alpaca_connection_check.py --output alpaca_connection_receipt.json
+      - name: Owner-triggered paper-only credential verification
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_FREE_RESEARCH_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_FREE_RESEARCH_SECRET_KEY }}
+          ALPACA_PERSONAL_RESEARCH_RIGHTS_CONFIRMED: ${{ vars.ALPACA_PERSONAL_RESEARCH_RIGHTS_CONFIRMED }}
+        run: |
+          python trade_alpaca_connection_check.py --output alpaca_connection_receipt.json
+      - name: Confirm no orders, commercial licence or raw market data exports
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          receipt=json.loads(Path("alpaca_connection_receipt.json").read_text())
+          assert receipt["approved_trade_signal"] is False
+          assert receipt["paper_order_placed"] is False
+          assert receipt["live_order_placed"] is False
+          assert receipt["price_rows_exported"] == 0
+          assert receipt["commercial_publication_rights_verified"] is False
+          print(json.dumps({
+              "status":receipt["status"],
+              "paper_account_verified":receipt.get("paper_account_verified",False),
+              "provider_bars":receipt.get("historical_bars_observed",0),
+              "actual_trade_orders":0,
+          },sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: alpaca-paper-only-connection-metadata
+          path: alpaca_connection_receipt.json
+          if-no-files-found: warn
+          retention-days: 14
