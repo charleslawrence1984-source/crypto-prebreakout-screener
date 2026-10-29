@@ -1,0 +1,40 @@
+name: Stocks Trade UI/source contract research (PR only)
+
+on:
+  pull_request:
+    paths:
+      - "trade_surface_contract_audit.py"
+      - "tests/test_stocks_trade_surface_contract.py"
+      - "stock_app.py"
+      - "stocks_page.py"
+      - "stock_app_v2.py"
+      - "two_strategy.py"
+      - "trade_rules.py"
+      - "prepared_trade_technicals/manifest.json"
+      - "prepared_trade_fundamentals/manifest.json"
+      - ".github/workflows/stocks-trade-surface-contract-research.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  source-contract-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Reproduce original legacy label divergence (NOT a readiness test)
+        run: python -m unittest discover -s tests -p test_stocks_trade_surface_contract.py -v
+      - name: Capture source hashes and real manifest gaps
+        run: python trade_surface_contract_audit.py --output trade_surface_contract_audit.json
+      - name: Archive read-only research evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stocks-trade-source-contract-research
+          path: trade_surface_contract_audit.json
+          if-no-files-found: warn
+          retention-days: 30
