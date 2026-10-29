@@ -1,0 +1,81 @@
+name: Stocks Trade £0 Alpaca Basic delayed SIP source preflight (DRAFT, read only)
+
+on:
+  pull_request:
+    paths:
+      - "trade_free_alpaca_reference.py"
+      - "tests/test_trade_free_alpaca_reference.py"
+      - ".github/workflows/stocks-trade-free-alpaca-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  zero-cost-historical-research-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install original market source libraries
+        run: pip install -r requirements.txt
+      - name: Verify free historical SIP request, market session, fail-closed access
+        run: |
+          python -m py_compile trade_free_alpaca_reference.py
+          python -m unittest discover -s tests -p test_trade_free_alpaca_reference.py -v
+      - name: PR-only free source test without exposing any private API credentials
+        if: github.event_name == 'pull_request'
+        run: |
+          python trade_free_alpaca_reference.py --output free_alpaca_delayed_sip_source_access.json
+      - name: Opt-in credentialed FREE research only after reviewed manual dispatch
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          ALPACA_KEY_ID: ${{ secrets.ALPACA_FREE_RESEARCH_KEY_ID }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_FREE_RESEARCH_SECRET_KEY }}
+          ALPACA_PERSONAL_RESEARCH_RIGHTS_CONFIRMED: ${{ vars.ALPACA_PERSONAL_RESEARCH_RIGHTS_CONFIRMED }}
+        run: |
+          python trade_free_alpaca_reference.py --output free_alpaca_delayed_sip_source_access.json
+      - name: Prove no paid subscription, commercial data licence, BUY or broker paper order
+        run: |
+          python - <<'PY'
+          import hashlib,json,pathlib
+          p=pathlib.Path("free_alpaca_delayed_sip_source_access.json")
+          d=json.loads(p.read_text())
+          assert d["paid_subscription_initiated"] is False
+          assert d["broker_order_or_paper_fill_initiated"] is False
+          assert d["license_public_website"] is False
+          assert d["paper_entry_approved"]==0
+          assert len(d["source_rows"])==5
+          assert all(row["source"]=="ALPACA_HISTORICAL_SIP_DELAYED" for row in d["source_rows"])
+          assert all(not row["paper_order_authorized"] for row in d["source_rows"])
+          r={
+            "source":"ALPACA_BASIC_FREE_SIP_15M_DELAYED_HISTORY_RESEARCH_ONLY",
+            "source_report_sha256":hashlib.sha256(p.read_bytes()).hexdigest(),
+            "original_trade_rulebook_sha256":hashlib.sha256(
+                pathlib.Path("trade_rules.py").read_bytes()).hexdigest(),
+            "credential_present":d["credential_present"],
+            "owner_permission_confirmed":d["permissions_confirmed_by_owner"],
+            "provider_accepted_source_sessions":d["independent_price_session_authenticated"],
+            "account_charges_or_subscriptions":0,
+            "live_orders":0,"paper_orders":0,
+            "original_trade_approved_entries":0,
+            "redistribution_rights":False,
+            "next_gate":"Require owner registration of zero-cost Alpaca paper-only account, secure secret values, personal research rights confirmation, then verify 252 same-session raw SIP and Yahoo bars and independent original issuer/FX/events. Never merge this draft to public app without commercial data rights.",
+          }
+          pathlib.Path("free_alpaca_research_receipt.json").write_text(
+              json.dumps(r,sort_keys=True,indent=2)+"\n")
+          print(json.dumps(r,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-free-alpaca-source-preflight
+          path: |
+            free_alpaca_delayed_sip_source_access.json
+            free_alpaca_research_receipt.json
+          if-no-files-found: warn
+          retention-days: 90
