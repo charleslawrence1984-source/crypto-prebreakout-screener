@@ -953,10 +953,9 @@ def quick_trade_decision(res: Dict) -> Dict:
 
     buy_classification = classification in {"Swing-to-hold", "Swing only"}
     if buy_classification and in_zone:
-        return {
-            "action": "BUY",
-            "reason": "The setup is strong enough and the price is inside one of our entry zones.",
-        }
+        # Quick Analyse legacy scores are not full approved Trade evidence.
+        from trade_action_contract import guarded_trade_publication
+        return guarded_trade_publication(res)
 
     if buy_classification and not in_zone:
         return {
