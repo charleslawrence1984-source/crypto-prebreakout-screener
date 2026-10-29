@@ -346,9 +346,15 @@ with left:
     )
     b1, b2 = st.columns(2)
     with b1:
-        st.page_link("stocks_page.py", label="Explore Stocks", icon="📈", use_container_width=True)
+        st.page_link("stocks_page.py", label="Explore Stocks (current mixed page)", icon="📈", use_container_width=True)
     with b2:
         st.page_link("app.py", label="Explore Crypto", icon="⚡", use_container_width=True)
+    st.page_link(
+        "pension_preview_page.py",
+        label="Pension Investment (Read-only Preview)",
+        icon="🪙",
+        use_container_width=True,
+    )
     st.caption("Data-driven analysis · Decision-first experience · Watchlists · Advanced evidence when you want it")
 
 with right:
