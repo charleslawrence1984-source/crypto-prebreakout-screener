@@ -47,7 +47,7 @@ class WatchScanTests(TestCase):
         function.decorator_list = []
         exec(compile(ast.Module(body=[function], type_ignores=[]), "stock_app.py", "exec"), namespace)
         result = namespace["approved_trade_market_scan"](("TEST",), 0, "test", "TEST-BUILD")
-        namespace["build_fundamental_snapshot"].assert_called_once()
+        namespace["trade_tradingview_snapshots"].assert_called_once()
         return result.iloc[0]
 
     def test_financial_and_real_estate_watch_setups_are_blocked(self):
