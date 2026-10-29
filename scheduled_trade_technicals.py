@@ -51,6 +51,32 @@ def reconcile_cached(frame: pd.DataFrame, eligible_symbols: set[str]) -> pd.Data
     ].drop_duplicates(subset=["Ticker"], keep="last")
 
 
+def persist_prepared_trade_rows(
+    combined: pd.DataFrame, target: Path, source_timestamp: str,
+    eligible_set: set[str], refresh_existing: bool,
+) -> pd.DataFrame:
+    """Never preserve a prior disk cache when a requested full refresh fails.
+
+    A zero-row but header-bearing gzip is intentional: no stale row can be
+    mistaken for an approved current candidate if all provider bars fail.
+    """
+    if not combined.empty:
+        combined = combined.copy()
+        combined["Fundamental source updated at"] = source_timestamp
+        combined = reconcile_cached(combined, eligible_set)
+        combined.to_csv(target, index=False, compression="gzip")
+    elif refresh_existing and target.exists():
+        # Keep the schema readable. Do not leave previously cached BUY-like
+        # technical rows on disk if the refreshed source was unavailable.
+        columns = list(combined.columns)
+        if "Ticker" not in columns:
+            columns.insert(0, "Ticker")
+        pd.DataFrame(columns=columns).to_csv(
+            target, index=False, compression="gzip",
+        )
+    return combined
+
+
 def technical_row(symbol: str, technical: dict, turnover_gbp: float, source_timestamp: str,
                   price_evidence: dict | None = None) -> dict:
     price_evidence = price_evidence or {}
@@ -285,10 +311,9 @@ def main() -> int:
             combined = pd.concat([existing, pd.DataFrame(rows)], ignore_index=True)
         else:
             combined = existing
-        if not combined.empty:
-            combined["Fundamental source updated at"] = source_timestamp
-            combined = reconcile_cached(combined, eligible_set)
-            combined.to_csv(target, index=False, compression="gzip")
+        combined = persist_prepared_trade_rows(
+            combined, target, source_timestamp, eligible_set, args.refresh_existing,
+        )
 
         covered = int(combined["Ticker"].nunique()) if not combined.empty else 0
         remaining = max(len(eligible) - covered, 0)
