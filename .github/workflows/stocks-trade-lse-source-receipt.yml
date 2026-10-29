@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install read-only source-analysis dependencies
-        run: pip install "pandas>=2.2,<3" "numpy>=2,<3" "yfinance>=0.2.54,<1"
+        run: pip install "pandas>=2.2,<3" "numpy>=2,<3" "yfinance>=0.2.54,<1" "exchange-calendars>=4.9,<5"
       - name: Compile independent source intake and OHLCV-window audit
         run: python -m py_compile trade_lse_reference_contract.py trade_lse_window_impact_research.py
       - name: Synthetic authoritative-reference receipt regression (NO licensed files)
