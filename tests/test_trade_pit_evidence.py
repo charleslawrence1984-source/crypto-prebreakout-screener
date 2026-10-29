@@ -9,7 +9,7 @@ from trade_pit_evidence import audited_manifest, audit_receipt
 def sample():
     return {
         "ticker":"AAPL", "venue_mic":"XNAS", "isin":"US0378331005",
-        "decision_close_utc":"2024-05-01T20:00:00Z",
+        "decision_close_utc":"2024-05-01T21:00:00Z",
         "technical_last_bar_session":"2024-05-01",
         "technical_source_capture_utc":"2024-05-01T20:15:00Z",
         "membership_source":"NASDAQ_20240501_LIST", "membership_asof_utc":"2024-05-01T19:00:00Z",
