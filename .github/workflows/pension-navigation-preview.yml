@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "pension_preview_page.py"
+      - "pension_holdings_readonly_preflight.py"
+      - "tests/test_pension_holdings_readonly_preflight.py"
       - "stock_app_v2.py"
       - "platform_home.py"
       - "tests/test_pension_navigation_preview.py"
@@ -28,6 +30,7 @@ jobs:
         run: |
           python -m py_compile pension_preview_page.py stock_app_v2.py platform_home.py
           python -m unittest discover -s tests -p test_pension_navigation_preview.py -v
+          python -m unittest discover -s tests -p test_pension_holdings_readonly_preflight.py -v
       - name: Read-only preview, explicitly not a migrated or released pension
         run: |
           python - <<'PY'
@@ -37,6 +40,7 @@ jobs:
             "readiness":"PENSION_PREVIEW_ONLY_NOT_LIVE",
             "stocks_and_pension_routes_distinct_in_draft":True,
             "browser_holdings_migrated":False,
+            "local_only_legacy_partition_preview_tested":True,
             "user_holdings_mutated":False,
             "pension_trading_or_investment_buy_enabled":False,
             "original_stocks_mixed_investment_removed":False,
