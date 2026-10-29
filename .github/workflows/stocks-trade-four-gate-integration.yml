@@ -6,6 +6,8 @@ on:
       - "trade_*"
       - "scheduled_trade_technicals.py"
       - "stock_app.py"
+      - "trade_source_publication.py"
+      - "tests/test_trade_source_publication.py"
       - "stocks_page.py"
       - "two_strategy.py"
       - "tests/test_trade_*"
@@ -38,6 +40,8 @@ jobs:
           python -m unittest discover -s tests -p test_stocks_trade_rendered_actions.py -v
           python -m unittest -v test_trade_rules test_trade_watch_scan
           python -m unittest discover -s tests -p test_trade_release_integration.py -v
+      - name: Job 1B - verify source-provenance reaches actual scanner and cache UI
+        run: python -m unittest discover -s tests -p test_trade_source_publication.py -v
       - name: Job 2 - venue daily candles, UK independent reference and as-of historical receipts
         run: |
           python -m unittest discover -s tests -p test_trade_completed_bar_guard.py -v
@@ -49,7 +53,7 @@ jobs:
           python trade_lse_reference_contract.py --output integrated_lse_authentic_source_gate.json
       - name: Expand public technical-only historical matched mover/nonmover pilot
         run: |
-          python trade_historical_research.py --tickers AAPL MSFT NVDA GOOGL --period 5y --horizon 252 --cost-bps 50 --output integrated_trade_historical_pilot.json
+          python trade_historical_research.py --tickers AAPL MSFT NVDA GOOGL SHOP.TO SAP.DE --period 5y --horizon 252 --cost-bps 50 --output integrated_trade_historical_pilot.json
           python trade_missed_mover_diagnostics.py --pilot integrated_trade_historical_pilot.json --output integrated_trade_mover_nonmover_pairs.json
       - name: Job 3 - prospective source observation and immutable cohort controls
         run: |

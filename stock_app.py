@@ -29,6 +29,8 @@ from valuation import fundamental_analysis as valuation_fundamental_analysis
 from strategy_scores_v3 import long_term_analysis, VALUATION_MODEL_VERSION, MIN_INVESTMENT_QUALITY_SCORE
 from two_strategy import investment_decision, trade_decision
 from investment_live_readiness import InvestmentPublication, withhold_unverified_buys, guard_quick_investment_decision, guard_portfolio_investment_adds, daily_price_session_issue
+from trade_completed_bar_guard import validate_completed_trade_frame
+from trade_source_publication import research_only_cached_trade_frame, protect_scan_result_rows
 from trade_rules import (
     FundamentalSnapshot,
     build_fundamental_snapshot,
@@ -2118,11 +2120,28 @@ def approved_trade_market_scan(
     fx_rates = trade_fx_to_gbp()
     quote_to_gbp = fx_rates.get(context["currency"], np.nan)
     benchmark = trade_benchmark_frame(context["benchmark"])
+    captured_at = pd.Timestamp.now(tz="UTC")
+    # A benchmark has the same source-session obligations as a candidate.
+    # A stale/unknown index must not silently validate market-regime signals.
+    benchmark_venue = "nyse" if universe_kind in {"nasdaq", "nyse"} else universe_kind
+    benchmark, benchmark_evidence = validate_completed_trade_frame(
+        benchmark, benchmark_venue, captured_at,
+    )
+    if benchmark is None:
+        empty = pd.DataFrame()
+        empty.attrs["scan_diagnostics"] = {
+            "source_verified": False,
+            "benchmark_price_session_failure": benchmark_evidence["reason"],
+            "technical_evaluated": 0, "price_source_failures": 0,
+        }
+        return empty
     price_rows: List[Dict] = []
     deep_candidates: List[tuple[str, Dict]] = []
     technical_reason_counts: Dict[str, int] = {}
     technical_state_counts: Dict[str, int] = {}
     price_history_failures = 0
+    price_source_failures = 0
+    source_checks = {}
     liquidity_failures = 0
     fundamental_pass_count = 0
 
@@ -2193,15 +2212,22 @@ def approved_trade_market_scan(
         for symbol in chunk:
             try:
                 frame = extract_ticker_frame(data, symbol)
-                if frame is None or len(frame.dropna(subset=["Close", "Volume"])) < 252:
+                validated, receipt = validate_completed_trade_frame(
+                    frame, universe_kind, captured_at,
+                )
+                source_checks[symbol] = receipt
+                if validated is None:
+                    price_source_failures += 1
+                    continue
+                if len(validated) < 252:
                     price_history_failures += 1
                     continue
-                raw_turnover = (frame["Close"] * frame["Volume"]).dropna().tail(20).median()
+                raw_turnover = (validated["Close"] * validated["Volume"]).dropna().tail(20).median()
                 turnover_gbp = raw_turnover * context["price_scale"] * quote_to_gbp
                 if not math.isfinite(turnover_gbp) or turnover_gbp < 500_000:
                     liquidity_failures += 1
                     continue
-                technical = evaluate_price_setup(frame, benchmark)
+                technical = evaluate_price_setup(validated, benchmark)
                 technical_state = str(technical.get("technical_state") or "BLOCKED")
                 technical_reason = str(technical.get("technical_reason") or "UNAVAILABLE")
                 technical_state_counts[technical_state] = technical_state_counts.get(technical_state, 0) + 1
@@ -2404,6 +2430,9 @@ def approved_trade_market_scan(
         "technical_state_counts": technical_state_counts,
         "technical_reason_counts": technical_reason_counts,
         "price_history_failures": price_history_failures,
+        "price_source_failures": price_source_failures,
+        "benchmark_source": benchmark_evidence,
+        "source_verified": False,
         "liquidity_failures": liquidity_failures,
         "current_setups": len(deep_candidates),
     }
@@ -2413,7 +2442,10 @@ def approved_trade_market_scan(
         empty.attrs["scan_diagnostics"] = scan_diagnostics
         return empty
     output = pd.DataFrame(price_rows)
-    order = {"PAPER CANDIDATE": 0, "WATCH": 1, "BLOCKED": 2}
+    # Honest UI: retain original research states separately. No independently
+    # authenticated price/issuer/events/FX/broker evidence -> NEVER BUY.
+    output = protect_scan_result_rows(output, source_checks, captured_at)
+    order = {"WAIT": 0, "RETRY": 1, "BLOCKED": 2}
     output["_status_order"] = output["Status"].map(order).fillna(9)
     output = output.sort_values(
         ["_status_order", "Technical score"], ascending=[True, False], na_position="last"
@@ -4121,6 +4153,10 @@ def load_all_trade_opportunities(cache_version: str = TRADE_RULEBOOK_BUILD) -> p
                 "PRE-CROSS READY": "READY TO VERIFY",
             }
         ).fillna("WATCH")
+
+        # Legacy cached rows have no authenticated issuer/bar receipts;
+        # even self-declared PASS only permits a RESEARCH-labelled WAIT.
+        technical = research_only_cached_trade_frame(technical, kind)
 
         if fundamental_path.exists():
             try:
@@ -6304,15 +6340,26 @@ with tab3:
                 watch_states = int(state_counts.get("WATCH", 0))
                 ready_states = int(state_counts.get("ENTRY READY", 0)) + int(state_counts.get("AWAITING NEXT OPEN", 0))
 
-                st.warning(
-                    "No current WATCH or confirmed crossover setups met the approved Trade rules."
-                )
-                st.info(
-                    f"This was a completed scan, not a failed search: "
-                    f"{fundamental_pass:,} of {selected:,} selected shares passed the prepared fundamental gates; "
-                    f"{technical_evaluated:,} had usable liquid price history and were technically evaluated; "
-                    f"{watch_states:,} reached WATCH and {ready_states:,} reached an entry-ready/next-open state."
-                )
+                benchmark_issue = diag.get("benchmark_price_session_failure")
+                if benchmark_issue:
+                    st.error(
+                        "Trade Search BLOCKED: the benchmark is not verified as the latest "
+                        "completed exchange session. Source reason: " + str(benchmark_issue)
+                    )
+                else:
+                    st.warning(
+                        "No research setups could qualify for an approved Trade action. "
+                        "Source and point-in-time evidence remain mandatory."
+                    )
+                    st.info(
+                        f"Research scan: {fundamental_pass:,} of {selected:,} selected "
+                        f"shares passed prepared fundamentals; {technical_evaluated:,} "
+                        f"had liquid source histories to evaluate. "
+                        f"{int(diag.get('price_source_failures',0)):,} histories failed "
+                        f"completed-price checks. Raw technical states: "
+                        f"{watch_states:,} WATCH and {ready_states:,} near entry. "
+                        "These are not independently verified BUY signals."
+                    )
 
                 reason_counts = diag.get("technical_reason_counts", {}) or {}
                 if reason_counts:
@@ -6329,14 +6376,14 @@ with tab3:
                         if liquidity_failures:
                             st.write(f"**{liquidity_failures:,}** — below the £500k median traded-value hard floor")
             else:
-                paper_count = int((pre["Status"] == "PAPER CANDIDATE").sum())
-                watch_count = int((pre["Status"] == "WATCH").sum())
+                wait_count = int((pre["Status"] == "WAIT").sum())
                 blocked_count = int((pre["Status"] == "BLOCKED").sum())
                 retry_count = int((pre["Status"] == "RETRY").sum())
-                st.success(
-                    f"Trade Search complete: {paper_count} paper candidates, "
-                    f"{watch_count} watch setups, {blocked_count} blocked setups "
-                    f"and {retry_count} provider retries."
+                st.info(
+                    f"Research scan complete: {wait_count} WAIT (unverified source/issuer) "
+                    f"setups, {blocked_count} blocked by original rules, "
+                    f"and {retry_count} provider retries. "
+                    "No approved BUY or paper candidates are published."
                 )
                 if retry_count:
                     st.warning(
@@ -6346,7 +6393,8 @@ with tab3:
                     )
                 st.subheader("Trade rulebook results")
                 quick_cols = [
-                    "Status", "Ticker", "Company", "Sector", "Reason", "Score status", "Tier", "Fundamental score",
+                    "Status", "Ticker", "Company", "Sector", "Reason", "Price source status",
+                    "Last completed exchange session", "Score status", "Tier", "Fundamental score",
                     "Technical score", "Entry", "Stop", "Target", "R:R", "Upside %",
                     "RSI", "Market regime", "Median traded value £m",
                 ]
@@ -6366,8 +6414,8 @@ with tab3:
                     )
 
                 st.caption(
-                    "WATCH means the trigger or next-open validation is not complete. PAPER CANDIDATE is "
-                    "reserved for a fully validated paper setup. BLOCKED always includes the failed gate in Reason."
+                    "RESEARCH ONLY: WAIT means no independently authenticated completed-bar, issuer/event/FX "
+                    "and broker execution receipts are available. No approved BUY or paper trade is published."
                 )
 
 with tab4:

@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from trade_rules import FundamentalSnapshot, score_fundamental_snapshot, evaluate_price_setup
+from trade_source_publication import protect_scan_result_rows
 
 
 class WatchScanTests(TestCase):
@@ -36,6 +37,17 @@ class WatchScanTests(TestCase):
             trade_fx_to_gbp=lambda: {"GBP": 1}, trade_benchmark_frame=lambda _: frame,
             yf=SimpleNamespace(download=lambda **_: frame, Ticker=lambda _: object()),
             extract_ticker_frame=lambda *_: frame,
+            # This fixture isolates original fundamental WATCH rules; the
+            # new source guard is covered independently with real OHLCV/date
+            # edge cases in tests/test_trade_source_publication.py.
+            validate_completed_trade_frame=lambda data, venue, now: (
+                data, {
+                    "status":"PASS", "reason":"SYNTHETIC_FIXTURE_ONLY",
+                    "last_completed_session":"2026-10-28",
+                    "expected_completed_session":"2026-10-28",
+                    "last_completed_ohlcv_sha256":"f"*64,
+                }),
+            protect_scan_result_rows=protect_scan_result_rows,
             evaluate_price_setup=lambda *_: dict(technical_state="WATCH", technical_reason="PENDING MACD", rsi=29),
             build_fundamental_snapshot=Mock(return_value=snapshot),
             business_sessions_until=lambda _: 30,
