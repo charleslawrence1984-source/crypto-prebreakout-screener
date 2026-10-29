@@ -30,6 +30,9 @@ class WatchScanTests(TestCase):
         namespace = dict(
             pd=pd, np=np, math=math, List=List, Dict=Dict,
             TRADE_MARKET_CONTEXT={"test": dict(currency="GBP", price_scale=1, benchmark="INDEX")},
+            TRADE_RULEBOOK_BUILD="TEST-BUILD",
+            prepared_trade_path=lambda _kind: SimpleNamespace(exists=lambda: False),
+            trade_tradingview_snapshots=Mock(return_value={"TEST": snapshot}),
             trade_fx_to_gbp=lambda: {"GBP": 1}, trade_benchmark_frame=lambda _: frame,
             yf=SimpleNamespace(download=lambda **_: frame, Ticker=lambda _: object()),
             extract_ticker_frame=lambda *_: frame,
