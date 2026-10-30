@@ -8,6 +8,10 @@ is NOT permission to redistribute or use as a paid trade feed.
 No client tokens, login bypasses, retrying access denials, identity spoofing,
 broker requests, price/cache mutation or BUY creation.
 """
+# 2026-10-30 strictly-later completed-session source-only observation trigger:
+# Research replay only against pinned 2026-10-29T14:46:40Z baseline SHA 302ba6a8a38a34c0b783030d7758dd90064a42731ae04461a75632b05cd20efa.
+# No trading, no paper fill assumptions, no original Trade rule edits, no data publication.
+
 from __future__ import annotations
 
 import argparse
