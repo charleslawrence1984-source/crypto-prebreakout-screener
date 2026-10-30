@@ -83,6 +83,31 @@ class ScheduledFourHourAdmissionTests(unittest.TestCase):
                    [source(market_pair=False)], universe=UNIVERSE)
         self.assertTrue(r["capture_new_snapshot"])
 
+    def test_simultaneous_admission_without_uploaded_artifact_is_not_atomic(self):
+        # Two independent runners can both pass before either uploads a ZIP.
+        # This documents a release BLOCKER, not a claimed race fix.
+        instant = clock("2026-10-26T00:55:00Z")
+        first = decide(instant, [], universe=UNIVERSE)
+        second = decide(instant, [], universe=UNIVERSE)
+        self.assertTrue(first["capture_new_snapshot"])
+        self.assertTrue(second["capture_new_snapshot"])
+
+    def test_uploaded_complete_archive_prevents_second_admission(self):
+        first = source()
+        second = decide(clock("2026-10-26T00:55:00Z"),
+                        [first], universe=UNIVERSE)
+        self.assertFalse(second["capture_new_snapshot"])
+        self.assertEqual(second["decision"], "PRIOR_COMPLETE_SHA_VALIDATED_CAPTURE")
+
+    def test_artifact_upload_delay_leaves_second_runner_eligible(self):
+        # No archive visible during upload: a second runner cannot know it
+        # is duplicating a successful but unpublished capture.
+        pending_upload = []
+        second = decide(clock("2026-10-26T00:55:00Z"),
+                        pending_upload, universe=UNIVERSE)
+        self.assertEqual(second["decision"], "ELIGIBLE_FRESH_4H_CANDLE")
+        self.assertTrue(second["capture_new_snapshot"])
+
     def test_github_run_late_does_not_fabricate_old_buy(self):
         result = decide(clock("2026-10-26T02:45:00Z"), [], universe=UNIVERSE)
         self.assertFalse(result["capture_new_snapshot"])
