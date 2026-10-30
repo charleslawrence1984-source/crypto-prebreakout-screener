@@ -4,7 +4,8 @@ import argparse
 import hashlib
 import json
 import logging
-from datetime import datetime, timezone
+import re
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pandas as pd
@@ -87,6 +88,22 @@ def fingerprint(row):
     return hashlib.sha256(row.to_json().encode()).hexdigest()
 
 
+def insufficient_price_history(exc):
+    """Back off only explicit short-history responses, never provider outages.
+
+    technical_from_df requires at least 80 usable daily candles. The same
+    listing has already been queried for both 1y and 2y by recovery_analysis.
+    Generic errors and indicator failures with >=80 bars remain retryable.
+    """
+    if not isinstance(exc, ValueError):
+        return False
+    counts = re.findall(
+        r"(?:1y|2y): (\d+) rows, insufficient usable history/indicators",
+        str(exc),
+    )
+    return len(counts) == 2 and all(int(count) < 80 for count in counts)
+
+
 def reconcile(frame, fingerprints, build):
     required = {"Ticker", "Fundamental fingerprint", "Technical build"}
     if not required.issubset(frame.columns):
@@ -129,9 +146,24 @@ def prepare(source_dir, output_dir, limit, analyse, build):
             else:
                 cached.to_csv(target, index=False, compression="gzip")
             covered = set(cached["Ticker"]) if not cached.empty else set()
-            attempts = manifest["exchanges"].get(kind, {}).get("dispatch_counts", {})
+            previous_meta = manifest["exchanges"].get(kind, {})
+            attempts = previous_meta.get("dispatch_counts", {})
             missing = sorted(set(fingerprints) - covered, key=lambda s: (attempts.get(s, 0), s))
             now = datetime.now(timezone.utc)
+            # Keep short-history listings outside the request budget until a
+            # bounded retry, but immediately retry when source or build changes.
+            history_backoff = {}
+            for symbol, detail in (previous_meta.get("insufficient_history_backoff") or {}).items():
+                if (symbol not in missing
+                        or detail.get("fundamental_fingerprint") != fingerprints.get(symbol)
+                        or detail.get("technical_build") != build):
+                    continue
+                try:
+                    retry_at = datetime.fromisoformat(str(detail.get("retry_after", "")))
+                    if retry_at.tzinfo is not None and retry_at > now:
+                        history_backoff[symbol] = detail
+                except (ValueError, TypeError):
+                    pass
             # Source-matching rows can still be technically stale. Retry them
             # first on the next bounded hourly batch instead of indefinitely
             # keeping an old candle/RSI under a fresh manifest timestamp.
@@ -141,11 +173,15 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                     str(row["Ticker"]) for _, row in cached.iterrows()
                     if not _recent(row.get("Technical calculated at"), now, hours=TECH_MAX_AGE_HOURS)
                 )
-            selected = (stale + missing)[:limit] if ready else []
-            previous_meta = manifest["exchanges"].get(kind, {})
-            rows, errors = [], []
-            if limit == 0:
-                errors = [e for e in previous_meta.get("errors", []) if e.get("symbol") in missing]
+            retryable_missing = [symbol for symbol in missing if symbol not in history_backoff]
+            selected = (stale + retryable_missing)[:limit] if ready else []
+            rows = []
+            # Preserve an explicit explanation for any deferred missing symbol.
+            errors = [
+                e for e in previous_meta.get("errors", [])
+                if e.get("symbol") in missing
+                and (limit == 0 or e.get("symbol") in history_backoff)
+            ]
             for symbol in selected:
                 attempts[symbol] = attempts.get(symbol, 0) + 1
                 try:
@@ -161,6 +197,13 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                     })
                 except Exception as exc:
                     errors.append({"symbol": symbol, "error": str(exc)[:200]})
+                    if symbol not in covered and insufficient_price_history(exc):
+                        history_backoff[symbol] = {
+                            "reason": "insufficient_price_history",
+                            "retry_after": (now + timedelta(days=7)).isoformat(),
+                            "fundamental_fingerprint": fingerprints[symbol],
+                            "technical_build": build,
+                        }
                     if "ratelimit" in type(exc).__name__.lower() or "too many requests" in str(exc).lower():
                         # Stop this batch when the provider explicitly throttles.
                         break
@@ -200,6 +243,8 @@ def prepare(source_dir, output_dir, limit, analyse, build):
                 "source_fundamentals_updated_at": timestamp,
                 "technical_build": build,
                 "dispatch_counts": {s: attempts.get(s, 0) for s in missing if s not in {r["Ticker"] for r in rows}},
+                "insufficient_history_backoff": history_backoff,
+                "insufficient_history_deferred_symbols": len(history_backoff),
             }
             print(f"{kind}: {manifest['exchanges'][kind]['status']} {coverage}/{len(fingerprints)} (fresh {fresh_coverage}, stale {stale_coverage})", flush=True)
         except Exception as exc:
