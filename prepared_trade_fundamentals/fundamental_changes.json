@@ -1,5 +1,14 @@
 {
   "exchanges": {
+    "euronext_paris": {
+      "changed_count": 0,
+      "changed_symbols": [],
+      "label": "Euronext Paris",
+      "new_count": 1,
+      "new_symbols": [
+        "ALERO.PA"
+      ]
+    },
     "lse": {
       "changed_count": 0,
       "changed_symbols": [],
@@ -18,10 +27,22 @@
       "changed_count": 0,
       "changed_symbols": [],
       "label": "Bolsa de Madrid",
-      "new_count": 0,
-      "new_symbols": []
+      "new_count": 11,
+      "new_symbols": [
+        "SCIG1.MC",
+        "SCIG2.MC",
+        "SCIG3.MC",
+        "SCIG5.MC",
+        "SCIN1.MC",
+        "SCIN2.MC",
+        "SCIN3.MC",
+        "SCIN4.MC",
+        "SCIN6.MC",
+        "SCIN7.MC",
+        "SCIN8.MC"
+      ]
     }
   },
-  "generated_at": "2026-10-30T05:41:38+00:00",
+  "generated_at": "2026-10-30T12:48:11+00:00",
   "rulebook_build": "2026.10.02.03"
 }
