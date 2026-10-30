@@ -1,0 +1,23 @@
+name: Funded missed-episode research tests — PR ONLY
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/audit_funded_missed_episodes.py'
+      - 'tests/test_funded_missed_episodes.py'
+      - '.github/workflows/funded-missed-episodes-tests.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-episode-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run deterministic offline episode tests
+        run: python -m unittest discover -s tests -p test_funded_missed_episodes.py -v
