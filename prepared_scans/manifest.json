@@ -4,7 +4,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-30T18:53:00+00:00",
+      "completed_at": "2026-10-30T23:14:24+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -50,7 +50,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-30T18:53:00+00:00",
+      "completed_at": "2026-10-30T23:14:24+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -99,7 +99,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-30T18:53:00+00:00",
+      "completed_at": "2026-10-30T23:14:24+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 14,
       "coverage_target_symbols": 14,
@@ -148,7 +148,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-30T18:52:58+00:00",
+      "completed_at": "2026-10-30T23:14:23+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 160,
       "coverage_target_symbols": 160,
@@ -10372,7 +10372,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-30T18:52:57+00:00",
+      "completed_at": "2026-10-30T23:14:20+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 238,
       "coverage_target_symbols": 238,
@@ -10439,7 +10439,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-30T18:52:57+00:00",
+      "completed_at": "2026-10-30T23:14:21+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 19,
       "coverage_target_symbols": 19,
@@ -10479,7 +10479,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-30T18:53:00+00:00",
+      "completed_at": "2026-10-30T23:14:24+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 72,
       "coverage_target_symbols": 72,
@@ -10618,343 +10618,94 @@
     "nasdaq": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 100,
-      "completed_at": "2026-10-30T01:59:14+00:00",
-      "coverage_pct": 97.9,
-      "coverage_symbols": 1247,
-      "coverage_target_symbols": 1274,
+      "chunk_symbols": 19,
+      "completed_at": "2026-10-30T23:14:15+00:00",
+      "coverage_pct": 100.0,
+      "coverage_symbols": 1256,
+      "coverage_target_symbols": 1256,
       "diagnostics": {
-        "below_min_market_cap": 2,
+        "below_min_market_cap": 1,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 100,
-        "returned": 98,
+        "requested": 19,
+        "returned": 18,
         "symbol_outcomes": {
-          "ADAM": {
+          "ARRY": {
             "status": "row"
           },
-          "AEP": {
+          "ARVN": {
             "status": "row"
           },
-          "ALGN": {
+          "BBCP": {
             "status": "row"
           },
-          "ALKT": {
+          "BRAI": {
             "status": "row"
           },
-          "ALRS": {
-            "status": "row"
-          },
-          "ARXS": {
-            "status": "row"
-          },
-          "ASTL": {
-            "status": "row"
-          },
-          "ATYR": {
+          "BRCB": {
             "status": "below_market_cap"
           },
-          "AUR": {
+          "CBIO": {
             "status": "row"
           },
-          "AXGN": {
+          "CTMX": {
             "status": "row"
           },
-          "BCAL": {
+          "CZNC": {
             "status": "row"
           },
-          "BELFA": {
+          "DNUT": {
             "status": "row"
           },
-          "BELFB": {
+          "ENTX": {
             "status": "row"
           },
-          "BIIB": {
+          "MCFT": {
             "status": "row"
           },
-          "BKR": {
+          "NEXN": {
             "status": "row"
           },
-          "BLKB": {
+          "NGNE": {
             "status": "row"
           },
-          "BUUU": {
+          "OCS": {
             "status": "row"
           },
-          "CDNS": {
+          "SENS": {
             "status": "row"
           },
-          "CFFN": {
+          "SGHT": {
             "status": "row"
           },
-          "CHDN": {
+          "ULH": {
             "status": "row"
           },
-          "CHEF": {
+          "WEYS": {
             "status": "row"
           },
-          "CLMB": {
-            "status": "row"
-          },
-          "COHU": {
-            "status": "row"
-          },
-          "CRON": {
-            "status": "row"
-          },
-          "CSGP": {
-            "status": "row"
-          },
-          "CVLT": {
-            "status": "row"
-          },
-          "DRVN": {
-            "status": "row"
-          },
-          "EBAY": {
-            "status": "row"
-          },
-          "EQIX": {
-            "status": "row"
-          },
-          "EXLS": {
-            "status": "row"
-          },
-          "EXTR": {
-            "status": "row"
-          },
-          "FELE": {
-            "status": "row"
-          },
-          "FMNB": {
-            "status": "row"
-          },
-          "FORM": {
-            "status": "row"
-          },
-          "FRHC": {
-            "status": "row"
-          },
-          "FTNT": {
-            "status": "row"
-          },
-          "GEHC": {
-            "status": "row"
-          },
-          "GEN": {
-            "status": "row"
-          },
-          "GOOG": {
-            "status": "row"
-          },
-          "GOOGL": {
-            "status": "row"
-          },
-          "HAPN": {
-            "status": "row"
-          },
-          "HONA": {
-            "status": "row"
-          },
-          "HOOD": {
-            "status": "row"
-          },
-          "INTR": {
-            "status": "row"
-          },
-          "JBSS": {
-            "status": "row"
-          },
-          "KIDS": {
-            "status": "row"
-          },
-          "KLAC": {
-            "status": "row"
-          },
-          "KRYS": {
-            "status": "row"
-          },
-          "KTOS": {
-            "status": "row"
-          },
-          "LFUS": {
-            "status": "row"
-          },
-          "LGND": {
-            "status": "row"
-          },
-          "LKFN": {
-            "status": "row"
-          },
-          "LOGI": {
-            "status": "row"
-          },
-          "LSTR": {
-            "status": "row"
-          },
-          "MBIN": {
-            "status": "row"
-          },
-          "MCHB": {
-            "status": "row"
-          },
-          "MDXG": {
-            "status": "row"
-          },
-          "MGRC": {
-            "status": "row"
-          },
-          "MNST": {
-            "status": "row"
-          },
-          "MORN": {
-            "status": "row"
-          },
-          "MSFT": {
-            "status": "row"
-          },
-          "MYRG": {
-            "status": "row"
-          },
-          "NCNO": {
-            "status": "row"
-          },
-          "NEO": {
-            "status": "row"
-          },
-          "NWPX": {
-            "status": "row"
-          },
-          "NXT": {
-            "status": "row"
-          },
-          "OBT": {
-            "status": "row"
-          },
-          "OLED": {
-            "status": "row"
-          },
-          "OMEX": {
-            "status": "below_market_cap"
-          },
-          "ONB": {
-            "status": "row"
-          },
-          "OPK": {
-            "status": "row"
-          },
-          "ORLY": {
-            "status": "row"
-          },
-          "PCAR": {
-            "status": "row"
-          },
-          "PI": {
-            "status": "row"
-          },
-          "PLPC": {
-            "status": "row"
-          },
-          "PLXS": {
-            "status": "row"
-          },
-          "POOL": {
-            "status": "row"
-          },
-          "PPC": {
-            "status": "row"
-          },
-          "PRCH": {
-            "status": "row"
-          },
-          "QS": {
-            "status": "row"
-          },
-          "RDWR": {
-            "status": "row"
-          },
-          "REPL": {
-            "status": "row"
-          },
-          "SDGR": {
-            "status": "row"
-          },
-          "SFM": {
-            "status": "row"
-          },
-          "SHEN": {
-            "status": "row"
-          },
-          "STRL": {
-            "status": "row"
-          },
-          "SYBT": {
-            "status": "row"
-          },
-          "TENB": {
-            "status": "row"
-          },
-          "TIPT": {
-            "status": "row"
-          },
-          "TMUS": {
-            "status": "row"
-          },
-          "TOP": {
-            "status": "row"
-          },
-          "TOWN": {
-            "status": "row"
-          },
-          "TSAT": {
-            "status": "row"
-          },
-          "TTMI": {
-            "status": "row"
-          },
-          "UCTT": {
-            "status": "row"
-          },
-          "UFPI": {
-            "status": "row"
-          },
-          "ULCC": {
-            "status": "row"
-          },
-          "UVSP": {
-            "status": "row"
-          },
-          "VKTX": {
-            "status": "row"
-          },
-          "WING": {
+          "XRPN": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 1283,
+      "eligible_symbols": 1263,
       "gap_fill_dispatch_counts": {
         "AGCC": 51,
         "AIFU": 2,
+        "BRCB": 1,
         "FBYD": 51,
         "HMH": 51,
-        "NNNN": 1,
         "RMR": 51,
         "TWFG": 51
       },
-      "gap_fill_last_dispatched_at": "2026-10-24T07:28:48+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-30T23:14:04+00:00",
       "label": "NASDAQ",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_stale_candles": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 1244,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
       "provider_backoff": {
         "AGCC": {
           "attempts": 51,
@@ -10973,6 +10724,12 @@
           "deferred_at": "2026-10-30T01:58:42+00:00",
           "reason": "below_market_cap",
           "until": "2026-11-06T01:58:42+00:00"
+        },
+        "BRCB": {
+          "attempts": 1,
+          "deferred_at": "2026-10-30T23:14:04+00:00",
+          "reason": "below_market_cap",
+          "until": "2026-11-06T23:14:04+00:00"
         },
         "FBYD": {
           "attempts": 51,
@@ -11023,540 +10780,92 @@
           "until": "2026-10-30T23:38:14+00:00"
         }
       },
-      "provider_deferred_symbols": 9,
-      "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 27,
-      "requested_this_run": 100,
-      "result_rows": 1247,
-      "returned_this_run": 98,
-      "started_at": "2026-10-30T01:58:42+00:00",
-      "status": "partial",
-      "universe_symbols": 3329
+      "provider_deferred_symbols": 7,
+      "refresh_mode": "gap_fill",
+      "remaining_symbols": 0,
+      "requested_this_run": 19,
+      "result_rows": 1256,
+      "returned_this_run": 18,
+      "started_at": "2026-10-30T23:14:04+00:00",
+      "status": "complete",
+      "universe_symbols": 3326
     },
     "nyse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 162,
-      "completed_at": "2026-10-30T02:00:06+00:00",
-      "coverage_pct": 99.4,
-      "coverage_symbols": 1431,
-      "coverage_target_symbols": 1439,
+      "chunk_symbols": 10,
+      "completed_at": "2026-10-30T23:14:20+00:00",
+      "coverage_pct": 100.0,
+      "coverage_symbols": 1436,
+      "coverage_target_symbols": 1436,
       "diagnostics": {
-        "below_min_market_cap": 0,
+        "below_min_market_cap": 2,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 162,
-        "returned": 162,
+        "requested": 10,
+        "returned": 8,
         "symbol_outcomes": {
-          "AEM": {
+          "ACCO": {
             "status": "row"
           },
-          "AER": {
+          "AGM-A": {
             "status": "row"
           },
-          "AGI": {
-            "status": "row"
-          },
-          "AIN": {
-            "status": "row"
-          },
-          "AM": {
-            "status": "row"
-          },
-          "AMRZ": {
-            "status": "row"
-          },
-          "AON": {
-            "status": "row"
-          },
-          "APH": {
-            "status": "row"
-          },
-          "AR": {
-            "status": "row"
-          },
-          "ARIS": {
-            "status": "row"
-          },
-          "ATI": {
-            "status": "row"
-          },
-          "AU": {
-            "status": "row"
-          },
-          "AVTR": {
-            "status": "row"
-          },
-          "AVY": {
-            "status": "row"
-          },
-          "AWK": {
-            "status": "row"
-          },
-          "AXS": {
-            "status": "row"
-          },
-          "BBAI": {
-            "status": "row"
-          },
-          "BHC": {
-            "status": "row"
-          },
-          "BHE": {
-            "status": "row"
-          },
-          "BLCO": {
-            "status": "row"
-          },
-          "BNL": {
-            "status": "row"
-          },
-          "BOOT": {
-            "status": "row"
-          },
-          "BYD": {
-            "status": "row"
-          },
-          "CARS": {
-            "status": "row"
-          },
-          "CB": {
-            "status": "row"
-          },
-          "CCK": {
-            "status": "row"
-          },
-          "CCS": {
-            "status": "row"
-          },
-          "CFG": {
-            "status": "row"
-          },
-          "CGAU": {
-            "status": "row"
-          },
-          "CMG": {
-            "status": "row"
-          },
-          "CMRE": {
-            "status": "row"
-          },
-          "CNMD": {
-            "status": "row"
-          },
-          "CNX": {
-            "status": "row"
-          },
-          "CP": {
-            "status": "row"
-          },
-          "CPF": {
-            "status": "row"
-          },
-          "CSL": {
-            "status": "row"
-          },
-          "CVNA": {
-            "status": "row"
-          },
-          "CWT": {
-            "status": "row"
-          },
-          "DAN": {
-            "status": "row"
-          },
-          "DAR": {
-            "status": "row"
-          },
-          "DB": {
-            "status": "row"
-          },
-          "DBD": {
-            "status": "row"
-          },
-          "DHI": {
-            "status": "row"
-          },
-          "DINO": {
-            "status": "row"
-          },
-          "DMC": {
-            "status": "row"
-          },
-          "EAT": {
-            "status": "row"
-          },
-          "EFOR": {
-            "status": "row"
-          },
-          "EG": {
-            "status": "row"
-          },
-          "EGO": {
-            "status": "row"
-          },
-          "EHC": {
-            "status": "row"
-          },
-          "EIG": {
-            "status": "row"
-          },
-          "EPAC": {
-            "status": "row"
-          },
-          "EPR": {
-            "status": "row"
-          },
-          "EQT": {
-            "status": "row"
-          },
-          "ESS": {
-            "status": "row"
-          },
-          "ETSY": {
-            "status": "row"
-          },
-          "EVR": {
-            "status": "row"
-          },
-          "F": {
-            "status": "row"
-          },
-          "FBRT": {
-            "status": "row"
-          },
-          "FCPT": {
-            "status": "row"
-          },
-          "FDX": {
-            "status": "row"
-          },
-          "FE": {
-            "status": "row"
-          },
-          "FLS": {
-            "status": "row"
-          },
-          "FNV": {
-            "status": "row"
-          },
-          "FOR": {
-            "status": "row"
-          },
-          "FTV": {
-            "status": "row"
-          },
-          "GEV": {
-            "status": "row"
-          },
-          "GFL": {
-            "status": "row"
-          },
-          "GIL": {
-            "status": "row"
-          },
-          "GKOS": {
-            "status": "row"
-          },
-          "GRBK": {
-            "status": "row"
-          },
-          "GRMN": {
-            "status": "row"
-          },
-          "HAFN": {
-            "status": "row"
-          },
-          "HAYW": {
-            "status": "row"
-          },
-          "HBM": {
-            "status": "row"
-          },
-          "HLI": {
-            "status": "row"
-          },
-          "HOG": {
-            "status": "row"
-          },
-          "HRTG": {
-            "status": "row"
-          },
-          "HUBB": {
-            "status": "row"
+          "CWH": {
+            "status": "below_market_cap"
           },
-          "IEX": {
-            "status": "row"
-          },
-          "INVH": {
-            "status": "row"
-          },
-          "ITW": {
-            "status": "row"
-          },
-          "JLL": {
-            "status": "row"
-          },
-          "JMKE": {
-            "status": "row"
-          },
-          "JOE": {
-            "status": "row"
-          },
-          "KFRC": {
-            "status": "row"
-          },
-          "KGC": {
-            "status": "row"
-          },
-          "KNX": {
-            "status": "row"
-          },
-          "KO": {
-            "status": "row"
-          },
-          "KRG": {
-            "status": "row"
-          },
-          "LAD": {
-            "status": "row"
-          },
-          "LII": {
-            "status": "row"
-          },
-          "LSPD": {
-            "status": "row"
-          },
-          "LXU": {
-            "status": "row"
-          },
-          "MAA": {
-            "status": "row"
-          },
-          "MAS": {
-            "status": "row"
-          },
-          "MAX": {
-            "status": "row"
-          },
-          "MGA": {
-            "status": "row"
-          },
-          "MGM": {
-            "status": "row"
-          },
-          "MIR": {
-            "status": "row"
-          },
-          "MKL": {
-            "status": "row"
-          },
-          "MSGR": {
-            "status": "row"
-          },
-          "MTH": {
-            "status": "row"
-          },
-          "MUSA": {
-            "status": "row"
-          },
-          "NEU": {
-            "status": "row"
-          },
-          "NI": {
-            "status": "row"
-          },
-          "NLY": {
-            "status": "row"
-          },
-          "NOV": {
-            "status": "row"
-          },
-          "NOW": {
-            "status": "row"
-          },
-          "NWN": {
-            "status": "row"
-          },
-          "OGE": {
-            "status": "row"
-          },
-          "OI": {
-            "status": "row"
-          },
-          "ORA": {
-            "status": "row"
-          },
-          "P": {
-            "status": "row"
-          },
-          "PBI": {
-            "status": "row"
-          },
-          "PFGC": {
-            "status": "row"
-          },
-          "PFS": {
-            "status": "row"
-          },
-          "PLD": {
-            "status": "row"
-          },
-          "PPG": {
-            "status": "row"
-          },
-          "PRG": {
-            "status": "row"
-          },
-          "PSN": {
-            "status": "row"
-          },
-          "PSX": {
-            "status": "row"
-          },
-          "PUMP": {
-            "status": "row"
-          },
-          "QTWO": {
-            "status": "row"
-          },
-          "RJF": {
-            "status": "row"
-          },
-          "RNR": {
-            "status": "row"
-          },
-          "RSI": {
-            "status": "row"
-          },
-          "RYZ": {
-            "status": "row"
-          },
-          "SCI": {
-            "status": "row"
-          },
-          "SCL": {
-            "status": "row"
-          },
-          "SITE": {
-            "status": "row"
-          },
-          "SLB": {
-            "status": "row"
-          },
-          "SON": {
-            "status": "row"
-          },
-          "SPGI": {
-            "status": "row"
-          },
-          "STLA": {
-            "status": "row"
-          },
-          "STNG": {
-            "status": "row"
-          },
-          "STT": {
-            "status": "row"
-          },
-          "SW": {
-            "status": "row"
-          },
-          "TDOC": {
-            "status": "row"
-          },
-          "TECK": {
-            "status": "row"
-          },
-          "TEX": {
-            "status": "row"
-          },
-          "TFC": {
-            "status": "row"
-          },
-          "TFPM": {
-            "status": "row"
-          },
-          "THG": {
-            "status": "row"
-          },
-          "TTE": {
-            "status": "row"
-          },
-          "TYL": {
-            "status": "row"
-          },
-          "UBS": {
-            "status": "row"
-          },
-          "UE": {
-            "status": "row"
-          },
-          "UNF": {
-            "status": "row"
-          },
-          "VFC": {
-            "status": "row"
-          },
-          "VICI": {
-            "status": "row"
-          },
-          "VRT": {
-            "status": "row"
-          },
-          "VST": {
-            "status": "row"
-          },
-          "VTR": {
-            "status": "row"
-          },
-          "VVX": {
-            "status": "row"
-          },
-          "WD": {
-            "status": "row"
+          "ENHA": {
+            "status": "below_market_cap"
           },
-          "WEX": {
+          "ETD": {
             "status": "row"
           },
-          "WFC": {
+          "GTN-A": {
             "status": "row"
           },
-          "WFG": {
+          "MEI": {
             "status": "row"
           },
-          "WHD": {
+          "NRGV": {
             "status": "row"
           },
-          "WM": {
+          "NWAX": {
             "status": "row"
           },
-          "WPC": {
+          "WSO-B": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 1443,
+      "eligible_symbols": 1442,
       "gap_fill_dispatch_counts": {
+        "CWH": 1,
+        "ENHA": 1,
         "FUBO": 50,
         "INR": 50,
         "SDHC": 2,
         "SMC": 50
       },
-      "gap_fill_last_dispatched_at": "2026-10-24T12:39:11+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-30T23:14:15+00:00",
       "label": "NYSE",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_stale_candles": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 1423,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
       "provider_backoff": {
+        "CWH": {
+          "attempts": 1,
+          "deferred_at": "2026-10-30T23:14:04+00:00",
+          "reason": "below_market_cap",
+          "until": "2026-11-06T23:14:04+00:00"
+        },
+        "ENHA": {
+          "attempts": 1,
+          "deferred_at": "2026-10-30T23:14:04+00:00",
+          "reason": "below_market_cap",
+          "until": "2026-11-06T23:14:04+00:00"
+        },
         "EROC": {
           "attempts": 0,
           "deferred_at": "2026-10-28T01:23:11+00:00",
@@ -11588,14 +10897,14 @@
           "until": "2026-10-31T02:05:23+00:00"
         }
       },
-      "provider_deferred_symbols": 4,
-      "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 8,
-      "requested_this_run": 162,
-      "result_rows": 1431,
-      "returned_this_run": 162,
-      "started_at": "2026-10-30T01:59:14+00:00",
-      "status": "partial",
+      "provider_deferred_symbols": 6,
+      "refresh_mode": "gap_fill",
+      "remaining_symbols": 0,
+      "requested_this_run": 10,
+      "result_rows": 1436,
+      "returned_this_run": 8,
+      "started_at": "2026-10-30T23:14:15+00:00",
+      "status": "complete",
       "universe_symbols": 1857
     },
     "otc": {
@@ -12294,7 +11603,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-30T18:52:58+00:00",
+      "completed_at": "2026-10-30T23:14:23+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 147,
       "coverage_target_symbols": 147,
@@ -12333,11 +11642,11 @@
     "tsx": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 20,
-      "completed_at": "2026-10-30T02:00:17+00:00",
-      "coverage_pct": 98.9,
-      "coverage_symbols": 354,
-      "coverage_target_symbols": 358,
+      "chunk_symbols": 3,
+      "completed_at": "2026-10-30T23:14:23+00:00",
+      "coverage_pct": 100.0,
+      "coverage_symbols": 357,
+      "coverage_target_symbols": 357,
       "diagnostics": {
         "below_min_market_cap": 0,
         "error_samples": [],
@@ -12345,86 +11654,29 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 20,
-        "returned": 20,
+        "requested": 3,
+        "returned": 3,
         "symbol_outcomes": {
-          "AEM.TO": {
+          "ACT.TO": {
             "status": "row"
           },
-          "AGI.TO": {
+          "HLF.TO": {
             "status": "row"
           },
-          "ARG.TO": {
-            "status": "row"
-          },
-          "ASTL.TO": {
-            "status": "row"
-          },
-          "ATH.TO": {
-            "status": "row"
-          },
-          "ATRL.TO": {
-            "status": "row"
-          },
-          "BHC.TO": {
-            "status": "row"
-          },
-          "BLCO.TO": {
-            "status": "row"
-          },
-          "CCA.TO": {
-            "status": "row"
-          },
-          "CP.TO": {
-            "status": "row"
-          },
-          "DBM.TO": {
-            "status": "row"
-          },
-          "DOO.TO": {
-            "status": "row"
-          },
-          "ELD.TO": {
-            "status": "row"
-          },
-          "FM.TO": {
-            "status": "row"
-          },
-          "K.TO": {
-            "status": "row"
-          },
-          "LNR.TO": {
-            "status": "row"
-          },
-          "NWC.TO": {
-            "status": "row"
-          },
-          "TVE.TO": {
-            "status": "row"
-          },
-          "WCP.TO": {
-            "status": "row"
-          },
-          "WFG.TO": {
+          "TWM.TO": {
             "status": "row"
           }
         }
       },
-      "eligible_symbols": 360,
+      "eligible_symbols": 359,
       "gap_fill_dispatch_counts": {
         "BAMI.TO": 3,
         "FFH-U.TO": 53
       },
-      "gap_fill_last_dispatched_at": "2026-10-23T23:38:37+01:00",
+      "gap_fill_last_dispatched_at": "2026-10-30T23:14:21+00:00",
       "label": "Toronto Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
-      "price_refresh_missing": 0,
-      "price_refresh_rate_limit_errors": 0,
-      "price_refresh_stale_candles": 0,
-      "price_refresh_status": "complete",
-      "price_refresh_updated": 352,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
       "provider_backoff": {
         "BAMI.TO": {
           "attempts": 3,
@@ -12446,20 +11698,20 @@
         }
       },
       "provider_deferred_symbols": 2,
-      "refresh_mode": "changed_fundamentals",
-      "remaining_symbols": 4,
-      "requested_this_run": 20,
-      "result_rows": 354,
-      "returned_this_run": 20,
-      "started_at": "2026-10-30T02:00:11+00:00",
-      "status": "partial",
+      "refresh_mode": "gap_fill",
+      "remaining_symbols": 0,
+      "requested_this_run": 3,
+      "result_rows": 357,
+      "returned_this_run": 3,
+      "started_at": "2026-10-30T23:14:21+00:00",
+      "status": "complete",
       "universe_symbols": 600
     },
     "vienna": {
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-30T18:53:00+00:00",
+      "completed_at": "2026-10-30T23:14:24+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 38,
       "coverage_target_symbols": 38,
@@ -12505,7 +11757,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-30T18:52:57+00:00",
+      "completed_at": "2026-10-30T23:14:21+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 163,
       "coverage_target_symbols": 163,
@@ -12538,9 +11790,9 @@
       "provider_backoff": {
         "BYW6.DE": {
           "attempts": 20,
-          "deferred_at": "2026-10-23T20:32:38+01:00",
+          "deferred_at": "2026-10-30T23:14:04+00:00",
           "reason": "repeated_unresolved",
-          "until": "2026-10-30T20:32:38+00:00"
+          "until": "2026-11-06T23:14:04+00:00"
         }
       },
       "provider_deferred_symbols": 1,
@@ -12554,9 +11806,9 @@
       "universe_symbols": 395
     }
   },
-  "last_completed_exchange": "six",
+  "last_completed_exchange": "tsx",
   "price_refresh_timezone": "Europe/London",
   "price_refreshed_at": "2026-10-30T02:02:08+00:00",
   "schema_version": 1,
-  "updated_at": "2026-10-30T18:53:00+00:00"
+  "updated_at": "2026-10-30T23:14:24+00:00"
 }
