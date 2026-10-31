@@ -3,8 +3,8 @@
     "euronext_amsterdam": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 1,
-      "completed_at": "2026-10-30T23:14:24+00:00",
+      "chunk_symbols": 2,
+      "completed_at": "2026-10-31T01:38:11+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 43,
       "coverage_target_symbols": 43,
@@ -15,10 +15,13 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 1,
-        "returned": 1,
+        "requested": 2,
+        "returned": 2,
         "symbol_outcomes": {
-          "INGA.AS": {
+          "CTPNV.AS": {
+            "status": "row"
+          },
+          "ECMPA.AS": {
             "status": "row"
           }
         }
@@ -34,15 +37,15 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 10,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 1,
+      "requested_this_run": 2,
       "result_rows": 43,
-      "returned_this_run": 1,
-      "started_at": "2026-10-30T02:00:26+00:00",
+      "returned_this_run": 2,
+      "started_at": "2026-10-31T01:38:10+00:00",
       "status": "complete",
       "universe_symbols": 76
     },
@@ -50,7 +53,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 2,
-      "completed_at": "2026-10-30T23:14:24+00:00",
+      "completed_at": "2026-10-31T01:38:10+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 49,
       "coverage_target_symbols": 49,
@@ -82,8 +85,8 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 7,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
+      "price_refresh_updated": 5,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -91,7 +94,7 @@
       "requested_this_run": 2,
       "result_rows": 49,
       "returned_this_run": 2,
-      "started_at": "2026-10-30T02:00:24+00:00",
+      "started_at": "2026-10-31T01:38:09+00:00",
       "status": "complete",
       "universe_symbols": 100
     },
@@ -132,7 +135,7 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 6,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
@@ -147,8 +150,8 @@
     "euronext_paris": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 2,
-      "completed_at": "2026-10-30T23:14:23+00:00",
+      "chunk_symbols": 5,
+      "completed_at": "2026-10-31T01:38:08+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 160,
       "coverage_target_symbols": 160,
@@ -159,13 +162,22 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 2,
-        "returned": 2,
+        "requested": 5,
+        "returned": 5,
         "symbol_outcomes": {
-          "ATO.PA": {
+          "LOUP.PA": {
             "status": "row"
           },
-          "GNFT.PA": {
+          "PLX.PA": {
+            "status": "row"
+          },
+          "SCR.PA": {
+            "status": "row"
+          },
+          "TTE.PA": {
+            "status": "row"
+          },
+          "WAVE.PA": {
             "status": "row"
           }
         }
@@ -176,6 +188,12 @@
       "label": "Euronext Paris",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
+      "price_refresh_missing": 0,
+      "price_refresh_rate_limit_errors": 0,
+      "price_refresh_stale_candles": 0,
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 20,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {
         "QDT.PA": {
           "attempts": 0,
@@ -185,12 +203,12 @@
         }
       },
       "provider_deferred_symbols": 0,
-      "refresh_mode": "gap_fill",
+      "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 2,
+      "requested_this_run": 5,
       "result_rows": 160,
-      "returned_this_run": 2,
-      "started_at": "2026-10-30T06:27:39+00:00",
+      "returned_this_run": 5,
+      "started_at": "2026-10-31T01:38:07+00:00",
       "status": "complete",
       "universe_symbols": 545
     },
@@ -10372,7 +10390,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 3,
-      "completed_at": "2026-10-30T23:14:20+00:00",
+      "completed_at": "2026-10-31T01:38:04+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 238,
       "coverage_target_symbols": 238,
@@ -10386,13 +10404,13 @@
         "requested": 3,
         "returned": 3,
         "symbol_outcomes": {
-          "BWY.L": {
-            "status": "row"
-          },
           "EDV.L": {
             "status": "row"
           },
           "LLOY.L": {
+            "status": "row"
+          },
+          "SHEL.L": {
             "status": "row"
           }
         }
@@ -10409,8 +10427,8 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 238,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
+      "price_refresh_updated": 234,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {
         "CRTM.L": {
           "attempts": 1,
@@ -10429,9 +10447,9 @@
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
       "requested_this_run": 3,
-      "result_rows": 239,
+      "result_rows": 238,
       "returned_this_run": 3,
-      "started_at": "2026-10-30T02:00:06+00:00",
+      "started_at": "2026-10-31T01:38:03+00:00",
       "status": "complete",
       "universe_symbols": 475
     },
@@ -10464,6 +10482,12 @@
       "label": "LSE AIM",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
+      "price_refresh_missing": 0,
+      "price_refresh_rate_limit_errors": 0,
+      "price_refresh_stale_candles": 0,
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 6,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "gap_fill",
@@ -10478,8 +10502,8 @@
     "madrid": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 3,
-      "completed_at": "2026-10-30T23:14:24+00:00",
+      "chunk_symbols": 5,
+      "completed_at": "2026-10-31T01:38:09+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 72,
       "coverage_target_symbols": 72,
@@ -10488,92 +10512,33 @@
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
-        "price_failures": 1,
+        "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 1,
+        "requested": 5,
+        "returned": 5,
         "symbol_outcomes": {
-          "SCHLR.MC": {
-            "status": "price_failure"
+          "AMS.MC": {
+            "status": "row"
+          },
+          "BBVA.MC": {
+            "status": "row"
+          },
+          "R4.MC": {
+            "status": "row"
+          },
+          "REP.MC": {
+            "status": "row"
+          },
+          "SAB.MC": {
+            "status": "row"
           }
         }
       },
       "eligible_symbols": 75,
       "gap_fill_dispatch_counts": {
-        "A3M.MC": 0,
-        "ACS.MC": 0,
-        "ACX.MC": 0,
-        "AEDAS.MC": 0,
-        "AENA.MC": 0,
-        "ALM.MC": 0,
-        "AMS.MC": 0,
-        "ANA.MC": 0,
-        "ANE.MC": 0,
-        "ART.MC": 0,
-        "BBVA.MC": 0,
-        "BKT.MC": 0,
-        "CABK.MC": 0,
-        "CAF.MC": 0,
-        "CASH.MC": 0,
-        "CBAV.MC": 0,
-        "CIE.MC": 0,
-        "CIRSA.MC": 0,
-        "CLNX.MC": 0,
-        "CMO.MC": 0,
-        "COL.MC": 0,
-        "COXG.MC": 0,
-        "DIA.MC": 0,
-        "DIGIS.MC": 0,
-        "EBRO.MC": 0,
         "EDR.MC": 3,
-        "ELE.MC": 0,
-        "ENC.MC": 0,
-        "ENG.MC": 0,
-        "ENO.MC": 0,
-        "FAE.MC": 0,
-        "FCC.MC": 0,
-        "FDR.MC": 0,
-        "GEST.MC": 0,
-        "GGC.MC": 0,
-        "GRE.MC": 0,
-        "GRF.MC": 0,
-        "HOME.MC": 0,
-        "IBE.MC": 0,
-        "IDR.MC": 0,
-        "IMC.MC": 0,
-        "ITX.MC": 0,
-        "LDA.MC": 0,
-        "LOG.MC": 0,
-        "MAP.MC": 0,
-        "MEL.MC": 0,
-        "MRL.MC": 0,
-        "MVC.MC": 0,
-        "NTGY.MC": 0,
-        "PHM.MC": 0,
-        "PSG.MC": 0,
-        "PUIG.MC": 0,
-        "R4.MC": 0,
-        "RED.MC": 0,
-        "REP.MC": 0,
-        "RLIA.MC": 0,
-        "ROVI.MC": 0,
-        "SAB.MC": 0,
-        "SAN.MC": 0,
         "SCHLR.MC": 3,
-        "SCHST.MC": 77,
-        "SCYR.MC": 0,
-        "SLR.MC": 0,
-        "TEF.MC": 0,
-        "TRE.MC": 0,
-        "TSK.MC": 0,
-        "UNI.MC": 0,
-        "VID.MC": 0,
-        "VIS.MC": 0,
-        "YATO.MC": 0,
-        "YCPS.MC": 0,
-        "YEPSA.MC": 0,
-        "YGMP.MC": 0,
-        "YVIV.MC": 0,
-        "YZBL.MC": 0
+        "SCHST.MC": 77
       },
       "gap_fill_last_dispatched_at": "2026-10-30T18:52:58+00:00",
       "label": "Bolsa de Madrid",
@@ -10583,8 +10548,8 @@
       "price_refresh_rate_limit_errors": 0,
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
-      "price_refresh_updated": 27,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
+      "price_refresh_updated": 24,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {
         "EDR.MC": {
           "attempts": 3,
@@ -10608,86 +10573,416 @@
       "provider_deferred_symbols": 3,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 1,
+      "requested_this_run": 5,
       "result_rows": 72,
-      "returned_this_run": 0,
-      "started_at": "2026-10-30T02:00:23+00:00",
+      "returned_this_run": 5,
+      "started_at": "2026-10-31T01:38:08+00:00",
       "status": "complete",
       "universe_symbols": 277
     },
     "nasdaq": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 19,
-      "completed_at": "2026-10-30T23:14:15+00:00",
+      "chunk_symbols": 129,
+      "completed_at": "2026-10-31T01:37:10+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 1256,
       "coverage_target_symbols": 1256,
       "diagnostics": {
-        "below_min_market_cap": 1,
+        "below_min_market_cap": 0,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 19,
-        "returned": 18,
+        "requested": 129,
+        "returned": 129,
         "symbol_outcomes": {
-          "ARRY": {
+          "ACIC": {
             "status": "row"
           },
-          "ARVN": {
+          "AGNC": {
             "status": "row"
           },
-          "BBCP": {
+          "ALGM": {
             "status": "row"
           },
-          "BRAI": {
+          "ALHC": {
             "status": "row"
           },
-          "BRCB": {
-            "status": "below_market_cap"
-          },
-          "CBIO": {
+          "ALKT": {
             "status": "row"
           },
-          "CTMX": {
+          "ALNY": {
             "status": "row"
           },
-          "CZNC": {
+          "AMZN": {
             "status": "row"
           },
-          "DNUT": {
+          "AROW": {
             "status": "row"
           },
-          "ENTX": {
+          "ATEC": {
             "status": "row"
           },
-          "MCFT": {
+          "AXTI": {
             "status": "row"
           },
-          "NEXN": {
+          "BAND": {
             "status": "row"
           },
-          "NGNE": {
+          "BBIO": {
             "status": "row"
           },
-          "OCS": {
+          "BIIB": {
             "status": "row"
           },
-          "SENS": {
+          "BWB": {
             "status": "row"
           },
-          "SGHT": {
+          "BWFG": {
+            "status": "row"
+          },
+          "CACC": {
+            "status": "row"
+          },
+          "CARE": {
+            "status": "row"
+          },
+          "CART": {
+            "status": "row"
+          },
+          "CCB": {
+            "status": "row"
+          },
+          "CCC": {
+            "status": "row"
+          },
+          "CDNA": {
+            "status": "row"
+          },
+          "CLBK": {
+            "status": "row"
+          },
+          "CLMB": {
+            "status": "row"
+          },
+          "CMPR": {
+            "status": "row"
+          },
+          "CNXN": {
+            "status": "row"
+          },
+          "COHU": {
+            "status": "row"
+          },
+          "COIN": {
+            "status": "row"
+          },
+          "COLM": {
+            "status": "row"
+          },
+          "CRON": {
+            "status": "row"
+          },
+          "CROX": {
+            "status": "row"
+          },
+          "CTSH": {
+            "status": "row"
+          },
+          "CVCO": {
+            "status": "row"
+          },
+          "DASH": {
+            "status": "row"
+          },
+          "DGICA": {
+            "status": "row"
+          },
+          "DGICB": {
+            "status": "row"
+          },
+          "DRS": {
+            "status": "row"
+          },
+          "DRVN": {
+            "status": "row"
+          },
+          "DXCM": {
+            "status": "row"
+          },
+          "EBAY": {
+            "status": "row"
+          },
+          "ENTG": {
+            "status": "row"
+          },
+          "ERIE": {
+            "status": "row"
+          },
+          "ESTA": {
+            "status": "row"
+          },
+          "EXEL": {
+            "status": "row"
+          },
+          "EXPO": {
+            "status": "row"
+          },
+          "EXTR": {
+            "status": "row"
+          },
+          "FMBH": {
+            "status": "row"
+          },
+          "FRHC": {
+            "status": "row"
+          },
+          "FSLR": {
+            "status": "row"
+          },
+          "FTAI": {
+            "status": "row"
+          },
+          "FTRE": {
+            "status": "row"
+          },
+          "GDYN": {
+            "status": "row"
+          },
+          "GILD": {
+            "status": "row"
+          },
+          "GLPI": {
+            "status": "row"
+          },
+          "GOOG": {
+            "status": "row"
+          },
+          "GOOGL": {
+            "status": "row"
+          },
+          "GTX": {
+            "status": "row"
+          },
+          "HAPN": {
+            "status": "row"
+          },
+          "HAS": {
+            "status": "row"
+          },
+          "IDCC": {
+            "status": "row"
+          },
+          "ILMN": {
+            "status": "row"
+          },
+          "INCY": {
+            "status": "row"
+          },
+          "INDV": {
+            "status": "row"
+          },
+          "INSM": {
+            "status": "row"
+          },
+          "INTC": {
+            "status": "row"
+          },
+          "INTR": {
+            "status": "row"
+          },
+          "KLAC": {
+            "status": "row"
+          },
+          "KRYS": {
+            "status": "row"
+          },
+          "KTOS": {
+            "status": "row"
+          },
+          "KYMR": {
+            "status": "row"
+          },
+          "LAUR": {
+            "status": "row"
+          },
+          "LGND": {
+            "status": "row"
+          },
+          "LIN": {
+            "status": "row"
+          },
+          "LKQ": {
+            "status": "row"
+          },
+          "LNT": {
+            "status": "row"
+          },
+          "LOGI": {
+            "status": "row"
+          },
+          "LPLA": {
+            "status": "row"
+          },
+          "MBLY": {
+            "status": "row"
+          },
+          "MDLZ": {
+            "status": "row"
+          },
+          "MEOH": {
+            "status": "row"
+          },
+          "MMSI": {
+            "status": "row"
+          },
+          "MNST": {
+            "status": "row"
+          },
+          "MPWR": {
+            "status": "row"
+          },
+          "NCNO": {
+            "status": "row"
+          },
+          "NEXT": {
+            "status": "row"
+          },
+          "NMRK": {
+            "status": "row"
+          },
+          "NTRS": {
+            "status": "row"
+          },
+          "NVCR": {
+            "status": "row"
+          },
+          "OMCL": {
+            "status": "row"
+          },
+          "OPK": {
+            "status": "row"
+          },
+          "OSIS": {
+            "status": "row"
+          },
+          "OSPN": {
+            "status": "row"
+          },
+          "OSW": {
+            "status": "row"
+          },
+          "PATK": {
+            "status": "row"
+          },
+          "PFG": {
+            "status": "row"
+          },
+          "PGY": {
+            "status": "row"
+          },
+          "PLPC": {
+            "status": "row"
+          },
+          "PPC": {
+            "status": "row"
+          },
+          "PTCT": {
+            "status": "row"
+          },
+          "PTEN": {
+            "status": "row"
+          },
+          "PWP": {
+            "status": "row"
+          },
+          "QS": {
+            "status": "row"
+          },
+          "REAL": {
+            "status": "row"
+          },
+          "RIVN": {
+            "status": "row"
+          },
+          "RJET": {
+            "status": "row"
+          },
+          "SAIA": {
+            "status": "row"
+          },
+          "SBUX": {
+            "status": "row"
+          },
+          "SDGR": {
+            "status": "row"
+          },
+          "SIRI": {
+            "status": "row"
+          },
+          "SKYW": {
+            "status": "row"
+          },
+          "SLDE": {
+            "status": "row"
+          },
+          "SPSC": {
+            "status": "row"
+          },
+          "STGW": {
+            "status": "row"
+          },
+          "STOK": {
+            "status": "row"
+          },
+          "STRL": {
+            "status": "row"
+          },
+          "SUPN": {
+            "status": "row"
+          },
+          "TBBK": {
+            "status": "row"
+          },
+          "TFSL": {
+            "status": "row"
+          },
+          "TPG": {
+            "status": "row"
+          },
+          "TROW": {
+            "status": "row"
+          },
+          "TRS": {
+            "status": "row"
+          },
+          "TSAT": {
+            "status": "row"
+          },
+          "TW": {
             "status": "row"
           },
           "ULH": {
             "status": "row"
           },
-          "WEYS": {
+          "UMBF": {
             "status": "row"
           },
-          "XRPN": {
+          "VKTX": {
+            "status": "row"
+          },
+          "WSBC": {
+            "status": "row"
+          },
+          "WTBA": {
+            "status": "row"
+          },
+          "WTW": {
+            "status": "row"
+          },
+          "XEL": {
             "status": "row"
           }
         }
@@ -10706,6 +11001,12 @@
       "label": "NASDAQ",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
+      "price_refresh_missing": 0,
+      "price_refresh_rate_limit_errors": 0,
+      "price_refresh_stale_candles": 0,
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 1253,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {
         "AGCC": {
           "attempts": 51,
@@ -10743,23 +11044,11 @@
           "reason": "repeated_unresolved",
           "until": "2026-10-31T02:05:23+00:00"
         },
-        "NNNN": {
-          "attempts": 1,
-          "deferred_at": "2026-10-23T23:38:14+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-30T23:38:14+00:00"
-        },
         "OMEX": {
           "attempts": 0,
           "deferred_at": "2026-10-30T01:58:42+00:00",
           "reason": "below_market_cap",
           "until": "2026-11-06T01:58:42+00:00"
-        },
-        "PASW": {
-          "attempts": 1,
-          "deferred_at": "2026-10-23T23:38:14+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-30T23:38:14+00:00"
         },
         "RMR": {
           "attempts": 51,
@@ -10772,70 +11061,607 @@
           "deferred_at": "2026-10-24T02:05:23+01:00",
           "reason": "repeated_unresolved",
           "until": "2026-10-31T02:05:23+00:00"
-        },
-        "USGO": {
-          "attempts": 1,
-          "deferred_at": "2026-10-23T23:38:14+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-30T23:38:14+00:00"
         }
       },
       "provider_deferred_symbols": 7,
-      "refresh_mode": "gap_fill",
+      "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 19,
+      "requested_this_run": 129,
       "result_rows": 1256,
-      "returned_this_run": 18,
-      "started_at": "2026-10-30T23:14:04+00:00",
+      "returned_this_run": 129,
+      "started_at": "2026-10-31T01:36:33+00:00",
       "status": "complete",
       "universe_symbols": 3326
     },
     "nyse": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 10,
-      "completed_at": "2026-10-30T23:14:20+00:00",
+      "chunk_symbols": 191,
+      "completed_at": "2026-10-31T01:38:03+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 1436,
       "coverage_target_symbols": 1436,
       "diagnostics": {
-        "below_min_market_cap": 2,
+        "below_min_market_cap": 0,
         "error_samples": [],
         "market_cap_failures": 0,
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 10,
-        "returned": 8,
+        "requested": 191,
+        "returned": 191,
         "symbol_outcomes": {
+          "AA": {
+            "status": "row"
+          },
+          "AAMI": {
+            "status": "row"
+          },
           "ACCO": {
             "status": "row"
           },
-          "AGM-A": {
+          "AGCO": {
             "status": "row"
           },
-          "CWH": {
-            "status": "below_market_cap"
-          },
-          "ENHA": {
-            "status": "below_market_cap"
-          },
-          "ETD": {
+          "AIN": {
             "status": "row"
           },
-          "GTN-A": {
+          "AJG": {
             "status": "row"
           },
-          "MEI": {
+          "AMP": {
             "status": "row"
           },
-          "NRGV": {
+          "AMRZ": {
             "status": "row"
           },
-          "NWAX": {
+          "AOS": {
             "status": "row"
           },
-          "WSO-B": {
+          "APAM": {
+            "status": "row"
+          },
+          "APG": {
+            "status": "row"
+          },
+          "ARES": {
+            "status": "row"
+          },
+          "ARIS": {
+            "status": "row"
+          },
+          "ATI": {
+            "status": "row"
+          },
+          "ATR": {
+            "status": "row"
+          },
+          "AU": {
+            "status": "row"
+          },
+          "AVY": {
+            "status": "row"
+          },
+          "AX": {
+            "status": "row"
+          },
+          "AXTA": {
+            "status": "row"
+          },
+          "BAX": {
+            "status": "row"
+          },
+          "BC": {
+            "status": "row"
+          },
+          "BDC": {
+            "status": "row"
+          },
+          "BDN": {
+            "status": "row"
+          },
+          "BFLY": {
+            "status": "row"
+          },
+          "BG": {
+            "status": "row"
+          },
+          "BHVN": {
+            "status": "row"
+          },
+          "BLDR": {
+            "status": "row"
+          },
+          "BLX": {
+            "status": "row"
+          },
+          "BMY": {
+            "status": "row"
+          },
+          "BWA": {
+            "status": "row"
+          },
+          "BXMT": {
+            "status": "row"
+          },
+          "CARR": {
+            "status": "row"
+          },
+          "CARS": {
+            "status": "row"
+          },
+          "CAT": {
+            "status": "row"
+          },
+          "CCS": {
+            "status": "row"
+          },
+          "CFR": {
+            "status": "row"
+          },
+          "CGAU": {
+            "status": "row"
+          },
+          "CHE": {
+            "status": "row"
+          },
+          "CNO": {
+            "status": "row"
+          },
+          "CNX": {
+            "status": "row"
+          },
+          "COUR": {
+            "status": "row"
+          },
+          "CR": {
+            "status": "row"
+          },
+          "CRH": {
+            "status": "row"
+          },
+          "CSW": {
+            "status": "row"
+          },
+          "CUZ": {
+            "status": "row"
+          },
+          "CVLG": {
+            "status": "row"
+          },
+          "CVSA": {
+            "status": "row"
+          },
+          "CWT": {
+            "status": "row"
+          },
+          "DECK": {
+            "status": "row"
+          },
+          "DFH": {
+            "status": "row"
+          },
+          "DFIN": {
+            "status": "row"
+          },
+          "DHI": {
+            "status": "row"
+          },
+          "DLR": {
+            "status": "row"
+          },
+          "DTM": {
+            "status": "row"
+          },
+          "DVA": {
+            "status": "row"
+          },
+          "DXC": {
+            "status": "row"
+          },
+          "ECL": {
+            "status": "row"
+          },
+          "EFXT": {
+            "status": "row"
+          },
+          "EIX": {
+            "status": "row"
+          },
+          "EME": {
+            "status": "row"
+          },
+          "EPAC": {
+            "status": "row"
+          },
+          "EPD": {
+            "status": "row"
+          },
+          "EPR": {
+            "status": "row"
+          },
+          "F": {
+            "status": "row"
+          },
+          "FCN": {
+            "status": "row"
+          },
+          "FCPT": {
+            "status": "row"
+          },
+          "FET": {
+            "status": "row"
+          },
+          "FHI": {
+            "status": "row"
+          },
+          "FMC": {
+            "status": "row"
+          },
+          "FND": {
+            "status": "row"
+          },
+          "FNV": {
+            "status": "row"
+          },
+          "FOR": {
+            "status": "row"
+          },
+          "FSS": {
+            "status": "row"
+          },
+          "FTI": {
+            "status": "row"
+          },
+          "GATX": {
+            "status": "row"
+          },
+          "GDDY": {
+            "status": "row"
+          },
+          "GHC": {
+            "status": "row"
+          },
+          "GIL": {
+            "status": "row"
+          },
+          "GLW": {
+            "status": "row"
+          },
+          "GPI": {
+            "status": "row"
+          },
+          "GVA": {
+            "status": "row"
+          },
+          "H": {
+            "status": "row"
+          },
+          "HAFN": {
+            "status": "row"
+          },
+          "HBM": {
+            "status": "row"
+          },
+          "HCA": {
+            "status": "row"
+          },
+          "HG": {
+            "status": "row"
+          },
+          "HGV": {
+            "status": "row"
+          },
+          "HII": {
+            "status": "row"
+          },
+          "HIPO": {
+            "status": "row"
+          },
+          "HOG": {
+            "status": "row"
+          },
+          "HSY": {
+            "status": "row"
+          },
+          "HTGC": {
+            "status": "row"
+          },
+          "HWM": {
+            "status": "row"
+          },
+          "ICE": {
+            "status": "row"
+          },
+          "IDA": {
+            "status": "row"
+          },
+          "IIIN": {
+            "status": "row"
+          },
+          "INGM": {
+            "status": "row"
+          },
+          "INVH": {
+            "status": "row"
+          },
+          "INVX": {
+            "status": "row"
+          },
+          "IR": {
+            "status": "row"
+          },
+          "ITGR": {
+            "status": "row"
+          },
+          "IVR": {
+            "status": "row"
+          },
+          "KBR": {
+            "status": "row"
+          },
+          "KIM": {
+            "status": "row"
+          },
+          "KRG": {
+            "status": "row"
+          },
+          "KWR": {
+            "status": "row"
+          },
+          "LHX": {
+            "status": "row"
+          },
+          "LLY": {
+            "status": "row"
+          },
+          "LNG": {
+            "status": "row"
+          },
+          "LSPD": {
+            "status": "row"
+          },
+          "LTH": {
+            "status": "row"
+          },
+          "LXU": {
+            "status": "row"
+          },
+          "MA": {
+            "status": "row"
+          },
+          "MAA": {
+            "status": "row"
+          },
+          "MCS": {
+            "status": "row"
+          },
+          "MD": {
+            "status": "row"
+          },
+          "MGA": {
+            "status": "row"
+          },
+          "MHK": {
+            "status": "row"
+          },
+          "MIAX": {
+            "status": "row"
+          },
+          "MO": {
+            "status": "row"
+          },
+          "MPT": {
+            "status": "row"
+          },
+          "MRK": {
+            "status": "row"
+          },
+          "MTX": {
+            "status": "row"
+          },
+          "MTZ": {
+            "status": "row"
+          },
+          "NCLH": {
+            "status": "row"
+          },
+          "NEU": {
+            "status": "row"
+          },
+          "NPKI": {
+            "status": "row"
+          },
+          "NSP": {
+            "status": "row"
+          },
+          "NWN": {
+            "status": "row"
+          },
+          "OKE": {
+            "status": "row"
+          },
+          "OLN": {
+            "status": "row"
+          },
+          "ORA": {
+            "status": "row"
+          },
+          "OSK": {
+            "status": "row"
+          },
+          "OTIS": {
+            "status": "row"
+          },
+          "P": {
+            "status": "row"
+          },
+          "PAG": {
+            "status": "row"
+          },
+          "PBF": {
+            "status": "row"
+          },
+          "PBI": {
+            "status": "row"
+          },
+          "PEB": {
+            "status": "row"
+          },
+          "PEN": {
+            "status": "row"
+          },
+          "PFGC": {
+            "status": "row"
+          },
+          "PFSI": {
+            "status": "row"
+          },
+          "PHIN": {
+            "status": "row"
+          },
+          "PINS": {
+            "status": "row"
+          },
+          "PMT": {
+            "status": "row"
+          },
+          "POR": {
+            "status": "row"
+          },
+          "PRLB": {
+            "status": "row"
+          },
+          "PUMP": {
+            "status": "row"
+          },
+          "PWR": {
+            "status": "row"
+          },
+          "QSR": {
+            "status": "row"
+          },
+          "RBLX": {
+            "status": "row"
+          },
+          "RDDT": {
+            "status": "row"
+          },
+          "RES": {
+            "status": "row"
+          },
+          "RKT": {
+            "status": "row"
+          },
+          "RMD": {
+            "status": "row"
+          },
+          "RSG": {
+            "status": "row"
+          },
+          "RSI": {
+            "status": "row"
+          },
+          "RXO": {
+            "status": "row"
+          },
+          "RYAN": {
+            "status": "row"
+          },
+          "SAH": {
+            "status": "row"
+          },
+          "SBSI": {
+            "status": "row"
+          },
+          "SCI": {
+            "status": "row"
+          },
+          "SLGN": {
+            "status": "row"
+          },
+          "SNDR": {
+            "status": "row"
+          },
+          "SPXC": {
+            "status": "row"
+          },
+          "SXI": {
+            "status": "row"
+          },
+          "SYK": {
+            "status": "row"
+          },
+          "TEX": {
+            "status": "row"
+          },
+          "TFII": {
+            "status": "row"
+          },
+          "TFPM": {
+            "status": "row"
+          },
+          "THC": {
+            "status": "row"
+          },
+          "THG": {
+            "status": "row"
+          },
+          "TNET": {
+            "status": "row"
+          },
+          "TRN": {
+            "status": "row"
+          },
+          "TT": {
+            "status": "row"
+          },
+          "TTE": {
+            "status": "row"
+          },
+          "TWLO": {
+            "status": "row"
+          },
+          "TXT": {
+            "status": "row"
+          },
+          "UVE": {
+            "status": "row"
+          },
+          "VLTO": {
+            "status": "row"
+          },
+          "VMC": {
+            "status": "row"
+          },
+          "VVX": {
+            "status": "row"
+          },
+          "VZ": {
+            "status": "row"
+          },
+          "WCC": {
+            "status": "row"
+          },
+          "WD": {
+            "status": "row"
+          },
+          "WEC": {
+            "status": "row"
+          },
+          "WKC": {
+            "status": "row"
+          },
+          "WST": {
+            "status": "row"
+          },
+          "WTI": {
+            "status": "row"
+          },
+          "WY": {
+            "status": "row"
+          },
+          "XPO": {
             "status": "row"
           }
         }
@@ -10853,6 +11679,12 @@
       "label": "NYSE",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
+      "price_refresh_missing": 0,
+      "price_refresh_rate_limit_errors": 0,
+      "price_refresh_stale_candles": 0,
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 1410,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {
         "CWH": {
           "attempts": 1,
@@ -10898,12 +11730,12 @@
         }
       },
       "provider_deferred_symbols": 6,
-      "refresh_mode": "gap_fill",
+      "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 10,
+      "requested_this_run": 191,
       "result_rows": 1436,
-      "returned_this_run": 8,
-      "started_at": "2026-10-30T23:14:15+00:00",
+      "returned_this_run": 191,
+      "started_at": "2026-10-31T01:37:11+00:00",
       "status": "complete",
       "universe_symbols": 1857
     },
@@ -11603,7 +12435,7 @@
       "analysed_limit": 0,
       "chunk_start": 0,
       "chunk_symbols": 1,
-      "completed_at": "2026-10-30T23:14:23+00:00",
+      "completed_at": "2026-10-31T01:38:08+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 147,
       "coverage_target_symbols": 147,
@@ -11617,7 +12449,7 @@
         "requested": 1,
         "returned": 1,
         "symbol_outcomes": {
-          "SWTQ.SW": {
+          "IDIA.SW": {
             "status": "row"
           }
         }
@@ -11628,22 +12460,28 @@
       "label": "SIX Swiss Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
+      "price_refresh_missing": 0,
+      "price_refresh_rate_limit_errors": 0,
+      "price_refresh_stale_candles": 0,
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 92,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
-      "refresh_mode": "gap_fill",
+      "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
       "requested_this_run": 1,
       "result_rows": 147,
       "returned_this_run": 1,
-      "started_at": "2026-10-30T06:27:40+00:00",
+      "started_at": "2026-10-31T01:38:08+00:00",
       "status": "complete",
       "universe_symbols": 211
     },
     "tsx": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 3,
-      "completed_at": "2026-10-30T23:14:23+00:00",
+      "chunk_symbols": 19,
+      "completed_at": "2026-10-31T01:38:07+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 357,
       "coverage_target_symbols": 357,
@@ -11654,16 +12492,64 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 3,
-        "returned": 3,
+        "requested": 19,
+        "returned": 19,
         "symbol_outcomes": {
-          "ACT.TO": {
+          "AAV.TO": {
             "status": "row"
           },
-          "HLF.TO": {
+          "AC.TO": {
             "status": "row"
           },
-          "TWM.TO": {
+          "ALA.TO": {
+            "status": "row"
+          },
+          "ARE.TO": {
+            "status": "row"
+          },
+          "ATRL.TO": {
+            "status": "row"
+          },
+          "BDI.TO": {
+            "status": "row"
+          },
+          "CG.TO": {
+            "status": "row"
+          },
+          "CS.TO": {
+            "status": "row"
+          },
+          "DBM.TO": {
+            "status": "row"
+          },
+          "DOO.TO": {
+            "status": "row"
+          },
+          "EFX.TO": {
+            "status": "row"
+          },
+          "LNR.TO": {
+            "status": "row"
+          },
+          "MKP.TO": {
+            "status": "row"
+          },
+          "MX.TO": {
+            "status": "row"
+          },
+          "NWC.TO": {
+            "status": "row"
+          },
+          "TFII.TO": {
+            "status": "row"
+          },
+          "TOY.TO": {
+            "status": "row"
+          },
+          "TSAT.TO": {
+            "status": "row"
+          },
+          "X.TO": {
             "status": "row"
           }
         }
@@ -11677,6 +12563,12 @@
       "label": "Toronto Stock Exchange",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
+      "price_refresh_missing": 0,
+      "price_refresh_rate_limit_errors": 0,
+      "price_refresh_stale_candles": 0,
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 336,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {
         "BAMI.TO": {
           "attempts": 3,
@@ -11689,29 +12581,23 @@
           "deferred_at": "2026-10-24T02:05:23+01:00",
           "reason": "repeated_unresolved",
           "until": "2026-10-31T02:05:23+00:00"
-        },
-        "TCL-A.TO": {
-          "attempts": 1,
-          "deferred_at": "2026-10-23T23:38:14+01:00",
-          "reason": "below_market_cap",
-          "until": "2026-10-30T23:38:14+00:00"
         }
       },
       "provider_deferred_symbols": 2,
-      "refresh_mode": "gap_fill",
+      "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 3,
+      "requested_this_run": 19,
       "result_rows": 357,
-      "returned_this_run": 3,
-      "started_at": "2026-10-30T23:14:21+00:00",
+      "returned_this_run": 19,
+      "started_at": "2026-10-31T01:38:05+00:00",
       "status": "complete",
       "universe_symbols": 600
     },
     "vienna": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 1,
-      "completed_at": "2026-10-30T23:14:24+00:00",
+      "chunk_symbols": 3,
+      "completed_at": "2026-10-31T01:38:10+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 38,
       "coverage_target_symbols": 38,
@@ -11722,10 +12608,16 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 1,
-        "returned": 1,
+        "requested": 3,
+        "returned": 3,
         "symbol_outcomes": {
-          "PAL.VI": {
+          "AMAG.VI": {
+            "status": "row"
+          },
+          "ANDR.VI": {
+            "status": "row"
+          },
+          "OMV.VI": {
             "status": "row"
           }
         }
@@ -11741,23 +12633,23 @@
       "price_refresh_stale_candles": 0,
       "price_refresh_status": "complete",
       "price_refresh_updated": 13,
-      "price_refreshed_at": "2026-10-30T02:02:08+00:00",
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {},
       "provider_deferred_symbols": 0,
       "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 1,
+      "requested_this_run": 3,
       "result_rows": 38,
-      "returned_this_run": 1,
-      "started_at": "2026-10-29T01:50:33+00:00",
+      "returned_this_run": 3,
+      "started_at": "2026-10-31T01:38:10+00:00",
       "status": "complete",
       "universe_symbols": 65
     },
     "xetra": {
       "analysed_limit": 0,
       "chunk_start": 0,
-      "chunk_symbols": 2,
-      "completed_at": "2026-10-30T23:14:21+00:00",
+      "chunk_symbols": 8,
+      "completed_at": "2026-10-31T01:38:05+00:00",
       "coverage_pct": 100.0,
       "coverage_symbols": 163,
       "coverage_target_symbols": 163,
@@ -11768,13 +12660,31 @@
         "other_errors": 0,
         "price_failures": 0,
         "rate_limit_errors": 0,
-        "requested": 2,
-        "returned": 2,
+        "requested": 8,
+        "returned": 8,
         "symbol_outcomes": {
-          "1INN.DE": {
+          "4A3.DE": {
             "status": "row"
           },
-          "EVT.DE": {
+          "ADS.DE": {
+            "status": "row"
+          },
+          "AIXA.DE": {
+            "status": "row"
+          },
+          "FPE.DE": {
+            "status": "row"
+          },
+          "HBH.DE": {
+            "status": "row"
+          },
+          "KBX.DE": {
+            "status": "row"
+          },
+          "KGX.DE": {
+            "status": "row"
+          },
+          "VOW.DE": {
             "status": "row"
           }
         }
@@ -11787,6 +12697,12 @@
       "label": "Deutsche B\u00f6rse Xetra",
       "minimum_market_cap_bn": 0.5,
       "next_cursor": 0,
+      "price_refresh_missing": 0,
+      "price_refresh_rate_limit_errors": 0,
+      "price_refresh_stale_candles": 0,
+      "price_refresh_status": "complete",
+      "price_refresh_updated": 139,
+      "price_refreshed_at": "2026-10-31T01:39:36+00:00",
       "provider_backoff": {
         "BYW6.DE": {
           "attempts": 20,
@@ -11796,19 +12712,19 @@
         }
       },
       "provider_deferred_symbols": 1,
-      "refresh_mode": "gap_fill",
+      "refresh_mode": "changed_fundamentals",
       "remaining_symbols": 0,
-      "requested_this_run": 2,
+      "requested_this_run": 8,
       "result_rows": 163,
-      "returned_this_run": 2,
-      "started_at": "2026-10-30T06:27:36+00:00",
+      "returned_this_run": 8,
+      "started_at": "2026-10-31T01:38:04+00:00",
       "status": "complete",
       "universe_symbols": 395
     }
   },
-  "last_completed_exchange": "tsx",
+  "last_completed_exchange": "euronext_amsterdam",
   "price_refresh_timezone": "Europe/London",
-  "price_refreshed_at": "2026-10-30T02:02:08+00:00",
+  "price_refreshed_at": "2026-10-31T01:39:36+00:00",
   "schema_version": 1,
-  "updated_at": "2026-10-30T23:14:24+00:00"
+  "updated_at": "2026-10-31T01:38:11+00:00"
 }
