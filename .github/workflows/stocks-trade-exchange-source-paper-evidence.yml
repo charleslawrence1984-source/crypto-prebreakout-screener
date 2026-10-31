@@ -1,0 +1,125 @@
+name: Stocks TRADE first-party source access and genuine forward paper eligibility (DRAFT)
+
+on:
+  pull_request:
+    paths:
+      - "trade_exchange_source_probe.py"
+      - "trade_prospective_eligibility.py"
+      - "tests/test_trade_exchange_source_probe.py"
+      - "tests/test_trade_prospective_eligibility.py"
+      - ".github/workflows/stocks-trade-exchange-source-paper-evidence.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  first-party-data-and-real-forward-observation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install original unchanged Trade engine dependencies
+        run: pip install -r requirements.txt
+      - name: Test genuine exchange source classification and paper entry fail-closed
+        run: |
+          python -m py_compile trade_exchange_source_probe.py trade_prospective_eligibility.py
+          python -m unittest discover -s tests -p test_trade_exchange_source_probe.py -v
+          python -m unittest discover -s tests -p test_trade_prospective_eligibility.py -v
+      - name: Real read-only first-party Nasdaq symbol-directory and public price access test
+        run: python trade_exchange_source_probe.py --output original_exchange_source_probe.json
+      - name: Genuine new timestamped source-only observation (no broker)
+        run: python trade_forward_paper_observation.py --output fresh_trade_observation.json
+      - name: Audited paper eligibility from actual source probes, NEVER an order
+        run: |
+          python trade_prospective_eligibility.py \
+            --source fresh_trade_observation.json \
+            --listing original_exchange_source_probe.json \
+            --output authentic_source_paper_eligibility.json
+      - name: Fetch immutable first prospective frozen six-name baseline
+        uses: actions/download-artifact@v4
+        with:
+          name: stocks-trade-prospective-source-snapshot
+          run-id: 40894667798
+          github-token: ${{ github.token }}
+          path: first_frozen_2026_10_29
+      - name: Compare actual source sessions strictly forward (not paper P&L)
+        run: |
+          python trade_forward_cohort_compare.py \
+            --prior first_frozen_2026_10_29/trade_forward_prospective_source_snapshot.json \
+            --prior-sha256 302ba6a8a38a34c0b783030d7758dd90064a42731ae04461a75632b05cd20efa \
+            --later fresh_trade_observation.json \
+            --output authentic_source_forward_comparison.json
+      - name: Verify real receipts and original Trade source code SHA; never promote fake BUY
+        run: |
+          python - <<'PY'
+          import json,hashlib,pathlib
+          price=json.loads(pathlib.Path("original_exchange_source_probe.json").read_text())
+          eligibility=json.loads(pathlib.Path("authentic_source_paper_eligibility.json").read_text())
+          snapshots=json.loads(pathlib.Path("fresh_trade_observation.json").read_text())
+          forward=json.loads(pathlib.Path("authentic_source_forward_comparison.json").read_text())
+          assert not price["price_feed_independently_authenticated"]
+          assert not price["authorised_price_feed_for_product"]
+          assert price["approved_paper_entries"]==0
+          assert eligibility["source_cohort_size"]==6
+          assert eligibility["approved_paper_entries"]==0
+          assert eligibility["recorded_fills"]==0
+          assert all(not row["approved_paper_entry"] for row in eligibility["rows"])
+          assert snapshots["approved_trade_entries"]==0
+          assert forward["approved_paper_trades"]==0
+          payload={
+            "source":"ACTUAL_READ_ONLY_VENDOR_ACCESS_PROBE_AND_TIME_FROZEN_SOURCE_RESEARCH",
+            "staged_draft_only":True,
+            "nasdaq_listings":price["listing"].get("status"),
+            "nasdaq_public_history":price["nasdaq_public_history"].get("status"),
+            "independently_authenticated_price_feed":False,
+            "first_party_listing_only_is_not_ohlcv":True,
+            "paper_qualified_entries":0,
+            "broker_fills":0,
+            "source_captured_at_utc":snapshots["capture_created_utc"],
+            "forward_later_completed_session_records":sum(
+                1 for x in forward["comparisons"]
+                if x["status"]=="DESCRIPTIVE_FORWARD_PRICE_CHANGE_NOT_TRADE_RETURN"),
+            "source_sha256":{
+                file:hashlib.sha256(pathlib.Path(file).read_bytes()).hexdigest()
+                for file in ("trade_rules.py","trade_exchange_source_probe.py",
+                             "trade_prospective_eligibility.py",
+                             "original_exchange_source_probe.json",
+                             "fresh_trade_observation.json",
+                             "authentic_source_paper_eligibility.json",
+                             "authentic_source_forward_comparison.json")
+            },
+            "blockers":[
+                "No authorized primary or licensed consolidated exchange daily OHLCV access",
+                "No independent LSE 2024-05-01 price reconciliation",
+                "No complete original-time issuer/official earnings/news/FX/liquidity",
+                "No original approved Trade entry setup with a verified broker paper fill",
+                "No elapsed forward observation can substitute for real realized strategy results",
+            ],
+          }
+          pathlib.Path("real_exchange_forward_receipt.json").write_text(
+              json.dumps(payload,sort_keys=True,indent=2)+"\n")
+          print(json.dumps({
+            "nasdaq_listings":payload["nasdaq_listings"],
+            "nasdaq_price_access":payload["nasdaq_public_history"],
+            "forward_later_sessions":payload["forward_later_completed_session_records"],
+            "paper_entries":payload["paper_qualified_entries"],
+          },indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-real-exchange-access-and-forward-evidence
+          path: |
+            original_exchange_source_probe.json
+            fresh_trade_observation.json
+            authentic_source_paper_eligibility.json
+            authentic_source_forward_comparison.json
+            real_exchange_forward_receipt.json
+          if-no-files-found: warn
+          retention-days: 90
