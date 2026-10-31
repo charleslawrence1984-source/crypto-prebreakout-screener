@@ -1,0 +1,49 @@
+name: Stocks Trade manifest provenance truth audit (RESEARCH ONLY)
+
+on:
+  pull_request:
+    paths:
+      - trade_manifest_truth_research.py
+      - tests/test_trade_manifest_truth_research.py
+      - .github/workflows/stocks-trade-manifest-truth.yml
+      - prepared_trade_fundamentals/manifest.json
+      - prepared_trade_technicals/manifest.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-manifest-research:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Synthetic manifest semantic regression tests (no credentials)
+        run: |
+          python -m py_compile trade_manifest_truth_research.py
+          python -m unittest discover -s tests -p test_trade_manifest_truth_research.py -v
+      - name: Audit actual committed Trade cache manifest totals, no market access
+        run: |
+          python trade_manifest_truth_research.py --output trade_manifest_truth_research.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('trade_manifest_truth_research.json').read_text())
+          assert r['release_verdict']=='BLOCKED_MANIFEST_NOT_COMPLETED_BAR_OR_PIT_EVIDENCE'
+          assert r['trading_orders']==0
+          assert r['completed_bar_source_session_verified'] is False
+          assert r['issuer_publication_asof_verified'] is False
+          assert r['broker_paper_entries_or_fills_verified'] is False
+          print('RESEARCH_ONLY_NOT_LIVE_READY')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stocks-trade-manifest-truth-research
+          path: trade_manifest_truth_research.json
+          if-no-files-found: warn
+          retention-days: 60
