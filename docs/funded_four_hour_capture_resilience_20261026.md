@@ -66,3 +66,29 @@ Proposed release-gated architecture (not implemented):
 6. Before release: test simultaneous independent runners and manual/scheduled overlap, delayed uploads, crashed owner, expired lease fencing, incomplete provider response, outage, recovery, and rollback restoring original :35 crypto and 22:45 stock schedules. Collect prospective equal-window evidence, including late-capture admission trade-offs.
 
 The lease service, permissions, costs, retention, and failure mode are **not selected or approved**. The 90-minute cutoff cannot be silently loosened to improve coverage. Existing green CI validates only the covered deterministic paths and source archive probe; it does not prove distributed exclusion, incident recovery, or prospective backup benefit. No production changes or approvals requested.
+
+## 31 October — shared atomic lease backend decision record (research only)
+
+**CI verified:** PR-head runs 41185266086 (offline in-memory and SQLite lease tests), 41185266073 (candidate capture validation), and 41185266064 (forward capture validation) completed successfully. This proves offline checks, not independent-runner exclusivity or recovery.
+
+### Backend choices and release risks
+
+| Candidate | Atomic primitive | Cross-GitHub-runner reach | Primary caveat |
+|---|---|---|---|
+| SQLite file on each GitHub-hosted runner | BEGIN IMMEDIATE | **No** | Each runner has isolated ephemeral disk; local green tests cannot coordinate remote workers |
+| GitHub repository Contents API | Conditional SHA update / create | Potentially, with authenticated API | Race and 409/422 handling, eventual visibility, write token permissions, rate limits, repository mutations, and durable generation/fencing need separate proof |
+| External managed key/value or SQL service | Server-side conditional insert / compare-and-swap transaction | Potentially, over authenticated network | Service cost, credentials, TTL/clock semantics, outages, access scope, fencing, and operational ownership |
+| GitHub Actions concurrency group | Scheduler-side serialization | Only within configured group | Not a general distributed lock; cancellation, manual dispatch, artifact publication and unrelated workflow coordination remain unproven |
+
+**Decision:** Do not select or install a production backend yet. The safest next experiment is an isolated, PR-only mock/contract test of a remote atomic claim API with two independently instantiated clients, injected stale reads, timeouts, lease expiry and delayed evidence publication. A real provider selection requires owner agreement on any external service/cost/credentials and explicit write-permission scope. A GitHub Contents API candidate must first prove atomic create conflict behavior and stable monotonic fencing, without touching main or live scheduling.
+
+### Acceptance criteria before asking to enable redundant production cron
+
+- Two independent processes targeting the same durable store: exactly one source-candle claim; no duplicate authoritative publication, including manual/scheduled overlap.
+- Crash before/after payload upload; late publisher fenced out; recovery only with verified owner generation and an explicit timeout/incident policy.
+- API outage, rate limit, stale read and provider error fail closed with UNKNOWN; no old candle backfill or fabricated BUY.
+- SHA-verified immutable 33-row original public Kraken archive, distinct source-bar identity and #57 downstream dedup.
+- Prospective, equal-window main-versus-backup evidence including late arrivals and the 90-minute cutoff, with unobserved windows UNKNOWN.
+- Rollback rehearsal to original :35 crypto and 22:45 stock cron, with no archive deletion and no funded account actions.
+
+**Current gate: NOT APPROVAL READY.** No real shared lease, cross-runner test, incident drill or prospective backup admission has been verified.
