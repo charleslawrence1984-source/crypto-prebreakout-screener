@@ -12,6 +12,10 @@ broker requests, price/cache mutation or BUY creation.
 # Research replay only against pinned 2026-10-29T14:46:40Z baseline SHA 302ba6a8a38a34c0b783030d7758dd90064a42731ae04461a75632b05cd20efa.
 # No trading, no paper fill assumptions, no original Trade rule edits, no data publication.
 
+# 2026-10-31 after 2026-10-30 US completed session: one read-only research capture request.
+# Compare ONLY real source session > 2026-10-28 original frozen six-symbol baseline.
+# This comment does not change data handling, rules, labels, prices, fills or order paths.
+
 from __future__ import annotations
 
 import argparse
