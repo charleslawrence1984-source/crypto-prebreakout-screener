@@ -57,13 +57,9 @@
       ]
     },
     "nasdaq": {
-      "count": 3,
+      "count": 0,
       "label": "NASDAQ",
-      "symbols": [
-        "ASPE",
-        "BBTX",
-        "NORD"
-      ]
+      "symbols": []
     },
     "nyse": {
       "count": 5,
@@ -175,8 +171,8 @@
       "symbols": []
     }
   },
-  "recorded_at": "2026-10-30T19:55:14+00:00",
+  "recorded_at": "2026-10-31T00:41:43+00:00",
   "rulebook_build": "2026.10.02.03",
-  "source_fundamentals_updated_at": "2026-10-30T19:19:38+00:00",
-  "total_unresolved": 103
+  "source_fundamentals_updated_at": "2026-10-30T23:43:45+00:00",
+  "total_unresolved": 100
 }
