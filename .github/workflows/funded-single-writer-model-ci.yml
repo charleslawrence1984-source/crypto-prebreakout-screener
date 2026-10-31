@@ -1,0 +1,22 @@
+name: Funded single-writer lease model — PR ONLY
+
+on:
+  pull_request:
+    paths:
+      - 'research/funded_single_writer_lease_model.py'
+      - 'tests/test_funded_single_writer_lease_model.py'
+      - '.github/workflows/funded-single-writer-model-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-model:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate offline lease model
+        run: python -m unittest discover -s tests -p test_funded_single_writer_lease_model.py -v
